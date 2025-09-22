@@ -1,0 +1,380 @@
+import { useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import {
+  ArrowLeft,
+  Clock,
+  Target,
+  CheckCircle2,
+  Circle,
+  RotateCcw,
+  BookOpen,
+  TrendingUp,
+  Filter,
+  SortAsc,
+  SortDesc
+} from 'lucide-react';
+import { coursesAPI } from '../services/api';
+import toast from 'react-hot-toast';
+
+interface Topic {
+  id: number;
+  name: string;
+  description: string;
+  estimatedTime: number;
+  difficulty: 'Kolay' | 'Orta' | 'Zor';
+  order: number;
+}
+
+interface Course {
+  id: number;
+  name: string;
+  category: 'TYT' | 'AYT';
+  description: string;
+  color: string;
+  icon: string;
+  topics?: Topic[];
+}
+
+type TopicStatus = 'not_started' | 'in_progress' | 'completed';
+type SortOption = 'order' | 'name' | 'difficulty' | 'time';
+type FilterOption = 'all' | 'not_started' | 'in_progress' | 'completed' | 'Kolay' | 'Orta' | 'Zor';
+
+const CourseDetailPage = () => {
+  const { id } = useParams<{ id: string }>();
+  const [topicStatuses, setTopicStatuses] = useState<Record<number, TopicStatus>>({});
+  const [sortBy, setSortBy] = useState<SortOption>('order');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [filterBy, setFilterBy] = useState<FilterOption>('all');
+
+  const { data: courseData, isLoading, error } = useQuery({
+    queryKey: ['course', id],
+    queryFn: () => coursesAPI.getCourse(id!, { includeTopics: true }),
+    enabled: !!id,
+  });
+
+  const course: Course | undefined = courseData?.data?.data?.course;
+
+  const updateTopicStatus = (topicId: number, status: TopicStatus) => {
+    setTopicStatuses(prev => ({
+      ...prev,
+      [topicId]: status
+    }));
+
+    const statusLabels = {
+      not_started: 'Başlanmadı',
+      in_progress: 'Devam Ediyor',
+      completed: 'Tamamlandı'
+    };
+
+    toast.success(`Konu durumu: ${statusLabels[status]}`);
+  };
+
+  const getTopicStatus = (topicId: number): TopicStatus => {
+    return topicStatuses[topicId] || 'not_started';
+  };
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'Kolay': return 'text-green-600 bg-green-100 dark:bg-green-900/20 dark:text-green-400';
+      case 'Orta': return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400';
+      case 'Zor': return 'text-red-600 bg-red-100 dark:bg-red-900/20 dark:text-red-400';
+      default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
+    }
+  };
+
+  const getStatusIcon = (status: TopicStatus) => {
+    switch (status) {
+      case 'completed': return <CheckCircle2 className="h-5 w-5 text-green-600" />;
+      case 'in_progress': return <RotateCcw className="h-5 w-5 text-yellow-600" />;
+      default: return <Circle className="h-5 w-5 text-gray-400" />;
+    }
+  };
+
+  const getStatusColor = (status: TopicStatus) => {
+    switch (status) {
+      case 'completed': return 'border-green-200 bg-green-50 dark:border-green-700 dark:bg-green-900/10';
+      case 'in_progress': return 'border-yellow-200 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/10';
+      default: return 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800';
+    }
+  };
+
+  const sortTopics = (topics: Topic[]) => {
+    const sorted = [...topics].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortBy) {
+        case 'order':
+          comparison = a.order - b.order;
+          break;
+        case 'name':
+          comparison = a.name.localeCompare(b.name, 'tr');
+          break;
+        case 'difficulty':
+          const difficultyOrder = { 'Kolay': 1, 'Orta': 2, 'Zor': 3 };
+          comparison = difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+          break;
+        case 'time':
+          comparison = a.estimatedTime - b.estimatedTime;
+          break;
+      }
+
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return sorted;
+  };
+
+  const filterTopics = (topics: Topic[]) => {
+    if (filterBy === 'all') return topics;
+
+    if (['Kolay', 'Orta', 'Zor'].includes(filterBy)) {
+      return topics.filter(topic => topic.difficulty === filterBy);
+    }
+
+    return topics.filter(topic => getTopicStatus(topic.id) === filterBy);
+  };
+
+  const getStats = () => {
+    if (!course?.topics) return { total: 0, completed: 0, inProgress: 0, notStarted: 0 };
+
+    const total = course.topics.length;
+    const completed = course.topics.filter(topic => getTopicStatus(topic.id) === 'completed').length;
+    const inProgress = course.topics.filter(topic => getTopicStatus(topic.id) === 'in_progress').length;
+    const notStarted = total - completed - inProgress;
+
+    return { total, completed, inProgress, notStarted };
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="spinner w-8 h-8" />
+      </div>
+    );
+  }
+
+  if (error || !course) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600">Ders yüklenirken bir hata oluştu.</p>
+        <Link to="/courses" className="text-primary-600 hover:text-primary-500 mt-2 inline-block">
+          Derslere geri dön
+        </Link>
+      </div>
+    );
+  }
+
+  const stats = getStats();
+  const progressPercentage = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+  const filteredAndSortedTopics = sortTopics(filterTopics(course.topics || []));
+
+  return (
+    <div className="space-y-8">
+      {/* Back Button */}
+      <Link
+        to="/courses"
+        className="inline-flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Derslere geri dön
+      </Link>
+
+      {/* Course Header */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center">
+            <div
+              className="w-16 h-16 rounded-lg flex items-center justify-center text-white text-2xl"
+              style={{ backgroundColor: course.color }}
+            >
+              {course.icon}
+            </div>
+            <div className="ml-4">
+              <div className="flex items-center space-x-3">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {course.name}
+                </h1>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                  course.category === 'TYT'
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+                    : 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+                }`}>
+                  {course.category}
+                </span>
+              </div>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">
+                {course.description}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Progress Stats */}
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Toplam Konu</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Tamamlandı</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-yellow-600">{stats.inProgress}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Devam Ediyor</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">{stats.notStarted}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Başlanmadı</div>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">İlerleme</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{progressPercentage}%</span>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div
+              className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
+        {/* Filter */}
+        <div className="flex items-center space-x-2">
+          <Filter className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+          <select
+            value={filterBy}
+            onChange={(e) => setFilterBy(e.target.value as FilterOption)}
+            className="input text-sm"
+          >
+            <option value="all">Tüm Konular</option>
+            <option value="not_started">Başlanmadı</option>
+            <option value="in_progress">Devam Ediyor</option>
+            <option value="completed">Tamamlandı</option>
+            <option value="Kolay">Kolay</option>
+            <option value="Orta">Orta</option>
+            <option value="Zor">Zor</option>
+          </select>
+        </div>
+
+        {/* Sort */}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+          >
+            {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+          </button>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="input text-sm"
+          >
+            <option value="order">Sıra</option>
+            <option value="name">İsim</option>
+            <option value="difficulty">Zorluk</option>
+            <option value="time">Süre</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Topics List */}
+      <div className="space-y-4">
+        {filteredAndSortedTopics.map((topic, index) => (
+          <motion.div
+            key={topic.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className={`border rounded-lg p-4 transition-all duration-200 ${getStatusColor(getTopicStatus(topic.id))}`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4 flex-1">
+                {/* Status Button */}
+                <div className="flex space-x-1">
+                  <button
+                    onClick={() => updateTopicStatus(topic.id, 'not_started')}
+                    className={`p-1 rounded transition-colors ${
+                      getTopicStatus(topic.id) === 'not_started'
+                        ? 'bg-gray-100 dark:bg-gray-700'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                    title="Başlanmadı"
+                  >
+                    <Circle className="h-4 w-4 text-gray-400" />
+                  </button>
+                  <button
+                    onClick={() => updateTopicStatus(topic.id, 'in_progress')}
+                    className={`p-1 rounded transition-colors ${
+                      getTopicStatus(topic.id) === 'in_progress'
+                        ? 'bg-yellow-100 dark:bg-yellow-900/20'
+                        : 'hover:bg-yellow-100 dark:hover:bg-yellow-900/20'
+                    }`}
+                    title="Devam Ediyor"
+                  >
+                    <RotateCcw className="h-4 w-4 text-yellow-600" />
+                  </button>
+                  <button
+                    onClick={() => updateTopicStatus(topic.id, 'completed')}
+                    className={`p-1 rounded transition-colors ${
+                      getTopicStatus(topic.id) === 'completed'
+                        ? 'bg-green-100 dark:bg-green-900/20'
+                        : 'hover:bg-green-100 dark:hover:bg-green-900/20'
+                    }`}
+                    title="Tamamlandı"
+                  >
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  </button>
+                </div>
+
+                {/* Topic Info */}
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3">
+                    <h3 className="font-medium text-gray-900 dark:text-white">
+                      {topic.name}
+                    </h3>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(topic.difficulty)}`}>
+                      {topic.difficulty}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {topic.description}
+                  </p>
+                </div>
+
+                {/* Time */}
+                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                  <Clock className="h-4 w-4 mr-1" />
+                  {topic.estimatedTime}dk
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {filteredAndSortedTopics.length === 0 && (
+        <div className="text-center py-12">
+          <Target className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+            Konu bulunamadı
+          </h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Seçilen filtreye uygun konu bulunmuyor.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default CourseDetailPage;

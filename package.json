@@ -1,0 +1,50 @@
+{
+  "name": "ders-takip-sistemi",
+  "version": "1.0.0",
+  "description": "TYT-AYT Ders Takip ve Planlama Sistemi - Full Stack Application",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "setup": "npm run install:all && npm run db:setup && npm run seed",
+    "install:all": "npm install && npm run install:backend && npm run install:frontend",
+    "install:backend": "cd backend && npm install",
+    "install:frontend": "cd frontend && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "cd backend && npm start",
+    "db:setup": "cd backend && npm run db:setup",
+    "seed": "cd backend && npm run seed",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:frontend": "cd frontend && npm run lint",
+    "test": "npm run test:backend",
+    "test:backend": "cd backend && npm test"
+  },
+  "keywords": [
+    "education",
+    "tyt",
+    "ayt",
+    "study-tracker",
+    "learning-management",
+    "fullstack",
+    "react",
+    "nodejs",
+    "mongodb"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
