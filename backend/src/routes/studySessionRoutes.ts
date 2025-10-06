@@ -29,6 +29,7 @@ const createStudySessionSchema = z.object({
       message: 'Invalid end time format',
     }),
     sessionType: z.enum(['study', 'break', 'pomodoro', 'review']).optional(),
+    color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid color format').optional(),
     pomodoroSettings: z.object({
       workDuration: z.number().min(1).max(120),
       shortBreak: z.number().min(1).max(30),
@@ -55,6 +56,7 @@ const updateStudySessionSchema = z.object({
     status: z.enum(['planned', 'in_progress', 'completed', 'cancelled', 'paused']).optional(),
     notes: z.string().optional(),
     productivity: z.number().min(1).max(5).optional(),
+    color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid color format').optional(),
     pomodoroSettings: z.object({
       workDuration: z.number().min(1).max(120).optional(),
       shortBreak: z.number().min(1).max(30).optional(),

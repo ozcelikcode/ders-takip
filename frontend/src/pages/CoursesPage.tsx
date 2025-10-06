@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Clock, Target, TrendingUp } from 'lucide-react';
+import { BookOpen, Clock, Target, TrendingUp, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, Dna, Landmark, Map, Brain, Heart, BookText } from 'lucide-react';
 import { coursesAPI } from '../services/api';
 
 interface Topic {
@@ -35,6 +35,25 @@ const CoursesPage = () => {
   });
 
   const courses: Course[] = coursesData?.data?.data?.courses || [];
+
+  const getIconComponent = (iconName: string) => {
+    const icons: Record<string, any> = {
+      BookOpen,
+      Calculator,
+      Microscope,
+      Globe,
+      Triangle,
+      Atom,
+      FlaskConical,
+      Dna,
+      Landmark,
+      Map,
+      Brain,
+      Heart,
+      BookText,
+    };
+    return icons[iconName] || BookOpen;
+  };
 
   const filteredCourses = selectedCategory === 'ALL'
     ? courses
@@ -176,10 +195,13 @@ const CoursesPage = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center">
                     <div
-                      className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl"
+                      className="w-12 h-12 rounded-lg flex items-center justify-center text-white"
                       style={{ backgroundColor: course.color }}
                     >
-                      {course.icon}
+                      {(() => {
+                        const IconComponent = getIconComponent(course.icon);
+                        return <IconComponent className="w-6 h-6" />;
+                      })()}
                     </div>
                     <div className="ml-3">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">

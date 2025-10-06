@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-primary: 59 130 246; /* #3B82F6 - blue-600 */
+    --color-secondary: 16 185 129; /* #10B981 - green-600 */
+  }
+
   html {
     scroll-behavior: smooth;
   }

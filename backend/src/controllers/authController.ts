@@ -53,6 +53,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       fullName: user.getFullName(),
       role: user.role,
       isActive: user.isActive,
+      profileImage: user.profileImage,
       preferences: user.preferences,
       createdAt: user.createdAt,
     };
@@ -125,6 +126,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
       fullName: user.getFullName(),
       role: user.role,
       isActive: user.isActive,
+      profileImage: user.profileImage,
       preferences: user.preferences,
       lastLogin: user.lastLogin,
       createdAt: user.createdAt,
@@ -213,6 +215,7 @@ export const getMe = async (req: Request, res: Response, next: NextFunction): Pr
       fullName: user.getFullName(),
       role: user.role,
       isActive: user.isActive,
+      profileImage: user.profileImage,
       preferences: user.preferences,
       lastLogin: user.lastLogin,
       createdAt: user.createdAt,
@@ -231,7 +234,7 @@ export const getMe = async (req: Request, res: Response, next: NextFunction): Pr
 export const updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user.id;
-    const { firstName, lastName, preferences } = req.body;
+    const { firstName, lastName, username, profileImage, preferences } = req.body;
 
     const user = await User.findByPk(userId);
     if (!user) {
@@ -242,8 +245,26 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
       return;
     }
 
+    // Check if username is already taken (if trying to change)
+    if (username && username !== user.username) {
+      const existingUser = await User.findOne({
+        where: { username },
+      });
+
+      if (existingUser) {
+        res.status(400).json({
+          success: false,
+          error: { message: 'Bu kullanıcı adı zaten kullanılıyor' },
+        });
+        return;
+      }
+
+      user.username = username;
+    }
+
     if (firstName) user.firstName = firstName;
     if (lastName) user.lastName = lastName;
+    if (profileImage !== undefined) user.profileImage = profileImage;
     if (preferences) user.preferences = { ...user.preferences, ...preferences };
 
     await user.save();
@@ -257,6 +278,7 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
       fullName: user.getFullName(),
       role: user.role,
       isActive: user.isActive,
+      profileImage: user.profileImage,
       preferences: user.preferences,
       updatedAt: user.updatedAt,
     };

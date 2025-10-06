@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",
+    "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^3.3.2",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/forms": "^0.5.10",
@@ -20,6 +21,7 @@
     "@tanstack/react-query": "^5.8.4",
     "@tanstack/react-query-devtools": "^5.89.0",
     "axios": "^1.6.2",
+    "canvas-confetti": "^1.9.3",
     "clsx": "^2.0.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^10.16.5",
@@ -29,7 +31,7 @@
     "react-hook-form": "^7.48.2",
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.20.0",
-    "recharts": "^2.8.0",
+    "recharts": "^2.15.4",
     "tailwind-merge": "^2.1.0",
     "zod": "^3.22.4",
     "zustand": "^4.4.7"

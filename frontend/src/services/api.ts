@@ -2,13 +2,13 @@ import axios, { AxiosResponse } from 'axios';
 import toast from 'react-hot-toast';
 import type { ApiResponse } from '../types/api';
 import type { LoginCredentials, RegisterData, AuthResponse, User } from '../types/auth';
-import type { Plan, StudySession, CreatePlanRequest, CreateStudySessionRequest, UpdateStudySessionRequest } from '../types/planner';
+import type { Plan, StudySession, CreatePlanRequest, CreateStudySessionRequest, UpdateStudySessionRequest, Topic, CreateTopicRequest, UpdateTopicRequest } from '../types/planner';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000, // Increased from 10s to 30s to prevent timeout errors
   headers: {
     'Content-Type': 'application/json',
   },
@@ -213,20 +213,41 @@ export const studySessionsAPI = {
     api.delete(`/study-sessions/${id}`),
 
   startSession: (id: string): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
-    api.post(`/study-sessions/${id}/start`),
+    api.patch(`/study-sessions/${id}/start`),
 
   completeSession: (id: string, data?: { notes?: string; productivity?: number }): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
-    api.post(`/study-sessions/${id}/complete`, data),
+    api.patch(`/study-sessions/${id}/complete`, data),
+};
+
+// Topics API
+export const topicsAPI = {
+  getTopics: (params?: any): Promise<AxiosResponse<ApiResponse<{ topics: Topic[] }>>> =>
+    api.get('/topics', { params }),
+
+  getTopic: (id: string): Promise<AxiosResponse<ApiResponse<{ topic: Topic }>>> =>
+    api.get(`/topics/${id}`),
+
+  createTopic: (data: CreateTopicRequest): Promise<AxiosResponse<ApiResponse<{ topic: Topic }>>> =>
+    api.post('/topics', data),
+
+  updateTopic: (id: string, data: UpdateTopicRequest): Promise<AxiosResponse<ApiResponse<{ topic: Topic }>>> =>
+    api.put(`/topics/${id}`, data),
+
+  deleteTopic: (id: string): Promise<AxiosResponse<ApiResponse>> =>
+    api.delete(`/topics/${id}`),
+
+  reorderTopics: (courseId: string, topicOrders: { id: number; order: number }[]): Promise<AxiosResponse<ApiResponse<{ topics: Topic[] }>>> =>
+    api.put(`/topics/course/${courseId}/reorder`, { topicOrders }),
 };
 
 // Settings API
 export const settingsAPI = {
   getSettings: (): Promise<AxiosResponse<ApiResponse<any>>> =>
     api.get('/settings'),
-  
+
   updateSettings: (data: any): Promise<AxiosResponse<ApiResponse<any>>> =>
     api.put('/settings', data),
-    
+
   getSettingsByCategory: (category: string): Promise<AxiosResponse<ApiResponse<any>>> =>
     api.get(`/settings/category/${category}`),
 };

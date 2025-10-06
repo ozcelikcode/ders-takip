@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
+import { useSettingsStore } from './store/settingsStore';
 import { useEffect } from 'react';
 
 // Pages
@@ -7,6 +8,7 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import CoursesPage from './pages/CoursesPage';
+import CourseDetailPage from './pages/CourseDetailPage';
 import PlannerPage from './pages/planner/PlannerPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
@@ -22,10 +24,17 @@ import LoadingScreen from './components/common/LoadingScreen';
 
 function App() {
   const { isLoading, initializeAuth } = useAuthStore();
+  const { fetchSettings, applyTheme } = useSettingsStore();
 
   useEffect(() => {
     initializeAuth();
-  }, [initializeAuth]);
+    fetchSettings();
+  }, [initializeAuth, fetchSettings]);
+
+  // Apply theme on mount and when settings change
+  useEffect(() => {
+    applyTheme();
+  }, [applyTheme]);
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -42,6 +51,7 @@ function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="courses" element={<CoursesPage />} />
+        <Route path="courses/:id" element={<CourseDetailPage />} />
         <Route path="planner" element={<PlannerPage />} />
         <Route path="profile" element={<ProfilePage />} />
 

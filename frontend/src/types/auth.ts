@@ -7,6 +7,7 @@ export interface User {
   fullName: string;
   role: 'student' | 'admin';
   isActive: boolean;
+  profileImage?: string;
   preferences: {
     theme: 'light' | 'dark';
     notifications: {
@@ -18,6 +19,7 @@ export interface User {
       dailyHours: number;
       weeklyHours: number;
     };
+    studyField?: 'TYT' | 'AYT' | 'SAY' | 'EA' | 'SOZ' | 'DIL';
   };
   lastLogin?: string;
   createdAt: string;

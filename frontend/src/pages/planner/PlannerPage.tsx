@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import WeeklyPlanner from '../../components/planner/WeeklyPlanner';
 import DailyCalendar from '../../components/planner/DailyCalendar';
 import CreateSessionModal from '../../components/planner/CreateSessionModal';
-import GoalsOverview from '../../components/planner/GoalsOverview';
+import TodaysPlans from '../../components/planner/GoalsOverview';
 import PlannerNavigation from '../../components/planner/PlannerNavigation';
 import PomodoroModal from '../../components/planner/PomodoroModal';
 import { StudySession } from '../../types/planner';
@@ -30,7 +30,7 @@ const PlannerPage = () => {
 
   return (
     <div className="space-y-8">
-      <GoalsOverview />
+      <TodaysPlans />
 
       <div className="space-y-6">
         <div className="flex items-center justify-between">

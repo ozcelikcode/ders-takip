@@ -14,7 +14,7 @@ interface TopicAttributes {
   updatedAt: Date;
 }
 
-interface TopicCreationAttributes extends Optional<TopicAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description'> {}
+interface TopicCreationAttributes extends Optional<TopicAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description' | 'isActive'> {}
 
 export class Topic extends Model<TopicAttributes, TopicCreationAttributes> implements TopicAttributes {
   public id!: number;

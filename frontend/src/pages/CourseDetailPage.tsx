@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import {
   ArrowLeft,
   Clock,
@@ -10,12 +10,24 @@ import {
   Circle,
   RotateCcw,
   BookOpen,
-  TrendingUp,
   Filter,
   SortAsc,
-  SortDesc
+  SortDesc,
+  Calculator,
+  Microscope,
+  Globe,
+  Triangle,
+  Atom,
+  FlaskConical,
+  Dna,
+  Landmark,
+  Map,
+  Brain,
+  Heart,
+  BookText
 } from 'lucide-react';
-import { coursesAPI } from '../services/api';
+import { coursesAPI, topicsAPI } from '../services/api';
+import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 
 interface Topic {
@@ -43,10 +55,47 @@ type FilterOption = 'all' | 'not_started' | 'in_progress' | 'completed' | 'Kolay
 
 const CourseDetailPage = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
+
   const [topicStatuses, setTopicStatuses] = useState<Record<number, TopicStatus>>({});
   const [sortBy, setSortBy] = useState<SortOption>('order');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
+
+  const queryClient = useQueryClient();
+
+  // Reorder topics mutation
+  const reorderMutation = useMutation({
+    mutationFn: (topicOrders: { id: number; order: number }[]) =>
+      topicsAPI.reorderTopics(id!, topicOrders),
+    onSuccess: () => {
+      toast.success('Konu sıralaması güncellendi');
+      queryClient.invalidateQueries({ queryKey: ['course', id] });
+    },
+    onError: () => {
+      toast.error('Sıralama güncellenirken hata oluştu');
+    },
+  });
+
+  const getIconComponent = (iconName: string) => {
+    const icons: Record<string, any> = {
+      BookOpen,
+      Calculator,
+      Microscope,
+      Globe,
+      Triangle,
+      Atom,
+      FlaskConical,
+      Dna,
+      Landmark,
+      Map,
+      Brain,
+      Heart,
+      BookText,
+    };
+    return icons[iconName] || BookOpen;
+  };
 
   const { data: courseData, isLoading, error } = useQuery({
     queryKey: ['course', id],
@@ -147,6 +196,44 @@ const CourseDetailPage = () => {
     return { total, completed, inProgress, notStarted };
   };
 
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination || !course?.topics) return;
+
+    const items = Array.from(filteredAndSortedTopics);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update order numbers based on new positions
+    const topicOrders = items.map((topic, index) => ({
+      id: topic.id,
+      order: index + 1,
+    }));
+
+    // Optimistically update UI
+    queryClient.setQueryData(['course', id], (old: any) => {
+      if (!old?.data?.data?.course) return old;
+      return {
+        ...old,
+        data: {
+          ...old.data,
+          data: {
+            ...old.data.data,
+            course: {
+              ...old.data.data.course,
+              topics: items.map((topic, index) => ({
+                ...topic,
+                order: index + 1,
+              })),
+            },
+          },
+        },
+      };
+    });
+
+    // Send to backend
+    reorderMutation.mutate(topicOrders);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -186,10 +273,13 @@ const CourseDetailPage = () => {
         <div className="flex items-start justify-between">
           <div className="flex items-center">
             <div
-              className="w-16 h-16 rounded-lg flex items-center justify-center text-white text-2xl"
+              className="w-16 h-16 rounded-lg flex items-center justify-center text-white"
               style={{ backgroundColor: course.color }}
             >
-              {course.icon}
+              {(() => {
+                const IconComponent = getIconComponent(course.icon);
+                return <IconComponent className="w-8 h-8" />;
+              })()}
             </div>
             <div className="ml-4">
               <div className="flex items-center space-x-3">
@@ -288,79 +378,112 @@ const CourseDetailPage = () => {
       </div>
 
       {/* Topics List */}
-      <div className="space-y-4">
-        {filteredAndSortedTopics.map((topic, index) => (
-          <motion.div
-            key={topic.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className={`border rounded-lg p-4 transition-all duration-200 ${getStatusColor(getTopicStatus(topic.id))}`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 flex-1">
-                {/* Status Button */}
-                <div className="flex space-x-1">
-                  <button
-                    onClick={() => updateTopicStatus(topic.id, 'not_started')}
-                    className={`p-1 rounded transition-colors ${
-                      getTopicStatus(topic.id) === 'not_started'
-                        ? 'bg-gray-100 dark:bg-gray-700'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                    title="Başlanmadı"
-                  >
-                    <Circle className="h-4 w-4 text-gray-400" />
-                  </button>
-                  <button
-                    onClick={() => updateTopicStatus(topic.id, 'in_progress')}
-                    className={`p-1 rounded transition-colors ${
-                      getTopicStatus(topic.id) === 'in_progress'
-                        ? 'bg-yellow-100 dark:bg-yellow-900/20'
-                        : 'hover:bg-yellow-100 dark:hover:bg-yellow-900/20'
-                    }`}
-                    title="Devam Ediyor"
-                  >
-                    <RotateCcw className="h-4 w-4 text-yellow-600" />
-                  </button>
-                  <button
-                    onClick={() => updateTopicStatus(topic.id, 'completed')}
-                    className={`p-1 rounded transition-colors ${
-                      getTopicStatus(topic.id) === 'completed'
-                        ? 'bg-green-100 dark:bg-green-900/20'
-                        : 'hover:bg-green-100 dark:hover:bg-green-900/20'
-                    }`}
-                    title="Tamamlandı"
-                  >
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  </button>
-                </div>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="topics" isDropDisabled={!isAdmin || sortBy !== 'order'}>
+          {(provided, snapshot) => (
+            <div
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className="space-y-4"
+            >
+              {filteredAndSortedTopics.map((topic, index) => (
+                <Draggable
+                  key={topic.id}
+                  draggableId={topic.id.toString()}
+                  index={index}
+                  isDragDisabled={!isAdmin || sortBy !== 'order'}
+                >
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      className={`border rounded-lg p-4 transition-all duration-200 ${getStatusColor(getTopicStatus(topic.id))} ${
+                        snapshot.isDragging ? 'shadow-lg ring-2 ring-primary-500' : ''
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        {/* Drag Handle */}
+                        {isAdmin && sortBy === 'order' && (
+                          <div
+                            {...provided.dragHandleProps}
+                            className="mr-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                            </svg>
+                          </div>
+                        )}
 
-                {/* Topic Info */}
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3">
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      {topic.name}
-                    </h3>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(topic.difficulty)}`}>
-                      {topic.difficulty}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {topic.description}
-                  </p>
-                </div>
+                        <div className="flex items-center space-x-4 flex-1">
+                          {/* Status Button */}
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={() => updateTopicStatus(topic.id, 'not_started')}
+                              className={`p-1 rounded transition-colors ${
+                                getTopicStatus(topic.id) === 'not_started'
+                                  ? 'bg-gray-100 dark:bg-gray-700'
+                                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                              }`}
+                              title="Başlanmadı"
+                            >
+                              <Circle className="h-4 w-4 text-gray-400" />
+                            </button>
+                            <button
+                              onClick={() => updateTopicStatus(topic.id, 'in_progress')}
+                              className={`p-1 rounded transition-colors ${
+                                getTopicStatus(topic.id) === 'in_progress'
+                                  ? 'bg-yellow-100 dark:bg-yellow-900/20'
+                                  : 'hover:bg-yellow-100 dark:hover:bg-yellow-900/20'
+                              }`}
+                              title="Devam Ediyor"
+                            >
+                              <RotateCcw className="h-4 w-4 text-yellow-600" />
+                            </button>
+                            <button
+                              onClick={() => updateTopicStatus(topic.id, 'completed')}
+                              className={`p-1 rounded transition-colors ${
+                                getTopicStatus(topic.id) === 'completed'
+                                  ? 'bg-green-100 dark:bg-green-900/20'
+                                  : 'hover:bg-green-100 dark:hover:bg-green-900/20'
+                              }`}
+                              title="Tamamlandı"
+                            >
+                              <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            </button>
+                          </div>
 
-                {/* Time */}
-                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                  <Clock className="h-4 w-4 mr-1" />
-                  {topic.estimatedTime}dk
-                </div>
-              </div>
+                          {/* Topic Info */}
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3">
+                              <h3 className="font-medium text-gray-900 dark:text-white">
+                                {topic.name}
+                              </h3>
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(topic.difficulty)}`}>
+                                {topic.difficulty}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                              {topic.description}
+                            </p>
+                          </div>
+
+                          {/* Time */}
+                          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                            <Clock className="h-4 w-4 mr-1" />
+                            {topic.estimatedTime}dk
+                          </div>
+
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
             </div>
-          </motion.div>
-        ))}
-      </div>
+          )}
+        </Droppable>
+      </DragDropContext>
 
       {filteredAndSortedTopics.length === 0 && (
         <div className="text-center py-12">
@@ -373,6 +496,7 @@ const CourseDetailPage = () => {
           </p>
         </div>
       )}
+
     </div>
   );
 };

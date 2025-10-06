@@ -1,8 +1,43 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { BarChart3, BookOpen, Calendar, Clock, TrendingUp, ArrowRight, Target } from 'lucide-react';
+import { BookOpen, Calendar, ArrowRight, Clock, GraduationCap, Layers, Target } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { coursesAPI, studySessionsAPI } from '../../services/api';
+import WeeklyProgressChart from '../../components/dashboard/WeeklyProgressChart';
+import RecentActivities from '../../components/dashboard/RecentActivities';
 
 const DashboardPage = () => {
+  // Fetch courses data
+  const { data: coursesData } = useQuery({
+    queryKey: ['courses'],
+    queryFn: async () => {
+      const response = await coursesAPI.getCourses();
+      return response.data.data?.courses || [];
+    },
+  });
+
+  // Fetch all completed sessions for total study time
+  const { data: sessionsData } = useQuery({
+    queryKey: ['all-completed-sessions'],
+    queryFn: async () => {
+      const response = await studySessionsAPI.getSessions({ status: 'completed' });
+      return response.data.data?.sessions || [];
+    },
+  });
+
+  // Calculate stats
+  const totalTopics = coursesData?.reduce((sum, course: any) => sum + (course.topics?.length || 0), 0) || 0;
+  const tytCourses = coursesData?.filter((course: any) => course.category === 'TYT').length || 0;
+  const aytCourses = coursesData?.filter((course: any) => course.category === 'AYT').length || 0;
+  const totalStudyHours = Math.round((sessionsData?.reduce((sum: number, session: any) => sum + session.duration, 0) || 0) / 60);
+
+  const stats = [
+    { title: 'Toplam Konu', value: totalTopics, icon: BookOpen, color: 'text-blue-600' },
+    { title: 'TYT Dersleri', value: tytCourses, icon: GraduationCap, color: 'text-green-600' },
+    { title: 'AYT Dersleri', value: aytCourses, icon: Layers, color: 'text-purple-600' },
+    { title: 'Toplam Çalışma', value: `${totalStudyHours}sa`, icon: Clock, color: 'text-orange-600' },
+  ];
+
   return (
     <div className="space-y-6">
       <motion.div
@@ -20,12 +55,7 @@ const DashboardPage = () => {
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { title: 'Toplam Konu', value: '250+', icon: BookOpen, color: 'text-blue-600' },
-          { title: 'TYT Dersleri', value: '4', icon: Target, color: 'text-green-600' },
-          { title: 'AYT Dersleri', value: '10', icon: TrendingUp, color: 'text-purple-600' },
-          { title: '2025 Müfredatı', value: '✓', icon: Clock, color: 'text-orange-600' },
-        ].map((stat, index) => (
+        {stats.map((stat, index) => (
           <motion.div
             key={stat.title}
             initial={{ opacity: 0, y: 20 }}
@@ -126,23 +156,11 @@ const DashboardPage = () => {
             </h3>
           </div>
           <div className="card-body">
-            <div className="space-y-4">
-              {[
-                'Geometri - Analitik Geometri konusu eklendi',
-                'AYT Matematik - Türev ve İntegral konuları güncellendi',
-                'TYT Fen Bilimleri - 2025 Müfredatı konuları',
-                'Edebiyat - Modern Türk Edebiyatı konuları',
-              ].map((activity, index) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <div className="h-2 w-2 bg-primary-600 rounded-full"></div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{activity}</p>
-                </div>
-              ))}
-            </div>
+            <RecentActivities />
           </div>
         </motion.div>
 
-        {/* Progress chart placeholder */}
+        {/* Weekly Progress Chart */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -151,18 +169,11 @@ const DashboardPage = () => {
         >
           <div className="card-header">
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              Haftalık İlerleme
+              Haftalık İlerleme (Son 7 Gün)
             </h3>
           </div>
           <div className="card-body">
-            <div className="flex items-center justify-center h-48 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div className="text-center">
-                <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500 dark:text-gray-400">
-                  Grafik yakında gelecek
-                </p>
-              </div>
-            </div>
+            <WeeklyProgressChart />
           </div>
         </motion.div>
       </div>

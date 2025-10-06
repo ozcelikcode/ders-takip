@@ -1,104 +1,225 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Target, Plus, TrendingUp, Clock, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
-import { Plan } from '../../types/planner';
-import { plansAPI, studySessionsAPI } from '../../services/api';
+import { Calendar as CalendarIcon, Plus, Play, Timer, Clock, CheckCircle, AlertCircle, Book, RotateCcw, Check, Edit, Pause, Activity } from 'lucide-react';
+import { StudySession } from '../../types/planner';
+import { studySessionsAPI } from '../../services/api';
 import { useQuery } from '@tanstack/react-query';
-import { format, differenceInDays, parseISO } from 'date-fns';
-import { tr } from 'date-fns/locale';
-import GoalSettingModal from './GoalSettingModal';
+import { format, parseISO, isBefore, isAfter } from 'date-fns';
+import CreateSessionModal from './CreateSessionModal';
+import confetti from 'canvas-confetti';
+import toast from 'react-hot-toast';
+import ConfirmDialog from '../common/ConfirmDialog';
+import { isSessionMissed, canStartSession, getSessionTextStyle } from '../../utils/sessionHelpers';
 
-const GoalsOverview: React.FC = () => {
+const TodaysPlans: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-  const { data: plansData, isLoading: plansLoading } = useQuery({
-    queryKey: ['plans'],
-    queryFn: async () => {
-      const response = await plansAPI.getPlans({ isActive: true });
-      return response.data.data.plans;
-    },
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<StudySession | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
   });
 
-  const { data: sessionsData } = useQuery({
-    queryKey: ['study-sessions'],
+  const { data: sessionsData, isLoading: sessionsLoading, refetch } = useQuery({
+    queryKey: ['todays-sessions'],
     queryFn: async () => {
-      const response = await studySessionsAPI.getSessions();
-      return response.data.data.sessions;
+      const today = format(new Date(), 'yyyy-MM-dd');
+      console.log('🔍 GoalsOverview: Fetching sessions for date:', today);
+      try {
+        const response = await studySessionsAPI.getSessions({
+          startDate: today,
+          endDate: today,
+        });
+        console.log('✅ GoalsOverview: Sessions received:', response.data.data?.sessions);
+        return response.data.data?.sessions || [];
+      } catch (error: any) {
+        console.error('❌ GoalsOverview: Error fetching sessions:', error.response?.data || error.message);
+        throw error;
+      }
     },
+    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 0, // Always consider data stale for immediate updates
+    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gets focus
   });
 
-  const calculatePlanProgress = (plan: Plan) => {
-    if (!sessionsData) return { completedHours: 0, progressPercentage: 0, sessionsCount: 0 };
-
-    const planSessions = sessionsData.filter(
-      session => session.planId === plan.id && session.status === 'completed'
-    );
-
-    const completedHours = planSessions.reduce((total, session) => total + (session.duration / 60), 0);
-    const totalTargetHours = plan.goals.weeklyHours * (
-      differenceInDays(parseISO(plan.endDate), parseISO(plan.startDate)) / 7
-    );
-
-    const progressPercentage = (completedHours / totalTargetHours) * 100;
-
-    return {
-      completedHours: Math.round(completedHours * 10) / 10,
-      progressPercentage: Math.min(100, Math.round(progressPercentage)),
-      sessionsCount: planSessions.length,
-      totalTargetHours: Math.round(totalTargetHours * 10) / 10,
-    };
-  };
-
-  const getDaysRemaining = (endDate: string) => {
-    const days = differenceInDays(parseISO(endDate), new Date());
-    return Math.max(0, days);
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800 border-red-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low': return 'bg-green-100 text-green-800 border-green-200';
+  const getSessionStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
+      case 'in_progress': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'paused': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 80) return 'text-green-600 bg-green-100';
-    if (percentage >= 60) return 'text-blue-600 bg-blue-100';
-    if (percentage >= 40) return 'text-yellow-600 bg-yellow-100';
-    return 'text-red-600 bg-red-100';
+  const getSessionTypeColor = (sessionType: string) => {
+    switch (sessionType) {
+      case 'study': return 'bg-blue-500';
+      case 'pomodoro': return 'bg-red-500';
+      case 'review': return 'bg-green-500';
+      case 'break': return 'bg-gray-500';
+      default: return 'bg-blue-500';
+    }
   };
 
-  const getStatusIcon = (plan: Plan, progress: any) => {
-    const daysRemaining = getDaysRemaining(plan.endDate);
-
-    if (daysRemaining === 0) {
-      return progress.progressPercentage >= 90 ?
-        <CheckCircle className="w-5 h-5 text-green-600" /> :
-        <AlertCircle className="w-5 h-5 text-red-600" />;
-    }
-
-    if (progress.progressPercentage >= 80) {
-      return <TrendingUp className="w-5 h-5 text-green-600" />;
-    }
-
-    if (progress.progressPercentage >= 40) {
-      return <Clock className="w-5 h-5 text-blue-600" />;
-    }
-
-    return <AlertCircle className="w-5 h-5 text-yellow-600" />;
+  const triggerConfetti = () => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#22c55e', '#10b981', '#4ade80', '#86efac'],
+    });
   };
 
-  if (plansLoading) {
+  const handleStartSession = async (session: StudySession) => {
+    // Vakti geçmiş oturumlar başlatılamaz
+    if (!canStartSession(session)) {
+      toast.error('Bu oturum için zaman geçmiş. Lütfen oturum saatini güncelleyin.');
+      return;
+    }
+
+    try {
+      await studySessionsAPI.startSession(session.id.toString());
+      toast.success('Çalışma seansı başlatıldı');
+      refetch();
+    } catch (error) {
+      toast.error('Seans başlatılırken hata oluştu');
+    }
+  };
+
+  const handlePauseSession = (session: StudySession) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Oturumu Duraklat',
+      message: 'Bu oturumu duraklatmak istiyor musunuz?',
+      type: 'warning',
+      onConfirm: async () => {
+        try {
+          await studySessionsAPI.updateSession(session.id.toString(), {
+            status: 'paused',
+          });
+          toast.success('Çalışma seansı duraklatıldı');
+          refetch();
+        } catch (error) {
+          toast.error('Seans duraklatılırken hata oluştu');
+        }
+      },
+    });
+  };
+
+  const handleRestartSession = (session: StudySession) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Oturumu Tekrar Başlat',
+      message: 'Bu tamamlanmış oturumu tekrar planlanmış duruma getirmek istiyor musunuz?',
+      type: 'info',
+      onConfirm: async () => {
+        try {
+          await studySessionsAPI.updateSession(session.id.toString(), {
+            status: 'planned',
+          });
+          toast.success('Oturum tekrar planlanmış duruma getirildi');
+          refetch();
+        } catch (error) {
+          toast.error('Oturum güncellenirken hata oluştu');
+        }
+      },
+    });
+  };
+
+  const handleEditSession = (session: StudySession) => {
+    setEditingSession(session);
+    setIsEditModalOpen(true);
+  };
+
+  const getSessionStatusIcon = (session: StudySession) => {
+    const now = new Date();
+    const sessionStart = parseISO(session.startTime);
+    const sessionEnd = parseISO(session.endTime);
+
+    if (session.status === 'completed') {
+      return <CheckCircle className="w-4 h-4 text-green-600" />;
+    } else if (session.status === 'in_progress') {
+      return <Activity className="w-4 h-4 text-blue-600" />;
+    } else if (session.status === 'paused') {
+      return <Pause className="w-4 h-4 text-orange-600" />;
+    } else if (isBefore(now, sessionStart)) {
+      return <Clock className="w-4 h-4 text-gray-600" />;
+    } else if (isAfter(now, sessionEnd)) {
+      return <AlertCircle className="w-4 h-4 text-red-600" />;
+    } else {
+      return <Clock className="w-4 h-4 text-gray-600" />;
+    }
+  };
+
+  const sortedSessions = sessionsData?.sort((a, b) =>
+    parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime()
+  ) || [];
+
+  const completedSessions = sortedSessions.filter(s => s.status === 'completed').length;
+  const totalSessions = sortedSessions.length;
+  const completionRate = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
+
+  // Kaçırılan görevler için uyarı
+  useEffect(() => {
+    if (!sessionsData || sessionsData.length === 0) return;
+
+    const missedSessions = sessionsData.filter(isSessionMissed);
+    if (missedSessions.length > 0) {
+      toast(`${missedSessions.length} görev tamamlanamadı`, {
+        id: 'missed-sessions-warning',
+        duration: 5000,
+        icon: '⚠️',
+      });
+    }
+  }, [sessionsData]);
+
+  // Vakti geçmiş in_progress oturumları kontrol et ve otomatik yenile
+  useEffect(() => {
+    const checkOverdueSessions = () => {
+      if (!sessionsData || sessionsData.length === 0) return;
+
+      const now = new Date();
+      const overdueSessions = sessionsData.filter(
+        (session) =>
+          session.status === 'in_progress' &&
+          parseISO(session.endTime) < now
+      );
+
+      if (overdueSessions.length > 0) {
+        console.log('⏰ Vakti geçmiş oturumlar bulundu, yenileniyor...', overdueSessions.length);
+        refetch(); // Backend otomatik cancel edecek
+      }
+    };
+
+    // İlk kontrolü yap
+    checkOverdueSessions();
+
+    // Her 30 saniyede bir kontrol et
+    const interval = setInterval(checkOverdueSessions, 30000);
+
+    return () => clearInterval(interval);
+  }, [sessionsData, refetch]);
+
+  if (sessionsLoading) {
     return (
       <div className="card">
         <div className="card-body">
           <div className="animate-pulse space-y-4">
             <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
             <div className="space-y-3">
-              <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
             </div>
           </div>
         </div>
@@ -106,19 +227,17 @@ const GoalsOverview: React.FC = () => {
     );
   }
 
-  const activePlans = plansData || [];
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Target className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+          <CalendarIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Hedeflerim
+            Bugünün Planları
           </h2>
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            ({activePlans.length} aktif plan)
+            ({totalSessions} seans, {completionRate}% tamamlandı)
           </span>
         </div>
 
@@ -127,119 +246,168 @@ const GoalsOverview: React.FC = () => {
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Yeni Hedef
+          Yeni Seans
         </button>
       </div>
 
-      {/* Goals Grid */}
-      {activePlans.length === 0 ? (
+      {/* Today's Sessions */}
+      {sortedSessions.length === 0 ? (
         <div className="card">
           <div className="card-body text-center py-12">
-            <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <CalendarIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              Henüz hedef planınız yok
+              Bugün için planlanmış seans yok
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Çalışma hedeflerinizi belirlemek için yeni bir plan oluşturun
+              Bugün için çalışma seansı oluşturmak ister misiniz?
             </p>
             <button
               onClick={() => setIsCreateModalOpen(true)}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
             >
               <Plus className="w-4 h-4" />
-              İlk Hedefimi Oluştur
+              İlk Seansımı Oluştur
             </button>
           </div>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {activePlans.map((plan) => {
-            const progress = calculatePlanProgress(plan);
-            const daysRemaining = getDaysRemaining(plan.endDate);
+        <div className="space-y-3">
+          {sortedSessions.map((session, index) => {
+            const sessionStart = parseISO(session.startTime);
+            const sessionEnd = parseISO(session.endTime);
 
             return (
               <motion.div
-                key={plan.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="card hover:shadow-lg transition-shadow"
+                key={session.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className={`card hover:shadow-md transition-all duration-200 ${
+                  session.status === 'completed' ? 'opacity-75' : ''
+                }`}
               >
-                <div className="card-body">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                        {plan.title}
-                      </h3>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(plan.goals.priority)}`}>
-                        {plan.goals.priority === 'high' ? 'Yüksek' :
-                         plan.goals.priority === 'medium' ? 'Orta' : 'Düşük'} Öncelik
-                      </span>
-                    </div>
-                    {getStatusIcon(plan, progress)}
-                  </div>
-
-                  {/* Progress */}
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        İlerleme
-                      </span>
-                      <span className={`text-sm font-semibold px-2 py-1 rounded ${getProgressColor(progress.progressPercentage)}`}>
-                        {progress.progressPercentage}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progress.progressPercentage}%` }}
-                        transition={{ duration: 1, ease: 'easeOut' }}
-                        className={`h-2 rounded-full ${
-                          progress.progressPercentage >= 80 ? 'bg-green-500' :
-                          progress.progressPercentage >= 60 ? 'bg-blue-500' :
-                          progress.progressPercentage >= 40 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Tamamlanan:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {progress.completedHours}h / {progress.totalTargetHours}h
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Seans sayısı:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {progress.sessionsCount}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Hedef konu:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {plan.goals.targetTopics} konu
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Time Info */}
-                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        <span>
-                          {format(parseISO(plan.endDate), 'd MMM yyyy', { locale: tr })}
-                        </span>
+                <div className="card-body p-4">
+                  <div className="flex items-center justify-between">
+                    {/* Left side - Session info */}
+                    <div className="flex items-center gap-4">
+                      {/* Time and type indicator */}
+                      <div className="flex flex-col items-center min-w-[80px]">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {format(sessionStart, 'HH:mm')}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {session.duration}dk
+                        </div>
+                        <div 
+                          className={`w-3 h-3 rounded-full mt-1 ${getSessionTypeColor(session.sessionType)}`}
+                          title={session.sessionType}
+                        />
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span>
-                          {daysRemaining > 0 ? `${daysRemaining} gün kaldı` : 'Süre doldu'}
-                        </span>
+
+                      {/* Session details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Book className="w-4 h-4 text-gray-500" />
+                          <h3 className={`font-medium text-gray-900 dark:text-white truncate ${getSessionTextStyle(session)}`}>
+                            {session.title}
+                          </h3>
+                          {session.sessionType === 'pomodoro' && (
+                            <Timer className="w-4 h-4 text-red-500" />
+                          )}
+                        </div>
+                        {session.description && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                            {session.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getSessionStatusColor(session.status)}`}>
+                            {session.status === 'completed' && <Check className="w-3 h-3 mr-1" />}
+                            {session.status === 'paused' && <Pause className="w-3 h-3 mr-1" />}
+                            {session.status === 'completed' ? 'Tamamlandı' :
+                             session.status === 'in_progress' ? 'Devam Ediyor' :
+                             session.status === 'paused' ? 'Duraklatıldı' :
+                             session.status === 'cancelled' ? 'İptal Edildi' : 'Planlandı'}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {format(sessionStart, 'HH:mm')} - {format(sessionEnd, 'HH:mm')}
+                          </span>
+                        </div>
                       </div>
+                    </div>
+
+                    {/* Right side - Status and actions */}
+                    <div className="flex items-center gap-2">
+                      {getSessionStatusIcon(session)}
+                      <button
+                        onClick={() => handleEditSession(session)}
+                        className="p-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                        title="Düzenle"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      {session.status === 'planned' && canStartSession(session) && (
+                        <button
+                          onClick={() => handleStartSession(session)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+                          title="Başlat"
+                        >
+                          <Play className="w-4 h-4" />
+                        </button>
+                      )}
+                      {session.status === 'in_progress' && (
+                        <>
+                          <button
+                            onClick={() => handlePauseSession(session)}
+                            className="p-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-full transition-colors"
+                            title="Duraklat"
+                          >
+                            <Pause className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setConfirmDialog({
+                                isOpen: true,
+                                title: 'Oturumu Tamamla',
+                                message: 'Bu oturumu tamamlandı olarak işaretlemek istiyor musunuz?',
+                                type: 'info',
+                                onConfirm: async () => {
+                                  try {
+                                    await studySessionsAPI.completeSession(session.id.toString());
+                                    toast.success('Çalışma seansı tamamlandı');
+                                    triggerConfetti();
+                                    refetch();
+                                  } catch (error) {
+                                    toast.error('Seans tamamlanırken hata oluştu');
+                                  }
+                                },
+                              });
+                            }}
+                            className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors"
+                            title="Tamamla"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                      {session.status === 'paused' && (
+                        <button
+                          onClick={() => handleStartSession(session)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+                          title="Devam Et"
+                        >
+                          <Play className="w-4 h-4" />
+                        </button>
+                      )}
+                      {session.status === 'completed' && (
+                        <button
+                          onClick={() => handleRestartSession(session)}
+                          className="p-2 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900/20 rounded-full transition-colors"
+                          title="Tekrar Başlat"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -249,13 +417,39 @@ const GoalsOverview: React.FC = () => {
         </div>
       )}
 
-      {/* Goal Setting Modal */}
-      <GoalSettingModal
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+      />
+
+      {/* Create Session Modal */}
+      <CreateSessionModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          refetch(); // Force refetch when modal closes
+        }}
+        selectedDate={new Date()}
+        selectedHour={new Date().getHours()}
+      />
+
+      {/* Edit Session Modal */}
+      <CreateSessionModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingSession(null);
+          refetch();
+        }}
+        editSession={editingSession}
       />
     </div>
   );
 };
 
-export default GoalsOverview;
+export default TodaysPlans;

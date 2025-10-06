@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog } from '@headlessui/react';
 import { X, Calendar, Timer, BookOpen, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { CreateStudySessionRequest } from '../../types/planner';
+import { CreateStudySessionRequest, StudySession } from '../../types/planner';
 import { studySessionsAPI, plansAPI, coursesAPI } from '../../services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -33,6 +33,7 @@ interface CreateSessionModalProps {
   onClose: () => void;
   selectedDate?: Date | undefined;
   selectedHour?: number | undefined;
+  editSession?: StudySession | null;
 }
 
 const createSessionSchema = z.object({
@@ -75,10 +76,12 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
   onClose,
   selectedDate,
   selectedHour = 9,
+  editSession,
 }) => {
   const [showPomodoroSettings, setShowPomodoroSettings] = useState(false);
   const [sessionCategory, setSessionCategory] = useState<'course' | 'custom'>('course');
   const queryClient = useQueryClient();
+  const isEditMode = !!editSession;
 
   const { data: plansData } = useQuery({
     queryKey: ['plans'],
@@ -122,14 +125,21 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
 
   const sessionType = watch('sessionType');
 
-  const createSessionMutation = useMutation({
+  const sessionMutation = useMutation({
     mutationFn: async (data: CreateStudySessionRequest) => {
-      const response = await studySessionsAPI.createSession(data);
-      return response.data;
+      if (isEditMode && editSession) {
+        const response = await studySessionsAPI.updateSession(editSession.id.toString(), data);
+        return response.data;
+      } else {
+        const response = await studySessionsAPI.createSession(data);
+        return response.data;
+      }
     },
     onSuccess: () => {
-      toast.success('Çalışma seansı oluşturuldu');
+      toast.success(isEditMode ? 'Çalışma seansı güncellendi' : 'Çalışma seansı oluşturuldu');
       queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
       onClose();
       reset();
       setSessionCategory('course');
@@ -146,19 +156,35 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
       sessionCategory: sessionCategory
     };
 
-    if (!selectedDate) return;
+    let startTime: Date;
+    let endTime: Date;
 
-    const startTime = new Date(selectedDate);
-    startTime.setHours(selectedHour, 0, 0, 0);
-
-    const endTime = new Date(startTime);
-    endTime.setMinutes(endTime.getMinutes() + data.duration);
+    if (isEditMode && editSession) {
+      // In edit mode, keep the existing start time
+      startTime = parseISO(editSession.startTime);
+      endTime = new Date(startTime);
+      endTime.setMinutes(endTime.getMinutes() + data.duration);
+    } else {
+      // In create mode, use selectedDate and selectedHour
+      if (!selectedDate) return;
+      startTime = new Date(selectedDate);
+      startTime.setHours(selectedHour, 0, 0, 0);
+      endTime = new Date(startTime);
+      endTime.setMinutes(endTime.getMinutes() + data.duration);
+    }
 
     // Determine title based on session category
     let finalTitle: string;
     if (correctedData.sessionCategory === 'course' && correctedData.courseId) {
       const selectedCourse = coursesData?.find((course: any) => course.id.toString() === correctedData.courseId);
-      finalTitle = selectedCourse ? `${selectedCourse.name} Çalışması` : 'Ders Çalışması';
+      if (selectedCourse) {
+        // Check if course name already contains category to prevent duplication
+        const hasCategory = selectedCourse.name.includes(`(${selectedCourse.category})`) || 
+                          selectedCourse.name.includes(`(${selectedCourse.category.toLowerCase()})`);
+        finalTitle = hasCategory ? selectedCourse.name : `${selectedCourse.name} (${selectedCourse.category})`;
+      } else {
+        finalTitle = 'Ders Çalışması';
+      }
     } else if (correctedData.sessionCategory === 'custom' && correctedData.customTitle) {
       finalTitle = correctedData.customTitle;
     } else {
@@ -186,7 +212,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
       }),
     };
 
-    createSessionMutation.mutate(sessionData);
+    sessionMutation.mutate(sessionData);
   };
 
   const handleClose = () => {
@@ -195,6 +221,34 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
     setShowPomodoroSettings(false);
     setSessionCategory('course');
   };
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (editSession && isOpen) {
+      const durationInMinutes = editSession.duration;
+
+      // Determine if it's a course or custom session
+      const isCourseBased = !!editSession.courseId;
+      setSessionCategory(isCourseBased ? 'course' : 'custom');
+
+      reset({
+        sessionCategory: isCourseBased ? 'course' : 'custom',
+        courseId: editSession.courseId?.toString() || '',
+        customTitle: !isCourseBased ? editSession.title : '',
+        description: editSession.description || '',
+        planId: editSession.planId?.toString() || '',
+        duration: durationInMinutes,
+        sessionType: editSession.sessionType,
+        color: editSession.color || '#3B82F6',
+        pomodoroSettings: editSession.pomodoroSettings || {
+          workDuration: 25,
+          shortBreak: 5,
+          longBreak: 15,
+          cyclesBeforeLongBreak: 4,
+        },
+      });
+    }
+  }, [editSession, isOpen, reset]);
 
   React.useEffect(() => {
     if (sessionType === 'pomodoro') {
@@ -232,7 +286,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
             >
               <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                 <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Yeni Çalışma Seansı
+                  {isEditMode ? 'Çalışma Seansını Düzenle' : 'Yeni Çalışma Seansı'}
                 </Dialog.Title>
                 <button
                   onClick={handleClose}
@@ -244,11 +298,19 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
 
               <form id="create-session-form" onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4 overflow-y-auto flex-1">
                 {/* Date & Time Display */}
-                {selectedDate && (
+                {selectedDate && !isEditMode && (
                   <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     <span className="text-sm text-blue-900 dark:text-blue-100">
                       {format(selectedDate, 'dd MMMM yyyy', { locale: tr })} - {selectedHour}:00
+                    </span>
+                  </div>
+                )}
+                {isEditMode && editSession && (
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-sm text-blue-900 dark:text-blue-100">
+                      {format(parseISO(editSession.startTime), 'dd MMMM yyyy, HH:mm', { locale: tr })}
                     </span>
                   </div>
                 )}
@@ -407,27 +469,28 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                  </div>
 
                  {/* Color Selection */}
-                 <div>
-                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                     Renk Seçimi
-                   </label>
-                   <div className="grid grid-cols-6 gap-2">
-                     {SESSION_COLORS.map((color) => (
-                       <button
-                         key={color.value}
-                         type="button"
-                         onClick={() => setValue('color', color.value)}
-                         className={`w-8 h-8 rounded-full border-2 transition-all duration-200 ${
-                           watch('color') === color.value
-                             ? 'border-gray-400 dark:border-gray-300 scale-110 shadow-lg'
-                             : 'border-gray-200 dark:border-gray-600 hover:scale-105'
-                         }`}
-                         style={{ backgroundColor: color.value }}
-                         title={color.name}
-                       />
-                     ))}
-                   </div>
-                 </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Renk Seçimi
+                    </label>
+                    <input type="hidden" {...register('color')} />
+                    <div className="grid grid-cols-6 gap-2">
+                      {SESSION_COLORS.map((color) => (
+                        <button
+                          key={color.value}
+                          type="button"
+                          onClick={() => setValue('color', color.value, { shouldValidate: true, shouldDirty: true })}
+                          className={`w-8 h-8 rounded-full border-2 transition-all duration-200 ${
+                            watch('color') === color.value
+                              ? 'border-gray-800 dark:border-gray-200 scale-110 shadow-lg ring-2 ring-offset-2 ring-blue-500'
+                              : 'border-gray-300 dark:border-gray-600 hover:scale-105 hover:border-gray-400'
+                          }`}
+                          style={{ backgroundColor: color.value }}
+                          title={color.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
 
                  {/* Pomodoro Settings */}
                 <AnimatePresence>
@@ -519,10 +582,12 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                  <button
                    type="submit"
                    form="create-session-form"
-                   disabled={createSessionMutation.isPending || !isValid}
+                   disabled={sessionMutation.isPending || !isValid}
                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
                  >
-                  {createSessionMutation.isPending ? 'Oluşturuluyor...' : 'Oluştur'}
+                  {sessionMutation.isPending
+                    ? (isEditMode ? 'Güncelleniyor...' : 'Oluşturuluyor...')
+                    : (isEditMode ? 'Güncelle' : 'Oluştur')}
                 </button>
               </div>
             </Dialog.Panel>

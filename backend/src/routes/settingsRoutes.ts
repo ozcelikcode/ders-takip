@@ -4,11 +4,12 @@ import { protect, authorize } from '../middleware/auth';
 
 const router = express.Router();
 
-// All settings routes require admin auth
-router.use(protect, authorize('admin'));
-
+// Settings are public for reading (site theme, colors, etc)
+// Only updates require admin auth
 router.get('/', getSettings);
-router.put('/', updateSettings);
 router.get('/category/:category', getSettingsByCategory);
+
+// Admin only routes
+router.put('/', protect, authorize('admin'), updateSettings);
 
 export default router;

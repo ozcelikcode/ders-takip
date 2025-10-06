@@ -46,6 +46,17 @@ export const registerSchema = Joi.object({
       'string.max': 'Soyad en fazla 50 karakter olabilir',
       'any.required': 'Soyad zorunludur',
     }),
+  role: Joi.string()
+    .valid('student', 'admin')
+    .optional()
+    .messages({
+      'any.only': 'Rol student veya admin olmalıdır',
+    }),
+  isActive: Joi.boolean()
+    .optional()
+    .messages({
+      'boolean.base': 'Aktiflik durumu boolean olmalıdır',
+    }),
 });
 
 export const loginSchema = Joi.object({
@@ -103,18 +114,41 @@ export const updateProfileSchema = Joi.object({
       'string.min': 'Soyad en az 2 karakter olmalıdır',
       'string.max': 'Soyad en fazla 50 karakter olabilir',
     }),
+  username: Joi.string()
+    .alphanum()
+    .min(3)
+    .max(20)
+    .messages({
+      'string.alphanum': 'Kullanıcı adı yalnızca harf ve rakam içerebilir',
+      'string.min': 'Kullanıcı adı en az 3 karakter olmalıdır',
+      'string.max': 'Kullanıcı adı en fazla 20 karakter olabilir',
+    }),
+  profileImage: Joi.string()
+    .uri()
+    .allow('', null)
+    .optional()
+    .messages({
+      'string.uri': 'Geçerli bir URL giriniz',
+    }),
   preferences: Joi.object({
-    theme: Joi.string().valid('light', 'dark'),
+    theme: Joi.string().valid('light', 'dark').optional(),
     notifications: Joi.object({
-      email: Joi.boolean(),
-      push: Joi.boolean(),
-      reminders: Joi.boolean(),
-    }),
+      email: Joi.boolean().optional(),
+      push: Joi.boolean().optional(),
+      reminders: Joi.boolean().optional(),
+    }).optional(),
     studyGoals: Joi.object({
-      dailyHours: Joi.number().min(1).max(12),
-      weeklyHours: Joi.number().min(7).max(84),
-    }),
-  }),
+      dailyHours: Joi.number().min(1).max(12).optional(),
+      weeklyHours: Joi.number().min(7).max(84).optional(),
+    }).optional(),
+    studyField: Joi.string()
+      .valid('TYT', 'AYT', 'SAY', 'EA', 'SOZ', 'DIL')
+      .allow('', null)
+      .optional()
+      .messages({
+        'any.only': 'Geçerli bir alan seçiniz (TYT, AYT, SAY, EA, SOZ, DIL)',
+      }),
+  }).optional(),
 });
 
 export const validateRequest = (schema: Joi.ObjectSchema) => {

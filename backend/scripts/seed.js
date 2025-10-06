@@ -4,22 +4,22 @@ const { User, Course, Topic } = require('../dist/models/index');
 const seedData = {
   courses: [
     // TYT Dersleri
-    { name: 'Türkçe', category: 'TYT', description: 'Türk Dili ve Edebiyatı', color: '#ef4444', icon: '📚', order: 1 },
-    { name: 'Temel Matematik', category: 'TYT', description: 'Temel Matematik Konuları', color: '#3b82f6', icon: '🔢', order: 2 },
-    { name: 'Fen Bilimleri', category: 'TYT', description: 'Fizik, Kimya, Biyoloji Temel', color: '#10b981', icon: '🔬', order: 3 },
-    { name: 'Sosyal Bilimler', category: 'TYT', description: 'Tarih, Coğrafya, Felsefe', color: '#f59e0b', icon: '🌍', order: 4 },
+    { name: 'Türkçe', category: 'TYT', description: 'Türk Dili ve Edebiyatı', color: '#ef4444', icon: 'BookOpen', order: 1 },
+    { name: 'Temel Matematik', category: 'TYT', description: 'Temel Matematik Konuları', color: '#3b82f6', icon: 'Calculator', order: 2 },
+    { name: 'Fen Bilimleri', category: 'TYT', description: 'Fizik, Kimya, Biyoloji Temel', color: '#10b981', icon: 'Microscope', order: 3 },
+    { name: 'Sosyal Bilimler', category: 'TYT', description: 'Tarih, Coğrafya, Felsefe', color: '#f59e0b', icon: 'Globe', order: 4 },
 
     // AYT Dersleri
-    { name: 'Matematik', category: 'AYT', description: 'AYT Matematik', color: '#8b5cf6', icon: '📐', order: 5 },
-    { name: 'Geometri', category: 'AYT', description: 'AYT Geometri', color: '#f97316', icon: '📏', order: 6 },
-    { name: 'Fizik', category: 'AYT', description: 'AYT Fizik', color: '#ec4899', icon: '⚛️', order: 7 },
-    { name: 'Kimya', category: 'AYT', description: 'AYT Kimya', color: '#06b6d4', icon: '🧪', order: 8 },
-    { name: 'Biyoloji', category: 'AYT', description: 'AYT Biyoloji', color: '#84cc16', icon: '🧬', order: 9 },
-    { name: 'Tarih', category: 'AYT', description: 'AYT Tarih', color: '#a855f7', icon: '🏛️', order: 10 },
-    { name: 'Coğrafya', category: 'AYT', description: 'AYT Coğrafya', color: '#059669', icon: '🗺️', order: 11 },
-    { name: 'Felsefe', category: 'AYT', description: 'AYT Felsefe', color: '#7c3aed', icon: '🤔', order: 12 },
-    { name: 'Din Kültürü', category: 'AYT', description: 'AYT Din Kültürü ve Ahlak Bilgisi', color: '#dc2626', icon: '☪️', order: 13 },
-    { name: 'Edebiyat', category: 'AYT', description: 'AYT Türk Dili ve Edebiyatı', color: '#be123c', icon: '📖', order: 14 },
+    { name: 'Matematik', category: 'AYT', description: 'AYT Matematik', color: '#8b5cf6', icon: 'Calculator', order: 5 },
+    { name: 'Geometri', category: 'AYT', description: 'AYT Geometri', color: '#f97316', icon: 'Triangle', order: 6 },
+    { name: 'Fizik', category: 'AYT', description: 'AYT Fizik', color: '#ec4899', icon: 'Atom', order: 7 },
+    { name: 'Kimya', category: 'AYT', description: 'AYT Kimya', color: '#06b6d4', icon: 'FlaskConical', order: 8 },
+    { name: 'Biyoloji', category: 'AYT', description: 'AYT Biyoloji', color: '#84cc16', icon: 'Dna', order: 9 },
+    { name: 'Tarih', category: 'AYT', description: 'AYT Tarih', color: '#a855f7', icon: 'Landmark', order: 10 },
+    { name: 'Coğrafya', category: 'AYT', description: 'AYT Coğrafya', color: '#059669', icon: 'Map', order: 11 },
+    { name: 'Felsefe', category: 'AYT', description: 'AYT Felsefe', color: '#7c3aed', icon: 'Brain', order: 12 },
+    { name: 'Din Kültürü', category: 'AYT', description: 'AYT Din Kültürü ve Ahlak Bilgisi', color: '#dc2626', icon: 'Heart', order: 13 },
+    { name: 'Edebiyat', category: 'AYT', description: 'AYT Türk Dili ve Edebiyatı', color: '#be123c', icon: 'BookText', order: 14 },
   ],
 
   topics: {

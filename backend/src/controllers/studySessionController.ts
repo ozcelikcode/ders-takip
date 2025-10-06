@@ -13,6 +13,25 @@ export const getStudySessions = async (req: Request, res: Response, next: NextFu
       });
       return;
     }
+
+    // Önce vakti geçmiş in_progress oturumları otomatik cancelled yap
+    const now = new Date();
+    await StudySession.update(
+      {
+        status: 'cancelled',
+        notes: 'Otomatik iptal edildi - Zaman aşımı'
+      },
+      {
+        where: {
+          userId,
+          status: 'in_progress',
+          endTime: {
+            [Op.lt]: now
+          }
+        }
+      }
+    );
+
     const { planId, startDate, endDate, status, sessionType } = req.query;
 
     const where: any = { userId };
@@ -22,8 +41,22 @@ export const getStudySessions = async (req: Request, res: Response, next: NextFu
     if (sessionType) where.sessionType = sessionType;
 
     if (startDate && endDate) {
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+
+      // Set end date to end of day (23:59:59.999)
+      end.setHours(23, 59, 59, 999);
+
+      console.log('🔍 Query date range:', {
+        startDate: startDate as string,
+        endDate: endDate as string,
+        start: start.toISOString(),
+        end: end.toISOString(),
+        userId
+      });
+
       where.startTime = {
-        [Op.between]: [new Date(startDate as string), new Date(endDate as string)],
+        [Op.between]: [start, end],
       };
     } else if (startDate) {
       where.startTime = {
@@ -56,6 +89,13 @@ export const getStudySessions = async (req: Request, res: Response, next: NextFu
       ],
       order: [['startTime', 'ASC']],
     });
+
+    console.log('✅ Found sessions:', sessions.length, sessions.map(s => ({
+      id: s.id,
+      title: s.title,
+      startTime: s.startTime,
+      status: s.status
+    })));
 
     res.json({
       success: true,
@@ -283,6 +323,7 @@ export const updateStudySession = async (req: Request, res: Response, next: Next
       status,
       notes,
       productivity,
+      color,
       pomodoroSettings,
     } = req.body;
 
@@ -303,6 +344,7 @@ export const updateStudySession = async (req: Request, res: Response, next: Next
     if (description !== undefined) session.description = description;
     if (notes !== undefined) session.notes = notes;
     if (productivity !== undefined) session.productivity = productivity;
+    if (color !== undefined) session.color = color;
     if (pomodoroSettings) session.pomodoroSettings = { ...session.pomodoroSettings, ...pomodoroSettings };
 
     if (startTime || endTime) {
@@ -489,9 +531,17 @@ export const completeStudySession = async (req: Request, res: Response, next: Ne
     }
 
     session.status = 'completed';
-    session.endTime = new Date();
     session.completedAt = new Date();
-    session.duration = Math.round((session.endTime.getTime() - session.startTime.getTime()) / (1000 * 60));
+
+    // Eğer oturum vakti geçmişse, endTime'ı şimdiki zamana güncelle
+    const now = new Date();
+    if (session.endTime < now) {
+      // Vakti geçmiş oturum - gerçek süreyi hesapla
+      session.duration = Math.round((session.endTime.getTime() - session.startTime.getTime()) / (1000 * 60));
+    } else {
+      // Normal tamamlama - planlanan süreyi koru
+      session.duration = Math.round((session.endTime.getTime() - session.startTime.getTime()) / (1000 * 60));
+    }
 
     if (notes !== undefined) session.notes = notes;
     if (productivity !== undefined) session.productivity = productivity;

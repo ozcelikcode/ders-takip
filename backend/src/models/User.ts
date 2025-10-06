@@ -24,6 +24,7 @@ interface UserAttributes {
       dailyHours: number;
       weeklyHours: number;
     };
+    studyField?: 'TYT' | 'AYT' | 'SAY' | 'EA' | 'SOZ' | 'DIL';
   };
   createdAt: Date;
   updatedAt: Date;
@@ -53,6 +54,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
       dailyHours: number;
       weeklyHours: number;
     };
+    studyField?: 'TYT' | 'AYT' | 'SAY' | 'EA' | 'SOZ' | 'DIL';
   };
 
   public readonly createdAt!: Date;

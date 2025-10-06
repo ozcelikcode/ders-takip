@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, ChevronLeft, ChevronRight, Plus, Clock, Target, Play, CheckCircle } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Plus, Clock, Target, Play, CheckCircle, Check, Edit, Pause } from 'lucide-react';
 import { StudySession } from '../../types/planner';
 import { studySessionsAPI } from '../../services/api';
 import { useQuery } from '@tanstack/react-query';
-import { format, addDays, subDays, parseISO, isToday, startOfDay, endOfDay } from 'date-fns';
+import { format, addDays, subDays, parseISO, isToday } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import toast from 'react-hot-toast';
+import CreateSessionModal from './CreateSessionModal';
+import ConfirmDialog from '../common/ConfirmDialog';
+import confetti from 'canvas-confetti';
+import { isSessionMissed, canStartSession, getSessionTextStyle, isSessionOverdue } from '../../utils/sessionHelpers';
 
 interface DailyCalendarProps {
   onCreateSession?: (date: Date, hour: number) => void;
@@ -17,17 +21,30 @@ const HOURS = Array.from({ length: 16 }, (_, i) => i + 6); // 6:00 to 21:00
 
 const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessionClick }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<StudySession | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   const { data: sessionsData, isLoading, refetch } = useQuery({
-    queryKey: ['daily-sessions', selectedDate],
+    queryKey: ['daily-sessions', format(selectedDate, 'yyyy-MM-dd')],
     queryFn: async () => {
-      const dayStart = format(startOfDay(selectedDate), 'yyyy-MM-dd');
-      const dayEnd = format(endOfDay(selectedDate), 'yyyy-MM-dd');
+      const dayStart = format(selectedDate, 'yyyy-MM-dd');
       const response = await studySessionsAPI.getSessions({
         startDate: dayStart,
-        endDate: dayEnd,
+        endDate: dayStart,
       });
-      return response.data.data.sessions;
+      return response.data.data?.sessions || [];
     },
   });
 
@@ -60,6 +77,75 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
     }
   };
 
+  const handleEditSession = (session: StudySession) => {
+    setEditingSession(session);
+    setIsEditModalOpen(true);
+  };
+
+  const triggerConfetti = () => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#22c55e', '#10b981', '#4ade80', '#86efac'],
+    });
+  };
+
+  const handleStartSession = async (session: StudySession) => {
+    // Vakti geçmiş oturumlar başlatılamaz
+    if (!canStartSession(session)) {
+      toast.error('Bu oturum için zaman geçmiş. Lütfen oturum saatini güncelleyin.');
+      return;
+    }
+
+    try {
+      await studySessionsAPI.startSession(session.id.toString());
+      toast.success('Çalışma seansı başlatıldı');
+      refetch();
+    } catch (error) {
+      toast.error('Seans başlatılırken hata oluştu');
+    }
+  };
+
+  const handlePauseSession = (session: StudySession) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Oturumu Duraklat',
+      message: 'Bu oturumu duraklatmak istiyor musunuz?',
+      type: 'warning',
+      onConfirm: async () => {
+        try {
+          await studySessionsAPI.updateSession(session.id.toString(), {
+            status: 'paused',
+          });
+          toast.success('Çalışma seansı duraklatıldı');
+          refetch();
+        } catch (error) {
+          toast.error('Seans duraklatılırken hata oluştu');
+        }
+      },
+    });
+  };
+
+  const handleCompleteSession = (session: StudySession) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Oturumu Tamamla',
+      message: 'Bu oturumu tamamlandı olarak işaretlemek istiyor musunuz?',
+      type: 'info',
+      onConfirm: async () => {
+        try {
+          await studySessionsAPI.completeSession(session.id.toString());
+          toast.success('Çalışma seansı tamamlandı');
+          triggerConfetti();
+          refetch();
+        } catch (error) {
+          toast.error('Seans tamamlanırken hata oluştu');
+        }
+      },
+    });
+  };
+
   const getSessionTypeColor = (sessionType: string) => {
     switch (sessionType) {
       case 'study': return 'bg-blue-500 border-blue-600 text-white';
@@ -70,11 +156,23 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, session: StudySession) => {
     switch (status) {
       case 'completed': return 'opacity-70 ring-2 ring-green-400';
-      case 'in_progress': return 'ring-2 ring-yellow-400 animate-pulse';
+      case 'in_progress':
+        // Vakti geçmiş ve hala devam ediyorsa
+        if (isSessionOverdue(session)) {
+          return 'ring-2 ring-red-400 animate-pulse';
+        }
+        return 'ring-2 ring-yellow-400 animate-pulse';
+      case 'paused': return 'ring-2 ring-orange-400';
       case 'cancelled': return 'opacity-40 bg-gray-400';
+      case 'planned':
+        // Kaçırılan görevler için
+        if (isSessionMissed(session)) {
+          return 'opacity-70';
+        }
+        return '';
       default: return '';
     }
   };
@@ -99,6 +197,36 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
 
   const progress = calculateDayProgress();
   const totalStudyTime = getTotalStudyTime();
+
+  // Kaçırılan görevler için uyarı - Sadece bugünün planları için göster
+  // (Günlük takvim ayrı uyarı göstermesin, çünkü GoalsOverview zaten gösteriyor)
+
+  // Vakti geçmiş in_progress oturumları kontrol et ve otomatik yenile
+  useEffect(() => {
+    const checkOverdueSessions = () => {
+      if (!sessionsData || sessionsData.length === 0) return;
+
+      const now = new Date();
+      const overdueSessions = sessionsData.filter(
+        (session) =>
+          session.status === 'in_progress' &&
+          parseISO(session.endTime) < now
+      );
+
+      if (overdueSessions.length > 0) {
+        console.log('⏰ Vakti geçmiş oturumlar bulundu, yenileniyor...', overdueSessions.length);
+        refetch(); // Backend otomatik cancel edecek
+      }
+    };
+
+    // İlk kontrolü yap
+    checkOverdueSessions();
+
+    // Her 30 saniyede bir kontrol et
+    const interval = setInterval(checkOverdueSessions, 30000);
+
+    return () => clearInterval(interval);
+  }, [sessionsData, refetch]);
 
   return (
     <div className="space-y-6">
@@ -242,17 +370,24 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, x: 20 }}
-                              className={`p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
+                              className={`relative p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
                                 getSessionTypeColor(session.sessionType)
-                              } ${getStatusColor(session.status)}`}
+                              } ${getStatusColor(session.status, session)}`}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onSessionClick?.(session);
                               }}
                             >
+                              {/* Completed checkmark icon - top right */}
+                              {session.status === 'completed' && (
+                                <div className="absolute top-2 right-2 opacity-40">
+                                  <Check className="w-5 h-5" />
+                                </div>
+                              )}
+
                               <div className="flex items-center justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium truncate">
+                                <div className="flex-1 min-w-0 pr-6">
+                                  <h4 className={`font-medium truncate ${getSessionTextStyle(session)}`}>
                                     {session.title}
                                   </h4>
                                   <div className="flex items-center gap-2 text-sm opacity-90 mt-1">
@@ -270,12 +405,68 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                  {session.status === 'completed' && (
-                                    <CheckCircle className="w-4 h-4" />
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditSession(session);
+                                    }}
+                                    className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
+                                    title="Düzenle"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+
+                                  {session.status === 'planned' && canStartSession(session) && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleStartSession(session);
+                                      }}
+                                      className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
+                                      title="Başlat"
+                                    >
+                                      <Play className="w-4 h-4" />
+                                    </button>
                                   )}
-                                  {session.status === 'planned' && (
-                                    <Play className="w-4 h-4 opacity-0 group-hover:opacity-100" />
+
+                                  {session.status === 'in_progress' && (
+                                    <>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handlePauseSession(session);
+                                        }}
+                                        className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
+                                        title="Duraklat"
+                                      >
+                                        <Pause className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleCompleteSession(session);
+                                        }}
+                                        className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
+                                        title="Tamamla"
+                                      >
+                                        <CheckCircle className="w-4 h-4" />
+                                      </button>
+                                    </>
                                   )}
+
+                                  {session.status === 'paused' && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleStartSession(session);
+                                      }}
+                                      className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
+                                      title="Devam Et"
+                                    >
+                                      <Play className="w-4 h-4" />
+                                    </button>
+                                  )}
+
                                   {session.sessionType === 'pomodoro' && (
                                     <Target className="w-4 h-4" />
                                   )}
@@ -325,6 +516,27 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
         </div>
       )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+      />
+
+      {/* Edit Session Modal */}
+      <CreateSessionModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingSession(null);
+          refetch();
+        }}
+        editSession={editingSession}
+      />
     </div>
   );
 };

@@ -75,6 +75,12 @@ export const authorize = (...roles: string[]) => {
       return;
     }
 
+    console.log('🔍 Authorization check:', {
+      userRole: req.user.role,
+      requiredRoles: roles,
+      hasAccess: roles.includes(req.user.role)
+    });
+
     if (!roles.includes(req.user.role)) {
       res.status(403).json({
         success: false,

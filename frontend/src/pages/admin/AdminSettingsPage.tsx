@@ -5,8 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { settingsAPI } from '../../services/api';
+import { useSettingsStore } from '../../store/settingsStore';
 
 const siteSettingsSchema = z.object({
   siteName: z.string().min(1, 'Site adı gereklidir'),
@@ -27,16 +26,8 @@ type SiteSettingsForm = z.infer<typeof siteSettingsSchema>;
 
 const AdminSettingsPage = () => {
   const [activeTab, setActiveTab] = useState<'general' | 'security' | 'notifications' | 'appearance'>('general');
-  
-  // Fetch settings from backend
-  const { data: settingsData } = useQuery({
-    queryKey: ['site-settings'],
-    queryFn: async () => {
-      const response = await settingsAPI.getSettings();
-      return response.data.data || {};
-    },
-  });
-  
+  const { settings, fetchSettings, updateSettings, isLoading: storeLoading } = useSettingsStore();
+
   const {
     register,
     handleSubmit,
@@ -46,57 +37,26 @@ const AdminSettingsPage = () => {
     formState: { errors, isDirty },
   } = useForm<SiteSettingsForm>({
     resolver: zodResolver(siteSettingsSchema),
-    defaultValues: {
-      siteName: 'Ders Takip Sistemi',
-      siteDescription: 'Öğrenciler için kapsamlı ders takip ve planlama platformu',
-      siteUrl: 'http://localhost:3001',
-      adminEmail: 'admin@test.com',
-      allowRegistration: true,
-      maintenanceMode: false,
-      maxStudentsPerCourse: 50,
-      sessionTimeout: 60,
-      emailNotifications: true,
-      pushNotifications: true,
-      primaryColor: '#3B82F6',
-      secondaryColor: '#10B981',
-    },
+    defaultValues: settings,
   });
 
-  // Update form when settings data is loaded
+  // Fetch settings on mount
   React.useEffect(() => {
-    if (settingsData) {
-      reset({
-        siteName: settingsData.siteName || 'Ders Takip Sistemi',
-        siteDescription: settingsData.siteDescription || 'Öğrenciler için kapsamlı ders takip ve planlama platformu',
-        siteUrl: settingsData.siteUrl || 'http://localhost:3001',
-        adminEmail: settingsData.adminEmail || 'admin@test.com',
-        allowRegistration: settingsData.allowRegistration ?? true,
-        maintenanceMode: settingsData.maintenanceMode ?? false,
-        maxStudentsPerCourse: settingsData.maxStudentsPerCourse || 50,
-        sessionTimeout: settingsData.sessionTimeout || 60,
-        emailNotifications: settingsData.emailNotifications ?? true,
-        pushNotifications: settingsData.pushNotifications ?? true,
-        primaryColor: settingsData.primaryColor || '#3B82F6',
-        secondaryColor: settingsData.secondaryColor || '#10B981',
-      });
-    }
-  }, [settingsData, reset]);
+    fetchSettings();
+  }, [fetchSettings]);
 
-  const updateSettingsMutation = useMutation({
-    mutationFn: async (data: SiteSettingsForm) => {
-      const response = await settingsAPI.updateSettings(data);
-      return response.data;
-    },
-    onSuccess: () => {
-      toast.success('Site ayarları güncellendi');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error?.message || 'Ayarlar güncellenirken hata oluştu');
-    },
-  });
+  // Update form when settings change
+  React.useEffect(() => {
+    reset(settings);
+  }, [settings, reset]);
 
   const onSubmit = async (data: SiteSettingsForm) => {
-    updateSettingsMutation.mutate(data);
+    try {
+      await updateSettings(data);
+      toast.success('Site ayarları güncellendi ve uygulandı');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error?.message || 'Ayarlar güncellenirken hata oluştu');
+    }
   };
 
   const tabs = [
