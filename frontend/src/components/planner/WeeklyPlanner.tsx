@@ -24,6 +24,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
   const queryClient = useQueryClient();
   const [currentWeek, setCurrentWeek] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [draggedSession, setDraggedSession] = useState<StudySession | null>(null);
+  const [dragOffset, setDragOffset] = useState<number>(0);
   const [dragOverTarget, setDragOverTarget] = useState<{ day: number; hour: number; minute: number } | null>(null);
   const [activeSession, setActiveSession] = useState<StudySession | null>(null);
   const [isPomodoroModalOpen, setIsPomodoroModalOpen] = useState(false);
@@ -172,7 +173,14 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       toast.error('Devam eden oturumlar taşınamaz');
       return;
     }
+
+    // Calculate mouse offset within the session box
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+
     setDraggedSession(session);
+    setDragOffset(offsetY);
     e.dataTransfer.effectAllowed = 'move';
   };
 
@@ -186,8 +194,11 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     const mouseY = e.clientY - rect.top;
     const slotHeight = rect.height; // Use actual height
 
+    // Subtract the drag offset to get the actual session start position
+    const sessionStartY = mouseY - dragOffset;
+
     // Calculate minutes with better tolerance
-    const minutesFromTop = (mouseY / slotHeight) * 60;
+    const minutesFromTop = (sessionStartY / slotHeight) * 60;
     const snappedMinutes = Math.round(minutesFromTop / 15) * 15; // Snap to 0, 15, 30, or 45
 
     setDragOverTarget({ day: dayIndex, hour, minute: snappedMinutes });
@@ -698,12 +709,21 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                       {/* Drag Preview - Show where session will be dropped */}
                       {isDragOver && draggedSession && dragOverTarget && (
                         <div
-                          className="absolute inset-x-1 p-1 rounded-lg border border-dashed border-blue-500 z-40 pointer-events-none"
+                          className="absolute inset-x-1 p-1 rounded-lg border-2 border-dashed border-blue-500 z-40 pointer-events-none"
                           style={{
                             top: `${(dragOverTarget.minute / 60) * 60}px`,
                             height: `${(draggedSession.duration / 60) * 60}px`,
                           }}
-                        />
+                        >
+                          <div className="flex items-center justify-between h-full opacity-50">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate text-blue-700 dark:text-blue-300">{draggedSession.title}</div>
+                              {draggedSession.duration && (
+                                <div className="text-[10px] text-blue-600 dark:text-blue-400">{draggedSession.duration} dk</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       )}
 
                       {/* Current time indicator */}
@@ -747,7 +767,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                 scale: isBeingDragged ? 0.95 : 1,
                               }}
                               exit={{ opacity: 0, y: -10 }}
-                              className={`absolute inset-x-1 p-1 rounded-lg border text-white ${getStatusColor(session.status, session.startTime, session.endTime)} group ${textSizeClass} ${isBeingDragged ? 'ring-2 ring-blue-400' : ''}`}
+                              className={`absolute inset-x-1 p-1 rounded-lg border-2 text-white ${getStatusColor(session.status, session.startTime, session.endTime)} group ${textSizeClass} ${isBeingDragged ? 'ring-2 ring-blue-400' : ''}`}
                               style={{
                                 top: `${topPosition}px`,
                                 height: `${sessionHeight}px`,

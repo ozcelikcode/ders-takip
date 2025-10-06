@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+
 import dotenv from 'dotenv';
 
 import { connectDB } from './config/database';
@@ -23,8 +24,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'), // 1 minute
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '500'), // 500 requests per minute
   message: {
     error: 'Çok fazla istek gönderildi. Lütfen daha sonra tekrar deneyin.',
   },
