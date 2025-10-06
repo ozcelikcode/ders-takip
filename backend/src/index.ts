@@ -25,7 +25,7 @@ const PORT = process.env.PORT || 5000;
 
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'), // 1 minute
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '500'), // 500 requests per minute
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '10000'), // 10000 requests per minute for development
   message: {
     error: 'Çok fazla istek gönderildi. Lütfen daha sonra tekrar deneyin.',
   },
@@ -38,7 +38,10 @@ app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
 }));
-app.use(limiter);
+// Only apply rate limiter in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(limiter);
+}
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
