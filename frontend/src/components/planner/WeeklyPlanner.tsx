@@ -694,7 +694,6 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                     <div
                       key={`${dayIndex}-${hour}`}
                       className={`relative min-h-[60px] border-r border-gray-200 dark:border-gray-700 transition-colors ${
-                        isDragOver ? 'bg-blue-100 dark:bg-blue-900/30' :
                         isCurrentDay ? 'bg-blue-50/50 dark:bg-blue-900/10' :
                         'hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
