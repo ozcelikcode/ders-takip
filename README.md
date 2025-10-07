@@ -1,326 +1,453 @@
-# 📚 Ders Takip ve Planlama Sistemi
+# 📚 Ders Takip Sistemi
 
-TYT ve AYT sınavlarına hazırlanan öğrenciler için geliştirilmiş modern, kullanıcı dostu bir ders takip ve planlama sistemi.
+<div align="center">
+
+![Status](https://img.shields.io/badge/status-active-success.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+
+TYT ve AYT sınavlarına hazırlanan öğrenciler için modern, kullanıcı dostu ders takip ve planlama sistemi.
+
+[Özellikler](#-özellikler) • [Kurulum](#-kurulum) • [Kullanım](#-kullanım) • [Teknolojiler](#-teknoloji-stack)
+
+</div>
+
+---
+
+## 📋 İçindekiler
+
+- [Özellikler](#-özellikler)
+- [Ekran Görüntüleri](#-ekran-görüntüleri)
+- [Teknoloji Stack](#-teknoloji-stack)
+- [Kurulum](#-kurulum)
+- [Kullanım](#-kullanım)
+- [API Dokümantasyonu](#-api-dokümantasyonu)
+- [Proje Yapısı](#-proje-yapısı)
+- [Katkıda Bulunma](#-katkıda-bulunma)
+- [Lisans](#-lisans)
 
 ## ✨ Özellikler
 
-### 🎯 Öğrenci Özellikleri
-- **Kapsamlı Ders Takibi**: TYT-AYT kategorileri ile organize edilmiş ders sistemi
-- **İlerleme Takibi**: Konu bazında detaylı ilerleme ve başarı yüzdesi hesaplama
-- **Akıllı Planlayıcı**: Drag & drop haftalık planlayıcı ve hedef belirleme
-- **Pomodoro Timer**: Entegre çalışma timer'ı ile verimli çalışma
-- **Detaylı İstatistikler**: Günlük/haftalık/aylık çalışma grafikleri ve analiz
-- **Not Alma Sistemi**: Rich text editor ile konu notları
-- **Bildirimler**: Web push notifications ve email hatırlatıcıları
+### 🎯 Ana Özellikler
 
-### 👥 Yönetici Özellikleri
-- **Kullanıcı Yönetimi**: Tam CRUD işlemleri ve toplu işlemler
-- **Ders Yönetimi**: Kategori ve konu ekleme/düzenleme sistemi
-- **Analitik Dashboard**: Sistem geneli istatistikler ve raporlama
-- **Log Yönetimi**: Detaylı sistem aktivite kayıtları
+- **📅 Haftalık Planlayıcı**
+  - Drag & drop ile görev taşıma
+  - 15 dakikalık hassas zaman aralıkları
+  - Geçmiş ve gelecek haftalara görev taşıma
+  - Bağlam menüsü ile hızlı işlemler
+  - Gerçek zamanlı görsel önizleme
 
-### 🔧 Teknik Özellikler
-- **Modern UI/UX**: TailwindCSS ile responsive tasarım
-- **Dark/Light Mode**: Tema değiştirme desteği
-- **Type Safety**: Full TypeScript desteği
-- **Real-time Updates**: Anlık veri senkronizasyonu
-- **Güvenlik**: JWT authentication ve role-based access control
-- **Performance**: Optimized bundle size ve lazy loading
+- **⏱️ Pomodoro Timer**
+  - Özelleştirilebilir çalışma süreleri
+  - Otomatik mola yönetimi
+  - Çalışma istatistikleri
+  - Minimize edilebilir timer
+
+- **📊 İstatistikler & Analiz**
+  - Günlük, haftalık, aylık çalışma grafikleri
+  - Ders bazında ilerleme takibi
+  - Hedef başarı oranları
+  - Recharts ile interaktif grafikler
+
+- **📚 Ders Yönetimi**
+  - TYT/AYT ders kategorileri
+  - Renk kodlu ders grupları
+  - Ders oluşturma ve düzenleme
+  - Konu bazında organizasyon
+
+- **👤 Profil Yönetimi**
+  - Profil fotoğrafı yükleme
+  - Kullanıcı bilgileri düzenleme
+  - Gerçek zamanlı bildirimler
+  - Karanlık/Aydınlık tema
+
+- **📱 Modern UI/UX**
+  - Responsive tasarım (mobil uyumlu)
+  - Dark mode desteği
+  - Smooth animasyonlar (Framer Motion)
+  - Lucide icons
+
+## 🖼️ Ekran Görüntüleri
+
+> _Ekran görüntüleri buraya eklenecek_
 
 ## 🚀 Teknoloji Stack
 
 ### Backend
-- **Framework**: Node.js + Express.js + TypeScript
-- **Veritabanı**: MongoDB + Mongoose ODM
-- **Authentication**: JWT (Access + Refresh Token)
-- **Güvenlik**: Helmet, CORS, Rate Limiting, bcrypt
-- **Validation**: Joi + Express Validator
+
+| Teknoloji | Açıklama |
+|-----------|----------|
+| **Node.js** | JavaScript runtime |
+| **Express.js** | Web framework |
+| **TypeScript** | Type-safe JavaScript |
+| **SQLite** | Veritabanı (Sequelize ORM) |
+| **JWT** | Authentication |
+| **bcrypt** | Password hashing |
+| **Helmet** | Güvenlik middleware |
+| **Express Rate Limit** | Rate limiting |
+| **Morgan** | HTTP request logger |
+| **CORS** | Cross-origin resource sharing |
 
 ### Frontend
-- **Framework**: React 18 + TypeScript + Vite
-- **State Management**: Zustand
-- **HTTP Client**: Axios + React Query
-- **Routing**: React Router v6
-- **Forms**: React Hook Form + Zod
-- **UI Framework**: TailwindCSS + Headless UI
-- **Icons**: Lucide React
-- **Animations**: Framer Motion
+
+| Teknoloji | Açıklama |
+|-----------|----------|
+| **React 18** | UI library |
+| **TypeScript** | Type-safe JavaScript |
+| **Vite** | Build tool & dev server |
+| **Zustand** | State management |
+| **React Query (TanStack Query)** | Server state management |
+| **React Router v6** | Routing |
+| **Axios** | HTTP client |
+| **TailwindCSS** | Utility-first CSS |
+| **Framer Motion** | Animasyon kütüphanesi |
+| **Recharts** | Grafik ve istatistik |
+| **Lucide React** | Icon set |
+| **React Hot Toast** | Bildirimler |
+| **date-fns** | Tarih işlemleri |
 
 ## 📋 Kurulum
 
-### Sistem Gereksinimleri
+### Gereksinimler
+
 - Node.js >= 18.0.0
 - npm >= 9.0.0
-- MongoDB (local veya cloud)
 
-### Hızlı Kurulum
+### Adım Adım Kurulum
 
-```bash
-# Repository'yi klonlayın
-git clone <repository-url>
-cd ders-takip-sistemi
+1. **Repository'yi klonlayın**
+   ```bash
+   git clone https://github.com/yourusername/ders-takip.git
+   cd ders-takip
+   ```
 
-# Tüm dependencies'leri kurun
-npm run install:all
+2. **Backend kurulumu**
+   ```bash
+   cd backend
+   npm install
+   ```
 
-# Veritabanını kurun ve seed verilerini yükleyin
-npm run setup
+3. **Backend environment variables**
 
-# Development modunda başlatın
-npm run dev
-```
+   `backend/.env` dosyası oluşturun:
+   ```env
+   PORT=5001
+   NODE_ENV=development
+   JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+   JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-this-in-production
+   JWT_EXPIRE=1d
+   JWT_REFRESH_EXPIRE=7d
+   BCRYPT_SALT_ROUNDS=12
+   FRONTEND_URL=http://localhost:3000
 
-### Manuel Kurulum
+   # Rate Limiting (Development'ta devre dışı)
+   RATE_LIMIT_WINDOW_MS=60000
+   RATE_LIMIT_MAX_REQUESTS=10000
+   ```
 
-```bash
-# Ana dependencies
-npm install
+4. **Frontend kurulumu**
+   ```bash
+   cd ../frontend
+   npm install
+   ```
 
-# Backend kurulumu
-cd backend
-npm install
-npm run db:setup  # MongoDB kurulumu
-npm run seed      # Örnek veri yükleme
+5. **Frontend environment variables**
 
-# Frontend kurulumu
-cd ../frontend
-npm install
+   `frontend/.env` dosyası oluşturun:
+   ```env
+   VITE_API_BASE_URL=http://localhost:5001/api
+   ```
 
-# Development serverları
-cd ..
-npm run dev       # Hem backend hem frontend
-```
+6. **Veritabanını başlatın**
+   ```bash
+   cd ../backend
+   npm run dev
+   ```
 
-## 🔧 Konfigürasyon
+   İlk çalıştırmada SQLite veritabanı otomatik oluşturulacak ve örnek veriler yüklenecektir.
 
-### Environment Variables
+7. **Frontend'i başlatın**
 
-#### Backend (.env)
-```bash
-NODE_ENV=development
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/ders_takip_sistemi
-JWT_SECRET=your-secret-key
-JWT_REFRESH_SECRET=your-refresh-secret-key
-JWT_EXPIRE=1d
-JWT_REFRESH_EXPIRE=7d
-BCRYPT_SALT_ROUNDS=12
-FRONTEND_URL=http://localhost:3000
-```
+   Yeni bir terminal açın:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
 
-#### Frontend (.env)
-```bash
-VITE_API_BASE_URL=http://localhost:5000/api
-VITE_APP_NAME=Ders Takip Sistemi
-VITE_NODE_ENV=development
-```
+8. **Tarayıcıda açın**
 
-## 🗄️ Veritabanı Yapısı
+   http://localhost:3000
 
-### Ana Koleksiyonlar
-- **users**: Kullanıcı bilgileri ve rolleri
-- **courses**: Ders kategorileri (TYT/AYT)
-- **topics**: Konu detayları ve müfredat
-- **progress**: Öğrenci ilerleme kayıtları
-- **plans**: Haftalık çalışma planları
-- **notifications**: Bildirim geçmişi
+### 🔑 Varsayılan Kullanıcı Bilgileri
 
-### Örnek Veri
-Sistem seed script ile aşağıdaki örnek verilerle gelir:
-- Admin kullanıcı: `admin@localhost.com` / `12345678`
-- 12 ders kategorisi (TYT: Türkçe, Matematik, Fen, Sosyal | AYT: Matematik, Fizik, Kimya, vb.)
-- Her ders için 10+ konu
-- Otomatik indeksler ve optimizasyonlar
+#### Admin
+- **Email:** admin@localhost.com
+- **Şifre:** 12345678
 
-## 📡 API Endpointleri
-
-### Authentication
-```
-POST   /api/auth/register      # Kayıt ol
-POST   /api/auth/login         # Giriş yap
-POST   /api/auth/refresh-token # Token yenile
-POST   /api/auth/logout        # Çıkış yap
-GET    /api/auth/me            # Profil bilgisi
-PUT    /api/auth/profile       # Profil güncelle
-```
-
-### Courses
-```
-GET    /api/courses            # Ders listesi
-GET    /api/courses/:id        # Ders detayı
-POST   /api/courses            # Ders oluştur (Admin)
-PUT    /api/courses/:id        # Ders güncelle (Admin)
-DELETE /api/courses/:id        # Ders sil (Admin)
-```
-
-### Users (Admin)
-```
-GET    /api/users              # Kullanıcı listesi
-GET    /api/users/:id          # Kullanıcı detayı
-POST   /api/users              # Kullanıcı oluştur
-PUT    /api/users/:id          # Kullanıcı güncelle
-DELETE /api/users/:id          # Kullanıcı sil
-```
+#### Öğrenci
+- **Email:** student@localhost.com
+- **Şifre:** 12345678
 
 ## 🎯 Kullanım
 
-### Öğrenci Workflow
-1. Hesap oluştur veya giriş yap
-2. Dashboard'da genel durumu görüntüle
-3. Dersler sayfasından konuları incele
-4. İlerleme kayıt et ve notlar al
-5. Haftalık planlar oluştur
-6. İstatistikleri takip et
+### Öğrenci İş Akışı
 
-### Admin Workflow
-1. Admin hesabıyla giriş yap
-2. Kullanıcıları yönet (oluştur/düzenle/sil)
-3. Ders kategorilerini düzenle
-4. Sistem istatistiklerini incele
-5. Log kayıtlarını gözden geçir
+1. **Giriş Yapın**
+   - Kayıt ol veya mevcut hesapla giriş yap
 
-## 🚦 Development
+2. **Dashboard'ı İnceleyin**
+   - Bugünün hedefleri ve istatistikleri
+   - Haftalık ilerleme grafikleri
 
-### Available Scripts
+3. **Haftalık Planlar Oluşturun**
+   - Planlayıcı'ya gidin
+   - Görev ekle butonuna tıklayın
+   - Ders, tarih ve süre seçin
+   - Drag & drop ile görevleri taşıyın
 
-```bash
-# Development
-npm run dev                    # Hem backend hem frontend
-npm run dev:backend           # Sadece backend
-npm run dev:frontend          # Sadece frontend
+4. **Çalışma Oturumu Başlatın**
+   - Görev üzerine tıklayın
+   - "Başlat" butonuna tıklayın
+   - Pomodoro timer ile çalışın
 
-# Build
-npm run build                 # Production build
-npm run build:backend         # Backend build
-npm run build:frontend        # Frontend build
+5. **İlerlemeyi Takip Edin**
+   - İstatistikler sayfasında detaylı analiz
+   - Ders bazında performans grafikleri
 
-# Database
-npm run db:setup              # Veritabanı kurulum
-npm run seed                  # Örnek veri yükleme
+### Yönetici İş Akışı
 
-# Testing & Quality
-npm run lint                  # ESLint kontrolü
-npm run test                  # Test suite
-npm run type-check            # TypeScript kontrolü
+1. **Kullanıcı Yönetimi**
+   - Kullanıcılar sayfasından tüm kullanıcıları görüntüle
+   - Yeni kullanıcı ekle
+   - Kullanıcı bilgilerini düzenle
+
+2. **Ders Yönetimi**
+   - Dersler sayfasından ders ekle/düzenle
+   - Kategori (TYT/AYT) belirle
+   - Renk ata
+
+## 📡 API Dokümantasyonu
+
+### Base URL
+```
+http://localhost:5001/api
 ```
 
-### Folder Structure
+### Authentication Endpoints
+
+```http
+POST   /auth/register       # Yeni kullanıcı kaydı
+POST   /auth/login          # Giriş yap
+POST   /auth/logout         # Çıkış yap
+POST   /auth/refresh        # Token yenile
+GET    /auth/me             # Kullanıcı bilgisi
+PUT    /auth/profile        # Profil güncelle
+POST   /auth/upload-avatar  # Avatar yükle
+```
+
+### Study Sessions
+
+```http
+GET    /study-sessions                    # Oturumları listele
+GET    /study-sessions/:id                # Oturum detayı
+POST   /study-sessions                    # Yeni oturum oluştur
+PUT    /study-sessions/:id                # Oturum güncelle
+DELETE /study-sessions/:id                # Oturum sil
+PUT    /study-sessions/:id/complete       # Oturumu tamamla
+```
+
+### Courses
+
+```http
+GET    /courses             # Ders listesi
+GET    /courses/:id         # Ders detayı
+POST   /courses             # Yeni ders (Admin)
+PUT    /courses/:id         # Ders güncelle (Admin)
+DELETE /courses/:id         # Ders sil (Admin)
+```
+
+### Plans
+
+```http
+GET    /plans               # Plan listesi
+GET    /plans/:id           # Plan detayı
+POST   /plans               # Yeni plan
+PUT    /plans/:id           # Plan güncelle
+DELETE /plans/:id           # Plan sil
+```
+
+### Örnek Request
+
+```javascript
+// Login
+const response = await axios.post('/api/auth/login', {
+  email: 'student@localhost.com',
+  password: '12345678'
+});
+
+// Çalışma oturumu oluştur
+const session = await axios.post('/api/study-sessions', {
+  courseId: 1,
+  title: 'Matematik Çalışması',
+  startTime: '2025-10-07T09:00:00Z',
+  endTime: '2025-10-07T10:30:00Z',
+  duration: 90,
+  type: 'study'
+}, {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+```
+
+## 📁 Proje Yapısı
 
 ```
-ders-takip-sistemi/
+ders-takip/
 ├── backend/
 │   ├── src/
-│   │   ├── controllers/      # Route controllers
-│   │   ├── middleware/       # Express middleware
-│   │   ├── models/          # Mongoose models
-│   │   ├── routes/          # API routes
-│   │   ├── utils/           # Utility functions
-│   │   └── index.ts         # Entry point
-│   ├── scripts/             # Database scripts
-│   └── tests/               # Test files
+│   │   ├── config/          # Veritabanı ve konfigürasyon
+│   │   ├── controllers/     # Route controller'ları
+│   │   ├── middleware/      # Express middleware
+│   │   ├── models/          # Sequelize modelleri
+│   │   ├── routes/          # API route tanımları
+│   │   ├── services/        # Business logic
+│   │   ├── types/           # TypeScript tipleri
+│   │   ├── utils/           # Yardımcı fonksiyonlar
+│   │   └── index.ts         # Express uygulama giriş noktası
+│   ├── uploads/             # Kullanıcı yüklemeleri
+│   ├── database.sqlite      # SQLite veritabanı
+│   └── package.json
+│
 ├── frontend/
 │   ├── src/
-│   │   ├── components/      # React components
-│   │   ├── pages/           # Page components
-│   │   ├── hooks/           # Custom hooks
-│   │   ├── services/        # API services
-│   │   ├── store/           # Zustand stores
-│   │   ├── types/           # TypeScript types
-│   │   └── utils/           # Utility functions
-│   └── public/              # Static assets
-└── README.md
+│   │   ├── components/      # React bileşenleri
+│   │   │   ├── common/      # Ortak bileşenler
+│   │   │   ├── dashboard/   # Dashboard bileşenleri
+│   │   │   ├── planner/     # Planlayıcı bileşenleri
+│   │   │   └── ...
+│   │   ├── pages/           # Sayfa bileşenleri
+│   │   ├── services/        # API servisleri
+│   │   ├── store/           # Zustand store'lar
+│   │   ├── types/           # TypeScript tipleri
+│   │   ├── utils/           # Yardımcı fonksiyonlar
+│   │   ├── App.tsx          # Ana uygulama bileşeni
+│   │   └── main.tsx         # React giriş noktası
+│   ├── public/              # Statik dosyalar
+│   ├── index.html           # HTML şablonu
+│   └── package.json
+│
+├── README.md                # Bu dosya
+└── package.json             # Root package.json
 ```
 
 ## 🔐 Güvenlik
 
-- **Authentication**: JWT-based auth sistemi
-- **Authorization**: Role-based access control
-- **Password Security**: bcrypt ile hash'leme
-- **Input Validation**: Joi ve Zod ile validasyon
-- **Rate Limiting**: Brute force koruması
-- **CORS**: Güvenli cross-origin politikaları
-- **XSS Protection**: Input sanitization
-
-## 📊 Performans
-
-- **Bundle Size**: < 500KB (gzipped)
-- **API Response**: < 200ms ortalama
-- **Lighthouse Score**: 90+ (tüm kategoriler)
-- **Database**: Optimized indexing
-- **Frontend**: Code splitting ve lazy loading
+- **JWT Authentication**: Access ve refresh token sistemi
+- **Password Hashing**: bcrypt ile güvenli şifre hash'leme
+- **CORS Protection**: Cross-origin güvenliği
+- **Rate Limiting**: Brute force saldırı koruması (production'da aktif)
+- **Helmet**: HTTP header güvenliği
+- **Input Validation**: Tüm girişler doğrulanır
+- **SQL Injection**: Sequelize ORM ile korunmalı
 
 ## 🐛 Sorun Giderme
 
-### Yaygın Sorunlar
+### Port Çakışması
 
-1. **MongoDB Bağlantı Hatası**
-   ```bash
-   # MongoDB'nin çalıştığından emin olun
-   mongod --version
-
-   # Connection string'i kontrol edin
-   echo $MONGODB_URI
-   ```
-
-2. **Port Çakışması**
-   ```bash
-   # Kullanılan portları kontrol edin
-   netstat -an | findstr :5000
-   netstat -an | findstr :3000
-   ```
-
-3. **Environment Variables**
-   ```bash
-   # .env dosyalarının varlığını kontrol edin
-   ls backend/.env
-   ls frontend/.env
-   ```
-
-### Debug Modu
 ```bash
-# Verbose logging için
-DEBUG=app:* npm run dev:backend
+# Windows
+netstat -ano | findstr :5001
+taskkill /PID <PID> /F
+
+# Linux/Mac
+lsof -ti:5001 | xargs kill -9
 ```
+
+### Database Sıfırlama
+
+```bash
+cd backend
+rm database.sqlite
+npm run dev  # Otomatik yeniden oluşturulur
+```
+
+### Environment Variables
+
+`.env` dosyalarının doğru konumda olduğundan emin olun:
+- `backend/.env`
+- `frontend/.env`
 
 ## 🚀 Deployment
 
 ### Production Build
+
 ```bash
+# Frontend build
+cd frontend
 npm run build
-npm start  # Production mode
+
+# Backend
+cd backend
+npm run build  # TypeScript compile (opsiyonel)
+
+# Production modda çalıştır
+NODE_ENV=production npm start
 ```
 
-### Environment Setup
-- Production MongoDB URI ayarla
-- Güvenli JWT secrets kullan
-- HTTPS aktivte et
-- Environment variables güvenli şekilde sakla
+### Environment Güvenliği
+
+Production ortamında:
+- Güçlü JWT secret'lar kullanın
+- `NODE_ENV=production` ayarlayın
+- Rate limiting'i aktif tutun
+- HTTPS kullanın
+- Environment variable'ları güvenli saklayın
 
 ## 🤝 Katkıda Bulunma
 
 1. Fork edin
 2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Commit edin (`git commit -m 'Add amazing feature'`)
-4. Push edin (`git push origin feature/amazing-feature`)
+3. Değişikliklerinizi commit edin (`git commit -m 'feat: Add amazing feature'`)
+4. Branch'inizi push edin (`git push origin feature/amazing-feature`)
 5. Pull Request açın
+
+### Commit Mesaj Formatı
+
+```
+feat: Yeni özellik
+fix: Hata düzeltmesi
+docs: Dokümantasyon değişikliği
+style: Kod formatı
+refactor: Kod yeniden yapılandırma
+test: Test ekleme/düzenleme
+chore: Yapılandırma değişiklikleri
+```
 
 ## 📝 Lisans
 
-Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+Bu proje MIT lisansı altında lisanslanmıştır.
 
 ## 👥 İletişim
 
-- **Geliştirici**: [Your Name]
-- **E-mail**: [your.email@example.com]
-- **Proje Linki**: [https://github.com/yourusername/ders-takip-sistemi](https://github.com/yourusername/ders-takip-sistemi)
+Proje Linki: [https://github.com/yourusername/ders-takip](https://github.com/yourusername/ders-takip)
 
 ## 🙏 Teşekkürler
 
-- [React](https://reactjs.org/) ekibine
-- [TailwindCSS](https://tailwindcss.com/) geliştiricilerine
-- [MongoDB](https://www.mongodb.com/) topluluğuna
+- [React](https://reactjs.org/)
+- [TailwindCSS](https://tailwindcss.com/)
+- [Vite](https://vitejs.dev/)
+- [Zustand](https://zustand-demo.pmnd.rs/)
+- [TanStack Query](https://tanstack.com/query)
+- [Framer Motion](https://www.framer.com/motion/)
+- [Recharts](https://recharts.org/)
 - Tüm açık kaynak katkıcılarına
 
 ---
 
-**⚡ Hızlı Başlangıç**: `npm run setup && npm run dev` komutları ile sistemi 2 dakikada çalıştırabilirsiniz!
+<div align="center">
+
+**⚡ Hızlı Başlangıç**: Backend ve frontend'i paralel terminallerde başlatın!
+
+Made with ❤️ for TYT/AYT students
+
+</div>
