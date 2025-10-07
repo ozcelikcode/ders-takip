@@ -429,7 +429,7 @@ Bu proje MIT lisansı altında lisanslanmıştır.
 
 ## 👥 İletişim
 
-Proje Linki: [https://github.com/yourusername/ders-takip](https://github.com/yourusername/ders-takip)
+Proje Linki: [https://github.com/ozcelikcode/ders-takip](https://github.com/ozcelikcode/ders-takip)
 
 ## 🙏 Teşekkürler
 
@@ -448,6 +448,6 @@ Proje Linki: [https://github.com/yourusername/ders-takip](https://github.com/you
 
 **⚡ Hızlı Başlangıç**: Backend ve frontend'i paralel terminallerde başlatın!
 
-Made with ❤️ for TYT/AYT students
+Made with ❤️ Claude Sonnet 4.5
 
 </div>
