@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, Play, Timer, Square, RotateCcw, CheckCircle, MoveRight } from 'lucide-react';
+import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, Play, Timer, Square, RotateCcw, CheckCircle, MoveRight, Edit, Pause } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { StudySession, WeeklySchedule } from '../../types/planner';
 import { studySessionsAPI } from '../../services/api';
@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import PomodoroModal from './PomodoroModal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import MoveSessionModal from './MoveSessionModal';
+import CreateSessionModal from './CreateSessionModal';
 import { isSessionMissed, canStartSession, getSessionTextStyle } from '../../utils/sessionHelpers';
 
 interface WeeklyPlannerProps {
@@ -35,6 +36,8 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
   const [contextMenu, setContextMenu] = useState<{ session: StudySession; x: number; y: number } | null>(null);
   const [moveModalSession, setMoveModalSession] = useState<StudySession | null>(null);
   const [dragOverArrow, setDragOverArrow] = useState<'prev' | 'next' | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<StudySession | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -295,6 +298,11 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     });
   };
 
+  const handleEditSession = (session: StudySession) => {
+    setEditingSession(session);
+    setIsEditModalOpen(true);
+  };
+
   const handleMoveToDate = async (targetDate: Date) => {
     if (!moveModalSession) return;
 
@@ -410,25 +418,9 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       setActiveSession(session);
       setIsPomodoroModalOpen(true);
     } else {
-      // For non-Pomodoro sessions, start them and move to current time
+      // Start session without changing its time
       try {
-        // Calculate new start and end times
-        const newStartTime = new Date(now);
-        newStartTime.setMinutes(0, 0, 0);
-
-        const sessionDuration = session.duration || 60;
-        const newEndTime = new Date(newStartTime);
-        newEndTime.setMinutes(newEndTime.getMinutes() + sessionDuration);
-
-        // Start the session and move it to current time
         await studySessionsAPI.startSession(session.id.toString());
-
-        // Update session time to current hour
-        await studySessionsAPI.updateSession(session.id.toString(), {
-          startTime: newStartTime.toISOString(),
-          endTime: newEndTime.toISOString(),
-        });
-
         toast.success('Çalışma seansı başlatıldı');
         queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
         queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
@@ -449,6 +441,26 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       spread: 70,
       origin: { y: 0.6 },
       colors: ['#22c55e', '#10b981', '#4ade80', '#86efac'],
+    });
+  };
+
+  const handlePauseSession = (session: StudySession) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Oturumu Duraklat',
+      message: 'Bu oturumu duraklatmak istiyor musunuz?',
+      type: 'warning',
+      onConfirm: async () => {
+        try {
+          await studySessionsAPI.pauseSession(session.id.toString());
+          toast.success('Çalışma seansı duraklatıldı');
+          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+          refetch();
+        } catch (error) {
+          toast.error('Seans duraklatılırken hata oluştu');
+        }
+      },
     });
   };
 
@@ -670,8 +682,8 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
             {HOURS.map((hour) => (
               <div key={hour} className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-700">
                 {/* Hour label */}
-                <div className="relative p-3 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
-                  <div className="text-sm font-medium text-gray-600 dark:text-gray-400 text-center">
+                <div className="relative p-3 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                  <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
                     {hour === 24 ? '24:00' : `${hour.toString().padStart(2, '0')}:00`}
                   </div>
                 </div>
@@ -777,13 +789,13 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                               }}
                             draggable={session.status !== 'in_progress'}
                             onDragStart={(e) => handleDragStart(e as any, session)}
-                            onClick={(e) => handleSessionClick(e, session)}
+                            onClick={session.status !== 'in_progress' ? (e) => handleSessionClick(e, session) : undefined}
                             onContextMenu={(e) => handleContextMenu(e, session)}
                           >
-                            {/* Time badge - top left corner */}
+                            {/* Time badge - start and end time */}
                             {sessionHeight >= 35 && (
                               <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium">
-                                {format(sessionStart, 'HH:mm')}
+                                {format(sessionStart, 'HH:mm')} - {format(parseISO(session.endTime), 'HH:mm')}
                               </div>
                             )}
 
@@ -802,11 +814,11 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                               )}
                               {session.status === 'in_progress' && (
                                 <>
-                                  <Square
-                                    className="w-3 h-3 ml-1 opacity-75 group-hover:opacity-100 animate-pulse cursor-pointer"
+                                  <Pause
+                                    className="w-3 h-3 ml-1 opacity-75 group-hover:opacity-100 cursor-pointer text-orange-500"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleSessionClick(e as any, session);
+                                      handlePauseSession(session);
                                     }}
                                   />
                                   <CheckCircle
@@ -818,8 +830,23 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                   />
                                 </>
                               )}
+                              {session.status === 'paused' && (
+                                <Play
+                                  className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 cursor-pointer text-blue-500"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartSession(session);
+                                  }}
+                                />
+                              )}
                               {session.status === 'completed' && (
-                                <RotateCcw className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 cursor-pointer" />
+                                <div className="flex flex-col gap-1 ml-1">
+                                  <RotateCcw className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer" />
+                                  <Edit className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer" onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditSession(session);
+                                  }} />
+                                </div>
                               )}
                             </div>
 
@@ -914,6 +941,16 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         >
           <button
             onClick={() => {
+              handleEditSession(contextMenu.session);
+              setContextMenu(null);
+            }}
+            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
+          >
+            <Edit className="w-4 h-4" />
+            Düzenle
+          </button>
+          <button
+            onClick={() => {
               setMoveModalSession(contextMenu.session);
               setContextMenu(null);
             }}
@@ -932,6 +969,17 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         onSelectDate={handleMoveToDate}
         sessionTitle={moveModalSession?.title || ''}
         currentDate={moveModalSession ? parseISO(moveModalSession.startTime) : new Date()}
+      />
+
+      {/* Edit Session Modal */}
+      <CreateSessionModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingSession(null);
+          refetch();
+        }}
+        editSession={editingSession}
       />
     </div>
   );

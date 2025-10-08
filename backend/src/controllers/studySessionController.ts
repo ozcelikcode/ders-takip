@@ -483,12 +483,82 @@ export const startStudySession = async (req: Request, res: Response, next: NextF
     }
 
     session.status = 'in_progress';
-    session.startTime = new Date();
+    // startTime değiştirilmemeli - planlanan zamanı koru
     await session.save();
 
     res.json({
       success: true,
       message: 'Çalışma seansı başlatıldı',
+      data: { session },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const pauseStudySession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params || {};
+    const userId = req.user?.id;
+
+    if (!id) {
+      res.status(400).json({
+        success: false,
+        error: { message: 'Çalışma seansı ID gerekli' },
+      });
+      return;
+    }
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: { message: 'Kullanıcı kimlik doğrulaması gerekli' },
+      });
+      return;
+    }
+
+    const session = await StudySession.findOne({
+      where: { id, userId },
+    });
+
+    if (!session) {
+      res.status(404).json({
+        success: false,
+        error: { message: 'Çalışma seansı bulunamadı' },
+      });
+      return;
+    }
+
+    if (session.status !== 'in_progress') {
+      res.status(400).json({
+        success: false,
+        error: { message: 'Sadece devam eden seanslar duraklatılabilir' },
+      });
+      return;
+    }
+
+    // Bitiş saatini kontrol et
+    const now = new Date();
+    const endTime = new Date(session.endTime);
+
+    if (now > endTime) {
+      // Bitiş saati geçmiş
+      session.status = 'planned';
+      await session.save();
+
+      res.status(400).json({
+        success: false,
+        error: { message: 'Bu görev için süre doldu. Görev tamamlanamadı ve planlananlar arasına geri döndü.' },
+      });
+      return;
+    }
+
+    session.status = 'paused';
+    await session.save();
+
+    res.json({
+      success: true,
+      message: 'Çalışma seansı duraklatıldı',
       data: { session },
     });
   } catch (error) {

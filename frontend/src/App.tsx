@@ -10,6 +10,7 @@ import DashboardPage from './pages/dashboard/DashboardPage';
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
 import PlannerPage from './pages/planner/PlannerPage';
+import PomodoroPage from './pages/pomodoro/PomodoroPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminCoursesPage from './pages/admin/AdminCoursesPage';
@@ -53,6 +54,7 @@ function App() {
         <Route path="courses" element={<CoursesPage />} />
         <Route path="courses/:id" element={<CourseDetailPage />} />
         <Route path="planner" element={<PlannerPage />} />
+        <Route path="pomodoro" element={<PomodoroPage />} />
         <Route path="profile" element={<ProfilePage />} />
 
         {/* Admin routes */}

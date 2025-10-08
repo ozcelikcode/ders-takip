@@ -6,6 +6,7 @@ import {
   updateStudySession,
   deleteStudySession,
   startStudySession,
+  pauseStudySession,
   completeStudySession,
 } from '../controllers/studySessionController';
 import { protect } from '../middleware/auth';
@@ -98,6 +99,9 @@ router.route('/:id')
 
 router.route('/:id/start')
   .patch(validate(sessionParamsSchema), startStudySession);
+
+router.route('/:id/pause')
+  .patch(validate(sessionParamsSchema), pauseStudySession);
 
 router.route('/:id/complete')
   .patch(validate(completeSessionSchema), completeStudySession);

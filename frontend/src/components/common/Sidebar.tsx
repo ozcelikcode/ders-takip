@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { X, Home, BookOpen, Calendar, User, Users, Settings, LayoutDashboard } from 'lucide-react';
+import { X, Home, BookOpen, Calendar, User, Users, Settings, LayoutDashboard, Timer } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { clsx } from 'clsx';
 
@@ -15,6 +15,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Dersler', href: '/courses', icon: BookOpen },
     { name: 'Planlayıcı', href: '/planner', icon: Calendar },
+    { name: 'Pomodoro', href: '/pomodoro', icon: Timer },
     { name: 'Profil', href: '/profile', icon: User },
   ];
 

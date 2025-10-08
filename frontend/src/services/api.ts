@@ -215,6 +215,9 @@ export const studySessionsAPI = {
   startSession: (id: string): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
     api.patch(`/study-sessions/${id}/start`),
 
+  pauseSession: (id: string): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
+    api.patch(`/study-sessions/${id}/pause`),
+
   completeSession: (id: string, data?: { notes?: string; productivity?: number }): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
     api.patch(`/study-sessions/${id}/complete`, data),
 };

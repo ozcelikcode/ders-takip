@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, ChevronLeft, ChevronRight, Plus, Clock, Target, Play, CheckCircle, Check, Edit, Pause } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Plus, Clock, Target, Play, CheckCircle, Check, Edit, Pause, MoveRight, RotateCcw } from 'lucide-react';
 import { StudySession } from '../../types/planner';
 import { studySessionsAPI } from '../../services/api';
 import { useQuery } from '@tanstack/react-query';
-import { format, addDays, subDays, parseISO, isToday } from 'date-fns';
+import { format, addDays, subDays, parseISO, isToday, setHours, setMinutes, addMinutes as addMinutesFn } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import CreateSessionModal from './CreateSessionModal';
+import MoveSessionModal from './MoveSessionModal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import confetti from 'canvas-confetti';
 import { isSessionMissed, canStartSession, getSessionTextStyle, isSessionOverdue } from '../../utils/sessionHelpers';
@@ -23,6 +24,12 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
+  const [draggedSession, setDraggedSession] = useState<StudySession | null>(null);
+  const [dragOffset, setDragOffset] = useState<number>(0);
+  const [dragOverTarget, setDragOverTarget] = useState<{ hour: number; minute: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ session: StudySession; x: number; y: number } | null>(null);
+  const [moveModalSession, setMoveModalSession] = useState<StudySession | null>(null);
+  const [isMoving, setIsMoving] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -81,6 +88,112 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
     setEditingSession(session);
     setIsEditModalOpen(true);
   };
+
+  const handleDragStart = (e: React.DragEvent, session: StudySession) => {
+    if (session.status === 'in_progress') {
+      e.preventDefault();
+      toast.error('Devam eden oturumlar taşınamaz');
+      return;
+    }
+
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+
+    setDraggedSession(session);
+    setDragOffset(offsetY);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, hour: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
+    const timeSlot = e.currentTarget as HTMLElement;
+    const rect = timeSlot.getBoundingClientRect();
+    const mouseY = e.clientY - rect.top;
+    const slotHeight = rect.height;
+
+    const sessionStartY = mouseY - dragOffset;
+    const minutesFromTop = (sessionStartY / slotHeight) * 60;
+    const snappedMinutes = Math.round(minutesFromTop / 15) * 15;
+
+    setDragOverTarget({ hour, minute: snappedMinutes });
+  };
+
+  const handleDragLeave = () => {
+    setDragOverTarget(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, hour: number) => {
+    e.preventDefault();
+
+    if (!draggedSession || isMoving) return;
+
+    const snappedMinutes = dragOverTarget?.minute ?? 0;
+
+    try {
+      setIsMoving(true);
+
+      let newStartTime = setHours(selectedDate, hour);
+      newStartTime = setMinutes(newStartTime, snappedMinutes);
+      const newEndTime = addMinutesFn(newStartTime, draggedSession.duration);
+
+      await studySessionsAPI.updateSession(draggedSession.id.toString(), {
+        startTime: newStartTime.toISOString(),
+        endTime: newEndTime.toISOString(),
+      });
+
+      toast.success('Görev başarıyla taşındı');
+      refetch();
+    } catch (error) {
+      toast.error('Görev taşınırken hata oluştu');
+    } finally {
+      setIsMoving(false);
+      setDraggedSession(null);
+      setDragOverTarget(null);
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, session: StudySession) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ session, x: e.clientX, y: e.clientY });
+  };
+
+  const handleMoveToDate = async (date: Date) => {
+    if (!moveModalSession) return;
+
+    try {
+      const sessionStart = parseISO(moveModalSession.startTime);
+      const hour = sessionStart.getHours();
+      const minute = sessionStart.getMinutes();
+
+      let newStartTime = setHours(date, hour);
+      newStartTime = setMinutes(newStartTime, minute);
+      const newEndTime = addMinutesFn(newStartTime, moveModalSession.duration);
+
+      await studySessionsAPI.updateSession(moveModalSession.id.toString(), {
+        startTime: newStartTime.toISOString(),
+        endTime: newEndTime.toISOString(),
+      });
+
+      toast.success('Görev başarıyla taşındı');
+      refetch();
+      setMoveModalSession(null);
+    } catch (error) {
+      toast.error('Görev taşınırken hata oluştu');
+    }
+  };
+
+  // Close context menu on click outside
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null);
+    if (contextMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [contextMenu]);
 
   const triggerConfetti = () => {
     confetti({
@@ -141,6 +254,26 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
           refetch();
         } catch (error) {
           toast.error('Seans tamamlanırken hata oluştu');
+        }
+      },
+    });
+  };
+
+  const handleRestartSession = (session: StudySession) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Oturumu Yeniden Başlat',
+      message: 'Bu oturumu yeniden planlananlar arasına eklemek istiyor musunuz?',
+      type: 'info',
+      onConfirm: async () => {
+        try {
+          await studySessionsAPI.updateSession(session.id.toString(), {
+            status: 'planned',
+          });
+          toast.success('Oturum yeniden başlatıldı');
+          refetch();
+        } catch (error) {
+          toast.error('Oturum yeniden başlatılırken hata oluştu');
         }
       },
     });
@@ -340,7 +473,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
                   className="flex border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                 >
                   {/* Hour label */}
-                  <div className="w-20 flex-shrink-0 p-4 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                  <div className="w-20 flex-shrink-0 p-4 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {hour}:00
                     </div>
@@ -351,33 +484,92 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
 
                   {/* Hour content */}
                   <div
-                    className="flex-1 min-h-[80px] p-4 cursor-pointer relative"
+                    className="flex-1 min-h-[60px] cursor-pointer relative"
                     onClick={() => handleTimeSlotClick(hour)}
+                    onDragOver={(e) => handleDragOver(e, hour)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, hour)}
                   >
-                    <AnimatePresence>
-                      {sessions.length === 0 ? (
-                        <div className="flex items-center justify-center h-full opacity-0 hover:opacity-100 transition-opacity">
-                          <div className="flex items-center gap-2 text-sm text-gray-400 hover:text-blue-500 transition-colors">
-                            <Plus className="w-4 h-4" />
-                            <span>Seans ekle</span>
+                    {/* Empty state */}
+                    {sessions.length === 0 && (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-2 text-sm text-gray-400 hover:text-blue-500 transition-colors">
+                          <Plus className="w-4 h-4" />
+                          <span>Seans ekle</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Drag Preview - Show where session will be dropped */}
+                    {dragOverTarget && draggedSession && dragOverTarget.hour === hour && (
+                      <div
+                        className="absolute inset-x-1 p-2 rounded-lg border-2 border-dashed border-blue-500 z-40 pointer-events-none"
+                        style={{
+                          top: `${(dragOverTarget.minute / 60) * 60}px`,
+                          height: `${(draggedSession.duration / 60) * 60}px`,
+                        }}
+                      >
+                        <div className="flex items-center justify-center h-full opacity-50">
+                          <div className="text-center">
+                            <div className="text-xs text-blue-600 dark:text-blue-400 font-medium truncate px-2">
+                              {draggedSession.title}
+                            </div>
+                            <div className="text-[10px] text-blue-500 dark:text-blue-300 mt-0.5">
+                              {draggedSession.duration} dk
+                            </div>
                           </div>
                         </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {sessions.map((session, index) => (
-                            <motion.div
+                      </div>
+                    )}
+
+                    {/* Sessions */}
+                    <AnimatePresence>
+                      {sessions.map((session, index) => {
+                        const isBeingDragged = draggedSession?.id === session.id;
+                        const sessionStart = parseISO(session.startTime);
+                        const sessionMinutes = sessionStart.getMinutes();
+                        const slotHeight = 60;
+                        const topPosition = (sessionMinutes / 60) * slotHeight;
+                        const sessionHeight = (session.duration / 60) * slotHeight;
+
+                        return (
+                          <motion.div
                               key={session.id}
                               initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
+                              animate={{
+                                opacity: isBeingDragged ? 0.3 : 1,
+                                x: 0,
+                                scale: isBeingDragged ? 0.95 : 1
+                              }}
                               exit={{ opacity: 0, x: 20 }}
-                              className={`relative p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                                getSessionTypeColor(session.sessionType)
-                              } ${getStatusColor(session.status, session)}`}
-                              onClick={(e) => {
+                              className={`absolute inset-x-1 p-2 rounded-lg border-2 transition-all hover:shadow-md group text-white ${
+                                getStatusColor(session.status, session)
+                              } ${
+                                isBeingDragged ? 'ring-2 ring-blue-400' : ''
+                              } ${session.status !== 'in_progress' ? 'cursor-move' : 'cursor-pointer'}`}
+                              style={{
+                                top: `${topPosition}px`,
+                                height: `${sessionHeight}px`,
+                                backgroundColor: session.color || '#3B82F6',
+                                borderColor: session.color || '#3B82F6',
+                                zIndex: isBeingDragged ? 50 : 10,
+                              }}
+                              draggable={session.status !== 'in_progress'}
+                              onDragStart={(e) => handleDragStart(e as any, session)}
+                              onDragEnd={() => setDraggedSession(null)}
+                              onClick={session.status !== 'in_progress' ? (e) => {
                                 e.stopPropagation();
                                 onSessionClick?.(session);
-                              }}
+                              } : undefined}
+                              onContextMenu={(e) => handleContextMenu(e, session)}
                             >
+                              {/* Time badge - start and end time */}
+                              {sessionHeight >= 35 && (
+                                <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium">
+                                  {format(sessionStart, 'HH:mm')} - {format(parseISO(session.endTime), 'HH:mm')}
+                                </div>
+                              )}
+
                               {/* Completed checkmark icon - top right */}
                               {session.status === 'completed' && (
                                 <div className="absolute top-2 right-2 opacity-40">
@@ -385,19 +577,17 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
                                 </div>
                               )}
 
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between h-full">
                                 <div className="flex-1 min-w-0 pr-6">
                                   <h4 className={`font-medium truncate ${getSessionTextStyle(session)}`}>
                                     {session.title}
                                   </h4>
-                                  <div className="flex items-center gap-2 text-sm opacity-90 mt-1">
-                                    <Clock className="w-3 h-3" />
-                                    <span>
-                                      {format(parseISO(session.startTime), 'HH:mm')} - {format(parseISO(session.endTime), 'HH:mm')}
-                                    </span>
-                                    <span>({session.duration} dk)</span>
-                                  </div>
-                                  {session.description && (
+                                  {sessionHeight >= 50 && (
+                                    <div className="flex items-center gap-2 text-xs opacity-75 mt-1">
+                                      <span>({session.duration} dk)</span>
+                                    </div>
+                                  )}
+                                  {session.description && sessionHeight >= 70 && (
                                     <p className="text-xs opacity-75 mt-1 truncate">
                                       {session.description}
                                     </p>
@@ -405,17 +595,6 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditSession(session);
-                                    }}
-                                    className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
-                                    title="Düzenle"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </button>
-
                                   {session.status === 'planned' && canStartSession(session) && (
                                     <button
                                       onClick={(e) => {
@@ -467,21 +646,45 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
                                     </button>
                                   )}
 
+                                  {session.status === 'completed' && (
+                                    <div className="flex flex-col gap-1">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRestartSession(session);
+                                        }}
+                                        className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
+                                        title="Yeniden Başlat"
+                                      >
+                                        <RotateCcw className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditSession(session);
+                                        }}
+                                        className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
+                                        title="Düzenle"
+                                      >
+                                        <Edit className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  )}
+
                                   {session.sessionType === 'pomodoro' && (
                                     <Target className="w-4 h-4" />
                                   )}
                                 </div>
                               </div>
 
-                              {session.plan && (
+                              {session.plan && sessionHeight >= 90 && (
                                 <div className="mt-2 text-xs opacity-75">
                                   📋 {session.plan.title}
                                 </div>
                               )}
                             </motion.div>
-                          ))}
-                        </div>
-                      )}
+                          );
+                        })}
                     </AnimatePresence>
                   </div>
                 </div>
@@ -517,6 +720,35 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
         </div>
       )}
 
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          className="fixed bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[160px]"
+          style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
+        >
+          <button
+            onClick={() => {
+              handleEditSession(contextMenu.session);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
+          >
+            <Edit className="w-4 h-4" />
+            Düzenle
+          </button>
+          <button
+            onClick={() => {
+              setMoveModalSession(contextMenu.session);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
+          >
+            <MoveRight className="w-4 h-4" />
+            Tarihe Taşı
+          </button>
+        </div>
+      )}
+
       {/* Confirm Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
@@ -536,6 +768,15 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
           refetch();
         }}
         editSession={editingSession}
+      />
+
+      {/* Move Session Modal */}
+      <MoveSessionModal
+        isOpen={!!moveModalSession}
+        onClose={() => setMoveModalSession(null)}
+        onSelectDate={handleMoveToDate}
+        sessionTitle={moveModalSession?.title || ''}
+        currentDate={moveModalSession ? parseISO(moveModalSession.startTime) : new Date()}
       />
     </div>
   );

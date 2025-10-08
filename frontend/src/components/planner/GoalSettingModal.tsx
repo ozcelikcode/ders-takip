@@ -195,36 +195,59 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({ isOpen, onClose }) 
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Başlangıç Tarihi *
-                      </label>
-                      <input
-                        {...register('startDate')}
-                        type="date"
-                        id="startDate"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                      />
-                      {errors.startDate && (
-                        <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
-                      )}
+                  {/* Date Range */}
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white">Plan Dönemi</h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Başlangıç Tarihi *
+                        </label>
+                        <div className="relative">
+                          <input
+                            {...register('startDate')}
+                            type="date"
+                            id="startDate"
+                            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+                        {errors.startDate && (
+                          <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Bitiş Tarihi *
+                        </label>
+                        <div className="relative">
+                          <input
+                            {...register('endDate')}
+                            type="date"
+                            id="endDate"
+                            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                          />
+                        </div>
+                        {errors.endDate && (
+                          <p className="mt-1 text-sm text-red-600">{errors.endDate.message}</p>
+                        )}
+                      </div>
                     </div>
 
-                    <div>
-                      <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Bitiş Tarihi *
-                      </label>
-                      <input
-                        {...register('endDate')}
-                        type="date"
-                        id="endDate"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                      />
-                      {errors.endDate && (
-                        <p className="mt-1 text-sm text-red-600">{errors.endDate.message}</p>
-                      )}
-                    </div>
+                    {/* Duration Info */}
+                    {startDate && endDate && (
+                      <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Plan Süresi:</span>
+                          <span className="font-semibold text-blue-600 dark:text-blue-400">
+                            {calculateWeeksFromDates()} hafta
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
