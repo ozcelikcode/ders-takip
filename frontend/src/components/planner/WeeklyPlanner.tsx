@@ -788,13 +788,11 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                     <div
                       key={`${dayIndex}-${hour}`}
                       className={`relative min-h-[60px] border-r border-gray-200 dark:border-gray-700 transition-colors ${
-                        isCurrentDay ? 'bg-blue-50/50 dark:bg-blue-900/10' :
-                        'hover:bg-gray-50 dark:hover:bg-gray-800'
+                        isCurrentDay ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
                       }`}
                       onDragOver={(e) => handleDragOver(e, dayIndex, hour)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dayIndex, hour)}
-                      onClick={() => handleTimeSlotClick(dayIndex, hour)}
                     >
                       {/* 30-minute interval guide - subtle */}
                       <div className="absolute top-1/2 left-0 right-0 h-px bg-gray-200 dark:bg-gray-700 opacity-30"></div>
@@ -1015,13 +1013,19 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                         })()
                       )}
 
-                      {/* Add session button */}
+                      {/* Add session button - only show when no sessions */}
                       {sessions.length === 0 && (
                         <button
-                          className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity group"
-                          onClick={() => handleTimeSlotClick(dayIndex, hour)}
+                          className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity group hover:bg-gray-50 dark:hover:bg-gray-800"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTimeSlotClick(dayIndex, hour);
+                          }}
                         >
-                          <Plus className="w-4 h-4 text-gray-400 group-hover:text-blue-500" />
+                          <div className="flex items-center gap-2 text-sm text-gray-400 group-hover:text-blue-500">
+                            <Plus className="w-4 h-4" />
+                            <span>Seans ekle</span>
+                          </div>
                         </button>
                       )}
                     </div>
