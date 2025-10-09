@@ -33,6 +33,8 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
   const [isMoving, setIsMoving] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [resizingSession, setResizingSession] = useState<{ session: StudySession; startY: number; startHeight: number } | null>(null);
+  const [resizePreview, setResizePreview] = useState<{ session: StudySession; newHeight: number } | null>(null);
+  const [justFinishedAction, setJustFinishedAction] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ session: StudySession; x: number; y: number } | null>(null);
   const [moveModalSession, setMoveModalSession] = useState<StudySession | null>(null);
   const [dragOverArrow, setDragOverArrow] = useState<'prev' | 'next' | null>(null);
@@ -170,17 +172,24 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
   };
 
   const handleDragStart = (e: React.DragEvent, session: StudySession) => {
-    // Prevent dragging if session is in progress
-    if (session.status === 'in_progress') {
+    // Prevent dragging if session is in progress or completed
+    if (session.status === 'in_progress' || session.status === 'completed') {
       e.preventDefault();
-      toast.error('Devam eden oturumlar taşınamaz');
+      toast.error('Devam eden veya tamamlanmış oturumlar taşınamaz');
       return;
     }
 
-    // Calculate mouse offset within the session box
+    // Check if drag started from resize handle area (bottom 12px)
     const target = e.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const offsetY = e.clientY - rect.top;
+    const sessionHeight = rect.height;
+
+    // If clicking near bottom (resize handle area), prevent drag
+    if (offsetY > sessionHeight - 12) {
+      e.preventDefault();
+      return;
+    }
 
     setDraggedSession(session);
     setDragOffset(offsetY);
@@ -276,10 +285,17 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     } finally {
       setIsMoving(false);
       setDraggedSession(null);
+      setJustFinishedAction(true);
+
+      // Reset flag after a short delay
+      setTimeout(() => setJustFinishedAction(false), 100);
     }
   };
 
   const handleTimeSlotClick = (dayIndex: number, hour: number) => {
+    // Prevent opening modal right after resize or drag
+    if (justFinishedAction) return;
+
     if (onCreateSession) {
       const targetDate = addDays(currentWeek, dayIndex);
       const sessionDate = new Date(targetDate);
@@ -485,6 +501,57 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     });
   };
 
+  const handleRestartSession = (session: StudySession) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Oturumu Yeniden Başlat',
+      message: 'Bu oturumu yeniden planlananlar arasına eklemek istiyor musunuz?',
+      type: 'info',
+      onConfirm: async () => {
+        try {
+          await studySessionsAPI.updateSession(session.id.toString(), {
+            status: 'planned',
+          });
+          toast.success('Oturum yeniden başlatıldı');
+          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+          refetch();
+        } catch (error) {
+          toast.error('Oturum yeniden başlatılırken hata oluştu');
+        }
+      },
+    });
+  };
+
+  const handleStartSession = async (session: StudySession) => {
+    // Vakti geçmiş oturumlar başlatılamaz
+    if (!canStartSession(session)) {
+      toast.error('Bu oturum için zaman geçmiş. Lütfen oturum saatini güncelleyin.');
+      return;
+    }
+
+    try {
+      await studySessionsAPI.startSession(session.id.toString());
+      toast.success('Çalışma seansı başlatıldı');
+      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+      refetch();
+    } catch (error) {
+      toast.error('Seans başlatılırken hata oluştu');
+    }
+  };
+
+  const handleStartPomodoro = (session: StudySession) => {
+    // Vakti geçmiş oturumlar başlatılamaz
+    if (!canStartSession(session)) {
+      toast.error('Bu oturum için zaman geçmiş. Lütfen oturum saatini güncelleyin.');
+      return;
+    }
+
+    setActiveSession(session);
+    setIsPomodoroModalOpen(true);
+  };
+
   const handleResizeStart = (e: React.MouseEvent, session: StudySession, currentHeight: number) => {
     e.stopPropagation();
     setResizingSession({
@@ -496,7 +563,14 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
 
   const handleResizeMove = (e: MouseEvent) => {
     if (!resizingSession) return;
-    // Visual feedback only during drag - actual update happens on mouseup
+
+    const deltaY = e.clientY - resizingSession.startY;
+    const newHeight = Math.max(15, resizingSession.startHeight + deltaY);
+
+    setResizePreview({
+      session: resizingSession.session,
+      newHeight,
+    });
   };
 
   const handleResizeEnd = async (e: MouseEvent) => {
@@ -527,13 +601,21 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     }
 
     setResizingSession(null);
+    setResizePreview(null);
+    setJustFinishedAction(true);
+
+    // Reset flag after a short delay
+    setTimeout(() => setJustFinishedAction(false), 100);
   };
 
   useEffect(() => {
     if (resizingSession) {
+      const handleMouseMove = (e: MouseEvent) => handleResizeMove(e);
       const handleMouseUp = (e: MouseEvent) => handleResizeEnd(e);
+      window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
       return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
       };
     }
@@ -714,8 +796,8 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                       onDrop={(e) => handleDrop(e, dayIndex, hour)}
                       onClick={() => handleTimeSlotClick(dayIndex, hour)}
                     >
-                      {/* 30-minute interval guide - more prominent */}
-                      <div className="absolute top-1/2 left-0 right-0 h-px bg-gray-300 dark:bg-gray-600 opacity-60"></div>
+                      {/* 30-minute interval guide - subtle */}
+                      <div className="absolute top-1/2 left-0 right-0 h-px bg-gray-200 dark:bg-gray-700 opacity-30"></div>
 
                       {/* Drag Preview - Show where session will be dropped */}
                       {isDragOver && draggedSession && dragOverTarget && (
@@ -785,11 +867,10 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                 zIndex: isBeingDragged ? 50 : 10,
                                 backgroundColor: session.color || '#3B82F6',
                                 borderColor: session.color || '#3B82F6',
-                                cursor: session.status === 'in_progress' ? 'default' : 'move',
+                                cursor: session.status === 'in_progress' || session.status === 'completed' ? 'default' : 'move',
                               }}
-                            draggable={session.status !== 'in_progress'}
+                            draggable={session.status !== 'in_progress' && session.status !== 'completed'}
                             onDragStart={(e) => handleDragStart(e as any, session)}
-                            onClick={session.status !== 'in_progress' ? (e) => handleSessionClick(e, session) : undefined}
                             onContextMenu={(e) => handleContextMenu(e, session)}
                           >
                             {/* Time badge - start and end time */}
@@ -807,10 +888,22 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                 )}
                               </div>
                               {session.sessionType === 'pomodoro' && session.status === 'planned' && canStartSession(session) && (
-                                <Timer className="w-3 h-3 ml-1 opacity-75 group-hover:opacity-100 cursor-pointer" />
+                                <Timer
+                                  className="w-3 h-3 ml-1 opacity-75 group-hover:opacity-100 cursor-pointer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartPomodoro(session);
+                                  }}
+                                />
                               )}
                               {session.status === 'planned' && session.sessionType !== 'pomodoro' && canStartSession(session) && (
-                                <Play className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 cursor-pointer" />
+                                <Play
+                                  className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartSession(session);
+                                  }}
+                                />
                               )}
                               {session.status === 'in_progress' && (
                                 <>
@@ -831,36 +924,96 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                 </>
                               )}
                               {session.status === 'paused' && (
-                                <Play
-                                  className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 cursor-pointer text-blue-500"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleStartSession(session);
-                                  }}
-                                />
+                                <div className="flex items-center gap-1 ml-1">
+                                  <Play
+                                    className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer text-blue-500"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStartSession(session);
+                                    }}
+                                  />
+                                  <Edit
+                                    className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer text-gray-400"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditSession(session);
+                                    }}
+                                  />
+                                </div>
                               )}
                               {session.status === 'completed' && (
                                 <div className="flex flex-col gap-1 ml-1">
-                                  <RotateCcw className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer" />
-                                  <Edit className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer" onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditSession(session);
-                                  }} />
+                                  <RotateCcw
+                                    className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRestartSession(session);
+                                    }}
+                                  />
+                                  <Edit
+                                    className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditSession(session);
+                                    }}
+                                  />
                                 </div>
                               )}
                             </div>
 
                             {/* Resize handle - bottom border */}
-                            {session.status !== 'in_progress' && session.status !== 'completed' && (
+                            {session.status !== 'in_progress' && session.status !== 'completed' && sessionHeight >= 30 && (
                               <div
-                                className="absolute bottom-0 left-0 right-0 h-1 cursor-ns-resize hover:bg-white/30 transition-colors"
-                                onMouseDown={(e) => handleResizeStart(e, session, sessionHeight)}
+                                className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize transition-colors"
+                                style={{ zIndex: 100 }}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleResizeStart(e, session, sessionHeight);
+                                }}
+                                onDragStart={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                                draggable={false}
+                                title="Süreni ayarlamak için sürükle"
                               />
                             )}
                           </motion.div>
                           );
                         })}
                       </AnimatePresence>
+
+                      {/* Resize Preview - Show new size while resizing */}
+                      {resizePreview && sessions.some(s => s.id === resizePreview.session.id) && (
+                        (() => {
+                          const session = resizePreview.session;
+                          const sessionStart = parseISO(session.startTime);
+                          const sessionMinutes = sessionStart.getMinutes();
+                          const slotHeight = 60;
+                          const topPosition = (sessionMinutes / 60) * slotHeight;
+                          const newDuration = resizePreview.newHeight;
+
+                          return (
+                            <div
+                              className="absolute inset-x-1 p-1 rounded-lg border-2 border-dashed border-yellow-400 dark:border-yellow-500 bg-yellow-100/30 dark:bg-yellow-900/20 z-50 pointer-events-none"
+                              style={{
+                                top: `${topPosition}px`,
+                                height: `${resizePreview.newHeight}px`,
+                              }}
+                            >
+                              <div className="flex items-center justify-between h-full opacity-70">
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium truncate text-gray-700 dark:text-gray-200 text-xs">{session.title}</div>
+                                  <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">
+                                    {Math.round(newDuration)} dk
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()
+                      )}
 
                       {/* Add session button */}
                       {sessions.length === 0 && (
