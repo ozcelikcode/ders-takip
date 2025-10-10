@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog } from '@headlessui/react';
-import { X, Calendar, Timer, BookOpen, Target, Coffee } from 'lucide-react';
+import { X, Calendar, Timer, BookOpen, Target, Coffee, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,6 +11,7 @@ import { CreateStudySessionRequest, StudySession } from '../../types/planner';
 import { studySessionsAPI, coursesAPI } from '../../services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 // Color palette for sessions
 const SESSION_COLORS = [
@@ -84,6 +85,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
   const [showPomodoroSettings, setShowPomodoroSettings] = useState(false);
   const [sessionCategory, setSessionCategory] = useState<'course' | 'break' | 'custom'>('course');
   const [durationMode, setDurationMode] = useState<'minutes' | 'timeRange'>('minutes');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const queryClient = useQueryClient();
   const isEditMode = !!editSession;
 
@@ -140,6 +142,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
       queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['pomodoro-sessions'] });
       onClose();
       reset();
       setSessionCategory('course');
@@ -147,6 +150,27 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error?.message || 'Bir hata oluştu');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (sessionId: string) => {
+      const response = await studySessionsAPI.deleteSession(sessionId);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Çalışma seansı silindi');
+      queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['pomodoro-sessions'] });
+      onClose();
+      reset();
+      setSessionCategory('course');
+      setDurationMode('minutes');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error?.message || 'Seans silinirken hata oluştu');
     },
   });
 
@@ -215,6 +239,17 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
     setShowPomodoroSettings(false);
     setSessionCategory('course');
     setDurationMode('minutes');
+  };
+
+  const handleDelete = () => {
+    if (!editSession) return;
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    if (!editSession) return;
+    deleteMutation.mutate(editSession.id.toString());
+    setShowDeleteConfirm(false);
   };
 
   // Pre-fill form when editing
@@ -796,29 +831,57 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                </form>
 
               {/* Footer with buttons */}
-              <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                >
-                  İptal
-                </button>
-                 <button
-                   type="submit"
-                   form="create-session-form"
-                   disabled={sessionMutation.isPending || !isValid}
-                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
-                 >
-                  {sessionMutation.isPending
-                    ? (isEditMode ? 'Güncelleniyor...' : 'Oluşturuluyor...')
-                    : (isEditMode ? 'Güncelle' : 'Oluştur')}
-                </button>
+              <div className="flex justify-between items-center gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                {/* Delete button - left side, only in edit mode */}
+                <div>
+                  {isEditMode && (
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      disabled={deleteMutation.isPending}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      {deleteMutation.isPending ? 'Siliniyor...' : 'Sil'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Cancel and Submit buttons - right side */}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    İptal
+                  </button>
+                  <button
+                    type="submit"
+                    form="create-session-form"
+                    disabled={sessionMutation.isPending || !isValid}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                  >
+                    {sessionMutation.isPending
+                      ? (isEditMode ? 'Güncelleniyor...' : 'Oluşturuluyor...')
+                      : (isEditMode ? 'Güncelle' : 'Oluştur')}
+                  </button>
+                </div>
               </div>
             </Dialog.Panel>
           </div>
         </Dialog>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Çalışma Seansını Sil"
+        message="Bu çalışma seansını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
+        type="danger"
+      />
     </AnimatePresence>
   );
 };

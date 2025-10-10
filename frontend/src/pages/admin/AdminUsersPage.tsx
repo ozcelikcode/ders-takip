@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Search, Edit2, Trash2, Users, Calendar, BarChart3, MoreVertical, Shield, User, Mail, Clock } from 'lucide-react';
 import CreateUserModal from '../../components/admin/CreateUserModal';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { usersAPI, studySessionsAPI } from '../../services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Menu } from '@headlessui/react';
@@ -12,6 +13,19 @@ import toast from 'react-hot-toast';
 const AdminUsersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    onConfirm: () => {},
+  });
   const queryClient = useQueryClient();
 
   const { data: usersData, isLoading } = useQuery({
@@ -93,9 +107,15 @@ const AdminUsersPage = () => {
   });
 
   const handleDeleteUser = (userId: string) => {
-    if (confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
-      deleteUserMutation.mutate(userId);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Kullanıcıyı Sil',
+      message: 'Bu kullanıcıyı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.',
+      type: 'danger',
+      onConfirm: () => {
+        deleteUserMutation.mutate(userId);
+      },
+    });
   };
 
   const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
@@ -106,12 +126,18 @@ const AdminUsersPage = () => {
   };
 
   const handleChangeUserRole = (userId: string, newRole: string) => {
-    if (confirm(`Bu kullanıcının rolünü ${newRole} olarak değiştirmek istediğinizden emin misiniz?`)) {
-      updateUserMutation.mutate({
-        userId,
-        updates: { role: newRole }
-      });
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Rol Değiştir',
+      message: `Bu kullanıcının rolünü ${newRole} olarak değiştirmek istediğinizden emin misiniz?`,
+      type: 'warning',
+      onConfirm: () => {
+        updateUserMutation.mutate({
+          userId,
+          updates: { role: newRole }
+        });
+      },
+    });
   };
 
   const filteredUsers = usersData?.filter((user: any) =>
@@ -359,6 +385,16 @@ const AdminUsersPage = () => {
       <CreateUserModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+      />
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
       />
     </div>
   );

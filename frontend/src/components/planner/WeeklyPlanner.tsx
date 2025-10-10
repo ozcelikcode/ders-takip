@@ -171,6 +171,34 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     });
   };
 
+  // Check if any session overlaps with this time slot (for preventing new session creation)
+  const hasSessionInTimeSlot = (dayIndex: number, hour: number): boolean => {
+    const dayKey = `day-${dayIndex}`;
+    const daySessions = weeklySchedule[dayKey] || [];
+
+    const slotStartInMinutes = hour * 60;
+    const slotEndInMinutes = (hour + 1) * 60;
+
+    return daySessions.some((session) => {
+      const sessionStart = parseISO(session.startTime);
+      const sessionEnd = parseISO(session.endTime);
+
+      const sessionStartInMinutes = sessionStart.getHours() * 60 + sessionStart.getMinutes();
+      const sessionEndInMinutes = sessionEnd.getHours() * 60 + sessionEnd.getMinutes();
+
+      // Check if session overlaps with this time slot
+      // Session overlaps if:
+      // 1. Session starts in this slot, OR
+      // 2. Session ends in this slot, OR
+      // 3. Session spans over this slot (starts before and ends after)
+      return (
+        (sessionStartInMinutes >= slotStartInMinutes && sessionStartInMinutes < slotEndInMinutes) || // starts in slot
+        (sessionEndInMinutes > slotStartInMinutes && sessionEndInMinutes <= slotEndInMinutes) || // ends in slot
+        (sessionStartInMinutes <= slotStartInMinutes && sessionEndInMinutes >= slotEndInMinutes) // spans over slot
+      );
+    });
+  };
+
   const handleDragStart = (e: React.DragEvent, session: StudySession) => {
     // Prevent dragging if session is in progress or completed
     if (session.status === 'in_progress' || session.status === 'completed') {
@@ -186,7 +214,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     const sessionHeight = rect.height;
 
     // If clicking near bottom (resize handle area), prevent drag
-    if (offsetY > sessionHeight - 12) {
+    if (offsetY > sessionHeight - 16) {
       e.preventDefault();
       return;
     }
@@ -565,11 +593,20 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     if (!resizingSession) return;
 
     const deltaY = e.clientY - resizingSession.startY;
-    const newHeight = Math.max(15, resizingSession.startHeight + deltaY);
+    // Calculate new height (60px = 60 minutes, so 1px = 1 minute)
+    let newHeight = resizingSession.startHeight + deltaY;
+
+    // Minimum 1 minute (1px)
+    newHeight = Math.max(1, newHeight);
+
+    // Snap to 5-minute intervals for smoother UX
+    const minutesRaw = newHeight;
+    const minutesSnapped = Math.round(minutesRaw / 5) * 5;
+    const heightSnapped = minutesSnapped;
 
     setResizePreview({
       session: resizingSession.session,
-      newHeight,
+      newHeight: heightSnapped,
     });
   };
 
@@ -577,10 +614,15 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     if (!resizingSession) return;
 
     const deltaY = e.clientY - resizingSession.startY;
-    const newHeight = Math.max(15, resizingSession.startHeight + deltaY); // Minimum 15px (15 minutes)
+    // Calculate new height (60px = 60 minutes, so 1px = 1 minute)
+    let newHeight = resizingSession.startHeight + deltaY;
 
-    // Calculate new duration based on height (60px = 60 minutes)
-    const newDuration = Math.round((newHeight / 60) * 60);
+    // Minimum 1 minute (1px)
+    newHeight = Math.max(1, newHeight);
+
+    // Snap to 5-minute intervals
+    const minutesRaw = newHeight;
+    const newDuration = Math.round(minutesRaw / 5) * 5;
 
     // Update session duration
     const sessionStart = parseISO(resizingSession.session.startTime);
@@ -962,7 +1004,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                             {/* Resize handle - bottom border */}
                             {session.status !== 'in_progress' && session.status !== 'completed' && sessionHeight >= 30 && (
                               <div
-                                className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize transition-colors"
+                                className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize"
                                 style={{ zIndex: 100 }}
                                 onMouseDown={(e) => {
                                   e.preventDefault();
@@ -1013,8 +1055,8 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                         })()
                       )}
 
-                      {/* Add session button - only show when no sessions */}
-                      {sessions.length === 0 && (
+                      {/* Add session button - only show when no sessions overlap this slot */}
+                      {!hasSessionInTimeSlot(dayIndex, hour) && (
                         <button
                           className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity group hover:bg-gray-50 dark:hover:bg-gray-800"
                           onClick={(e) => {

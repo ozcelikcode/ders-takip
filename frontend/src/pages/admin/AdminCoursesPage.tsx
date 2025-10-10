@@ -11,6 +11,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 
 interface Course {
   id: number;
@@ -39,6 +40,11 @@ const AdminCoursesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; courseId: string; courseName: string }>({
+    isOpen: false,
+    courseId: '',
+    courseName: '',
+  });
   const queryClient = useQueryClient();
 
   const { data: coursesData, isLoading } = useQuery({
@@ -68,9 +74,16 @@ const AdminCoursesPage = () => {
   };
 
   const handleDeleteCourse = (courseId: string, courseName: string) => {
-    if (confirm(`"${courseName}" dersini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve dersin tüm konularını da silecektir.`)) {
-      deleteCourseMutation.mutate(courseId);
-    }
+    setDeleteConfirm({
+      isOpen: true,
+      courseId,
+      courseName,
+    });
+  };
+
+  const confirmDeleteCourse = () => {
+    deleteCourseMutation.mutate(deleteConfirm.courseId);
+    setDeleteConfirm({ isOpen: false, courseId: '', courseName: '' });
   };
 
   const handleCloseModal = () => {
@@ -254,6 +267,16 @@ const AdminCoursesPage = () => {
         onClose={handleCloseModal}
         editingCourse={editingCourse}
         iconList={iconList}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, courseId: '', courseName: '' })}
+        onConfirm={confirmDeleteCourse}
+        title="Dersi Sil"
+        message={`"${deleteConfirm.courseName}" dersini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve dersin tüm konularını da silecektir.`}
+        type="danger"
       />
     </div>
   );

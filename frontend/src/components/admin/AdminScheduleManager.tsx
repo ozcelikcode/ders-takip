@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, startOfWeek, addDays, addWeeks, subWeeks } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import CreateSessionModal from '../planner/CreateSessionModal';
+import ConfirmDialog from '../common/ConfirmDialog';
 import toast from 'react-hot-toast';
 
 const AdminScheduleManager: React.FC = () => {
@@ -16,6 +17,19 @@ const AdminScheduleManager: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedHour, setSelectedHour] = useState<number>(9);
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    onConfirm: () => {},
+  });
   const queryClient = useQueryClient();
 
   const HOURS = Array.from({ length: 14 }, (_, i) => i + 7); // 7:00 to 20:00
@@ -90,9 +104,15 @@ const AdminScheduleManager: React.FC = () => {
   };
 
   const handleDeleteSession = (sessionId: string) => {
-    if (confirm('Bu seansı silmek istediğinizden emin misiniz?')) {
-      deleteSessionMutation.mutate(sessionId);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Seansı Sil',
+      message: 'Bu seansı silmek istediğinizden emin misiniz?',
+      type: 'danger',
+      onConfirm: () => {
+        deleteSessionMutation.mutate(sessionId);
+      },
+    });
   };
 
   const navigateWeek = (direction: 'prev' | 'next') => {
@@ -387,6 +407,16 @@ const AdminScheduleManager: React.FC = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
         </div>
       )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+      />
     </div>
   );
 };
