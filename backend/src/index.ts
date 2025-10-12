@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import os from 'os';
 
 import dotenv from 'dotenv';
 
@@ -20,8 +21,25 @@ import settingsRoutes from './routes/settingsRoutes';
 
 dotenv.config();
 
+// Get local network IP address
+const getNetworkIP = (): string => {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    const nets = interfaces[name];
+    if (nets) {
+      for (const net of nets) {
+        // Skip internal (localhost) and non-IPv4 addresses
+        if (net.family === 'IPv4' && !net.internal) {
+          return net.address;
+        }
+      }
+    }
+  }
+  return 'localhost';
+};
+
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = parseInt(process.env.PORT || '5000', 10);
 
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'), // 1 minute
@@ -35,7 +53,9 @@ const limiter = rateLimit({
 
 app.use(helmet());
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  origin: process.env.NODE_ENV === 'production'
+    ? ['http://localhost:3000', 'http://localhost:3001']
+    : true, // Allow all origins in development for mobile testing
   credentials: true,
 }));
 // Only apply rate limiter in production
@@ -70,11 +90,15 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    app.listen(PORT, () => {
-      console.log(`🚀 Server ${PORT} portunda çalışıyor`);
-      console.log(`🌐 API URL: http://localhost:${PORT}/api`);
-      console.log(`📊 Health Check: http://localhost:${PORT}/api/health`);
+    const networkIP = getNetworkIP();
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`\n🚀 Server ${PORT} portunda çalışıyor`);
+      console.log(`🌐 Local:   http://localhost:${PORT}/api`);
+      console.log(`🌐 Network: http://${networkIP}:${PORT}/api`);
+      console.log(`📊 Health:  http://localhost:${PORT}/api/health`);
       console.log(`🔧 Environment: ${process.env.NODE_ENV}`);
+      console.log(`\n📱 Telefon için: http://${networkIP}:${PORT}/api\n`);
     });
   } catch (error) {
     console.error('❌ Server başlatma hatası:', error);
