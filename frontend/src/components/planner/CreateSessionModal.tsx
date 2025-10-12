@@ -246,10 +246,16 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
     setShowDeleteConfirm(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!editSession) return;
-    deleteMutation.mutate(editSession.id.toString());
-    setShowDeleteConfirm(false);
+
+    try {
+      await deleteMutation.mutateAsync(editSession.id.toString());
+      setShowDeleteConfirm(false);
+    } catch (error) {
+      // Error already handled by mutation onError
+      setShowDeleteConfirm(false);
+    }
   };
 
   // Pre-fill form when editing

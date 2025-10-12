@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { studySessionsAPI } from '../../services/api';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -12,8 +13,10 @@ interface HeaderProps {
 
 const Header = ({ onMenuClick }: HeaderProps) => {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
 
@@ -49,8 +52,21 @@ const Header = ({ onMenuClick }: HeaderProps) => {
 
   const hasUnreadNotifications = recentSessions && recentSessions.length > 0;
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/courses?search=${encodeURIComponent(searchTerm.trim())}`);
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch(e);
+    }
+  };
+
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+    <header className="bg-white dark:bg-gray-950 shadow-sm border-b border-gray-200 dark:border-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left side */}
@@ -64,17 +80,28 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             </button>
 
             {/* Search */}
-            <div className="hidden md:block ml-4 lg:ml-0">
-              <div className="relative">
+            <div className="hidden md:block ml-4 lg:ml-0 lg:w-96">
+              <form onSubmit={handleSearch} className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
+                  <Search className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                 </div>
                 <input
                   type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
                   placeholder="Ders veya konu ara..."
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white dark:bg-gray-700 dark:border-gray-600 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  className="block w-full pl-10 pr-20 py-2.5 border-2 border-gray-300 dark:border-gray-800 rounded-lg leading-5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all sm:text-sm font-medium shadow-sm hover:border-gray-400 dark:hover:border-gray-700"
                 />
-              </div>
+                <button
+                  type="submit"
+                  className="absolute inset-y-0 right-0 pr-2 flex items-center"
+                >
+                  <span className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-md transition-colors shadow-sm">
+                    Ara
+                  </span>
+                </button>
+              </form>
             </div>
           </div>
 
@@ -94,8 +121,8 @@ const Header = ({ onMenuClick }: HeaderProps) => {
 
               {/* Notifications dropdown */}
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5">
-                  <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-950 rounded-md shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5">
+                  <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Bildirimler</h3>
                   </div>
                   <div className="max-h-96 overflow-y-auto">
@@ -168,7 +195,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
 
               {/* User dropdown menu */}
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-950 rounded-md shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5">
                   <a
                     href="/profile"
                     className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"

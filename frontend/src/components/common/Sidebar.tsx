@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { X, Home, BookOpen, Calendar, User, Users, Settings, LayoutDashboard, Timer } from 'lucide-react';
+import { X, Home, BookOpen, Calendar, User, Users, Settings, LayoutDashboard, Timer, Sliders } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { clsx } from 'clsx';
 
@@ -17,13 +17,14 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     { name: 'Planlayıcı', href: '/planner', icon: Calendar },
     { name: 'Pomodoro', href: '/pomodoro', icon: Timer },
     { name: 'Profil', href: '/profile', icon: User },
+    { name: 'Ayarlar', href: '/settings', icon: Settings },
   ];
 
   const adminNavigation = [
     { name: 'Admin Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Kullanıcılar', href: '/admin/users', icon: Users },
     { name: 'Ders Yönetimi', href: '/admin/courses', icon: BookOpen },
-    { name: 'Site Ayarları', href: '/admin/settings', icon: Settings },
+    { name: 'Site Ayarları', href: '/admin/settings', icon: Sliders },
   ];
 
   return (
@@ -31,11 +32,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       {/* Mobile sidebar */}
       <div
         className={clsx(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-lg transform transition-transform duration-300 ease-in-out lg:hidden',
+          'fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-950 shadow-lg transform transition-transform duration-300 ease-in-out lg:hidden',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-800">
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             Ders Takip
           </h1>
@@ -56,8 +57,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
-          <div className="flex items-center h-16 flex-shrink-0 px-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-900">
+          <div className="flex items-center h-16 flex-shrink-0 px-6 border-b border-gray-200 dark:border-gray-800">
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
               Ders Takip Sistemi
             </h1>
@@ -93,7 +94,7 @@ const SidebarContent = ({ navigation, adminNavigation, user, onLinkClick }: Side
               clsx(
                 'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
                 isActive
-                  ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-200'
+                  ? 'bg-primary-600 text-white dark:bg-primary-600 dark:text-white shadow-sm'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
               )
             }
@@ -119,7 +120,7 @@ const SidebarContent = ({ navigation, adminNavigation, user, onLinkClick }: Side
                       clsx(
                         'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
                         isActive
-                          ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-200'
+                          ? 'bg-primary-600 text-white dark:bg-primary-600 dark:text-white shadow-sm'
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                       )
                     }

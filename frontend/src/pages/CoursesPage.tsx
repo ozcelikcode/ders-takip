@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Clock, Target, TrendingUp, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, Dna, Landmark, Map, Brain, Heart, BookText } from 'lucide-react';
+import { BookOpen, Clock, Target, TrendingUp, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, Dna, Landmark, Map, Brain, Heart, BookText, Search, X } from 'lucide-react';
 import { coursesAPI } from '../services/api';
 
 interface Topic {
@@ -27,7 +27,9 @@ interface Course {
 }
 
 const CoursesPage = () => {
+  const [searchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<'TYT' | 'AYT' | 'ALL'>('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { data: coursesData, isLoading, error } = useQuery({
     queryKey: ['courses', { includeTopics: true }],
@@ -35,6 +37,26 @@ const CoursesPage = () => {
   });
 
   const courses: Course[] = coursesData?.data?.data?.courses || [];
+
+  // Read search query from URL on mount
+  useEffect(() => {
+    const searchQuery = searchParams.get('search');
+    if (searchQuery) {
+      setSearchTerm(searchQuery);
+    }
+  }, [searchParams]);
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchTerm.trim()) {
+      // Scroll to results section
+      const resultsSection = document.querySelector('[class*="grid-cols"]');
+      if (resultsSection) {
+        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      // Blur the input to hide mobile keyboard
+      e.currentTarget.blur();
+    }
+  };
 
   const getIconComponent = (iconName: string) => {
     const icons: Record<string, any> = {
@@ -55,9 +77,27 @@ const CoursesPage = () => {
     return icons[iconName] || BookOpen;
   };
 
-  const filteredCourses = selectedCategory === 'ALL'
-    ? courses
-    : courses.filter(course => course.category === selectedCategory);
+  const filteredCourses = courses
+    .filter(course => selectedCategory === 'ALL' || course.category === selectedCategory)
+    .filter(course => {
+      if (!searchTerm.trim()) return true;
+
+      const searchLower = searchTerm.toLowerCase().trim();
+
+      // Ders adında ara
+      if (course.name.toLowerCase().includes(searchLower)) return true;
+
+      // Ders açıklamasında ara
+      if (course.description?.toLowerCase().includes(searchLower)) return true;
+
+      // Konu isimlerinde ara
+      if (course.topics?.some(topic => topic.name.toLowerCase().includes(searchLower))) return true;
+
+      // Konu açıklamalarında ara
+      if (course.topics?.some(topic => topic.description?.toLowerCase().includes(searchLower))) return true;
+
+      return false;
+    });
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -109,6 +149,36 @@ const CoursesPage = () => {
           TYT ve AYT sınavlarında başarılı olmak için hazırladığımız kapsamlı ders ve konu listesi.
           Her konunun tahmini süresini ve zorluk seviyesini görebilirsiniz.
         </p>
+      </div>
+
+      {/* Search Bar */}
+      <div className="max-w-2xl mx-auto">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Ders veya konu ara... (örn: Matematik, Türkçe, Geometri)"
+            className="block w-full pl-12 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-shadow"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+        {searchTerm && (
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 text-center">
+            <span className="font-medium text-primary-600 dark:text-primary-400">{filteredCourses.length}</span> sonuç bulundu
+          </p>
+        )}
       </div>
 
       {/* Category Filter */}
@@ -282,13 +352,23 @@ const CoursesPage = () => {
 
       {filteredCourses.length === 0 && (
         <div className="text-center py-12">
-          <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-            Ders bulunamadı
+          <Search className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+          <h3 className="mt-2 text-lg font-semibold text-gray-900 dark:text-white">
+            {searchTerm ? 'Sonuç bulunamadı' : 'Ders bulunamadı'}
           </h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Seçilen kategoride henüz ders bulunmuyor.
+            {searchTerm
+              ? `"${searchTerm}" araması için sonuç bulunamadı. Farklı anahtar kelimeler deneyin.`
+              : 'Seçilen kategoride henüz ders bulunmuyor.'}
           </p>
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              Aramayı Temizle
+            </button>
+          )}
         </div>
       )}
     </div>

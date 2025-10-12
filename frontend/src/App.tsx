@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { useSettingsStore } from './store/settingsStore';
+import { useUserPreferencesStore } from './store/userPreferencesStore';
 import { useEffect } from 'react';
 
 // Pages
@@ -12,6 +13,7 @@ import CourseDetailPage from './pages/CourseDetailPage';
 import PlannerPage from './pages/planner/PlannerPage';
 import PomodoroPage from './pages/pomodoro/PomodoroPage';
 import ProfilePage from './pages/profile/ProfilePage';
+import UserSettingsPage from './pages/settings/UserSettingsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminCoursesPage from './pages/admin/AdminCoursesPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
@@ -26,6 +28,7 @@ import LoadingScreen from './components/common/LoadingScreen';
 function App() {
   const { isLoading, initializeAuth } = useAuthStore();
   const { fetchSettings, applyTheme } = useSettingsStore();
+  const { applyTheme: applyUserTheme } = useUserPreferencesStore();
 
   useEffect(() => {
     initializeAuth();
@@ -35,7 +38,8 @@ function App() {
   // Apply theme on mount and when settings change
   useEffect(() => {
     applyTheme();
-  }, [applyTheme]);
+    applyUserTheme();
+  }, [applyTheme, applyUserTheme]);
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -56,6 +60,7 @@ function App() {
         <Route path="planner" element={<PlannerPage />} />
         <Route path="pomodoro" element={<PomodoroPage />} />
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="settings" element={<UserSettingsPage />} />
 
         {/* Admin routes */}
         <Route path="admin" element={<AdminRoute />}>
