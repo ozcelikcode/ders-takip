@@ -1,4 +1,4 @@
-import { parseISO } from 'date-fns';
+import { parseISO, format } from 'date-fns';
 import { StudySession } from '../types/planner';
 
 /**
@@ -61,4 +61,18 @@ export const getSessionTextStyle = (session: StudySession): string => {
   }
 
   return '';
+};
+
+/**
+ * Tarihi HH:mm formatında gösterir, 24:00'ı 00:00'a çevirir
+ */
+export const formatTime = (date: Date | string): string => {
+  const dateObj = typeof date === 'string' ? parseISO(date) : date;
+  const hours = dateObj.getHours();
+  const minutes = dateObj.getMinutes();
+
+  // 24:00 yerine 00:00 göster (gece yarısı)
+  const displayHours = hours === 24 ? 0 : hours;
+
+  return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };

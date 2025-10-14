@@ -3,8 +3,25 @@ import { studySessionsAPI } from '../../services/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { useState, useEffect } from 'react';
 
 const WeeklyProgressChart = () => {
+  // Detect dark mode reactively
+  const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'));
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   // Son 7 günün verilerini çek
   const { data: sessionsData, isLoading } = useQuery({
     queryKey: ['weekly-progress'],
@@ -53,22 +70,31 @@ const WeeklyProgressChart = () => {
   return (
     <ResponsiveContainer width="100%" height={250}>
       <BarChart data={chartData}>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke={isDarkMode ? '#374151' : '#e5e7eb'}
+        />
         <XAxis
           dataKey="name"
-          className="text-xs fill-gray-600 dark:fill-gray-400"
+          tick={{ fill: isDarkMode ? '#d1d5db' : '#4b5563', fontSize: 12 }}
         />
         <YAxis
-          className="text-xs fill-gray-600 dark:fill-gray-400"
-          label={{ value: 'Saat', angle: -90, position: 'insideLeft' }}
+          tick={{ fill: isDarkMode ? '#d1d5db' : '#4b5563', fontSize: 12 }}
+          label={{
+            value: 'Saat',
+            angle: -90,
+            position: 'insideLeft',
+            style: { fill: isDarkMode ? '#d1d5db' : '#4b5563', fontSize: 12 }
+          }}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: 'var(--tooltip-bg)',
-            border: '1px solid var(--tooltip-border)',
+            backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+            border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
             borderRadius: '0.375rem',
+            color: isDarkMode ? '#f3f4f6' : '#111827'
           }}
-          labelStyle={{ color: 'var(--tooltip-text)' }}
+          labelStyle={{ color: isDarkMode ? '#f3f4f6' : '#111827' }}
           formatter={(value: number, name: string) => {
             if (name === 'saat') return [`${value} saat`, 'Çalışma Süresi'];
             return value;
@@ -76,7 +102,7 @@ const WeeklyProgressChart = () => {
         />
         <Bar
           dataKey="saat"
-          fill="#3b82f6"
+          fill={isDarkMode ? '#6366f1' : '#3b82f6'}
           radius={[8, 8, 0, 0]}
         />
       </BarChart>

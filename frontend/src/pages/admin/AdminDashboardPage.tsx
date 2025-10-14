@@ -133,8 +133,8 @@ const AdminDashboardPage = () => {
                       {stat.subtitle}
                     </p>
                   </div>
-                  <div className={`p-3 rounded-full ${stat.bgColor}`}>
-                    <Icon className={`w-6 h-6 ${stat.color}`} />
+                  <div className={`p-3 rounded-full ${stat.bgColor} dark:bg-opacity-20`}>
+                    <Icon className={`w-6 h-6 ${stat.color} dark:opacity-90`} />
                   </div>
                 </div>
               </div>
@@ -158,7 +158,7 @@ const AdminDashboardPage = () => {
               >
                 <Link
                   to={action.href}
-                  className="card hover:shadow-lg transition-shadow group"
+                  className="card hover:shadow-lg dark:hover:shadow-primary-900/20 hover:border-primary-300 dark:hover:border-primary-700 transition-all group"
                 >
                   <div className="card-body">
                     <div className="flex items-start gap-4">
@@ -205,9 +205,9 @@ const AdminDashboardPage = () => {
                     </p>
                   </div>
                   <span className={`px-2 py-1 text-xs rounded-full ${
-                    user.role === 'admin' 
-                      ? 'bg-red-100 text-red-800' 
-                      : 'bg-blue-100 text-blue-800'
+                    user.role === 'admin'
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
                   }`}>
                     {user.role === 'admin' ? 'Admin' : 'Öğrenci'}
                   </span>
@@ -245,9 +245,9 @@ const AdminDashboardPage = () => {
                     </p>
                   </div>
                   <span className={`px-2 py-1 text-xs rounded-full ${
-                    session.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    session.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
+                    session.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                    session.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                    'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
                   }`}>
                     {session.status === 'completed' ? 'Tamamlandı' :
                      session.status === 'in_progress' ? 'Devam Ediyor' :

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, ChevronLeft, ChevronRight, Plus, Clock, Target, Play, CheckCircle, Check, Edit, Pause, MoveRight, RotateCcw } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Plus, Clock, Target, Play, CheckCircle, Check, Edit, Pause, MoveRight, RotateCcw, Trash2 } from 'lucide-react';
 import { StudySession } from '../../types/planner';
 import { studySessionsAPI } from '../../services/api';
 import { useQuery } from '@tanstack/react-query';
@@ -11,7 +11,7 @@ import CreateSessionModal from './CreateSessionModal';
 import MoveSessionModal from './MoveSessionModal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import confetti from 'canvas-confetti';
-import { isSessionMissed, canStartSession, getSessionTextStyle, isSessionOverdue } from '../../utils/sessionHelpers';
+import { isSessionMissed, canStartSession, getSessionTextStyle, isSessionOverdue, formatTime } from '../../utils/sessionHelpers';
 
 interface DailyCalendarProps {
   onCreateSession?: (date: Date, hour: number) => void;
@@ -563,119 +563,134 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
                               } : undefined}
                               onContextMenu={(e) => handleContextMenu(e, session)}
                             >
-                              {/* Time badge - start and end time */}
-                              {sessionHeight >= 35 && (
+                              {/* Time badge - start and end time - Only show if height >= 40px */}
+                              {sessionHeight >= 40 && (
                                 <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium">
-                                  {format(sessionStart, 'HH:mm')} - {format(parseISO(session.endTime), 'HH:mm')}
+                                  {formatTime(sessionStart)} - {formatTime(session.endTime)}
                                 </div>
                               )}
 
-                              {/* Completed checkmark icon - top right */}
-                              {session.status === 'completed' && (
+                              {/* Completed checkmark icon - top right - Only show if height >= 35px */}
+                              {session.status === 'completed' && sessionHeight >= 35 && (
                                 <div className="absolute top-2 right-2 opacity-40">
                                   <Check className="w-5 h-5" />
                                 </div>
                               )}
 
-                              <div className="flex items-center justify-between h-full">
-                                <div className="flex-1 min-w-0 pr-6">
-                                  <h4 className={`font-medium truncate ${getSessionTextStyle(session)}`}>
+                              {/* Very Small Card (< 35px): Only title, no buttons */}
+                              {sessionHeight < 35 && (
+                                <div className="flex items-center h-full px-1">
+                                  <h4 className={`text-[10px] font-medium truncate ${getSessionTextStyle(session)}`}>
                                     {session.title}
                                   </h4>
-                                  {sessionHeight >= 50 && (
-                                    <div className="flex items-center gap-2 text-xs opacity-75 mt-1">
-                                      <span>({session.duration} dk)</span>
+                                </div>
+                              )}
+
+                              {/* Small to Large Card (>= 35px): Full content */}
+                              {sessionHeight >= 35 && (
+                                <div className="flex items-center justify-between h-full">
+                                  <div className="flex-1 min-w-0 pr-1">
+                                    <h4 className={`font-medium truncate text-sm ${getSessionTextStyle(session)}`}>
+                                      {session.title}
+                                    </h4>
+                                    {sessionHeight >= 55 && (
+                                      <div className="flex items-center gap-2 text-xs opacity-75 mt-0.5">
+                                        <span>({session.duration} dk)</span>
+                                      </div>
+                                    )}
+                                    {session.description && sessionHeight >= 75 && (
+                                      <p className="text-xs opacity-75 mt-1 truncate">
+                                        {session.description}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Action buttons - Only show if height >= 35px */}
+                                  {sessionHeight >= 35 && (
+                                    <div className="flex items-center gap-1">
+                                      {session.status === 'planned' && canStartSession(session) && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleStartSession(session);
+                                          }}
+                                          className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
+                                          title="Başlat"
+                                        >
+                                          <Play className="w-4 h-4 text-green-300" />
+                                        </button>
+                                      )}
+
+                                      {session.status === 'in_progress' && (
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handlePauseSession(session);
+                                            }}
+                                            className="p-1 hover:bg-white/20 rounded transition-all"
+                                            title="Duraklat"
+                                          >
+                                            <Pause className="w-4 h-4 text-orange-300" />
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleCompleteSession(session);
+                                            }}
+                                            className="p-1 hover:bg-white/20 rounded transition-all"
+                                            title="Tamamla"
+                                          >
+                                            <CheckCircle className="w-4 h-4 text-green-300" />
+                                          </button>
+                                        </div>
+                                      )}
+
+                                      {session.status === 'paused' && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleStartSession(session);
+                                          }}
+                                          className="p-1 hover:bg-white/20 rounded transition-all"
+                                          title="Devam Et"
+                                        >
+                                          <Play className="w-4 h-4 text-blue-300" />
+                                        </button>
+                                      )}
+
+                                      {session.status === 'completed' && sessionHeight >= 40 && (
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleRestartSession(session);
+                                            }}
+                                            className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
+                                            title="Yeniden Başlat"
+                                          >
+                                            <RotateCcw className="w-3 h-3 text-purple-300" />
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleEditSession(session);
+                                            }}
+                                            className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
+                                            title="Düzenle"
+                                          >
+                                            <Edit className="w-3 h-3 text-yellow-300" />
+                                          </button>
+                                        </div>
+                                      )}
+
+                                      {session.sessionType === 'pomodoro' && sessionHeight >= 40 && (
+                                        <Target className="w-3 h-3 text-red-300" />
+                                      )}
                                     </div>
                                   )}
-                                  {session.description && sessionHeight >= 70 && (
-                                    <p className="text-xs opacity-75 mt-1 truncate">
-                                      {session.description}
-                                    </p>
-                                  )}
                                 </div>
-
-                                <div className="flex items-center gap-2">
-                                  {session.status === 'planned' && canStartSession(session) && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleStartSession(session);
-                                      }}
-                                      className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
-                                      title="Başlat"
-                                    >
-                                      <Play className="w-4 h-4" />
-                                    </button>
-                                  )}
-
-                                  {session.status === 'in_progress' && (
-                                    <>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handlePauseSession(session);
-                                        }}
-                                        className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
-                                        title="Duraklat"
-                                      >
-                                        <Pause className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleCompleteSession(session);
-                                        }}
-                                        className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
-                                        title="Tamamla"
-                                      >
-                                        <CheckCircle className="w-4 h-4" />
-                                      </button>
-                                    </>
-                                  )}
-
-                                  {session.status === 'paused' && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleStartSession(session);
-                                      }}
-                                      className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
-                                      title="Devam Et"
-                                    >
-                                      <Play className="w-4 h-4" />
-                                    </button>
-                                  )}
-
-                                  {session.status === 'completed' && (
-                                    <div className="flex flex-col gap-1">
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleRestartSession(session);
-                                        }}
-                                        className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
-                                        title="Yeniden Başlat"
-                                      >
-                                        <RotateCcw className="w-3 h-3" />
-                                      </button>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleEditSession(session);
-                                        }}
-                                        className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
-                                        title="Düzenle"
-                                      >
-                                        <Edit className="w-3 h-3" />
-                                      </button>
-                                    </div>
-                                  )}
-
-                                  {session.sessionType === 'pomodoro' && (
-                                    <Target className="w-4 h-4" />
-                                  )}
-                                </div>
-                              </div>
+                              )}
 
                               {session.plan && sessionHeight >= 90 && (
                                 <div className="mt-2 text-xs opacity-75">
@@ -745,6 +760,31 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
           >
             <MoveRight className="w-4 h-4" />
             Tarihe Taşı
+          </button>
+          <div className="border-t border-gray-200 dark:border-gray-600 my-1" />
+          <button
+            onClick={() => {
+              setConfirmDialog({
+                isOpen: true,
+                title: 'Görevi Sil',
+                message: `"${contextMenu.session.title}" görevini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`,
+                type: 'danger',
+                onConfirm: async () => {
+                  try {
+                    await studySessionsAPI.deleteSession(contextMenu.session.id.toString());
+                    toast.success('Görev başarıyla silindi');
+                    refetch();
+                  } catch (error) {
+                    toast.error('Görev silinirken hata oluştu');
+                  }
+                },
+              });
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Sil
           </button>
         </div>
       )}

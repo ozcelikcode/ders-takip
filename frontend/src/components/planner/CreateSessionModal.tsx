@@ -246,58 +246,76 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
     setShowDeleteConfirm(true);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (!editSession) return;
-
-    try {
-      await deleteMutation.mutateAsync(editSession.id.toString());
-      setShowDeleteConfirm(false);
-    } catch (error) {
-      // Error already handled by mutation onError
-      setShowDeleteConfirm(false);
-    }
+    deleteMutation.mutate(editSession.id.toString());
+    setShowDeleteConfirm(false);
   };
 
-  // Pre-fill form when editing
+  // Pre-fill form when editing OR when opening with selected date/hour
   useEffect(() => {
-    if (editSession && isOpen) {
-      const durationInMinutes = editSession.duration;
+    if (isOpen) {
+      if (editSession) {
+        // Editing existing session
+        const durationInMinutes = editSession.duration;
 
-      // Determine session category
-      let category: 'course' | 'break' | 'custom';
-      if (editSession.sessionType === 'break') {
-        category = 'break';
-      } else if (editSession.courseId) {
-        category = 'course';
+        // Determine session category
+        let category: 'course' | 'break' | 'custom';
+        if (editSession.sessionType === 'break') {
+          category = 'break';
+        } else if (editSession.courseId) {
+          category = 'course';
+        } else {
+          category = 'custom';
+        }
+
+        setSessionCategory(category);
+
+        const sessionStartTime = parseISO(editSession.startTime);
+
+        reset({
+          sessionCategory: category,
+          courseId: editSession.courseId?.toString() || '',
+          customTitle: category === 'custom' ? editSession.title : '',
+          description: editSession.description || '',
+          startDate: format(sessionStartTime, 'yyyy-MM-dd'),
+          startTime: format(sessionStartTime, 'HH:mm'),
+          durationMode: 'minutes',
+          duration: durationInMinutes,
+          endTime: '',
+          sessionType: editSession.sessionType,
+          color: editSession.color || '#3B82F6',
+          pomodoroSettings: editSession.pomodoroSettings || {
+            workDuration: 25,
+            shortBreak: 5,
+            longBreak: 15,
+            cyclesBeforeLongBreak: 4,
+          },
+        });
       } else {
-        category = 'custom';
+        // Creating new session - use selected date/hour
+        setSessionCategory('course');
+        setDurationMode('minutes');
+
+        reset({
+          sessionCategory: 'course',
+          startDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+          startTime: `${(selectedHour ?? 9).toString().padStart(2, '0')}:00`,
+          durationMode: 'minutes',
+          duration: 60,
+          endTime: '',
+          sessionType: 'study',
+          color: '#3B82F6',
+          pomodoroSettings: {
+            workDuration: 25,
+            shortBreak: 5,
+            longBreak: 15,
+            cyclesBeforeLongBreak: 4,
+          },
+        });
       }
-
-      setSessionCategory(category);
-
-      const sessionStartTime = parseISO(editSession.startTime);
-
-      reset({
-        sessionCategory: category,
-        courseId: editSession.courseId?.toString() || '',
-        customTitle: category === 'custom' ? editSession.title : '',
-        description: editSession.description || '',
-        startDate: format(sessionStartTime, 'yyyy-MM-dd'),
-        startTime: format(sessionStartTime, 'HH:mm'),
-        durationMode: 'minutes',
-        duration: durationInMinutes,
-        endTime: '',
-        sessionType: editSession.sessionType,
-        color: editSession.color || '#3B82F6',
-        pomodoroSettings: editSession.pomodoroSettings || {
-          workDuration: 25,
-          shortBreak: 5,
-          longBreak: 15,
-          cyclesBeforeLongBreak: 4,
-        },
-      });
     }
-  }, [editSession, isOpen, reset]);
+  }, [editSession, isOpen, selectedDate, selectedHour, reset]);
 
   React.useEffect(() => {
     if (sessionType === 'pomodoro') {
@@ -884,8 +902,8 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={confirmDelete}
-        title="Çalışma Seansını Sil"
-        message="Bu çalışma seansını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
+        title="Görevi Sil"
+        message={`"${editSession?.title}" görevini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
         type="danger"
       />
     </AnimatePresence>

@@ -98,8 +98,8 @@ const AdminCoursesPage = () => {
 
   const getCategoryColor = (category: string) => {
     return category === 'TYT'
-      ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400'
-      : 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400';
+      ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
+      : 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800';
   };
 
   const iconList = ['BookOpen', 'Calculator', 'Microscope', 'Globe', 'Triangle', 'Atom', 'FlaskConical', 'Dna', 'Landmark', 'Map', 'Brain', 'Heart', 'BookText'];
@@ -182,7 +182,7 @@ const AdminCoursesPage = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="card hover:shadow-lg transition-shadow"
+              className="card hover:shadow-lg dark:hover:shadow-primary-900/20 hover:border-primary-300 dark:hover:border-primary-700 transition-all"
             >
               <div className="card-body">
                 <div className="flex items-start justify-between mb-3">
@@ -239,7 +239,7 @@ const AdminCoursesPage = () => {
                       {course.category}
                     </span>
                     {!course.isActive && (
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-700 dark:text-gray-400">
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
                         Pasif
                       </span>
                     )}

@@ -16,6 +16,7 @@ const PlannerPage = () => {
   const [isPomodoroModalOpen, setIsPomodoroModalOpen] = useState(false);
 
   const handleCreateSession = (date: Date, hour: number) => {
+    console.log('Creating session for:', date, 'at hour:', hour);
     setSelectedDate(date);
     setSelectedHour(hour);
     setIsCreateModalOpen(true);

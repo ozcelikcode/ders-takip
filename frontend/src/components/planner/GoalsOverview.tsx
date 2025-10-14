@@ -9,7 +9,7 @@ import CreateSessionModal from './CreateSessionModal';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../common/ConfirmDialog';
-import { isSessionMissed, canStartSession, getSessionTextStyle } from '../../utils/sessionHelpers';
+import { isSessionMissed, canStartSession, getSessionTextStyle, formatTime } from '../../utils/sessionHelpers';
 
 const TodaysPlans: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -293,12 +293,12 @@ const TodaysPlans: React.FC = () => {
                       {/* Time and type indicator */}
                       <div className="flex flex-col items-center min-w-[80px]">
                         <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                          {format(sessionStart, 'HH:mm')}
+                          {formatTime(sessionStart)}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           {session.duration}dk
                         </div>
-                        <div 
+                        <div
                           className={`w-3 h-3 rounded-full mt-1 ${getSessionTypeColor(session.sessionType)}`}
                           title={session.sessionType}
                         />
@@ -330,7 +330,7 @@ const TodaysPlans: React.FC = () => {
                              session.status === 'cancelled' ? 'İptal Edildi' : 'Planlandı'}
                           </span>
                           <span className="text-xs text-gray-500">
-                            {format(sessionStart, 'HH:mm')} - {format(sessionEnd, 'HH:mm')}
+                            {formatTime(sessionStart)} - {formatTime(sessionEnd)}
                           </span>
                         </div>
                       </div>
@@ -341,7 +341,7 @@ const TodaysPlans: React.FC = () => {
                       {getSessionStatusIcon(session)}
                       <button
                         onClick={() => handleEditSession(session)}
-                        className="p-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                        className="p-2 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-full transition-colors"
                         title="Düzenle"
                       >
                         <Edit className="w-4 h-4" />
@@ -349,20 +349,20 @@ const TodaysPlans: React.FC = () => {
                       {session.status === 'planned' && canStartSession(session) && (
                         <button
                           onClick={() => handleStartSession(session)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+                          className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors"
                           title="Başlat"
                         >
-                          <Play className="w-4 h-4" />
+                          <Play className="w-5 h-5" />
                         </button>
                       )}
                       {session.status === 'in_progress' && (
                         <>
                           <button
                             onClick={() => handlePauseSession(session)}
-                            className="p-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-full transition-colors"
+                            className="p-2 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-full transition-colors"
                             title="Duraklat"
                           >
-                            <Pause className="w-4 h-4" />
+                            <Pause className="w-5 h-5" />
                           </button>
                           <button
                             onClick={() => {
@@ -383,29 +383,29 @@ const TodaysPlans: React.FC = () => {
                                 },
                               });
                             }}
-                            className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors"
+                            className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors"
                             title="Tamamla"
                           >
-                            <CheckCircle className="w-4 h-4" />
+                            <CheckCircle className="w-5 h-5" />
                           </button>
                         </>
                       )}
                       {session.status === 'paused' && (
                         <button
                           onClick={() => handleStartSession(session)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
                           title="Devam Et"
                         >
-                          <Play className="w-4 h-4" />
+                          <Play className="w-5 h-5" />
                         </button>
                       )}
                       {session.status === 'completed' && (
                         <button
                           onClick={() => handleRestartSession(session)}
-                          className="p-2 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900/20 rounded-full transition-colors"
+                          className="p-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-full transition-colors"
                           title="Tekrar Başlat"
                         >
-                          <RotateCcw className="w-4 h-4" />
+                          <RotateCcw className="w-5 h-5" />
                         </button>
                       )}
                     </div>

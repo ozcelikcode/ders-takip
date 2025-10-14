@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, Play, Timer, Square, RotateCcw, CheckCircle, MoveRight, Edit, Pause } from 'lucide-react';
+import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, Play, Timer, Square, RotateCcw, CheckCircle, MoveRight, Edit, Pause, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { StudySession, WeeklySchedule } from '../../types/planner';
 import { studySessionsAPI } from '../../services/api';
@@ -12,7 +12,7 @@ import PomodoroModal from './PomodoroModal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import MoveSessionModal from './MoveSessionModal';
 import CreateSessionModal from './CreateSessionModal';
-import { isSessionMissed, canStartSession, getSessionTextStyle } from '../../utils/sessionHelpers';
+import { isSessionMissed, canStartSession, getSessionTextStyle, formatTime } from '../../utils/sessionHelpers';
 
 interface WeeklyPlannerProps {
   onCreateSession?: (date: Date, hour: number) => void;
@@ -808,7 +808,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                 {/* Hour label */}
                 <div className="relative p-3 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center">
                   <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {hour === 24 ? '24:00' : `${hour.toString().padStart(2, '0')}:00`}
+                    {hour === 24 ? '00:00' : `${hour.toString().padStart(2, '0')}:00`}
                   </div>
                 </div>
 
@@ -916,7 +916,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                             {/* Time badge - start and end time */}
                             {sessionHeight >= 35 && (
                               <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium">
-                                {format(sessionStart, 'HH:mm')} - {format(parseISO(session.endTime), 'HH:mm')}
+                                {formatTime(sessionStart)} - {formatTime(session.endTime)}
                               </div>
                             )}
 
@@ -929,7 +929,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                               </div>
                               {session.sessionType === 'pomodoro' && session.status === 'planned' && canStartSession(session) && (
                                 <Timer
-                                  className="w-3 h-3 ml-1 opacity-75 group-hover:opacity-100 cursor-pointer"
+                                  className="w-4 h-4 ml-1 cursor-pointer text-red-400 hover:text-red-300 transition-colors"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleStartPomodoro(session);
@@ -938,7 +938,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                               )}
                               {session.status === 'planned' && session.sessionType !== 'pomodoro' && canStartSession(session) && (
                                 <Play
-                                  className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                  className="w-4 h-4 ml-1 opacity-0 group-hover:opacity-100 cursor-pointer text-green-400 hover:text-green-300 transition-all"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleStartSession(session);
@@ -946,34 +946,34 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                 />
                               )}
                               {session.status === 'in_progress' && (
-                                <>
+                                <div className="flex items-center gap-1 ml-1">
                                   <Pause
-                                    className="w-3 h-3 ml-1 opacity-75 group-hover:opacity-100 cursor-pointer text-orange-500"
+                                    className="w-4 h-4 cursor-pointer text-orange-400 hover:text-orange-300 transition-colors"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handlePauseSession(session);
                                     }}
                                   />
                                   <CheckCircle
-                                    className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 cursor-pointer text-green-500"
+                                    className="w-4 h-4 cursor-pointer text-green-400 hover:text-green-300 transition-colors"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleCompleteSession(session);
                                     }}
                                   />
-                                </>
+                                </div>
                               )}
                               {session.status === 'paused' && (
                                 <div className="flex items-center gap-1 ml-1">
                                   <Play
-                                    className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer text-blue-500"
+                                    className="w-4 h-4 cursor-pointer text-blue-400 hover:text-blue-300 transition-colors"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleStartSession(session);
                                     }}
                                   />
                                   <Edit
-                                    className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer text-gray-400"
+                                    className="w-4 h-4 opacity-0 group-hover:opacity-100 cursor-pointer text-yellow-400 hover:text-yellow-300 transition-all"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleEditSession(session);
@@ -984,14 +984,14 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                               {session.status === 'completed' && (
                                 <div className="flex flex-col gap-1 ml-1">
                                   <RotateCcw
-                                    className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                    className="w-4 h-4 opacity-0 group-hover:opacity-100 cursor-pointer text-purple-400 hover:text-purple-300 transition-all"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleRestartSession(session);
                                     }}
                                   />
                                   <Edit
-                                    className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                    className="w-4 h-4 opacity-0 group-hover:opacity-100 cursor-pointer text-yellow-400 hover:text-yellow-300 transition-all"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleEditSession(session);
@@ -1131,7 +1131,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       {/* Context Menu */}
       {contextMenu && (
         <div
-          className="fixed bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50"
+          className="fixed bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[160px]"
           style={{
             top: `${contextMenu.y}px`,
             left: `${contextMenu.x}px`,
@@ -1143,7 +1143,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
               handleEditSession(contextMenu.session);
               setContextMenu(null);
             }}
-            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
+            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-left transition-colors"
           >
             <Edit className="w-4 h-4" />
             Düzenle
@@ -1153,10 +1153,38 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
               setMoveModalSession(contextMenu.session);
               setContextMenu(null);
             }}
-            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
+            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-left transition-colors"
           >
             <MoveRight className="w-4 h-4" />
-            Taşı
+            Tarihe Taşı
+          </button>
+          <div className="border-t border-gray-200 dark:border-gray-600 my-1" />
+          <button
+            onClick={() => {
+              setConfirmDialog({
+                isOpen: true,
+                title: 'Görevi Sil',
+                message: `"${contextMenu.session.title}" görevini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`,
+                type: 'danger',
+                onConfirm: async () => {
+                  try {
+                    await studySessionsAPI.deleteSession(contextMenu.session.id.toString());
+                    toast.success('Görev başarıyla silindi');
+                    queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+                    queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+                    queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
+                    refetch();
+                  } catch (error) {
+                    toast.error('Görev silinirken hata oluştu');
+                  }
+                },
+              });
+              setContextMenu(null);
+            }}
+            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-left transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Sil
           </button>
         </div>
       )}
