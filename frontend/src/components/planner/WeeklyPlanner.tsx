@@ -18,7 +18,7 @@ interface WeeklyPlannerProps {
   onCreateSession?: (date: Date, hour: number) => void;
 }
 
-const HOURS = Array.from({ length: 20 }, (_, i) => i + 5); // 5:00 to 24:00
+const HOURS = Array.from({ length: 19 }, (_, i) => i + 5); // 5:00 to 23:00 (stops at midnight)
 const DAYS = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
 const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
@@ -207,14 +207,14 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       return;
     }
 
-    // Check if drag started from resize handle area (bottom 12px)
+    // Check if drag started from resize handle area (bottom 16px) - only for sessions >= 30px height
     const target = e.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const offsetY = e.clientY - rect.top;
     const sessionHeight = rect.height;
 
-    // If clicking near bottom (resize handle area), prevent drag
-    if (offsetY > sessionHeight - 16) {
+    // If session is tall enough to have resize handle (>= 30px) and clicking near bottom, prevent drag
+    if (sessionHeight >= 30 && offsetY > sessionHeight - 16) {
       e.preventDefault();
       return;
     }
@@ -808,7 +808,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                 {/* Hour label */}
                 <div className="relative p-3 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center">
                   <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {hour === 24 ? '00:00' : `${hour.toString().padStart(2, '0')}:00`}
+                    {`${hour.toString().padStart(2, '0')}:00`}
                   </div>
                 </div>
 
@@ -913,93 +913,115 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                             onDragStart={(e) => handleDragStart(e as any, session)}
                             onContextMenu={(e) => handleContextMenu(e, session)}
                           >
-                            {/* Time badge - start and end time */}
-                            {sessionHeight >= 35 && (
+                            {/* Time badge - start and end time - Only show if height >= 40px */}
+                            {sessionHeight >= 40 && (
                               <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium">
                                 {formatTime(sessionStart)} - {formatTime(session.endTime)}
                               </div>
                             )}
 
-                            <div className="flex items-center justify-between h-full">
-                              <div className="flex-1 min-w-0">
-                                <div className={`font-medium truncate ${getSessionTextStyle(session)}`}>{session.title}</div>
-                                {session.duration && sessionHeight >= 25 && (
-                                  <div className="opacity-75 text-[10px]">{session.duration} dk</div>
+                            {/* Very Small Card (< 30px): Only title, no buttons */}
+                            {sessionHeight < 30 && (
+                              <div className="flex items-center h-full px-1">
+                                <div className={`text-[10px] font-medium truncate ${getSessionTextStyle(session)}`}>
+                                  {session.title}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Small to Large Card (>= 30px): Full content */}
+                            {sessionHeight >= 30 && (
+                              <div className="flex items-center justify-between h-full">
+                                <div className="flex-1 min-w-0 pr-1">
+                                  <div className={`font-medium truncate text-xs ${getSessionTextStyle(session)}`}>
+                                    {session.title}
+                                  </div>
+                                  {session.duration && sessionHeight >= 45 && (
+                                    <div className="opacity-75 text-[10px] mt-0.5">{session.duration} dk</div>
+                                  )}
+                                </div>
+
+                                {/* Action buttons - Only show if height >= 30px */}
+                                {sessionHeight >= 30 && (
+                                  <div className="flex items-center ml-1">
+                                    {session.sessionType === 'pomodoro' && session.status === 'planned' && canStartSession(session) && (
+                                      <Timer
+                                        className="w-3.5 h-3.5 cursor-pointer text-red-400 hover:text-red-300 transition-colors"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleStartPomodoro(session);
+                                        }}
+                                      />
+                                    )}
+                                    {session.status === 'planned' && session.sessionType !== 'pomodoro' && canStartSession(session) && (
+                                      <Play
+                                        className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 cursor-pointer text-green-400 hover:text-green-300 transition-all"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleStartSession(session);
+                                        }}
+                                      />
+                                    )}
+                                    {session.status === 'in_progress' && (
+                                      <div className="flex items-center gap-0.5">
+                                        <Pause
+                                          className="w-3.5 h-3.5 cursor-pointer text-orange-400 hover:text-orange-300 transition-colors"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handlePauseSession(session);
+                                          }}
+                                        />
+                                        <CheckCircle
+                                          className="w-3.5 h-3.5 cursor-pointer text-green-400 hover:text-green-300 transition-colors"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCompleteSession(session);
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+                                    {session.status === 'paused' && (
+                                      <div className="flex items-center gap-0.5">
+                                        <Play
+                                          className="w-3.5 h-3.5 cursor-pointer text-blue-400 hover:text-blue-300 transition-colors"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleStartSession(session);
+                                          }}
+                                        />
+                                        {sessionHeight >= 35 && (
+                                          <Edit
+                                            className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 cursor-pointer text-yellow-400 hover:text-yellow-300 transition-all"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleEditSession(session);
+                                            }}
+                                          />
+                                        )}
+                                      </div>
+                                    )}
+                                    {session.status === 'completed' && sessionHeight >= 40 && (
+                                      <div className="flex items-center gap-0.5">
+                                        <RotateCcw
+                                          className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer text-purple-400 hover:text-purple-300 transition-all"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRestartSession(session);
+                                          }}
+                                        />
+                                        <Edit
+                                          className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer text-yellow-400 hover:text-yellow-300 transition-all"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditSession(session);
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                              {session.sessionType === 'pomodoro' && session.status === 'planned' && canStartSession(session) && (
-                                <Timer
-                                  className="w-4 h-4 ml-1 cursor-pointer text-red-400 hover:text-red-300 transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleStartPomodoro(session);
-                                  }}
-                                />
-                              )}
-                              {session.status === 'planned' && session.sessionType !== 'pomodoro' && canStartSession(session) && (
-                                <Play
-                                  className="w-4 h-4 ml-1 opacity-0 group-hover:opacity-100 cursor-pointer text-green-400 hover:text-green-300 transition-all"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleStartSession(session);
-                                  }}
-                                />
-                              )}
-                              {session.status === 'in_progress' && (
-                                <div className="flex items-center gap-1 ml-1">
-                                  <Pause
-                                    className="w-4 h-4 cursor-pointer text-orange-400 hover:text-orange-300 transition-colors"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handlePauseSession(session);
-                                    }}
-                                  />
-                                  <CheckCircle
-                                    className="w-4 h-4 cursor-pointer text-green-400 hover:text-green-300 transition-colors"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleCompleteSession(session);
-                                    }}
-                                  />
-                                </div>
-                              )}
-                              {session.status === 'paused' && (
-                                <div className="flex items-center gap-1 ml-1">
-                                  <Play
-                                    className="w-4 h-4 cursor-pointer text-blue-400 hover:text-blue-300 transition-colors"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleStartSession(session);
-                                    }}
-                                  />
-                                  <Edit
-                                    className="w-4 h-4 opacity-0 group-hover:opacity-100 cursor-pointer text-yellow-400 hover:text-yellow-300 transition-all"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditSession(session);
-                                    }}
-                                  />
-                                </div>
-                              )}
-                              {session.status === 'completed' && (
-                                <div className="flex flex-col gap-1 ml-1">
-                                  <RotateCcw
-                                    className="w-4 h-4 opacity-0 group-hover:opacity-100 cursor-pointer text-purple-400 hover:text-purple-300 transition-all"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRestartSession(session);
-                                    }}
-                                  />
-                                  <Edit
-                                    className="w-4 h-4 opacity-0 group-hover:opacity-100 cursor-pointer text-yellow-400 hover:text-yellow-300 transition-all"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditSession(session);
-                                    }}
-                                  />
-                                </div>
-                              )}
-                            </div>
+                            )}
 
                             {/* Resize handle - bottom border */}
                             {session.status !== 'in_progress' && session.status !== 'completed' && sessionHeight >= 30 && (

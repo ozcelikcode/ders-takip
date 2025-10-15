@@ -18,7 +18,7 @@ interface DailyCalendarProps {
   onSessionClick?: (session: StudySession) => void;
 }
 
-const HOURS = Array.from({ length: 16 }, (_, i) => i + 6); // 6:00 to 21:00
+const HOURS = Array.from({ length: 19 }, (_, i) => i + 5); // 5:00 to 23:00 (stops at midnight)
 
 const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessionClick }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
