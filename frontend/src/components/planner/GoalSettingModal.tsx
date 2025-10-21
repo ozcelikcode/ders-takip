@@ -174,7 +174,7 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({ isOpen, onClose }) 
                       {...register('title')}
                       type="text"
                       id="title"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                       placeholder="Örn: React Öğrenme Planı"
                     />
                     {errors.title && (
@@ -190,15 +190,15 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({ isOpen, onClose }) 
                       {...register('description')}
                       id="description"
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                       placeholder="Plan hakkında detaylar..."
                     />
                   </div>
 
                   {/* Date Range */}
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                  <div className="bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-primary-200 dark:border-primary-800">
                     <div className="flex items-center gap-2 mb-3">
-                      <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <Calendar className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                       <h4 className="text-sm font-medium text-gray-900 dark:text-white">Plan Dönemi</h4>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -211,7 +211,7 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({ isOpen, onClose }) 
                             {...register('startDate')}
                             type="date"
                             id="startDate"
-                            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                           />
                         </div>
                         {errors.startDate && (
@@ -228,7 +228,7 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({ isOpen, onClose }) 
                             {...register('endDate')}
                             type="date"
                             id="endDate"
-                            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                           />
                         </div>
                         {errors.endDate && (
@@ -239,10 +239,10 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({ isOpen, onClose }) 
 
                     {/* Duration Info */}
                     {startDate && endDate && (
-                      <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
+                      <div className="mt-3 pt-3 border-t border-primary-200 dark:border-primary-800">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-gray-600 dark:text-gray-400">Plan Süresi:</span>
-                          <span className="font-semibold text-blue-600 dark:text-blue-400">
+                          <span className="font-semibold text-primary-600 dark:text-primary-400">
                             {calculateWeeksFromDates()} hafta
                           </span>
                         </div>
@@ -270,7 +270,7 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({ isOpen, onClose }) 
                         min="0.5"
                         max="24"
                         step="0.5"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                       />
                       {errors.dailyHours && (
                         <p className="mt-1 text-sm text-red-600">{errors.dailyHours.message}</p>
@@ -287,7 +287,7 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({ isOpen, onClose }) 
                         id="weeklyHours"
                         min="1"
                         max="168"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                       />
                       {errors.weeklyHours && (
                         <p className="mt-1 text-sm text-red-600">{errors.weeklyHours.message}</p>
@@ -324,7 +324,7 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({ isOpen, onClose }) 
                         id="targetTopics"
                         min="1"
                         max="100"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                       />
                       <p className="mt-1 text-xs text-gray-500">
                         Önerilen: {calculateRecommendedTopics()} konu ({calculateTotalHours()} saat / 3 saat/konu)
@@ -341,7 +341,7 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({ isOpen, onClose }) 
                       <select
                         {...register('priority')}
                         id="priority"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                       >
                         <option value="low">Düşük</option>
                         <option value="medium">Orta</option>
@@ -352,22 +352,22 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({ isOpen, onClose }) 
                 </div>
 
                 {/* Summary */}
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Plan Özeti</h4>
+                <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+                  <h4 className="font-medium text-primary-900 dark:text-primary-100 mb-2">Plan Özeti</h4>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-blue-700 dark:text-blue-300">
+                      <p className="text-primary-700 dark:text-primary-300">
                         📅 Süre: <span className="font-medium">{calculateWeeksFromDates()} hafta</span>
                       </p>
-                      <p className="text-blue-700 dark:text-blue-300">
+                      <p className="text-primary-700 dark:text-primary-300">
                         ⏰ Toplam Saat: <span className="font-medium">{calculateTotalHours()} saat</span>
                       </p>
                     </div>
                     <div>
-                      <p className="text-blue-700 dark:text-blue-300">
+                      <p className="text-primary-700 dark:text-primary-300">
                         🎯 Hedef Konu: <span className="font-medium">{watch('targetTopics')} konu</span>
                       </p>
-                      <p className="text-blue-700 dark:text-blue-300">
+                      <p className="text-primary-700 dark:text-primary-300">
                         📊 Öncelik: <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(watch('priority'))}`}>
                           {watch('priority') === 'high' ? 'Yüksek' : watch('priority') === 'medium' ? 'Orta' : 'Düşük'}
                         </span>
@@ -388,7 +388,7 @@ const GoalSettingModal: React.FC<GoalSettingModalProps> = ({ isOpen, onClose }) 
                   <button
                     type="submit"
                     disabled={createPlanMutation.isPending}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
                   >
                     {createPlanMutation.isPending ? 'Oluşturuluyor...' : 'Plan Oluştur'}
                   </button>

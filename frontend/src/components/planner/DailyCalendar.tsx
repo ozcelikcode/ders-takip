@@ -281,11 +281,11 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
 
   const getSessionTypeColor = (sessionType: string) => {
     switch (sessionType) {
-      case 'study': return 'bg-blue-500 border-blue-600 text-white';
+      case 'study': return 'bg-primary-600 border-primary-700 text-white';
       case 'pomodoro': return 'bg-red-500 border-red-600 text-white';
       case 'review': return 'bg-green-500 border-green-600 text-white';
       case 'break': return 'bg-gray-500 border-gray-600 text-white';
-      default: return 'bg-blue-500 border-blue-600 text-white';
+      default: return 'bg-primary-600 border-primary-700 text-white';
     }
   };
 
@@ -371,7 +371,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
           </h2>
           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             <Calendar className="w-4 h-4" />
-            <span className={isToday(selectedDate) ? 'font-semibold text-blue-600 dark:text-blue-400' : ''}>
+            <span className={isToday(selectedDate) ? 'font-semibold text-primary-600 dark:text-primary-400' : ''}>
               {format(selectedDate, 'dd MMMM yyyy, EEEE', { locale: tr })}
             </span>
           </div>
@@ -387,7 +387,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
           {!isToday(selectedDate) && (
             <button
               onClick={goToToday}
-              className="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+              className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
             >
               Bugün
             </button>
@@ -406,8 +406,8 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
         <div className="card">
           <div className="card-body">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+                <Target className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Günlük İlerleme</p>
@@ -416,7 +416,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
                 </p>
                 <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-1">
                   <div
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-primary-500 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${progress.percentage}%` }}
                   />
                 </div>
@@ -493,7 +493,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
                     {/* Empty state */}
                     {sessions.length === 0 && (
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <div className="flex items-center gap-2 text-sm text-gray-400 hover:text-blue-500 transition-colors">
+                        <div className="flex items-center gap-2 text-sm text-gray-400 hover:text-primary-500 transition-colors">
                           <Plus className="w-4 h-4" />
                           <span>Seans ekle</span>
                         </div>
@@ -503,7 +503,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
                     {/* Drag Preview - Show where session will be dropped */}
                     {dragOverTarget && draggedSession && dragOverTarget.hour === hour && (
                       <div
-                        className="absolute inset-x-1 p-2 rounded-lg border-2 border-dashed border-blue-500 z-40 pointer-events-none"
+                        className="absolute inset-x-1 p-2 rounded-lg border-2 border-dashed border-primary-500 z-40 pointer-events-none"
                         style={{
                           top: `${(dragOverTarget.minute / 60) * 60}px`,
                           height: `${(draggedSession.duration / 60) * 60}px`,
@@ -511,10 +511,10 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
                       >
                         <div className="flex items-center justify-center h-full opacity-50">
                           <div className="text-center">
-                            <div className="text-xs text-blue-600 dark:text-blue-400 font-medium truncate px-2">
+                            <div className="text-xs text-primary-600 dark:text-primary-400 font-medium truncate px-2">
                               {draggedSession.title}
                             </div>
-                            <div className="text-[10px] text-blue-500 dark:text-blue-300 mt-0.5">
+                            <div className="text-[10px] text-primary-500 dark:text-primary-300 mt-0.5">
                               {draggedSession.duration} dk
                             </div>
                           </div>
@@ -655,7 +655,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
                                           className="p-1 hover:bg-white/20 rounded transition-all"
                                           title="Devam Et"
                                         >
-                                          <Play className="w-4 h-4 text-blue-300" />
+                                          <Play className="w-4 h-4 text-primary-300" />
                                         </button>
                                       )}
 
@@ -712,7 +712,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
       {/* Legend */}
       <div className="flex items-center gap-6 text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-blue-500"></div>
+          <div className="w-3 h-3 rounded bg-primary-500"></div>
           <span className="text-gray-600 dark:text-gray-400">Çalışma</span>
         </div>
         <div className="flex items-center gap-2">

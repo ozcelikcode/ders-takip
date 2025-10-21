@@ -54,7 +54,7 @@ const TodaysPlans: React.FC = () => {
   const getSessionStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'in_progress': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'in_progress': return 'bg-primary-100 text-primary-800 border-primary-200';
       case 'paused': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -63,11 +63,11 @@ const TodaysPlans: React.FC = () => {
 
   const getSessionTypeColor = (sessionType: string) => {
     switch (sessionType) {
-      case 'study': return 'bg-blue-500';
+      case 'study': return 'bg-primary-500';
       case 'pomodoro': return 'bg-red-500';
       case 'review': return 'bg-green-500';
       case 'break': return 'bg-gray-500';
-      default: return 'bg-blue-500';
+      default: return 'bg-primary-500';
     }
   };
 
@@ -149,7 +149,7 @@ const TodaysPlans: React.FC = () => {
     if (session.status === 'completed') {
       return <CheckCircle className="w-4 h-4 text-green-600" />;
     } else if (session.status === 'in_progress') {
-      return <Activity className="w-4 h-4 text-blue-600" />;
+      return <Activity className="w-4 h-4 text-primary-600" />;
     } else if (session.status === 'paused') {
       return <Pause className="w-4 h-4 text-orange-600" />;
     } else if (isBefore(now, sessionStart)) {
@@ -232,7 +232,7 @@ const TodaysPlans: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <CalendarIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+          <CalendarIcon className="w-6 h-6 text-primary-600 dark:text-blue-400" />
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Bugünün Planları
           </h2>
@@ -243,7 +243,7 @@ const TodaysPlans: React.FC = () => {
 
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md transition-colors"
         >
           <Plus className="w-4 h-4" />
           Yeni Seans
@@ -263,7 +263,7 @@ const TodaysPlans: React.FC = () => {
             </p>
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md transition-colors"
             >
               <Plus className="w-4 h-4" />
               İlk Seansımı Oluştur
@@ -393,7 +393,7 @@ const TodaysPlans: React.FC = () => {
                       {session.status === 'paused' && (
                         <button
                           onClick={() => handleStartSession(session)}
-                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+                          className="p-2 text-primary-600 dark:text-blue-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-full transition-colors"
                           title="Devam Et"
                         >
                           <Play className="w-5 h-5" />

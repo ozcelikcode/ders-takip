@@ -120,7 +120,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
                     relative p-2 text-sm rounded-lg transition-colors
                     ${!isCurrentMonth ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : ''}
                     ${isCurrentMonth && !isSelected && !isTodayDate ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' : ''}
-                    ${isTodayDate && !isSelected ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold' : ''}
+                    ${isTodayDate && !isSelected ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 font-semibold' : ''}
                     ${isSelected ? 'bg-primary-600 text-white font-semibold' : ''}
                     ${isCurrentDateDay && !isSelected ? 'ring-2 ring-orange-400 dark:ring-orange-500' : ''}
                   `}
@@ -136,7 +136,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
 
           {/* Selected Date Info */}
           {selectedDate && (
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <div className="mt-4 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
               <p className="text-sm text-gray-700 dark:text-gray-300">
                 Seçilen tarih:{' '}
                 <span className="font-semibold">

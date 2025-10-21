@@ -696,11 +696,11 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
 
   const getSessionTypeColor = (sessionType: string) => {
     switch (sessionType) {
-      case 'study': return 'bg-blue-500 border-blue-600';
+      case 'study': return 'bg-primary-600 border-primary-700';
       case 'pomodoro': return 'bg-red-500 border-red-600';
       case 'review': return 'bg-green-500 border-green-600';
       case 'break': return 'bg-gray-500 border-gray-600';
-      default: return 'bg-blue-500 border-blue-600';
+      default: return 'bg-primary-600 border-primary-700';
     }
   };
 
@@ -770,7 +770,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
             onDragLeave={() => setDragOverArrow(null)}
             className={`p-2 transition-colors ${
               dragOverArrow === 'prev'
-                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
                 : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
             }`}
           >
@@ -778,7 +778,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
           </button>
           <button
             onClick={() => setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-            className="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+            className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
           >
             Bugün
           </button>
@@ -793,7 +793,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
             onDragLeave={() => setDragOverArrow(null)}
             className={`p-2 transition-colors ${
               dragOverArrow === 'next'
-                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
                 : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
             }`}
           >
@@ -819,13 +819,13 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                   <div
                     key={day}
                     className={`p-4 text-center border-r border-gray-200 dark:border-gray-700 ${
-                      isCurrentDay ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-gray-50 dark:bg-gray-900'
+                      isCurrentDay ? 'bg-primary-50 dark:bg-primary-900/20' : 'bg-gray-50 dark:bg-gray-900'
                     }`}
                   >
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {day}
                     </div>
-                    <div className={`text-xs ${isCurrentDay ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
+                    <div className={`text-xs ${isCurrentDay ? 'text-primary-600 dark:text-primary-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
                       {format(dayDate, 'd MMM', { locale: tr })}
                     </div>
                   </div>
@@ -861,7 +861,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                     <div
                       key={`${dayIndex}-${hour}`}
                       className={`relative min-h-[60px] border-r border-gray-200 dark:border-gray-700 transition-colors ${
-                        isCurrentDay ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
+                        isCurrentDay ? 'bg-primary-50/50 dark:bg-primary-900/10' : ''
                       }`}
                       onDragOver={(e) => handleDragOver(e, dayIndex, hour)}
                       onDragLeave={handleDragLeave}
@@ -873,7 +873,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                       {/* Drag Preview - Show where session will be dropped */}
                       {isDragOver && draggedSession && dragOverTarget && (
                         <div
-                          className="absolute inset-x-1 p-1 rounded-lg border-2 border-dashed border-blue-500 z-40 pointer-events-none"
+                          className="absolute inset-x-1 p-1 rounded-lg border-2 border-dashed border-primary-500 z-40 pointer-events-none"
                           style={{
                             top: `${(dragOverTarget.minute / 60) * 60}px`,
                             height: `${(draggedSession.duration / 60) * 60}px`,
@@ -881,9 +881,9 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                         >
                           <div className="flex items-center justify-between h-full opacity-50">
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium truncate text-blue-700 dark:text-blue-300">{draggedSession.title}</div>
+                              <div className="font-medium truncate text-primary-700 dark:text-primary-300">{draggedSession.title}</div>
                               {draggedSession.duration && (
-                                <div className="text-[10px] text-blue-600 dark:text-blue-400">{draggedSession.duration} dk</div>
+                                <div className="text-[10px] text-primary-600 dark:text-primary-400">{draggedSession.duration} dk</div>
                               )}
                             </div>
                           </div>
@@ -931,7 +931,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                 scale: isBeingDragged ? 0.95 : 1,
                               }}
                               exit={{ opacity: 0, y: -10 }}
-                              className={`absolute inset-x-1 p-1 rounded-lg border-2 text-white ${getStatusColor(session.status, session.startTime, session.endTime)} group ${textSizeClass} ${isBeingDragged ? 'ring-2 ring-blue-400' : ''}`}
+                              className={`absolute inset-x-1 p-1 rounded-lg border-2 text-white ${getStatusColor(session.status, session.startTime, session.endTime)} group ${textSizeClass} ${isBeingDragged ? 'ring-2 ring-primary-400' : ''}`}
                               style={{
                                 top: `${topPosition}px`,
                                 height: `${sessionHeight}px`,
@@ -1014,7 +1014,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                     {session.status === 'paused' && (
                                       <div className="flex items-center gap-0.5">
                                         <Play
-                                          className="w-3.5 h-3.5 cursor-pointer text-blue-400 hover:text-blue-300 transition-colors"
+                                          className="w-3.5 h-3.5 cursor-pointer text-primary-400 hover:text-primary-300 transition-colors"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleStartSession(session);
@@ -1117,7 +1117,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                             handleTimeSlotClick(dayIndex, hour);
                           }}
                         >
-                          <div className="flex items-center gap-2 text-sm text-gray-400 group-hover:text-blue-500">
+                          <div className="flex items-center gap-2 text-sm text-gray-400 group-hover:text-primary-500">
                             <Plus className="w-4 h-4" />
                             <span>Seans ekle</span>
                           </div>
@@ -1135,7 +1135,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       {/* Legend */}
       <div className="flex items-center gap-6 text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-blue-500"></div>
+          <div className="w-3 h-3 rounded bg-primary-500"></div>
           <span className="text-gray-600 dark:text-gray-400">Çalışma</span>
         </div>
         <div className="flex items-center gap-2">
@@ -1154,7 +1154,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
 
       {isLoading && (
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
         </div>
       )}
 

@@ -4,7 +4,11 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
-      "Bash(npm run dev)"
+      "Bash(npm run dev)",
+      "Bash(if exist database.sqlite del database.sqlite)",
+      "Bash(del backenddatabase.sqlite)",
+      "Bash(tasklist:*)",
+      "Bash(npm run seed:*)"
     ],
     "deny": [],
     "ask": []

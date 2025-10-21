@@ -29,9 +29,9 @@ interface SettingsState {
 }
 
 const defaultSettings: SiteSettings = {
-  siteName: 'Ders Takip Sistemi',
-  siteDescription: 'Öğrenciler için kapsamlı ders takip ve planlama platformu',
-  siteUrl: 'http://localhost:3001',
+  siteName: 'Görev Takip Sistemi',
+  siteDescription: 'Herkes için modern görev takip ve zaman yönetimi platformu',
+  siteUrl: 'http://localhost:3000',
   adminEmail: 'admin@test.com',
   allowRegistration: true,
   maintenanceMode: false,

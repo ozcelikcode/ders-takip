@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, BookOpen, Eye, MoreVertical, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, Dna, Landmark, Map, Brain, Heart, BookText, Pen, Pencil, FileText, Notebook, GraduationCap, Award, Languages, History, Music, Palette, Code, Binary, Database, BarChart, TrendingUp, Target, Lightbulb, Sparkles } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, BookOpen, Eye, MoreVertical, Calculator, Book, Globe, Triangle, Atom, Beaker, Dna, Building, MapPin, Brain, Heart, Bookmark, Pen, Pencil, FileText, BookMarked, GraduationCap, Award, Globe2, Clock, Music, Palette, Code, Database, BarChart3, TrendingUp, Target, Lightbulb, Sparkles } from 'lucide-react';
 import { coursesAPI } from '../../services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Menu } from '@headlessui/react';
@@ -104,10 +104,10 @@ const AdminCoursesPage = () => {
 
   // Icon mapping for rendering
   const iconComponents: Record<string, React.ComponentType<any>> = {
-    BookOpen, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, Dna,
-    Landmark, Map, Brain, Heart, BookText, Pen, Pencil, FileText, Notebook,
-    GraduationCap, Award, Languages, History, Music, Palette, Code, Binary,
-    Database, BarChart, TrendingUp, Target, Lightbulb, Sparkles
+    BookOpen, Calculator, Book, Globe, Triangle, Atom, Beaker, Dna,
+    Building, MapPin, Brain, Heart, Bookmark, Pen, Pencil, FileText, BookMarked,
+    GraduationCap, Award, Globe2, Clock, Music, Palette, Code,
+    Database, BarChart3, TrendingUp, Target, Lightbulb, Sparkles
   };
 
   const iconList = Object.keys(iconComponents);
@@ -305,10 +305,10 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCours
 
   // Icon mapping
   const iconComponents: Record<string, React.ComponentType<any>> = {
-    BookOpen, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, Dna,
-    Landmark, Map, Brain, Heart, BookText, Pen, Pencil, FileText, Notebook,
-    GraduationCap, Award, Languages, History, Music, Palette, Code, Binary,
-    Database, BarChart, TrendingUp, Target, Lightbulb, Sparkles
+    BookOpen, Calculator, Book, Globe, Triangle, Atom, Beaker, Dna,
+    Building, MapPin, Brain, Heart, Bookmark, Pen, Pencil, FileText, BookMarked,
+    GraduationCap, Award, Globe2, Clock, Music, Palette, Code,
+    Database, BarChart3, TrendingUp, Target, Lightbulb, Sparkles
   };
 
   const {

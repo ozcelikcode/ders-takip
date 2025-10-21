@@ -9,7 +9,7 @@
     "start": "node dist/index.js",
     "setup": "node scripts/setup.js",
     "db:setup": "node scripts/database-setup.js",
-    "seed": "node scripts/seed.js",
+    "seed": "ts-node src/scripts/seed.ts",
     "lint": "eslint src/**/*.ts",
     "test": "jest",
     "test:watch": "jest --watch"

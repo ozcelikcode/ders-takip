@@ -80,24 +80,24 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             </button>
 
             {/* Search */}
-            <div className="hidden md:block ml-4 lg:ml-0 lg:w-96">
+            <div className="hidden md:block ml-4 lg:ml-0 lg:w-64">
               <form onSubmit={handleSearch} className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  <Search className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
-                  placeholder="Ders veya konu ara..."
-                  className="block w-full pl-10 pr-20 py-2.5 border-2 border-gray-300 dark:border-gray-800 rounded-lg leading-5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all sm:text-sm font-medium shadow-sm hover:border-gray-400 dark:hover:border-gray-700"
+                  placeholder="Ara..."
+                  className="block w-full pl-9 pr-16 py-2 border border-gray-300 dark:border-gray-700 rounded-lg leading-5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm hover:border-gray-400 dark:hover:border-gray-600"
                 />
                 <button
                   type="submit"
-                  className="absolute inset-y-0 right-0 pr-2 flex items-center"
+                  className="absolute inset-y-0 right-0 pr-1 flex items-center"
                 >
-                  <span className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-md transition-colors shadow-sm">
+                  <span className="px-2.5 py-1 bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium rounded-md transition-colors">
                     Ara
                   </span>
                 </button>

@@ -6,6 +6,7 @@ export interface User {
   lastName: string;
   fullName: string;
   role: 'student' | 'admin';
+  userCategory?: 'student' | 'teacher' | 'employee' | 'developer' | 'freelancer' | 'other';
   isActive: boolean;
   profileImage?: string;
   preferences: {
@@ -15,11 +16,10 @@ export interface User {
       push: boolean;
       reminders: boolean;
     };
-    studyGoals: {
+    workGoals: {
       dailyHours: number;
       weeklyHours: number;
     };
-    studyField?: 'TYT' | 'AYT' | 'SAY' | 'EA' | 'SOZ' | 'DIL';
   };
   lastLogin?: string;
   createdAt: string;

@@ -5,7 +5,7 @@
 ![Status](https://img.shields.io/badge/status-active-success.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-TYT ve AYT sınavlarına hazırlanan öğrenciler için modern, kullanıcı dostu ders takip ve planlama sistemi.
+Öğrenci, öğretmen, çalışan ve yazılımcılar için modern, kullanıcı dostu görev takip ve zaman yönetimi sistemi.
 
 [Özellikler](#-özellikler) • [Kurulum](#-kurulum) • [Kullanım](#-kullanım) • [Teknolojiler](#-teknoloji-stack)
 
@@ -48,10 +48,10 @@ TYT ve AYT sınavlarına hazırlanan öğrenciler için modern, kullanıcı dost
   - Hedef başarı oranları
   - Recharts ile interaktif grafikler
 
-- **📚 Ders Yönetimi**
-  - TYT/AYT ders kategorileri
-  - Renk kodlu ders grupları
-  - Ders oluşturma ve düzenleme
+- **📚 Görev & Proje Yönetimi**
+  - Özelleştirilebilir kategoriler
+  - Renk kodlu görev grupları
+  - Görev oluşturma ve düzenleme
   - Konu bazında organizasyon
 
 - **👤 Profil Yönetimi**
@@ -189,29 +189,31 @@ TYT ve AYT sınavlarına hazırlanan öğrenciler için modern, kullanıcı dost
 
 ## 🎯 Kullanım
 
-### Öğrenci İş Akışı
+### Kullanıcı İş Akışı
 
 1. **Giriş Yapın**
    - Kayıt ol veya mevcut hesapla giriş yap
+   - Profil türünü seç (öğrenci, öğretmen, çalışan, yazılımcı, vb.)
 
 2. **Dashboard'ı İnceleyin**
-   - Bugünün hedefleri ve istatistikleri
+   - Bugünün görevleri ve hedefleri
    - Haftalık ilerleme grafikleri
+   - Üretkenlik istatistikleri
 
 3. **Haftalık Planlar Oluşturun**
    - Planlayıcı'ya gidin
    - Görev ekle butonuna tıklayın
-   - Ders, tarih ve süre seçin
+   - Kategori, tarih ve süre seçin
    - Drag & drop ile görevleri taşıyın
 
-4. **Çalışma Oturumu Başlatın**
+4. **Çalışma/Görev Oturumu Başlatın**
    - Görev üzerine tıklayın
    - "Başlat" butonuna tıklayın
-   - Pomodoro timer ile çalışın
+   - Pomodoro timer ile odaklan
 
 5. **İlerlemeyi Takip Edin**
    - İstatistikler sayfasında detaylı analiz
-   - Ders bazında performans grafikleri
+   - Kategori bazında performans grafikleri
 
 ### Yönetici İş Akışı
 
@@ -220,10 +222,10 @@ TYT ve AYT sınavlarına hazırlanan öğrenciler için modern, kullanıcı dost
    - Yeni kullanıcı ekle
    - Kullanıcı bilgilerini düzenle
 
-2. **Ders Yönetimi**
-   - Dersler sayfasından ders ekle/düzenle
-   - Kategori (TYT/AYT) belirle
-   - Renk ata
+2. **Kategori ve Görev Yönetimi**
+   - Kategoriler sayfasından kategori ekle/düzenle
+   - Özelleştirilebilir kategori sistemleri
+   - Renk ve ikon atamaları
 
 ## 📡 API Dokümantasyonu
 
@@ -432,7 +434,7 @@ Bu proje MIT lisansı altında lisanslanmıştır.
 Proje Linki: [https://github.com/ozcelikcode/ders-takip](https://github.com/ozcelikcode/ders-takip)
 
 ## 🙏 Teşekkürler
-
+- [Claude](https://claude.ai/)
 - [React](https://reactjs.org/)
 - [TailwindCSS](https://tailwindcss.com/)
 - [Vite](https://vitejs.dev/)
@@ -448,6 +450,6 @@ Proje Linki: [https://github.com/ozcelikcode/ders-takip](https://github.com/ozce
 
 **⚡ Hızlı Başlangıç**: Backend ve frontend'i paralel terminallerde başlatın!
 
-Made with ❤️ Claude Sonnet 4.5
+Made with ❤️ ozcelikcode & Claude Sonnet 4.5
 
 </div>

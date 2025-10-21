@@ -1,6 +1,9 @@
 import { motion } from 'framer-motion';
+import { useSettingsStore } from '../../store/settingsStore';
 
 const LoadingScreen = () => {
+  const { settings } = useSettingsStore();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
       <div className="text-center">
@@ -16,7 +19,7 @@ const LoadingScreen = () => {
           transition={{ delay: 0.5 }}
         >
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Ders Takip Sistemi
+            {settings.siteName}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
             Sistem yükleniyor...

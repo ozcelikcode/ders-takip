@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { X, Home, BookOpen, Calendar, User, Users, Settings, LayoutDashboard, Timer, Sliders } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import { clsx } from 'clsx';
 
 interface SidebarProps {
@@ -10,6 +11,7 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const { user } = useAuthStore();
+  const { settings } = useSettingsStore();
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -38,7 +40,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-800">
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            Ders Takip
+            {settings.siteName}
           </h1>
           <button
             onClick={onClose}
@@ -60,7 +62,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-900">
           <div className="flex items-center h-16 flex-shrink-0 px-6 border-b border-gray-200 dark:border-gray-800">
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              Ders Takip Sistemi
+              {settings.siteName}
             </h1>
           </div>
           <SidebarContent

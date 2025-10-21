@@ -10,6 +10,7 @@ interface UserAttributes {
   firstName: string;
   lastName: string;
   role: 'student' | 'admin';
+  userCategory?: 'student' | 'teacher' | 'employee' | 'developer' | 'freelancer' | 'other';
   isActive: boolean;
   lastLogin?: Date;
   profileImage?: string;
@@ -20,11 +21,10 @@ interface UserAttributes {
       push: boolean;
       reminders: boolean;
     };
-    studyGoals: {
+    workGoals: {
       dailyHours: number;
       weeklyHours: number;
     };
-    studyField?: 'TYT' | 'AYT' | 'SAY' | 'EA' | 'SOZ' | 'DIL';
   };
   createdAt: Date;
   updatedAt: Date;
@@ -40,6 +40,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public firstName!: string;
   public lastName!: string;
   public role!: 'student' | 'admin';
+  public userCategory?: 'student' | 'teacher' | 'employee' | 'developer' | 'freelancer' | 'other';
   public isActive!: boolean;
   public lastLogin?: Date;
   public profileImage?: string;
@@ -50,11 +51,10 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
       push: boolean;
       reminders: boolean;
     };
-    studyGoals: {
+    workGoals: {
       dailyHours: number;
       weeklyHours: number;
     };
-    studyField?: 'TYT' | 'AYT' | 'SAY' | 'EA' | 'SOZ' | 'DIL';
   };
 
   public readonly createdAt!: Date;
@@ -125,6 +125,10 @@ User.init(
       allowNull: false,
       defaultValue: 'student',
     },
+    userCategory: {
+      type: DataTypes.ENUM('student', 'teacher', 'employee', 'developer', 'freelancer', 'other'),
+      allowNull: true,
+    },
     isActive: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
@@ -148,7 +152,7 @@ User.init(
           push: true,
           reminders: true,
         },
-        studyGoals: {
+        workGoals: {
           dailyHours: 4,
           weeklyHours: 28,
         },

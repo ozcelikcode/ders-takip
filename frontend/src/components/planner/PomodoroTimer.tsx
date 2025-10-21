@@ -176,7 +176,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete, onSt
     switch (currentPhase) {
       case 'work': return 'text-red-600 dark:text-red-400';
       case 'shortBreak': return 'text-green-600 dark:text-green-400';
-      case 'longBreak': return 'text-blue-600 dark:text-blue-400';
+      case 'longBreak': return 'text-primary-600 dark:text-primary-400';
     }
   };
 
@@ -245,7 +245,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete, onSt
               strokeWidth="4"
               strokeLinecap="round"
               className={currentPhase === 'work' ? 'text-red-500' :
-                        currentPhase === 'shortBreak' ? 'text-green-500' : 'text-blue-500'}
+                        currentPhase === 'shortBreak' ? 'text-green-500' : 'text-primary-500'}
               initial={{ pathLength: 0 }}
               animate={{ pathLength: progress / 100 }}
               style={{
