@@ -161,7 +161,7 @@ const AdminCategoriesPage = () => {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Kategori Yönetimi</h1>
-        <p className="text-gray-600 dark:text-gray-400">TYT, AYT gibi ders kategorilerini yönetin</p>
+        <p className="text-gray-600 dark:text-gray-400">İş, Eğitim, Projeler gibi görev kategorilerini yönetin</p>
       </div>
 
       {/* Actions Bar */}
@@ -173,7 +173,7 @@ const AdminCategoriesPage = () => {
             placeholder="Kategori ara..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-800 dark:text-white"
           />
         </div>
         <button
@@ -188,7 +188,7 @@ const AdminCategoriesPage = () => {
       {/* Categories Grid */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -216,7 +216,7 @@ const AdminCategoriesPage = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEditCategory(category)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                      className="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
                       title="Düzenle"
                     >
                       <Edit2 className="w-4 h-4" />
@@ -298,7 +298,7 @@ const AdminCategoriesPage = () => {
                       {...register('name')}
                       type="text"
                       className="input"
-                      placeholder="ör. TYT, AYT, YKS"
+                      placeholder="ör. İş, Eğitim, Projeler"
                     />
                     {errors.name && (
                       <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
@@ -353,7 +353,7 @@ const AdminCategoriesPage = () => {
                       {...register('isActive')}
                       type="checkbox"
                       id="isActive"
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
                     />
                     <label htmlFor="isActive" className="text-sm text-gray-700 dark:text-gray-300">
                       Aktif
