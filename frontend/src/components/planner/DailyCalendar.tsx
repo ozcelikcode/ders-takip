@@ -18,7 +18,7 @@ interface DailyCalendarProps {
   onSessionClick?: (session: StudySession) => void;
 }
 
-const HOURS = Array.from({ length: 19 }, (_, i) => i + 5); // 5:00 to 23:00 (stops at midnight)
+const HOURS = Array.from({ length: 24 }, (_, i) => i); // Full 24 hours: 0:00 to 23:00
 
 const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessionClick }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -475,10 +475,10 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
                   {/* Hour label */}
                   <div className="w-20 flex-shrink-0 p-4 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {hour}:00
+                      {`${hour.toString().padStart(2, '0')}:00`}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {hour + 1}:00
+                      {hour + 1 >= 24 ? '00:00' : `${(hour + 1).toString().padStart(2, '0')}:00`}
                     </div>
                   </div>
 

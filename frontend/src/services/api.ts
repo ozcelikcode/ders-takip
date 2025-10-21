@@ -153,6 +153,24 @@ export const coursesAPI = {
     api.get(`/courses/${id}/topics`, { params }),
 };
 
+// Categories API
+export const categoriesAPI = {
+  getCategories: (params?: any): Promise<AxiosResponse<ApiResponse>> =>
+    api.get('/categories', { params }),
+
+  getCategory: (id: string): Promise<AxiosResponse<ApiResponse>> =>
+    api.get(`/categories/${id}`),
+
+  createCategory: (data: any): Promise<AxiosResponse<ApiResponse>> =>
+    api.post('/categories', data),
+
+  updateCategory: (id: string, data: any): Promise<AxiosResponse<ApiResponse>> =>
+    api.put(`/categories/${id}`, data),
+
+  deleteCategory: (id: string, migrateToCategoryId?: number): Promise<AxiosResponse<ApiResponse>> =>
+    api.delete(`/categories/${id}`, { data: { migrateToCategoryId } }),
+};
+
 // Users API (Admin)
 export const usersAPI = {
   getUsers: (params?: any): Promise<AxiosResponse<ApiResponse>> =>

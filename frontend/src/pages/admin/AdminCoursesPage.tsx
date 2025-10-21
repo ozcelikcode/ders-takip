@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, BookOpen, Eye, MoreVertical } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, BookOpen, Eye, MoreVertical, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, Dna, Landmark, Map, Brain, Heart, BookText, Pen, Pencil, FileText, Notebook, GraduationCap, Award, Languages, History, Music, Palette, Code, Binary, Database, BarChart, TrendingUp, Target, Lightbulb, Sparkles } from 'lucide-react';
 import { coursesAPI } from '../../services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Menu } from '@headlessui/react';
@@ -102,7 +102,15 @@ const AdminCoursesPage = () => {
       : 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800';
   };
 
-  const iconList = ['BookOpen', 'Calculator', 'Microscope', 'Globe', 'Triangle', 'Atom', 'FlaskConical', 'Dna', 'Landmark', 'Map', 'Brain', 'Heart', 'BookText'];
+  // Icon mapping for rendering
+  const iconComponents: Record<string, React.ComponentType<any>> = {
+    BookOpen, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, Dna,
+    Landmark, Map, Brain, Heart, BookText, Pen, Pencil, FileText, Notebook,
+    GraduationCap, Award, Languages, History, Music, Palette, Code, Binary,
+    Database, BarChart, TrendingUp, Target, Lightbulb, Sparkles
+  };
+
+  const iconList = Object.keys(iconComponents);
 
   if (isLoading) {
     return (
@@ -293,11 +301,21 @@ interface CourseModalProps {
 const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCourse, iconList }) => {
   const queryClient = useQueryClient();
   const isEditing = !!editingCourse;
+  const [selectedIcon, setSelectedIcon] = useState(editingCourse?.icon || 'BookOpen');
+
+  // Icon mapping
+  const iconComponents: Record<string, React.ComponentType<any>> = {
+    BookOpen, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, Dna,
+    Landmark, Map, Brain, Heart, BookText, Pen, Pencil, FileText, Notebook,
+    GraduationCap, Award, Languages, History, Music, Palette, Code, Binary,
+    Database, BarChart, TrendingUp, Target, Lightbulb, Sparkles
+  };
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<CourseForm>({
     resolver: zodResolver(courseSchema),
@@ -313,6 +331,7 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCours
   React.useEffect(() => {
     if (editingCourse) {
       reset(editingCourse);
+      setSelectedIcon(editingCourse.icon || 'BookOpen');
     } else {
       reset({
         category: 'TYT',
@@ -321,6 +340,7 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCours
         order: 1,
         isActive: true,
       });
+      setSelectedIcon('BookOpen');
     }
   }, [editingCourse, reset]);
 
@@ -471,20 +491,35 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCours
                 </div>
 
                 <div>
-                  <label htmlFor="icon" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    İkon
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    İkon Seç
                   </label>
-                  <select
-                    {...register('icon')}
-                    id="icon"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  >
-                    {iconList.map((icon) => (
-                      <option key={icon} value={icon}>
-                        {icon}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="grid grid-cols-6 gap-2 p-3 border border-gray-300 dark:border-gray-600 rounded-md max-h-48 overflow-y-auto">
+                    {iconList.map((iconName) => {
+                      const IconComponent = iconComponents[iconName];
+                      return (
+                        <button
+                          key={iconName}
+                          type="button"
+                          onClick={() => {
+                            setSelectedIcon(iconName);
+                            setValue('icon', iconName);
+                          }}
+                          className={`p-2 rounded-md border-2 transition-all ${
+                            selectedIcon === iconName
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                          }`}
+                          title={iconName}
+                        >
+                          {IconComponent && <IconComponent className="w-5 h-5 mx-auto text-gray-700 dark:text-gray-300" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Seçili: {selectedIcon}
+                  </p>
                 </div>
 
                 <div className="flex items-center">

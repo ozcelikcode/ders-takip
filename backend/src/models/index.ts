@@ -1,5 +1,6 @@
 import { User } from './User';
 import { Course } from './Course';
+import { Category } from './Category';
 import { Topic } from './Topic';
 import { Plan } from './Plan';
 import { StudySession } from './StudySession';
@@ -75,4 +76,4 @@ StudySession.belongsTo(Topic, {
   as: 'topic',
 });
 
-export { User, Course, Topic, Plan, StudySession, Settings };
+export { User, Course, Category, Topic, Plan, StudySession, Settings };

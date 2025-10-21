@@ -18,7 +18,7 @@ interface WeeklyPlannerProps {
   onCreateSession?: (date: Date, hour: number) => void;
 }
 
-const HOURS = Array.from({ length: 19 }, (_, i) => i + 5); // 5:00 to 23:00 (stops at midnight)
+const HOURS = Array.from({ length: 24 }, (_, i) => i); // Full 24 hours: 0:00 to 23:00
 const DAYS = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
 const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
@@ -207,14 +207,14 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       return;
     }
 
-    // Check if drag started from resize handle area (bottom 16px) - only for sessions >= 30px height
+    // Check if drag started from resize handle area (bottom 12px) - only for sessions >= 20px height
     const target = e.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const offsetY = e.clientY - rect.top;
     const sessionHeight = rect.height;
 
-    // If session is tall enough to have resize handle (>= 30px) and clicking near bottom, prevent drag
-    if (sessionHeight >= 30 && offsetY > sessionHeight - 16) {
+    // If session is tall enough to have resize handle (>= 20px) and clicking near bottom, prevent drag
+    if (sessionHeight >= 20 && offsetY > sessionHeight - 12) {
       e.preventDefault();
       return;
     }
@@ -267,8 +267,17 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       newStartTime.setHours(hour, snappedMinutes, 0, 0);
 
       const sessionDuration = draggedSession.duration;
-      const newEndTime = new Date(newStartTime);
+      let newEndTime = new Date(newStartTime);
       newEndTime.setMinutes(newEndTime.getMinutes() + sessionDuration);
+
+      // Check if session extends past midnight (23:59:59)
+      const sessionDay = new Date(newStartTime);
+      sessionDay.setHours(23, 59, 59, 999); // End of day
+
+      if (newEndTime > sessionDay) {
+        toast.error('Görev gece yarısını geçemez. Görev bu konuma taşınamaz.');
+        throw new Error('Session cannot extend past midnight');
+      }
 
       // Validate the session ID exists and is a valid number
       if (!draggedSession.id || isNaN(Number(draggedSession.id))) {
@@ -359,8 +368,18 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       const newStartTime = setHours(setMinutes(targetDate, sessionStart.getMinutes()), sessionStart.getHours());
 
       const sessionDuration = moveModalSession.duration;
-      const newEndTime = new Date(newStartTime);
+      let newEndTime = new Date(newStartTime);
       newEndTime.setMinutes(newEndTime.getMinutes() + sessionDuration);
+
+      // Check if session extends past midnight (23:59:59)
+      const sessionDay = new Date(newStartTime);
+      sessionDay.setHours(23, 59, 59, 999); // End of day
+
+      if (newEndTime > sessionDay) {
+        toast.error('Görev gece yarısını geçemez. Lütfen daha erken bir saat seçin.');
+        setIsMoving(false);
+        return;
+      }
 
       const response = await studySessionsAPI.updateSession(moveModalSession.id.toString(), {
         startTime: newStartTime.toISOString(),
@@ -622,12 +641,24 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
 
     // Snap to 5-minute intervals
     const minutesRaw = newHeight;
-    const newDuration = Math.round(minutesRaw / 5) * 5;
+    let newDuration = Math.round(minutesRaw / 5) * 5;
 
     // Update session duration
     const sessionStart = parseISO(resizingSession.session.startTime);
     const newEndTime = new Date(sessionStart);
     newEndTime.setMinutes(sessionStart.getMinutes() + newDuration);
+
+    // Check if session extends past midnight (23:59:59)
+    const sessionDay = new Date(sessionStart);
+    sessionDay.setHours(23, 59, 59, 999); // End of day
+
+    if (newEndTime > sessionDay) {
+      // Cap the session at midnight
+      newEndTime.setTime(sessionDay.getTime());
+      const cappedDuration = Math.floor((newEndTime.getTime() - sessionStart.getTime()) / (1000 * 60));
+      newDuration = cappedDuration;
+      toast.error('Görev gece yarısını geçemez (23:59)');
+    }
 
     try {
       // Update in database
@@ -1023,10 +1054,10 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                               </div>
                             )}
 
-                            {/* Resize handle - bottom border */}
-                            {session.status !== 'in_progress' && session.status !== 'completed' && sessionHeight >= 30 && (
+                            {/* Resize handle - bottom border - show for sessions >= 20px */}
+                            {session.status !== 'in_progress' && session.status !== 'completed' && sessionHeight >= 20 && (
                               <div
-                                className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize"
+                                className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize hover:bg-white/10"
                                 style={{ zIndex: 100 }}
                                 onMouseDown={(e) => {
                                   e.preventDefault();

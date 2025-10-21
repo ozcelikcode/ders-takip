@@ -14,6 +14,7 @@ import { notFound } from './middleware/notFound';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import courseRoutes from './routes/courses';
+import categoryRoutes from './routes/categories';
 import topicRoutes from './routes/topics';
 import planRoutes from './routes/planRoutes';
 import studySessionRoutes from './routes/studySessionRoutes';
@@ -78,6 +79,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/courses', courseRoutes);
+app.use('/api/categories', categoryRoutes);
 app.use('/api/topics', topicRoutes);
 app.use('/api/plans', planRoutes);
 app.use('/api/study-sessions', studySessionRoutes);
