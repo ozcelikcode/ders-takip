@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { StudySession, Plan, Course, Topic } from '../models';
+import { StudySession, Plan, Course, Topic, Category } from '../models';
 import { Op } from 'sequelize';
 
 export const getStudySessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -79,7 +79,12 @@ export const getStudySessions = async (req: Request, res: Response, next: NextFu
         {
           model: Course,
           as: 'course',
-          attributes: ['id', 'name', 'category', 'color', 'icon'],
+          attributes: ['id', 'name', 'categoryId', 'color', 'icon'],
+          include: [{
+            model: Category,
+            as: 'category',
+            attributes: ['id', 'name', 'color', 'icon'],
+          }]
         },
         {
           model: Topic,
@@ -138,7 +143,12 @@ export const getStudySession = async (req: Request, res: Response, next: NextFun
         {
           model: Course,
           as: 'course',
-          attributes: ['id', 'name', 'category', 'color', 'icon'],
+          attributes: ['id', 'name', 'categoryId', 'color', 'icon'],
+          include: [{
+            model: Category,
+            as: 'category',
+            attributes: ['id', 'name', 'color', 'icon'],
+          }]
         },
         {
           model: Topic,
@@ -265,7 +275,12 @@ export const createStudySession = async (req: Request, res: Response, next: Next
         {
           model: Course,
           as: 'course',
-          attributes: ['id', 'name', 'category', 'color', 'icon'],
+          attributes: ['id', 'name', 'categoryId', 'color', 'icon'],
+          include: [{
+            model: Category,
+            as: 'category',
+            attributes: ['id', 'name', 'color', 'icon'],
+          }]
         },
         {
           model: Topic,
@@ -377,7 +392,12 @@ export const updateStudySession = async (req: Request, res: Response, next: Next
         {
           model: Course,
           as: 'course',
-          attributes: ['id', 'name', 'category', 'color', 'icon'],
+          attributes: ['id', 'name', 'categoryId', 'color', 'icon'],
+          include: [{
+            model: Category,
+            as: 'category',
+            attributes: ['id', 'name', 'color', 'icon'],
+          }]
         },
         {
           model: Topic,

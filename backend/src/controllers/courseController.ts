@@ -1,29 +1,37 @@
 import { Request, Response, NextFunction } from 'express';
-import { Course, Topic } from '../models';
+import { Course, Topic, Category } from '../models';
 
 export const getCourses = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { category, isActive = 'true', includeTopics = 'false' } = req.query;
+    const { categoryId, isActive = 'true', includeTopics = 'false' } = req.query;
 
     const where: any = {};
 
-    if (category) {
-      where.category = category;
+    if (categoryId) {
+      where.categoryId = categoryId;
     }
 
     if (isActive !== undefined) {
       where.isActive = isActive === 'true';
     }
 
-    const include = includeTopics === 'true' ? [
+    const include: any[] = [
       {
+        model: Category,
+        as: 'category',
+        attributes: ['id', 'name', 'color', 'icon'],
+      }
+    ];
+
+    if (includeTopics === 'true') {
+      include.push({
         model: Topic,
         as: 'topics',
         where: { isActive: true },
         required: false,
         attributes: ['id', 'name', 'description', 'estimatedTime', 'difficulty', 'order'],
-      }
-    ] : [];
+      });
+    }
 
     const courses = await Course.findAll({
       where,
@@ -45,15 +53,23 @@ export const getCourse = async (req: Request, res: Response, next: NextFunction)
     const { id } = req.params;
     const { includeTopics = 'false' } = req.query;
 
-    const include = includeTopics === 'true' ? [
+    const include: any[] = [
       {
+        model: Category,
+        as: 'category',
+        attributes: ['id', 'name', 'color', 'icon'],
+      }
+    ];
+
+    if (includeTopics === 'true') {
+      include.push({
         model: Topic,
         as: 'topics',
         where: { isActive: true },
         required: false,
         attributes: ['id', 'name', 'description', 'estimatedTime', 'difficulty', 'order'],
-      }
-    ] : [];
+      });
+    }
 
     const course = await Course.findByPk(id, { include });
 
@@ -76,10 +92,20 @@ export const getCourse = async (req: Request, res: Response, next: NextFunction)
 
 export const createCourse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { name, category, description, color, icon, order } = req.body;
+    const { name, categoryId, description, color, icon, order } = req.body;
+
+    // Check if category exists
+    const category = await Category.findByPk(categoryId);
+    if (!category) {
+      res.status(400).json({
+        success: false,
+        error: { message: 'Kategori bulunamadı' },
+      });
+      return;
+    }
 
     const existingCourse = await Course.findOne({
-      where: { name, category },
+      where: { name, categoryId },
     });
 
     if (existingCourse) {
@@ -92,17 +118,26 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
 
     const course = await Course.create({
       name,
-      category,
+      categoryId,
       description,
       color,
       icon,
       order,
     });
 
+    // Fetch course with category
+    const createdCourse = await Course.findByPk(course.id, {
+      include: [{
+        model: Category,
+        as: 'category',
+        attributes: ['id', 'name', 'color', 'icon'],
+      }]
+    });
+
     res.status(201).json({
       success: true,
       message: 'Ders başarıyla oluşturuldu',
-      data: { course },
+      data: { course: createdCourse },
     });
   } catch (error) {
     next(error);
@@ -112,7 +147,7 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
 export const updateCourse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, category, description, color, icon, order, isActive } = req.body;
+    const { name, categoryId, description, color, icon, order, isActive } = req.body;
 
     const course = await Course.findByPk(id);
 
@@ -124,8 +159,20 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
       return;
     }
 
+    // Check if category exists if categoryId is being updated
+    if (categoryId) {
+      const category = await Category.findByPk(categoryId);
+      if (!category) {
+        res.status(400).json({
+          success: false,
+          error: { message: 'Kategori bulunamadı' },
+        });
+        return;
+      }
+    }
+
     if (name) course.name = name;
-    if (category) course.category = category;
+    if (categoryId) course.categoryId = categoryId;
     if (description !== undefined) course.description = description;
     if (color) course.color = color;
     if (icon !== undefined) course.icon = icon;
@@ -134,10 +181,19 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
 
     await course.save();
 
+    // Fetch course with category
+    const updatedCourse = await Course.findByPk(id, {
+      include: [{
+        model: Category,
+        as: 'category',
+        attributes: ['id', 'name', 'color', 'icon'],
+      }]
+    });
+
     res.json({
       success: true,
       message: 'Ders başarıyla güncellendi',
-      data: { course },
+      data: { course: updatedCourse },
     });
   } catch (error) {
     next(error);
@@ -199,14 +255,19 @@ export const getCourseTopics = async (req: Request, res: Response, next: NextFun
       order: [['order', 'ASC'], ['name', 'ASC']],
     });
 
+    // Fetch course with category
+    const courseWithCategory = await Course.findByPk(id, {
+      include: [{
+        model: Category,
+        as: 'category',
+        attributes: ['id', 'name', 'color', 'icon'],
+      }]
+    });
+
     res.json({
       success: true,
       data: {
-        course: {
-          id: course.id,
-          name: course.name,
-          category: course.category,
-        },
+        course: courseWithCategory,
         topics,
       },
     });

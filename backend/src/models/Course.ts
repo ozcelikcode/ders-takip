@@ -4,7 +4,7 @@ import { sequelize } from '../config/database';
 interface CourseAttributes {
   id: number;
   name: string;
-  category: 'TYT' | 'AYT';
+  categoryId: number;
   description?: string;
   color: string;
   icon?: string;
@@ -19,7 +19,7 @@ interface CourseCreationAttributes extends Optional<CourseAttributes, 'id' | 'cr
 export class Course extends Model<CourseAttributes, CourseCreationAttributes> implements CourseAttributes {
   public id!: number;
   public name!: string;
-  public category!: 'TYT' | 'AYT';
+  public categoryId!: number;
   public description?: string;
   public color!: string;
   public icon?: string;
@@ -44,9 +44,15 @@ Course.init(
         len: [1, 100],
       },
     },
-    category: {
-      type: DataTypes.ENUM('TYT', 'AYT'),
+    categoryId: {
+      type: DataTypes.INTEGER,
       allowNull: false,
+      references: {
+        model: 'categories',
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'RESTRICT',
     },
     description: {
       type: DataTypes.TEXT,
@@ -61,7 +67,7 @@ Course.init(
       },
     },
     icon: {
-      type: DataTypes.STRING(10),
+      type: DataTypes.STRING(50),
       allowNull: true,
     },
     order: {
@@ -91,10 +97,10 @@ Course.init(
     tableName: 'courses',
     indexes: [
       { fields: ['name'] },
-      { fields: ['category'] },
+      { fields: ['categoryId'] },
       { fields: ['order'] },
       { fields: ['isActive'] },
-      { fields: ['category', 'order'] },
+      { fields: ['categoryId', 'order'] },
     ],
   }
 );

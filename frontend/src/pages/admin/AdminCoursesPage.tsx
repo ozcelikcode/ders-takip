@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Search, Edit2, Trash2, BookOpen, Eye, MoreVertical, Calculator, Book, Globe, Triangle, Atom, Beaker, Dna, Building, MapPin, Brain, Heart, Bookmark, Pen, Pencil, FileText, BookMarked, GraduationCap, Award, Globe2, Clock, Music, Palette, Code, Database, BarChart3, TrendingUp, Target, Lightbulb, Sparkles } from 'lucide-react';
-import { coursesAPI } from '../../services/api';
+import { coursesAPI, categoriesAPI } from '../../services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Menu } from '@headlessui/react';
 import toast from 'react-hot-toast';
@@ -13,10 +13,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 
+interface Category {
+  id: number;
+  name: string;
+  color: string;
+  icon?: string;
+}
+
 interface Course {
   id: number;
   name: string;
-  category: 'TYT' | 'AYT';
+  categoryId: number;
+  category?: Category;
   description?: string;
   color: string;
   icon?: string;
@@ -26,7 +34,7 @@ interface Course {
 
 const courseSchema = z.object({
   name: z.string().min(1, 'Ders adı gereklidir').max(100, 'Ders adı çok uzun'),
-  category: z.enum(['TYT', 'AYT'], { required_error: 'Kategori seçiniz' }),
+  categoryId: z.number({ required_error: 'Kategori seçiniz' }).min(1, 'Kategori seçiniz'),
   description: z.string().optional(),
   color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Geçerli bir renk kodu girin'),
   icon: z.string().optional(),
@@ -46,6 +54,14 @@ const AdminCoursesPage = () => {
     courseName: '',
   });
   const queryClient = useQueryClient();
+
+  const { data: categoriesData } = useQuery({
+    queryKey: ['admin-categories'],
+    queryFn: async () => {
+      const response = await categoriesAPI.getCategories();
+      return response.data.data?.categories || [];
+    },
+  });
 
   const { data: coursesData, isLoading } = useQuery({
     queryKey: ['admin-courses'],
@@ -93,14 +109,8 @@ const AdminCoursesPage = () => {
 
   const filteredCourses = (coursesData as Course[])?.filter((course) =>
     course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.category.toLowerCase().includes(searchTerm.toLowerCase())
+    course.category?.name.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
-
-  const getCategoryColor = (category: string) => {
-    return category === 'TYT'
-      ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
-      : 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800';
-  };
 
   // Icon mapping for rendering
   const iconComponents: Record<string, React.ComponentType<any>> = {
@@ -243,9 +253,18 @@ const AdminCoursesPage = () => {
                   </h3>
 
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getCategoryColor(course.category)}`}>
-                      {course.category}
-                    </span>
+                    {course.category && (
+                      <span
+                        className="px-2 py-1 rounded-full text-xs font-medium border"
+                        style={{
+                          backgroundColor: `${course.category.color}20`,
+                          borderColor: course.category.color,
+                          color: course.category.color
+                        }}
+                      >
+                        {course.category.name}
+                      </span>
+                    )}
                     {!course.isActive && (
                       <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
                         Pasif
@@ -275,6 +294,7 @@ const AdminCoursesPage = () => {
         onClose={handleCloseModal}
         editingCourse={editingCourse}
         iconList={iconList}
+        categories={categoriesData as Category[] || []}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -296,9 +316,10 @@ interface CourseModalProps {
   onClose: () => void;
   editingCourse: Course | null;
   iconList: string[];
+  categories: Category[];
 }
 
-const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCourse, iconList }) => {
+const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCourse, iconList, categories }) => {
   const queryClient = useQueryClient();
   const isEditing = !!editingCourse;
   const [selectedIcon, setSelectedIcon] = useState(editingCourse?.icon || 'BookOpen');
@@ -319,8 +340,16 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCours
     formState: { errors },
   } = useForm<CourseForm>({
     resolver: zodResolver(courseSchema),
-    defaultValues: editingCourse || {
-      category: 'TYT',
+    defaultValues: editingCourse ? {
+      name: editingCourse.name,
+      categoryId: editingCourse.categoryId,
+      description: editingCourse.description,
+      color: editingCourse.color,
+      icon: editingCourse.icon || 'BookOpen',
+      order: editingCourse.order,
+      isActive: editingCourse.isActive,
+    } : {
+      categoryId: categories[0]?.id || 0,
       color: '#3b82f6',
       icon: 'BookOpen',
       order: 1,
@@ -330,11 +359,19 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCours
 
   React.useEffect(() => {
     if (editingCourse) {
-      reset(editingCourse);
+      reset({
+        name: editingCourse.name,
+        categoryId: editingCourse.categoryId,
+        description: editingCourse.description,
+        color: editingCourse.color,
+        icon: editingCourse.icon || 'BookOpen',
+        order: editingCourse.order,
+        isActive: editingCourse.isActive,
+      });
       setSelectedIcon(editingCourse.icon || 'BookOpen');
     } else {
       reset({
-        category: 'TYT',
+        categoryId: categories[0]?.id || 0,
         color: '#3b82f6',
         icon: 'BookOpen',
         order: 1,
@@ -342,7 +379,7 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCours
       });
       setSelectedIcon('BookOpen');
     }
-  }, [editingCourse, reset]);
+  }, [editingCourse, reset, categories]);
 
   const createCourseMutation = useMutation({
     mutationFn: async (data: CourseForm) => {
@@ -428,19 +465,23 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCours
                 </div>
 
                 <div>
-                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Kategori *
                   </label>
                   <select
-                    {...register('category')}
-                    id="category"
+                    {...register('categoryId', { valueAsNumber: true })}
+                    id="categoryId"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="TYT">TYT</option>
-                    <option value="AYT">AYT</option>
+                    <option value="">Kategori seçin</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
                   </select>
-                  {errors.category && (
-                    <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
+                  {errors.categoryId && (
+                    <p className="mt-1 text-sm text-red-600">{errors.categoryId.message}</p>
                   )}
                 </div>
 

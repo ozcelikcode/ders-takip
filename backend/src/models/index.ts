@@ -7,6 +7,19 @@ import { StudySession } from './StudySession';
 import { Settings } from './Settings';
 
 // Define associations
+// Category - Course associations
+Category.hasMany(Course, {
+  foreignKey: 'categoryId',
+  as: 'courses',
+  onDelete: 'RESTRICT',
+});
+
+Course.belongsTo(Category, {
+  foreignKey: 'categoryId',
+  as: 'category',
+});
+
+// Course - Topic associations
 Course.hasMany(Topic, {
   foreignKey: 'courseId',
   as: 'topics',

@@ -160,9 +160,9 @@ export const deleteCategory = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Check if there are courses with this category's name (TYT/AYT)
+    // Check if there are courses with this category
     const coursesCount = await Course.count({
-      where: { category: category.name as any },
+      where: { categoryId: id },
     });
 
     if (coursesCount > 0) {
@@ -178,13 +178,12 @@ export const deleteCategory = async (req: Request, res: Response): Promise<void>
           return;
         }
 
-        // Update all courses - set category to target category name
+        // Update all courses to new category
         await Course.update(
-          { category: targetCategory.name as any },
-          { where: { category: category.name as any } }
+          { categoryId: migrateToCategoryId },
+          { where: { categoryId: id } }
         );
       } else {
-        // Set courses to "Kategorisiz" - but since we have ENUM, we need to handle this differently
         res.status(400).json({
           success: false,
           error: {

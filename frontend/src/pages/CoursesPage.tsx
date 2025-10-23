@@ -14,10 +14,18 @@ interface Topic {
   order: number;
 }
 
+interface Category {
+  id: number;
+  name: string;
+  color: string;
+  icon?: string;
+}
+
 interface Course {
   id: number;
   name: string;
-  category: 'TYT' | 'AYT';
+  categoryId: number;
+  category?: Category;
   description: string;
   color: string;
   icon: string;
@@ -28,7 +36,6 @@ interface Course {
 
 const CoursesPage = () => {
   const [searchParams] = useSearchParams();
-  const [selectedCategory, setSelectedCategory] = useState<'TYT' | 'AYT' | 'ALL'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
   const { data: coursesData, isLoading, error } = useQuery({
@@ -78,7 +85,6 @@ const CoursesPage = () => {
   };
 
   const filteredCourses = courses
-    .filter(course => selectedCategory === 'ALL' || course.category === selectedCategory)
     .filter(course => {
       if (!searchTerm.trim()) return true;
 
@@ -89,6 +95,9 @@ const CoursesPage = () => {
 
       // Ders açıklamasında ara
       if (course.description?.toLowerCase().includes(searchLower)) return true;
+
+      // Kategori adında ara
+      if (course.category?.name.toLowerCase().includes(searchLower)) return true;
 
       // Konu isimlerinde ara
       if (course.topics?.some(topic => topic.name.toLowerCase().includes(searchLower))) return true;
@@ -108,19 +117,6 @@ const CoursesPage = () => {
     }
   };
 
-  const getTotalTopics = (category: 'TYT' | 'AYT') => {
-    return courses
-      .filter(course => course.category === category)
-      .reduce((total, course) => total + (course.topics?.length || 0), 0);
-  };
-
-  const getTotalTime = (category: 'TYT' | 'AYT') => {
-    return courses
-      .filter(course => course.category === category)
-      .reduce((total, course) =>
-        total + (course.topics?.reduce((courseTotal, topic) => courseTotal + topic.estimatedTime, 0) || 0), 0
-      );
-  };
 
   if (isLoading) {
     return (
@@ -146,7 +142,7 @@ const CoursesPage = () => {
           Dersler ve Konular
         </h1>
         <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-          TYT ve AYT sınavlarında başarılı olmak için hazırladığımız kapsamlı ders ve konu listesi.
+          Görevlerinizi kategorize etmek ve takip etmek için hazırladığımız kapsamlı ders ve konu listesi.
           Her konunun tahmini süresini ve zorluk seviyesini görebilirsiniz.
         </p>
       </div>
@@ -181,71 +177,6 @@ const CoursesPage = () => {
         )}
       </div>
 
-      {/* Category Filter */}
-      <div className="flex justify-center">
-        <div className="inline-flex rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
-          {(['ALL', 'TYT', 'AYT'] as const).map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
-                selectedCategory === category
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              {category === 'ALL' ? 'Tümü' : category}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      {selectedCategory !== 'ALL' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Toplam Ders</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {filteredCourses.length}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                <Target className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Toplam Konu</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {getTotalTopics(selectedCategory)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                <Clock className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Tahmini Süre</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {Math.round(getTotalTime(selectedCategory) / 60)}h
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Courses Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -277,13 +208,17 @@ const CoursesPage = () => {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                         {course.name}
                       </h3>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        course.category === 'TYT'
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                          : 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
-                      }`}>
-                        {course.category}
-                      </span>
+                      {course.category && (
+                        <span
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                          style={{
+                            backgroundColor: `${course.category.color}20`,
+                            color: course.category.color
+                          }}
+                        >
+                          {course.category.name}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

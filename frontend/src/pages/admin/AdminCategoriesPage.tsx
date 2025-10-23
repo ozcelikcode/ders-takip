@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, Tag, X } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Tag, X, BookOpen, Calculator, Book, Globe, Triangle, Atom, Beaker, Dna, Building, MapPin, Brain, Heart, Bookmark, Pen, Pencil, FileText, BookMarked, GraduationCap, Award, Globe2, Clock, Music, Palette, Code, Database, BarChart3, TrendingUp, Target, Lightbulb, Sparkles } from 'lucide-react';
 import { categoriesAPI } from '../../services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -36,6 +36,7 @@ const AdminCategoriesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [selectedIcon, setSelectedIcon] = useState('Tag');
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean;
     categoryId: string;
@@ -48,6 +49,16 @@ const AdminCategoriesPage = () => {
   });
   const queryClient = useQueryClient();
 
+  // Icon mapping
+  const iconComponents: Record<string, React.ComponentType<any>> = {
+    Tag, BookOpen, Calculator, Book, Globe, Triangle, Atom, Beaker, Dna,
+    Building, MapPin, Brain, Heart, Bookmark, Pen, Pencil, FileText, BookMarked,
+    GraduationCap, Award, Globe2, Clock, Music, Palette, Code,
+    Database, BarChart3, TrendingUp, Target, Lightbulb, Sparkles
+  };
+
+  const iconList = Object.keys(iconComponents);
+
   const { data: categoriesData, isLoading } = useQuery({
     queryKey: ['admin-categories'],
     queryFn: async () => {
@@ -56,13 +67,13 @@ const AdminCategoriesPage = () => {
     },
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<CategoryForm>({
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<CategoryForm>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: '',
       description: '',
       color: '#3b82f6',
-      icon: '',
+      icon: 'Tag',
       order: 1,
       isActive: true,
     },
@@ -111,11 +122,13 @@ const AdminCategoriesPage = () => {
 
   const handleEditCategory = (category: Category) => {
     setEditingCategory(category);
+    const iconToUse = category.icon || 'Tag';
+    setSelectedIcon(iconToUse);
     reset({
       name: category.name,
       description: category.description || '',
       color: category.color,
-      icon: category.icon || '',
+      icon: iconToUse,
       order: category.order,
       isActive: category.isActive,
     });
@@ -141,6 +154,7 @@ const AdminCategoriesPage = () => {
   const handleCloseModal = () => {
     setIsCreateModalOpen(false);
     setEditingCategory(null);
+    setSelectedIcon('Tag');
     reset();
   };
 
@@ -206,7 +220,10 @@ const AdminCategoriesPage = () => {
                       className="w-12 h-12 rounded-lg flex items-center justify-center"
                       style={{ backgroundColor: category.color }}
                     >
-                      <Tag className="w-6 h-6 text-white" />
+                      {(() => {
+                        const IconComponent = iconComponents[category.icon || 'Tag'];
+                        return IconComponent ? <IconComponent className="w-6 h-6 text-white" /> : <Tag className="w-6 h-6 text-white" />;
+                      })()}
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 dark:text-white">{category.name}</h3>
@@ -315,6 +332,38 @@ const AdminCategoriesPage = () => {
                       className="input"
                       placeholder="Kategori açıklaması"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      İkon Seç
+                    </label>
+                    <div className="grid grid-cols-6 gap-2 p-3 border border-gray-300 dark:border-gray-600 rounded-md max-h-48 overflow-y-auto">
+                      {iconList.map((iconName) => {
+                        const IconComponent = iconComponents[iconName];
+                        return (
+                          <button
+                            key={iconName}
+                            type="button"
+                            onClick={() => {
+                              setSelectedIcon(iconName);
+                              setValue('icon', iconName);
+                            }}
+                            className={`p-2 rounded-md border-2 transition-all ${
+                              selectedIcon === iconName
+                                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                                : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                            }`}
+                            title={iconName}
+                          >
+                            {IconComponent && <IconComponent className="w-5 h-5 mx-auto text-gray-700 dark:text-gray-300" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Seçili: {selectedIcon}
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
