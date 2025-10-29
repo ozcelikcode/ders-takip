@@ -15,7 +15,6 @@ import PomodoroPage from './pages/pomodoro/PomodoroPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import UserSettingsPage from './pages/settings/UserSettingsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
-import AdminCategoriesPage from './pages/admin/AdminCategoriesPage';
 import AdminCoursesPage from './pages/admin/AdminCoursesPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
@@ -67,7 +66,6 @@ function App() {
         <Route path="admin" element={<AdminRoute />}>
           <Route index element={<AdminDashboardPage />} />
           <Route path="users" element={<AdminUsersPage />} />
-          <Route path="categories" element={<AdminCategoriesPage />} />
           <Route path="courses" element={<AdminCoursesPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
         </Route>

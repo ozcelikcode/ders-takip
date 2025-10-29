@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { X, Home, BookOpen, Calendar, User, Users, Settings, LayoutDashboard, Timer, Sliders, Tag } from 'lucide-react';
+import { X, Home, BookOpen, Calendar, User, Users, Settings, LayoutDashboard, Timer, Sliders } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { clsx } from 'clsx';
@@ -25,7 +25,6 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const adminNavigation = [
     { name: 'Admin Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Kullanıcılar', href: '/admin/users', icon: Users },
-    { name: 'Kategoriler', href: '/admin/categories', icon: Tag },
     { name: 'Ders Yönetimi', href: '/admin/courses', icon: BookOpen },
     { name: 'Site Ayarları', href: '/admin/settings', icon: Sliders },
   ];
