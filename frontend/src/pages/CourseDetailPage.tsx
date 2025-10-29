@@ -39,10 +39,17 @@ interface Topic {
   order: number;
 }
 
+interface Category {
+  id: number;
+  name: string;
+  color: string;
+  icon?: string;
+}
+
 interface Course {
   id: number;
   name: string;
-  category: 'TYT' | 'AYT';
+  category?: Category;
   description: string;
   color: string;
   icon: string;
@@ -286,13 +293,14 @@ const CourseDetailPage = () => {
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                   {course.name}
                 </h1>
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  course.category === 'TYT'
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                    : 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
-                }`}>
-                  {course.category}
-                </span>
+                {course.category && (
+                  <span
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white"
+                    style={{ backgroundColor: course.category.color }}
+                  >
+                    {course.category.name}
+                  </span>
+                )}
               </div>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
                 {course.description}
