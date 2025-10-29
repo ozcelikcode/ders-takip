@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Clock, Target, TrendingUp, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, Dna, Landmark, Map, Brain, Heart, BookText, Search, X } from 'lucide-react';
+import { BookOpen, Clock, Target, TrendingUp, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, Dna, Landmark, Map, Brain, Heart, BookText, Search, X, Plus, Tag } from 'lucide-react';
 import { coursesAPI } from '../services/api';
+import CategoryManagementModal from '../components/modals/CategoryManagementModal';
+import CourseCreateModal from '../components/modals/CourseCreateModal';
 
 interface Topic {
   id: number;
@@ -37,6 +39,8 @@ interface Course {
 const CoursesPage = () => {
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showCourseModal, setShowCourseModal] = useState(false);
 
   const { data: coursesData, isLoading, error } = useQuery({
     queryKey: ['courses', { includeTopics: true }],
@@ -138,9 +142,28 @@ const CoursesPage = () => {
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-          Dersler ve Konular
-        </h1>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex-1"></div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex-1">
+            Dersler ve Konular
+          </h1>
+          <div className="flex-1 flex justify-end gap-3">
+            <button
+              onClick={() => setShowCategoryModal(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <Tag className="w-4 h-4" />
+              Kategoriler
+            </button>
+            <button
+              onClick={() => setShowCourseModal(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Ders Ekle
+            </button>
+          </div>
+        </div>
         <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
           Görevlerinizi kategorize etmek ve takip etmek için hazırladığımız kapsamlı ders ve konu listesi.
           Her konunun tahmini süresini ve zorluk seviyesini görebilirsiniz.
@@ -306,6 +329,10 @@ const CoursesPage = () => {
           )}
         </div>
       )}
+
+      {/* Modals */}
+      <CategoryManagementModal isOpen={showCategoryModal} onClose={() => setShowCategoryModal(false)} />
+      <CourseCreateModal isOpen={showCourseModal} onClose={() => setShowCourseModal(false)} />
     </div>
   );
 };
