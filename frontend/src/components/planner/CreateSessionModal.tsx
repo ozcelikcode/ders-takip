@@ -196,9 +196,10 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
       const selectedCourse = coursesData?.find((course: any) => course.id.toString() === correctedData.courseId);
       if (selectedCourse) {
         // Check if course name already contains category to prevent duplication
-        const hasCategory = selectedCourse.name.includes(`(${selectedCourse.category})`) ||
-                          selectedCourse.name.includes(`(${selectedCourse.category.toLowerCase()})`);
-        finalTitle = hasCategory ? selectedCourse.name : `${selectedCourse.name} (${selectedCourse.category})`;
+        const categoryName = selectedCourse.category?.name || '';
+        const hasCategory = selectedCourse.name.includes(`(${categoryName})`) ||
+                          selectedCourse.name.includes(`(${categoryName.toLowerCase()})`);
+        finalTitle = hasCategory ? selectedCourse.name : `${selectedCourse.name}${categoryName ? ` (${categoryName})` : ''}`;
       } else {
         finalTitle = 'Ders Çalışması';
       }
@@ -241,8 +242,14 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
     setDurationMode('minutes');
   };
 
-  const handleDelete = () => {
-    if (!editSession) return;
+  const handleDelete = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    console.log('Delete button clicked!', editSession);
+    if (!editSession) {
+      console.log('No editSession found!');
+      return;
+    }
     setShowDeleteConfirm(true);
   };
 
@@ -366,6 +373,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
     <AnimatePresence>
       {isOpen && (
         <Dialog
+          key="create-session-modal"
           as={motion.div}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -464,7 +472,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                       <option value="">Ders seçin</option>
                        {coursesData?.map((course: any) => (
                         <option key={course.id} value={course.id.toString()}>
-                          {course.name} ({course.category})
+                          {course.name} {course.category?.name ? `(${course.category.name})` : ''}
                         </option>
                       ))}
                     </select>
@@ -713,6 +721,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                 <AnimatePresence>
                   {showPomodoroSettings && (
                     <motion.div
+                      key="pomodoro-settings"
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
@@ -861,7 +870,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                   {isEditMode && (
                     <button
                       type="button"
-                      onClick={handleDelete}
+                      onClick={(e) => handleDelete(e)}
                       disabled={deleteMutation.isPending}
                       className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
