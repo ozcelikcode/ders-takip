@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, ChevronLeft, ChevronRight, Plus, Clock, Target, Play, CheckCircle, Check, Edit, Pause, MoveRight, RotateCcw, Trash2 } from 'lucide-react';
 import { StudySession } from '../../types/planner';
@@ -30,6 +30,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
   const [contextMenu, setContextMenu] = useState<{ session: StudySession; x: number; y: number } | null>(null);
   const [moveModalSession, setMoveModalSession] = useState<StudySession | null>(null);
   const [isMoving, setIsMoving] = useState(false);
+  const dragOverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -100,6 +101,19 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
     const rect = target.getBoundingClientRect();
     const offsetY = e.clientY - rect.top;
 
+    // Create a transparent drag image to prevent ghost artifacts
+    const dragImage = document.createElement('div');
+    dragImage.style.opacity = '0';
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-9999px';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+
+    // Clean up drag image after a short delay
+    setTimeout(() => {
+      document.body.removeChild(dragImage);
+    }, 0);
+
     setDraggedSession(session);
     setDragOffset(offsetY);
     e.dataTransfer.effectAllowed = 'move';
@@ -108,6 +122,11 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
   const handleDragOver = (e: React.DragEvent, hour: number) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+
+    // Clear any pending timeout to prevent race conditions
+    if (dragOverTimeoutRef.current) {
+      clearTimeout(dragOverTimeoutRef.current);
+    }
 
     const timeSlot = e.currentTarget as HTMLElement;
     const rect = timeSlot.getBoundingClientRect();
@@ -122,13 +141,30 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
   };
 
   const handleDragLeave = () => {
-    setDragOverTarget(null);
+    // Use timeout to prevent flickering when quickly moving between slots
+    if (dragOverTimeoutRef.current) {
+      clearTimeout(dragOverTimeoutRef.current);
+    }
+    dragOverTimeoutRef.current = setTimeout(() => {
+      setDragOverTarget(null);
+    }, 50);
   };
 
   const handleDrop = async (e: React.DragEvent, hour: number) => {
     e.preventDefault();
 
-    if (!draggedSession || isMoving) return;
+    // Clear any pending timeouts
+    if (dragOverTimeoutRef.current) {
+      clearTimeout(dragOverTimeoutRef.current);
+      dragOverTimeoutRef.current = null;
+    }
+
+    if (!draggedSession || isMoving) {
+      // Force cleanup even if we're not processing the drop
+      setDraggedSession(null);
+      setDragOverTarget(null);
+      return;
+    }
 
     const snappedMinutes = dragOverTarget?.minute ?? 0;
 
@@ -145,11 +181,17 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
       });
 
       toast.success('Görev başarıyla taşındı');
-      refetch();
+
+      // Immediate cleanup before refetch
+      setDraggedSession(null);
+      setDragOverTarget(null);
+
+      await refetch();
     } catch (error) {
       toast.error('Görev taşınırken hata oluştu');
     } finally {
       setIsMoving(false);
+      // Double cleanup to ensure state is cleared
       setDraggedSession(null);
       setDragOverTarget(null);
     }
@@ -333,6 +375,19 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
 
   // Kaçırılan görevler için uyarı - Sadece bugünün planları için göster
   // (Günlük takvim ayrı uyarı göstermesin, çünkü GoalsOverview zaten gösteriyor)
+
+  // Cleanup drag state on data change or unmount
+  useEffect(() => {
+    return () => {
+      // Clear timeout on unmount
+      if (dragOverTimeoutRef.current) {
+        clearTimeout(dragOverTimeoutRef.current);
+      }
+      // Reset drag states
+      setDraggedSession(null);
+      setDragOverTarget(null);
+    };
+  }, [sessionsData]);
 
   // Vakti geçmiş in_progress oturumları kontrol et ve otomatik yenile
   useEffect(() => {
@@ -556,7 +611,16 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
                               }}
                               draggable={session.status !== 'in_progress'}
                               onDragStart={(e) => handleDragStart(e as any, session)}
-                              onDragEnd={() => setDraggedSession(null)}
+                              onDragEnd={() => {
+                                // Clear any pending timeouts
+                                if (dragOverTimeoutRef.current) {
+                                  clearTimeout(dragOverTimeoutRef.current);
+                                  dragOverTimeoutRef.current = null;
+                                }
+                                // Force immediate cleanup
+                                setDraggedSession(null);
+                                setDragOverTarget(null);
+                              }}
                               onClick={session.status !== 'in_progress' ? (e) => {
                                 e.stopPropagation();
                                 onSessionClick?.(session);
