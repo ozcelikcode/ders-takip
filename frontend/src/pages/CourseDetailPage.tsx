@@ -8,6 +8,7 @@ import {
   Target,
   CheckCircle2,
   Circle,
+  Plus,
   RotateCcw,
   BookOpen,
   Filter,
@@ -29,6 +30,7 @@ import {
 import { coursesAPI, topicsAPI } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
+import CreateTopicModal from '../components/modals/CreateTopicModal';
 
 interface Topic {
   id: number;
@@ -69,6 +71,7 @@ const CourseDetailPage = () => {
   const [sortBy, setSortBy] = useState<SortOption>('order');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
+  const [isCreateTopicModalOpen, setIsCreateTopicModalOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -346,22 +349,33 @@ const CourseDetailPage = () => {
 
       {/* Controls */}
       <div className="flex flex-col sm:flex-row justify-between gap-4">
-        {/* Filter */}
-        <div className="flex items-center space-x-2">
-          <Filter className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-          <select
-            value={filterBy}
-            onChange={(e) => setFilterBy(e.target.value as FilterOption)}
-            className="input text-sm"
+        <div className="flex items-center gap-3">
+          {/* Add Topic Button */}
+          <button
+            onClick={() => setIsCreateTopicModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
           >
-            <option value="all">Tüm Konular</option>
-            <option value="not_started">Başlanmadı</option>
-            <option value="in_progress">Devam Ediyor</option>
-            <option value="completed">Tamamlandı</option>
-            <option value="Kolay">Kolay</option>
-            <option value="Orta">Orta</option>
-            <option value="Zor">Zor</option>
-          </select>
+            <Plus className="w-4 h-4" />
+            Konu Ekle
+          </button>
+
+          {/* Filter */}
+          <div className="flex items-center space-x-2">
+            <Filter className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+            <select
+              value={filterBy}
+              onChange={(e) => setFilterBy(e.target.value as FilterOption)}
+              className="input text-sm"
+            >
+              <option value="all">Tüm Konular</option>
+              <option value="not_started">Başlanmadı</option>
+              <option value="in_progress">Devam Ediyor</option>
+              <option value="completed">Tamamlandı</option>
+              <option value="Kolay">Kolay</option>
+              <option value="Orta">Orta</option>
+              <option value="Zor">Zor</option>
+            </select>
+          </div>
         </div>
 
         {/* Sort */}
@@ -505,6 +519,14 @@ const CourseDetailPage = () => {
         </div>
       )}
 
+      {/* Create Topic Modal */}
+      {id && (
+        <CreateTopicModal
+          isOpen={isCreateTopicModalOpen}
+          onClose={() => setIsCreateTopicModalOpen(false)}
+          courseId={parseInt(id)}
+        />
+      )}
     </div>
   );
 };
