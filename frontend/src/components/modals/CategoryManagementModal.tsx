@@ -349,16 +349,16 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="mx-auto max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl"
+                className="mx-auto max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl flex flex-col max-h-[90vh]"
               >
-                <form onSubmit={handleSubmit(onSubmit)}>
-                  <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
+                  <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                     <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
                       {editingCategory ? 'Kategoriyi Düzenle' : 'Yeni Kategori Oluştur'}
                     </Dialog.Title>
                   </div>
 
-                  <div className="p-6 space-y-4">
+                  <div className="p-6 space-y-3 overflow-y-auto flex-1">
                     {/* Name */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -405,10 +405,10 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
 
                     {/* Icon */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         İkon
                       </label>
-                      <div className="grid grid-cols-7 gap-2">
+                      <div className="grid grid-cols-7 gap-1.5">
                         {availableIcons.map((icon) => {
                           const IconComp = icon.component;
                           return (
@@ -416,50 +416,55 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
                               key={icon.name}
                               type="button"
                               onClick={() => setSelectedIcon(icon.name)}
-                              className={`p-2 rounded-lg border-2 transition-colors ${
+                              className={`p-1.5 rounded border-2 transition-colors ${
                                 selectedIcon === icon.name
                                   ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
                                   : 'border-gray-300 dark:border-gray-600 hover:border-primary-300'
                               }`}
                             >
-                              <IconComp className="w-5 h-5 mx-auto text-gray-700 dark:text-gray-300" />
+                              <IconComp className="w-4 h-4 mx-auto text-gray-700 dark:text-gray-300" />
                             </button>
                           );
                         })}
                       </div>
                     </div>
 
-                    {/* Order */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Sıra *
-                      </label>
-                      <input
-                        {...register('order', { valueAsNumber: true })}
-                        type="number"
-                        min="1"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
-                      />
-                      {errors.order && (
-                        <p className="mt-1 text-sm text-red-600">{errors.order.message}</p>
-                      )}
-                    </div>
+                    {/* Order and Active */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Order */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Sıra *
+                        </label>
+                        <input
+                          {...register('order', { valueAsNumber: true })}
+                          type="number"
+                          min="1"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
+                        />
+                        {errors.order && (
+                          <p className="mt-1 text-sm text-red-600">{errors.order.message}</p>
+                        )}
+                      </div>
 
-                    {/* Is Active */}
-                    <div className="flex items-center gap-2">
-                      <input
-                        {...register('isActive')}
-                        type="checkbox"
-                        id="isActive"
-                        className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                      />
-                      <label htmlFor="isActive" className="text-sm text-gray-700 dark:text-gray-300">
-                        Aktif
-                      </label>
+                      {/* Is Active */}
+                      <div className="flex items-end pb-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            {...register('isActive')}
+                            type="checkbox"
+                            id="isActive"
+                            className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                          />
+                          <label htmlFor="isActive" className="text-sm text-gray-700 dark:text-gray-300">
+                            Aktif
+                          </label>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                  <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex-shrink-0">
                     <button
                       type="button"
                       onClick={handleCloseCreateModal}

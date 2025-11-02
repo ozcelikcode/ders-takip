@@ -1,4 +1,4 @@
-import { Menu, Search, Bell, User as UserIcon } from 'lucide-react';
+import { Menu, Search, Bell, User as UserIcon, Check, CheckCheck } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -17,8 +17,22 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [readNotifications, setReadNotifications] = useState<Set<number>>(new Set());
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
+
+  // Load read notifications from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('readNotifications');
+    if (stored) {
+      try {
+        const ids = JSON.parse(stored);
+        setReadNotifications(new Set(ids));
+      } catch (e) {
+        console.error('Failed to parse read notifications', e);
+      }
+    }
+  }, []);
 
   // Fetch recent completed sessions for notifications
   const { data: recentSessions } = useQuery({
@@ -50,7 +64,26 @@ const Header = ({ onMenuClick }: HeaderProps) => {
     };
   }, []);
 
-  const hasUnreadNotifications = recentSessions && recentSessions.length > 0;
+  const markAsRead = (sessionId: number) => {
+    const newReadSet = new Set(readNotifications);
+    newReadSet.add(sessionId);
+    setReadNotifications(newReadSet);
+    localStorage.setItem('readNotifications', JSON.stringify([...newReadSet]));
+  };
+
+  const markAllAsRead = () => {
+    if (!recentSessions) return;
+    const allIds = recentSessions.map((s: any) => s.id);
+    const newReadSet = new Set(allIds);
+    setReadNotifications(newReadSet);
+    localStorage.setItem('readNotifications', JSON.stringify([...newReadSet]));
+  };
+
+  const unreadCount = recentSessions
+    ? recentSessions.filter((s: any) => !readNotifications.has(s.id)).length
+    : 0;
+
+  const hasUnreadNotifications = unreadCount > 0;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,27 +155,59 @@ const Header = ({ onMenuClick }: HeaderProps) => {
               {/* Notifications dropdown */}
               {showNotifications && (
                 <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-950 rounded-md shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5">
-                  <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Bildirimler</h3>
+                  <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                      Bildirimler {unreadCount > 0 && <span className="ml-1 text-xs text-primary-600 dark:text-primary-400">({unreadCount})</span>}
+                    </h3>
+                    {recentSessions && recentSessions.length > 0 && unreadCount > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1"
+                      >
+                        <CheckCheck className="w-3 h-3" />
+                        Hepsini Okundu İşaretle
+                      </button>
+                    )}
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {recentSessions && recentSessions.length > 0 ? (
-                      recentSessions.map((session: any) => (
-                        <div
-                          key={session.id}
-                          className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700"
-                        >
-                          <p className="text-sm text-gray-900 dark:text-white">
-                            ✅ {session.title} tamamlandı
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {session.duration} dakika • {formatDistanceToNow(new Date(session.completedAt || session.endTime), {
-                              addSuffix: true,
-                              locale: tr,
-                            })}
-                          </p>
-                        </div>
-                      ))
+                      recentSessions.map((session: any) => {
+                        const isRead = readNotifications.has(session.id);
+                        return (
+                          <div
+                            key={session.id}
+                            className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 transition-colors ${
+                              isRead ? 'opacity-60' : ''
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                <p className="text-sm text-gray-900 dark:text-white">
+                                  ✅ {session.title} tamamlandı
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  {session.duration} dakika • {formatDistanceToNow(new Date(session.completedAt || session.endTime), {
+                                    addSuffix: true,
+                                    locale: tr,
+                                  })}
+                                </p>
+                              </div>
+                              {!isRead && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    markAsRead(session.id);
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 rounded transition-colors"
+                                  title="Okundu olarak işaretle"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
                     ) : (
                       <div className="px-4 py-8 text-center">
                         <Bell className="h-8 w-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
