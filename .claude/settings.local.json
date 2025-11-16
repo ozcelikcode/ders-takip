@@ -8,7 +8,16 @@
       "Bash(if exist database.sqlite del database.sqlite)",
       "Bash(del backenddatabase.sqlite)",
       "Bash(tasklist:*)",
-      "Bash(npm run seed:*)"
+      "Bash(npm run seed:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run seed:admin:*)",
+      "Bash(npm run:*)",
+      "Bash(npm start)",
+      "Bash(del database.sqlite)",
+      "Bash(echo:*)",
+      "Bash(topicController.ts)",
+      "Bash(src/controllers/topicController.ts)",
+      "Bash(src/controllers/courseController.ts)"
     ],
     "deny": [],
     "ask": []
