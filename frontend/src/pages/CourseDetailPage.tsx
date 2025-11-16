@@ -81,7 +81,7 @@ const CourseDetailPage = () => {
       topicsAPI.reorderTopics(id!, topicOrders),
     onSuccess: () => {
       toast.success('Konu sıralaması güncellendi');
-      queryClient.invalidateQueries({ queryKey: ['course', id] });
+      queryClient.invalidateQueries({ queryKey: ['course', id, { includeTopics: true }] });
     },
     onError: () => {
       toast.error('Sıralama güncellenirken hata oluştu');
@@ -108,7 +108,7 @@ const CourseDetailPage = () => {
   };
 
   const { data: courseData, isLoading, error } = useQuery({
-    queryKey: ['course', id],
+    queryKey: ['course', id, { includeTopics: true }],
     queryFn: () => coursesAPI.getCourse(id!, { includeTopics: true }),
     enabled: !!id,
   });

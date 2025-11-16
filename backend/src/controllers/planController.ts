@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { Plan, StudySession, Course, Topic } from '../models';
+import { Plan, StudySession, Course, Topic, Category } from '../models';
 import { Op } from 'sequelize';
 
 export const getPlans = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -21,7 +21,14 @@ export const getPlans = async (req: Request, res: Response, next: NextFunction):
           {
             model: Course,
             as: 'course',
-            attributes: ['id', 'name', 'category', 'color', 'icon'],
+            attributes: ['id', 'name', 'color', 'icon'],
+            include: [
+              {
+                model: Category,
+                as: 'category',
+                attributes: ['id', 'name', 'color'],
+              }
+            ]
           },
           {
             model: Topic,
@@ -61,7 +68,14 @@ export const getPlan = async (req: Request, res: Response, next: NextFunction): 
           {
             model: Course,
             as: 'course',
-            attributes: ['id', 'name', 'category', 'color', 'icon'],
+            attributes: ['id', 'name', 'color', 'icon'],
+            include: [
+              {
+                model: Category,
+                as: 'category',
+                attributes: ['id', 'name', 'color'],
+              }
+            ]
           },
           {
             model: Topic,
@@ -238,7 +252,14 @@ export const getPlanStats = async (req: Request, res: Response, next: NextFuncti
             {
               model: Course,
               as: 'course',
-              attributes: ['id', 'name', 'category'],
+              attributes: ['id', 'name', 'color', 'icon'],
+              include: [
+                {
+                  model: Category,
+                  as: 'category',
+                  attributes: ['id', 'name', 'color'],
+                }
+              ]
             },
           ],
         },

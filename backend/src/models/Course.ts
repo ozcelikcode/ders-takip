@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
+import { Category } from './Category';
 
 interface CourseAttributes {
   id: number;
@@ -12,6 +13,7 @@ interface CourseAttributes {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  category?: Category;
 }
 
 interface CourseCreationAttributes extends Optional<CourseAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description' | 'icon' | 'isActive'> {}
@@ -25,6 +27,7 @@ export class Course extends Model<CourseAttributes, CourseCreationAttributes> im
   public icon?: string;
   public order!: number;
   public isActive!: boolean;
+  public category?: Category;
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;

@@ -79,7 +79,7 @@ export const getStudySessions = async (req: Request, res: Response, next: NextFu
         {
           model: Course,
           as: 'course',
-          attributes: ['id', 'name', 'categoryId', 'color', 'icon'],
+          attributes: ['id', 'name', 'color', 'icon'],
           include: [{
             model: Category,
             as: 'category',
@@ -143,7 +143,7 @@ export const getStudySession = async (req: Request, res: Response, next: NextFun
         {
           model: Course,
           as: 'course',
-          attributes: ['id', 'name', 'categoryId', 'color', 'icon'],
+          attributes: ['id', 'name', 'color', 'icon'],
           include: [{
             model: Category,
             as: 'category',
@@ -275,7 +275,7 @@ export const createStudySession = async (req: Request, res: Response, next: Next
         {
           model: Course,
           as: 'course',
-          attributes: ['id', 'name', 'categoryId', 'color', 'icon'],
+          attributes: ['id', 'name', 'color', 'icon'],
           include: [{
             model: Category,
             as: 'category',
@@ -392,7 +392,7 @@ export const updateStudySession = async (req: Request, res: Response, next: Next
         {
           model: Course,
           as: 'course',
-          attributes: ['id', 'name', 'categoryId', 'color', 'icon'],
+          attributes: ['id', 'name', 'color', 'icon'],
           include: [{
             model: Category,
             as: 'category',

@@ -20,6 +20,7 @@ export const getCourses = async (req: Request, res: Response, next: NextFunction
         model: Category,
         as: 'category',
         attributes: ['id', 'name', 'color', 'icon'],
+        required: true,
       }
     ];
 
@@ -58,6 +59,7 @@ export const getCourse = async (req: Request, res: Response, next: NextFunction)
         model: Category,
         as: 'category',
         attributes: ['id', 'name', 'color', 'icon'],
+        required: true,
       }
     ];
 
@@ -80,6 +82,9 @@ export const getCourse = async (req: Request, res: Response, next: NextFunction)
       });
       return;
     }
+
+    console.log('🔍 Course found:', course.id, course.name);
+    console.log('🔍 Course data:', JSON.stringify(course, null, 2));
 
     res.json({
       success: true,

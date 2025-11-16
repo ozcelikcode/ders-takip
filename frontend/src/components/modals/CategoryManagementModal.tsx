@@ -53,6 +53,19 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
   });
   const queryClient = useQueryClient();
 
+  const presetColors = [
+    '#3b82f6', // Blue
+    '#8b5cf6', // Purple
+    '#ec4899', // Pink
+    '#f97316', // Orange
+    '#eab308', // Yellow
+    '#22c55e', // Green
+    '#06b6d4', // Cyan
+    '#6366f1', // Indigo
+    '#ef4444', // Red
+    '#14b8a6', // Teal
+  ];
+
   const availableIcons = [
     { name: 'Tag', component: Tag },
     { name: 'Briefcase', component: Briefcase },
@@ -84,6 +97,7 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
     formState: { errors },
     reset,
     setValue,
+    watch,
   } = useForm<CategoryForm>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
@@ -358,7 +372,7 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
                     </Dialog.Title>
                   </div>
 
-                  <div className="p-6 space-y-3 overflow-y-auto flex-1">
+                  <div className="p-6 space-y-3 overflow-y-scroll flex-1">
                     {/* Name */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -393,11 +407,22 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Renk *
                       </label>
-                      <input
-                        {...register('color')}
-                        type="color"
-                        className="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-lg"
-                      />
+                      <div className="grid grid-cols-10 gap-2">
+                        {presetColors.map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => setValue('color', color)}
+                            className={`w-8 h-8 rounded-lg border-2 transition-all ${
+                              watch('color') === color
+                                ? 'border-gray-900 dark:border-white scale-110'
+                                : 'border-gray-300 dark:border-gray-600 hover:scale-105'
+                            }`}
+                            style={{ backgroundColor: color }}
+                            title={color}
+                          />
+                        ))}
+                      </div>
                       {errors.color && (
                         <p className="mt-1 text-sm text-red-600">{errors.color.message}</p>
                       )}

@@ -37,6 +37,19 @@ const CourseCreateModal: React.FC<CourseCreateModalProps> = ({ isOpen, onClose }
   const [selectedIcon, setSelectedIcon] = useState('BookOpen');
   const queryClient = useQueryClient();
 
+  const presetColors = [
+    '#3b82f6', // Blue
+    '#8b5cf6', // Purple
+    '#ec4899', // Pink
+    '#f97316', // Orange
+    '#eab308', // Yellow
+    '#22c55e', // Green
+    '#06b6d4', // Cyan
+    '#6366f1', // Indigo
+    '#ef4444', // Red
+    '#14b8a6', // Teal
+  ];
+
   const availableIcons = [
     { name: 'BookOpen', component: BookOpen },
     { name: 'Calculator', component: Calculator },
@@ -71,6 +84,7 @@ const CourseCreateModal: React.FC<CourseCreateModalProps> = ({ isOpen, onClose }
     formState: { errors },
     reset,
     watch,
+    setValue,
   } = useForm<CourseForm>({
     resolver: zodResolver(courseSchema),
     defaultValues: {
@@ -151,7 +165,7 @@ const CourseCreateModal: React.FC<CourseCreateModalProps> = ({ isOpen, onClose }
                 </div>
 
                 {/* Content */}
-                <div className="p-6 space-y-3 overflow-y-auto flex-1">
+                <div className="p-6 space-y-3 overflow-y-scroll flex-1">
                   {/* Category */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -207,30 +221,33 @@ const CourseCreateModal: React.FC<CourseCreateModalProps> = ({ isOpen, onClose }
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Renk *
                     </label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        {...register('color')}
-                        type="color"
-                        className="w-16 h-10 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer"
-                      />
-                      {selectedCategory && (
+                    <div className="grid grid-cols-10 gap-2">
+                      {presetColors.map((color) => (
                         <button
+                          key={color}
                           type="button"
-                          onClick={() => {
-                            const colorInput = document.querySelector('input[type="color"]') as HTMLInputElement;
-                            if (colorInput) {
-                              colorInput.value = selectedCategory.color;
-                              // Trigger change event
-                              const event = new Event('input', { bubbles: true });
-                              colorInput.dispatchEvent(event);
-                            }
-                          }}
-                          className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400"
-                        >
-                          Kategori rengini kullan
-                        </button>
-                      )}
+                          onClick={() => setValue('color', color)}
+                          className={`w-8 h-8 rounded-lg border-2 transition-all ${
+                            watch('color') === color
+                              ? 'border-gray-900 dark:border-white scale-110'
+                              : 'border-gray-300 dark:border-gray-600 hover:scale-105'
+                          }`}
+                          style={{ backgroundColor: color }}
+                          title={color}
+                        />
+                      ))}
                     </div>
+                    {selectedCategory && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setValue('color', selectedCategory.color);
+                        }}
+                        className="mt-2 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                      >
+                        Kategori rengini kullan ({selectedCategory.color})
+                      </button>
+                    )}
                     {errors.color && (
                       <p className="mt-1 text-sm text-red-600">{errors.color.message}</p>
                     )}

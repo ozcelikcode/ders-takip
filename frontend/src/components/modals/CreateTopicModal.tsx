@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-import { topicsAPI } from '../../services/api';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { topicsAPI, coursesAPI } from '../../services/api';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { Dialog } from '@headlessui/react';
 import { useForm } from 'react-hook-form';
@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 const topicSchema = z.object({
   name: z.string().min(1, 'Konu adı gereklidir').max(200, 'Konu adı çok uzun'),
-  description: z.string().optional(),
+  description: z.string().optional().or(z.literal('')),
   estimatedTime: z.number().min(1, 'Tahmini süre en az 1 dakika olmalıdır').max(999, 'Tahmini süre çok uzun'),
   difficulty: z.enum(['Kolay', 'Orta', 'Zor'], { required_error: 'Zorluk seviyesi seçiniz' }),
 });
@@ -26,6 +26,16 @@ interface CreateTopicModalProps {
 
 const CreateTopicModal: React.FC<CreateTopicModalProps> = ({ isOpen, onClose, courseId }) => {
   const queryClient = useQueryClient();
+
+  // Fetch course to get existing topics count
+  const { data: courseData } = useQuery({
+    queryKey: ['course', courseId, { includeTopics: true }],
+    queryFn: async () => {
+      const response = await coursesAPI.getCourse(courseId, { includeTopics: true });
+      return response.data.data?.course;
+    },
+    enabled: isOpen,
+  });
 
   const {
     register,
@@ -43,23 +53,33 @@ const CreateTopicModal: React.FC<CreateTopicModalProps> = ({ isOpen, onClose, co
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: TopicForm) =>
-      topicsAPI.createTopic({
+    mutationFn: (data: TopicForm) => {
+      const topicsCount = courseData?.topics?.length || 0;
+      return topicsAPI.createTopic({
         ...data,
         courseId,
-      }),
+        order: topicsCount + 1,
+      });
+    },
     onSuccess: () => {
       toast.success('Konu başarıyla oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['course', courseId.toString()] });
+      queryClient.invalidateQueries({ queryKey: ['course', courseId, { includeTopics: true }] });
       queryClient.invalidateQueries({ queryKey: ['courses'] });
       handleClose();
     },
-    onError: () => {
-      toast.error('Konu oluşturulurken hata oluştu');
+    onError: (error: any) => {
+      console.error('Topic creation error:', error);
+      const errorMessage = error?.response?.data?.error?.message || 'Konu oluşturulurken hata oluştu';
+      toast.error(errorMessage);
     },
   });
 
   const onSubmit = (data: TopicForm) => {
+    // Ensure we have the course data before submitting
+    if (!courseData) {
+      toast.error('Ders bilgileri yükleniyor, lütfen bekleyin...');
+      return;
+    }
     createMutation.mutate(data);
   };
 
@@ -106,7 +126,7 @@ const CreateTopicModal: React.FC<CreateTopicModalProps> = ({ isOpen, onClose, co
                 </div>
 
                 {/* Content */}
-                <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                <div className="p-6 space-y-4 overflow-y-scroll flex-1">
                   {/* Name */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

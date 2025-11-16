@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { Topic, Course } from '../models';
+import { Topic, Course, Category } from '../models';
 import { ValidationError, Op } from 'sequelize';
 
 export const getTopics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -28,7 +28,14 @@ export const getTopics = async (req: Request, res: Response, next: NextFunction)
         {
           model: Course,
           as: 'course',
-          attributes: ['id', 'name', 'category', 'color', 'icon'],
+          attributes: ['id', 'name', 'color', 'icon'],
+          include: [
+            {
+              model: Category,
+              as: 'category',
+              attributes: ['id', 'name', 'color'],
+            }
+          ]
         }
       ],
       order: [['order', 'ASC'], ['name', 'ASC']],
@@ -52,7 +59,14 @@ export const getTopic = async (req: Request, res: Response, next: NextFunction):
         {
           model: Course,
           as: 'course',
-          attributes: ['id', 'name', 'category', 'color', 'icon'],
+          attributes: ['id', 'name', 'color', 'icon'],
+          include: [
+            {
+              model: Category,
+              as: 'category',
+              attributes: ['id', 'name', 'color'],
+            }
+          ]
         }
       ],
     });
@@ -76,10 +90,10 @@ export const getTopic = async (req: Request, res: Response, next: NextFunction):
 
 export const createTopic = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { name, courseId, description, estimatedTime, difficulty, order } = req.body;
+    const { name, courseId, description, estimatedTime, difficulty, order: providedOrder } = req.body;
 
     // Validate required fields
-    if (!name || !courseId || !estimatedTime || !difficulty || !order) {
+    if (!name || !courseId || !estimatedTime || !difficulty) {
       res.status(400).json({
         success: false,
         error: { message: 'Tüm gerekli alanları doldurunuz' },
@@ -110,17 +124,29 @@ export const createTopic = async (req: Request, res: Response, next: NextFunctio
       return;
     }
 
-    // Check if order already exists in the course
-    const existingOrder = await Topic.findOne({
-      where: { order, courseId },
-    });
-
-    if (existingOrder) {
-      res.status(400).json({
-        success: false,
-        error: { message: 'Bu sıra numarası bu derste zaten kullanılıyor' },
+    // Auto-calculate order if not provided or if it conflicts
+    let order = providedOrder;
+    if (!order) {
+      // Get the maximum order for this course
+      const maxOrderTopic = await Topic.findOne({
+        where: { courseId },
+        order: [['order', 'DESC']],
       });
-      return;
+      order = maxOrderTopic ? maxOrderTopic.order + 1 : 1;
+    } else {
+      // Check if order already exists in the course
+      const existingOrder = await Topic.findOne({
+        where: { order, courseId },
+      });
+
+      if (existingOrder) {
+        // Auto-calculate a new order instead of throwing error
+        const maxOrderTopic = await Topic.findOne({
+          where: { courseId },
+          order: [['order', 'DESC']],
+        });
+        order = maxOrderTopic ? maxOrderTopic.order + 1 : 1;
+      }
     }
 
     const topic = await Topic.create({
@@ -139,7 +165,14 @@ export const createTopic = async (req: Request, res: Response, next: NextFunctio
         {
           model: Course,
           as: 'course',
-          attributes: ['id', 'name', 'category', 'color', 'icon'],
+          attributes: ['id', 'name', 'color', 'icon'],
+          include: [
+            {
+              model: Category,
+              as: 'category',
+              attributes: ['id', 'name', 'color'],
+            }
+          ]
         }
       ],
     });
@@ -231,7 +264,14 @@ export const updateTopic = async (req: Request, res: Response, next: NextFunctio
         {
           model: Course,
           as: 'course',
-          attributes: ['id', 'name', 'category', 'color', 'icon'],
+          attributes: ['id', 'name', 'color', 'icon'],
+          include: [
+            {
+              model: Category,
+              as: 'category',
+              attributes: ['id', 'name', 'color'],
+            }
+          ]
         }
       ],
     });
@@ -319,7 +359,14 @@ export const reorderTopics = async (req: Request, res: Response, next: NextFunct
         {
           model: Course,
           as: 'course',
-          attributes: ['id', 'name', 'category', 'color', 'icon'],
+          attributes: ['id', 'name', 'color', 'icon'],
+          include: [
+            {
+              model: Category,
+              as: 'category',
+              attributes: ['id', 'name', 'color'],
+            }
+          ]
         }
       ],
     });
@@ -333,3 +380,4 @@ export const reorderTopics = async (req: Request, res: Response, next: NextFunct
     next(error);
   }
 };
+
