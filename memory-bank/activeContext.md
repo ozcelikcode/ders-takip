@@ -49,12 +49,26 @@
 2. **Kullanıcı Deneyimi**: UX iyileştirmeleri
 3. **Performans Optimizasyonu**: Hız ve verimlilik artışı
 
-### Son Kritik Sorun ve Çözümü (2025-11-14)
-**Sorun**: Konu eklendikten sonra "Ders yüklenirken bir hata oluştu" mesajı
+### Son Kritik Sorun ve Çözümü (2025-11-21)
+**Sorun #1**: Konu eklendikten sonra "Ders yüklenirken bir hata oluştu" mesajı
 **Neden**: React Query cache key mismatch between CourseDetailPage ve CreateTopicModal
 - CourseDetailPage: `['course', id]` (id: string)
 - CreateTopicModal: `['course', courseId.toString()]` (courseId: integer → string)
-**Çözüm**: Cache key'i `['course', courseId]` olarak düzeltildi
+**İlk Çözüm Denemesi**: Cache key'i `['course', courseId]` olarak düzeltildi
+**Sonuç**: Hata mesajı gitti AMA konular anlık görünmüyordu
+
+**Sorun #2**: Konu eklendikten sonra sayfayı yenileme ihtiyacı
+**Neden**: Query key structure'da query parameter eksikliği
+- CourseDetailPage query key: `['course', id]`
+- CourseDetailPage query fn: `getCourse(id, { includeTopics: true })`
+- CreateTopicModal invalidation: `['course', courseId]`
+**Problem**: TanStack Query query parametrelerini cache key hash'ine dahil ediyor
+**Asıl Çözüm**: Her iki yerde de query key'e parametreleri dahil et
+- CourseDetailPage: `['course', id, { includeTopics: true }]`
+- CreateTopicModal: `['course', courseId, { includeTopics: true }]`
+- Invalidation: `['course', courseId, { includeTopics: true }]`
+
+**Öğrenilen**: React Query'de parametreli sorgular için query key'e parametreleri MUTLAKA dahil et!
 
 ### Backend Port Sorunu (2025-11-14)
 **Sorun**: Port 5001 kullanımdaydı, connection refused hataları

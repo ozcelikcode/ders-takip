@@ -5,7 +5,7 @@
 ### Genel Durum: 🟢 Aktif Geliştirme
 
 **Mevcut Versiyon**: v1.0.0 (Development)
-**Son Güncelleme**: 2025-11-14
+**Son Güncelleme**: 2025-11-21
 **Development Status**: Aktif kullanıma hazır, production için optimizasyonlar yapılacak
 
 ## Çalışan Özellikler ✅
@@ -87,6 +87,35 @@
 
 ## Son Yapılan İyileştirmeler
 
+### Critical Bug Fix (2025-11-21) 🔴→🟢
+**React Query Cache Invalidation Sorunu** ✅
+- **Problem #1**: Konu eklendikten sonra "Ders yüklenirken bir hata oluştu" mesajı
+  - **Neden**: Cache key type mismatch (string vs integer)
+  - **İlk Çözüm**: Type consistency sağlandı
+  - **Sonuç**: Hata mesajı gitti ama konular anlık görünmedi
+
+- **Problem #2**: Konu eklendikten sonra sayfa yenileme gerekiyordu
+  - **Root Cause**: Query key'de query parameters eksik
+  - **TanStack Query Davranışı**: Query parameters cache hash'ine dahil ediliyor
+  - **Asıl Çözüm**: Query key structure'a parameters eklendi
+    ```typescript
+    // Önceki (yanlış)
+    queryKey: ['course', id]
+    queryFn: () => getCourse(id, { includeTopics: true })
+
+    // Sonraki (doğru)
+    queryKey: ['course', id, { includeTopics: true }]
+    queryFn: () => getCourse(id, { includeTopics: true })
+    invalidation: ['course', id, { includeTopics: true }]
+    ```
+  - **Dosyalar**:
+    - `CourseDetailPage.tsx:111` - Query key güncellendi
+    - `CourseDetailPage.tsx:84` - Invalidation güncellendi
+    - `CreateTopicModal.tsx:32` - Query key güncellendi
+    - `CreateTopicModal.tsx:66` - Invalidation güncellendi
+
+**Öğrenilen**: React Query'de parametreli sorgularda query key'e parametreleri dahil etmek ZORUNLU!
+
 ### Bug Fix'ler (2025-11-10)
 1. **CreateTopicModal Validasyonu** ✅
    - **Problem**: Description alanı boş string kabul etmiyordu
@@ -108,6 +137,7 @@
 - **topicController**: Order field validasyonu kaldırıldı, otomatik hesaplama eklendi
 - **Error Handling**: Detaylı error mesajları ve logging
 - **Performance**: Query optimization ve caching
+- **Port Migration** (2025-11-14): Backend 5001 → 5002 portuna taşındı
 
 ## Geliştirme Önceliği
 
