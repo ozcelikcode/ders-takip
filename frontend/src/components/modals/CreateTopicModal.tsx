@@ -21,11 +21,12 @@ type TopicForm = z.infer<typeof topicSchema>;
 interface CreateTopicModalProps {
   isOpen: boolean;
   onClose: () => void;
-  courseId: number;
+  courseId: string;
 }
 
 const CreateTopicModal: React.FC<CreateTopicModalProps> = ({ isOpen, onClose, courseId }) => {
   const queryClient = useQueryClient();
+  const courseIdNumber = Number.parseInt(courseId, 10);
 
   // Fetch course to get existing topics count
   const { data: courseData } = useQuery({
@@ -55,11 +56,15 @@ const CreateTopicModal: React.FC<CreateTopicModalProps> = ({ isOpen, onClose, co
   const createMutation = useMutation({
     mutationFn: (data: TopicForm) => {
       const topicsCount = courseData?.topics?.length || 0;
-      return topicsAPI.createTopic({
-        ...data,
-        courseId,
+      const payload = {
+        name: data.name,
+        courseId: courseIdNumber,
+        estimatedTime: data.estimatedTime,
+        difficulty: data.difficulty,
         order: topicsCount + 1,
-      });
+        ...(data.description !== undefined ? { description: data.description } : {}),
+      };
+      return topicsAPI.createTopic(payload);
     },
     onSuccess: () => {
       toast.success('Konu başarıyla oluşturuldu');

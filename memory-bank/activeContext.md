@@ -244,3 +244,7 @@ const { register, handleSubmit, formState: { errors } } = useForm({
 - **Testing**: In-memory database
 - **Production**: External database with proper backups
 - **Secrets**: Environment variables, never commit secrets
+
+## Development Workflow Update (2025-12-12)
+- Root `npm run dev:all` starts backend + frontend together (`npm run dev` is an alias).
+- Frontend proxy and env now point to backend port 5002.

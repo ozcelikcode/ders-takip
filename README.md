@@ -130,7 +130,7 @@
 
    `backend/.env` dosyası oluşturun:
    ```env
-   PORT=5001
+   PORT=5002
    NODE_ENV=development
    JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
    JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-this-in-production
@@ -154,8 +154,10 @@
 
    `frontend/.env` dosyası oluşturun:
    ```env
-   VITE_API_BASE_URL=http://localhost:5001/api
+   VITE_API_BASE_URL=http://localhost:5002/api
    ```
+
+   Not: Root dizinde `npm run dev:all` komutu backend ve frontend'i beraber calistirir.
 
 6. **Veritabanını başlatın**
    ```bash
@@ -231,7 +233,7 @@
 
 ### Base URL
 ```
-http://localhost:5001/api
+http://localhost:5002/api
 ```
 
 ### Authentication Endpoints
@@ -358,11 +360,11 @@ ders-takip/
 
 ```bash
 # Windows
-netstat -ano | findstr :5001
+netstat -ano | findstr :5002
 taskkill /PID <PID> /F
 
 # Linux/Mac
-lsof -ti:5001 | xargs kill -9
+lsof -ti:5002 | xargs kill -9
 ```
 
 ### Database Sıfırlama

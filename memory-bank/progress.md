@@ -200,7 +200,7 @@
 
 ### Development ✅
 - **Frontend**: Vite dev server (localhost:3000)
-- **Backend**: Express dev server (localhost:5001)
+- **Backend**: Express dev server (localhost:5002)
 - **Database**: SQLite (development.sqlite)
 - **Environment**: Local development setup
 

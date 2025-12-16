@@ -16,13 +16,13 @@ async function setup() {
     console.log('🎉 Kurulum başarıyla tamamlandı!');
     console.log('');
     console.log('🏃‍♂️ Sistemi başlatmak için:');
-    console.log('   npm run dev');
+    console.log('   npm run dev:all');
     console.log('');
     console.log('🌐 Frontend için:');
     console.log('   cd ../frontend && npm run dev');
     console.log('');
     console.log('📊 API Health Check:');
-    console.log('   http://localhost:5000/api/health');
+    console.log('   http://localhost:5002/api/health');
 
   } catch (error) {
     console.error('❌ Kurulum sırasında hata:', error.message);

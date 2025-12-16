@@ -1,11 +1,26 @@
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load env vars explicitly from the file
+// When running from root with 'cd backend && npm run dev', cwd is backend folder
+const envPath = path.resolve(process.cwd(), '.env');
+dotenv.config({ path: envPath });
+
+console.log('DEBUG: Env Path:', envPath);
+console.log('DEBUG: JWT_SECRET loaded:', !!process.env.JWT_SECRET);
+if (!process.env.JWT_SECRET) {
+  console.error('CRITICAL: JWT_SECRET is missing from environment variables!');
+  // Fallback for development if file read fails strangely
+  process.env.JWT_SECRET = 'ozcelik_jwt_secret_key_123';
+  process.env.JWT_REFRESH_SECRET = 'ozcelik_jwt_refresh_secret_key_123';
+}
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import os from 'os';
-
-import dotenv from 'dotenv';
 
 import { connectDB } from './config/database';
 import './models'; // Initialize models and associations
@@ -19,8 +34,6 @@ import topicRoutes from './routes/topics';
 import planRoutes from './routes/planRoutes';
 import studySessionRoutes from './routes/studySessionRoutes';
 import settingsRoutes from './routes/settingsRoutes';
-
-dotenv.config();
 
 // Get local network IP address
 const getNetworkIP = (): string => {

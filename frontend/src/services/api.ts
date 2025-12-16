@@ -4,7 +4,7 @@ import type { ApiResponse } from '../types/api';
 import type { LoginCredentials, RegisterData, AuthResponse, User } from '../types/auth';
 import type { Plan, StudySession, CreatePlanRequest, CreateStudySessionRequest, UpdateStudySessionRequest, Topic, CreateTopicRequest, UpdateTopicRequest } from '../types/planner';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

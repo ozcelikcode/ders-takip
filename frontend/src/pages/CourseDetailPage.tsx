@@ -524,7 +524,7 @@ const CourseDetailPage = () => {
         <CreateTopicModal
           isOpen={isCreateTopicModalOpen}
           onClose={() => setIsCreateTopicModalOpen(false)}
-          courseId={parseInt(id)}
+          courseId={id}
         />
       )}
     </div>
