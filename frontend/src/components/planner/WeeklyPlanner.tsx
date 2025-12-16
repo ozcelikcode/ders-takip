@@ -1073,11 +1073,14 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                 </div>
                               )}
 
-                              {/* Resize handle - bottom border - show for sessions >= 20px */}
-                              {session.status !== 'in_progress' && session.status !== 'completed' && sessionHeight >= 20 && (
+                              {/* Resize handle - bottom border - always show for resizable sessions */}
+                              {session.status !== 'in_progress' && session.status !== 'completed' && (
                                 <div
-                                  className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize hover:bg-white/10"
-                                  style={{ zIndex: 100 }}
+                                  className="absolute bottom-0 left-0 right-0 cursor-ns-resize hover:bg-white/20 transition-colors"
+                                  style={{
+                                    zIndex: 100,
+                                    height: sessionHeight < 20 ? `${Math.max(sessionHeight, 5)}px` : '12px',
+                                  }}
                                   onMouseDown={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
@@ -1108,13 +1111,12 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
 
                           return (
                             <div
-                              className="absolute inset-x-1 p-1 rounded-lg border-2 border-dashed z-50 pointer-events-none text-white"
+                              className="absolute inset-x-1 p-1.5 rounded-xl shadow-lg z-50 pointer-events-none text-white"
                               style={{
                                 top: `${topPosition}px`,
                                 height: `${resizePreview.newHeight}px`,
-                                backgroundColor: session.color || '#3B82F6',
-                                borderColor: 'rgba(255,255,255,0.6)',
-                                opacity: 0.85,
+                                background: `linear-gradient(135deg, ${session.color || '#3B82F6'} 0%, ${adjustColor(session.color || '#3B82F6', -20)} 100%)`,
+                                border: '2px dashed rgba(255,255,255,0.5)',
                               }}
                             >
                               {/* Time badge */}
