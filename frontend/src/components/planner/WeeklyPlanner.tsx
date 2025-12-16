@@ -21,6 +21,15 @@ interface WeeklyPlannerProps {
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // Full 24 hours: 0:00 to 23:00
 const DAYS = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
+// Helper function to adjust color brightness for gradient
+const adjustColor = (color: string, amount: number): string => {
+  const hex = color.replace('#', '');
+  const r = Math.max(0, Math.min(255, parseInt(hex.substr(0, 2), 16) + amount));
+  const g = Math.max(0, Math.min(255, parseInt(hex.substr(2, 2), 16) + amount));
+  const b = Math.max(0, Math.min(255, parseInt(hex.substr(4, 2), 16) + amount));
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+};
+
 const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
   const queryClient = useQueryClient();
   const [currentWeek, setCurrentWeek] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -613,8 +622,9 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       const handleMouseMoveEvent = (e: MouseEvent) => {
         const deltaY = e.clientY - resizingSession.startY;
         let newHeight = resizingSession.startHeight + deltaY;
-        newHeight = Math.max(1, newHeight);
-        const minutesSnapped = Math.round(newHeight / 5) * 5;
+        // Minimum 5 minutes (5px)
+        newHeight = Math.max(5, newHeight);
+        const minutesSnapped = Math.max(5, Math.round(newHeight / 5) * 5);
         setResizePreview({
           session: resizingSession.session,
           newHeight: minutesSnapped,
@@ -624,8 +634,9 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       const handleMouseUpEvent = async (e: MouseEvent) => {
         const deltaY = e.clientY - resizingSession.startY;
         let newHeight = resizingSession.startHeight + deltaY;
-        newHeight = Math.max(1, newHeight);
-        let newDuration = Math.round(newHeight / 5) * 5;
+        // Minimum 5 minutes - no error, just silently cap
+        newHeight = Math.max(5, newHeight);
+        let newDuration = Math.max(5, Math.round(newHeight / 5) * 5);
 
         const sessionStart = parseISO(resizingSession.session.startTime);
         const newEndTime = new Date(sessionStart);
@@ -919,13 +930,13 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                 scale: isBeingDragged ? 0.95 : 1,
                               }}
                               exit={{ opacity: 0, y: -10 }}
-                              className={`absolute inset-x-1 p-1 rounded-lg border-2 text-white ${getStatusColor(session.status, session.startTime, session.endTime)} group ${textSizeClass} ${isBeingDragged ? 'ring-2 ring-primary-400' : ''}`}
+                              className={`absolute inset-x-1 p-1.5 rounded-xl shadow-lg text-white ${getStatusColor(session.status, session.startTime, session.endTime)} group ${textSizeClass} ${isBeingDragged ? 'ring-2 ring-white/50' : ''}`}
                               style={{
                                 top: `${topPosition}px`,
                                 height: `${sessionHeight}px`,
                                 zIndex: isBeingDragged ? 50 : 10,
-                                backgroundColor: session.color || '#3B82F6',
-                                borderColor: session.color || '#3B82F6',
+                                background: `linear-gradient(135deg, ${session.color || '#3B82F6'} 0%, ${session.color ? adjustColor(session.color, -20) : '#2563EB'} 100%)`,
+                                border: 'none',
                                 cursor: session.status === 'in_progress' || session.status === 'completed' ? 'default' : 'move',
                               }}
                               draggable={session.status !== 'in_progress' && session.status !== 'completed'}
@@ -964,97 +975,97 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                   <div className="flex items-center gap-1 ml-1">
                                     {session.sessionType === 'pomodoro' && session.status === 'planned' && canStartSession(session) && (
                                       <button
-                                        className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-all"
+                                        className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleStartPomodoro(session);
                                         }}
                                         title="Pomodoro Başlat"
                                       >
-                                        <Timer className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-red-200`} />
+                                        <Timer className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-white drop-shadow-sm`} />
                                       </button>
                                     )}
                                     {session.status === 'planned' && session.sessionType !== 'pomodoro' && canStartSession(session) && (
                                       <button
-                                        className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-all"
+                                        className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleStartSession(session);
                                         }}
                                         title="Başlat"
                                       >
-                                        <Play className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-green-200`} />
+                                        <Play className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-white drop-shadow-sm`} />
                                       </button>
                                     )}
                                     {session.status === 'in_progress' && (
                                       <div className="flex items-center gap-1">
                                         <button
-                                          className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-all"
+                                          className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handlePauseSession(session);
                                           }}
                                           title="Duraklat"
                                         >
-                                          <Pause className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-orange-200`} />
+                                          <Pause className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-white drop-shadow-sm`} />
                                         </button>
                                         <button
-                                          className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-all"
+                                          className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleCompleteSession(session);
                                           }}
                                           title="Tamamla"
                                         >
-                                          <CheckCircle className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-green-200`} />
+                                          <CheckCircle className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-white drop-shadow-sm`} />
                                         </button>
                                       </div>
                                     )}
                                     {session.status === 'paused' && (
                                       <div className="flex items-center gap-1">
                                         <button
-                                          className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-all"
+                                          className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleStartSession(session);
                                           }}
                                           title="Devam Et"
                                         >
-                                          <Play className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-primary-200`} />
+                                          <Play className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-white drop-shadow-sm`} />
                                         </button>
                                         <button
-                                          className="p-1 rounded-md bg-white/20 hover:bg-white/30 opacity-0 group-hover:opacity-100 transition-all"
+                                          className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleEditSession(session);
                                           }}
                                           title="Düzenle"
                                         >
-                                          <Edit className={`${sessionHeight >= 45 ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-yellow-200`} />
+                                          <Edit className={`${sessionHeight >= 45 ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-white drop-shadow-sm`} />
                                         </button>
                                       </div>
                                     )}
                                     {session.status === 'completed' && (
                                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                                         <button
-                                          className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-all"
+                                          className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleRestartSession(session);
                                           }}
                                           title="Yeniden Başlat"
                                         >
-                                          <RotateCcw className={`${sessionHeight >= 45 ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-purple-200`} />
+                                          <RotateCcw className={`${sessionHeight >= 45 ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-white drop-shadow-sm`} />
                                         </button>
                                         <button
-                                          className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-all"
+                                          className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleEditSession(session);
                                           }}
                                           title="Düzenle"
                                         >
-                                          <Edit className={`${sessionHeight >= 45 ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-yellow-200`} />
+                                          <Edit className={`${sessionHeight >= 45 ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-white drop-shadow-sm`} />
                                         </button>
                                       </div>
                                     )}
