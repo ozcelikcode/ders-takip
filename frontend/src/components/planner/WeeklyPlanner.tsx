@@ -50,7 +50,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   // Update current time every minute
@@ -608,91 +608,66 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     });
   };
 
-  const handleResizeMove = (e: MouseEvent) => {
-    if (!resizingSession) return;
-
-    const deltaY = e.clientY - resizingSession.startY;
-    // Calculate new height (60px = 60 minutes, so 1px = 1 minute)
-    let newHeight = resizingSession.startHeight + deltaY;
-
-    // Minimum 1 minute (1px)
-    newHeight = Math.max(1, newHeight);
-
-    // Snap to 5-minute intervals for smoother UX
-    const minutesRaw = newHeight;
-    const minutesSnapped = Math.round(minutesRaw / 5) * 5;
-    const heightSnapped = minutesSnapped;
-
-    setResizePreview({
-      session: resizingSession.session,
-      newHeight: heightSnapped,
-    });
-  };
-
-  const handleResizeEnd = async (e: MouseEvent) => {
-    if (!resizingSession) return;
-
-    const deltaY = e.clientY - resizingSession.startY;
-    // Calculate new height (60px = 60 minutes, so 1px = 1 minute)
-    let newHeight = resizingSession.startHeight + deltaY;
-
-    // Minimum 1 minute (1px)
-    newHeight = Math.max(1, newHeight);
-
-    // Snap to 5-minute intervals
-    const minutesRaw = newHeight;
-    let newDuration = Math.round(minutesRaw / 5) * 5;
-
-    // Update session duration
-    const sessionStart = parseISO(resizingSession.session.startTime);
-    const newEndTime = new Date(sessionStart);
-    newEndTime.setMinutes(sessionStart.getMinutes() + newDuration);
-
-    // Check if session extends past midnight (23:59:59)
-    const sessionDay = new Date(sessionStart);
-    sessionDay.setHours(23, 59, 59, 999); // End of day
-
-    if (newEndTime > sessionDay) {
-      // Cap the session at midnight
-      newEndTime.setTime(sessionDay.getTime());
-      const cappedDuration = Math.floor((newEndTime.getTime() - sessionStart.getTime()) / (1000 * 60));
-      newDuration = cappedDuration;
-      toast.error('Görev gece yarısını geçemez (23:59)');
-    }
-
-    try {
-      // Update in database
-      await studySessionsAPI.updateSession(resizingSession.session.id.toString(), {
-        endTime: newEndTime.toISOString(),
-      });
-      toast.success('Süre güncellendi');
-      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-      await refetch();
-    } catch (error) {
-      toast.error('Süre güncellenirken hata oluştu');
-    }
-
-    setResizingSession(null);
-    setResizePreview(null);
-    setJustFinishedAction(true);
-
-    // Reset flag after a short delay
-    setTimeout(() => setJustFinishedAction(false), 100);
-  };
-
   useEffect(() => {
     if (resizingSession) {
-      const handleMouseMove = (e: MouseEvent) => handleResizeMove(e);
-      const handleMouseUp = (e: MouseEvent) => handleResizeEnd(e);
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      const handleMouseMoveEvent = (e: MouseEvent) => {
+        const deltaY = e.clientY - resizingSession.startY;
+        let newHeight = resizingSession.startHeight + deltaY;
+        newHeight = Math.max(1, newHeight);
+        const minutesSnapped = Math.round(newHeight / 5) * 5;
+        setResizePreview({
+          session: resizingSession.session,
+          newHeight: minutesSnapped,
+        });
+      };
+
+      const handleMouseUpEvent = async (e: MouseEvent) => {
+        const deltaY = e.clientY - resizingSession.startY;
+        let newHeight = resizingSession.startHeight + deltaY;
+        newHeight = Math.max(1, newHeight);
+        let newDuration = Math.round(newHeight / 5) * 5;
+
+        const sessionStart = parseISO(resizingSession.session.startTime);
+        const newEndTime = new Date(sessionStart);
+        newEndTime.setMinutes(sessionStart.getMinutes() + newDuration);
+
+        const sessionDay = new Date(sessionStart);
+        sessionDay.setHours(23, 59, 59, 999);
+
+        if (newEndTime > sessionDay) {
+          newEndTime.setTime(sessionDay.getTime());
+          const cappedDuration = Math.floor((newEndTime.getTime() - sessionStart.getTime()) / (1000 * 60));
+          newDuration = cappedDuration;
+          toast.error('Görev gece yarısını geçemez (23:59)');
+        }
+
+        // IMPORTANT: Clear states BEFORE async operation
+        setResizingSession(null);
+        setResizePreview(null);
+        setJustFinishedAction(true);
+        setTimeout(() => setJustFinishedAction(false), 100);
+
+        try {
+          await studySessionsAPI.updateSession(resizingSession.session.id.toString(), {
+            endTime: newEndTime.toISOString(),
+          });
+          toast.success('Süre güncellendi');
+          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+          await refetch();
+        } catch (error) {
+          toast.error('Süre güncellenirken hata oluştu');
+        }
+      };
+
+      window.addEventListener('mousemove', handleMouseMoveEvent);
+      window.addEventListener('mouseup', handleMouseUpEvent);
       return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('mousemove', handleMouseMoveEvent);
+        window.removeEventListener('mouseup', handleMouseUpEvent);
       };
     }
-  }, [resizingSession]);
+  }, [resizingSession, queryClient, refetch]);
 
   const getSessionTypeColor = (sessionType: string) => {
     switch (sessionType) {
@@ -768,11 +743,18 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
               }
             }}
             onDragLeave={() => setDragOverArrow(null)}
-            className={`p-2 transition-colors ${
-              dragOverArrow === 'prev'
-                ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
-                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-            }`}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (draggedSession) {
+                navigateWeek('prev');
+                toast('Önceki haftaya geçildi', { icon: '⬅️', duration: 1000 });
+              }
+              setDragOverArrow(null);
+            }}
+            className={`p-2 transition-colors ${dragOverArrow === 'prev'
+              ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+              : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+              }`}
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -791,11 +773,18 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
               }
             }}
             onDragLeave={() => setDragOverArrow(null)}
-            className={`p-2 transition-colors ${
-              dragOverArrow === 'next'
-                ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
-                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-            }`}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (draggedSession) {
+                navigateWeek('next');
+                toast('Sonraki haftaya geçildi', { icon: '➡️', duration: 1000 });
+              }
+              setDragOverArrow(null);
+            }}
+            className={`p-2 transition-colors ${dragOverArrow === 'next'
+              ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+              : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+              }`}
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -818,9 +807,8 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                 return (
                   <div
                     key={day}
-                    className={`p-4 text-center border-r border-gray-200 dark:border-gray-700 ${
-                      isCurrentDay ? 'bg-primary-50 dark:bg-primary-900/20' : 'bg-gray-50 dark:bg-gray-900'
-                    }`}
+                    className={`p-4 text-center border-r border-gray-200 dark:border-gray-700 ${isCurrentDay ? 'bg-primary-50 dark:bg-primary-900/20' : 'bg-gray-50 dark:bg-gray-900'
+                      }`}
                   >
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {day}
@@ -860,9 +848,8 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                   return (
                     <div
                       key={`${dayIndex}-${hour}`}
-                      className={`relative min-h-[60px] border-r border-gray-200 dark:border-gray-700 transition-colors ${
-                        isCurrentDay ? 'bg-primary-50/50 dark:bg-primary-900/10' : ''
-                      }`}
+                      className={`relative min-h-[60px] border-r border-gray-200 dark:border-gray-700 transition-colors ${isCurrentDay ? 'bg-primary-50/50 dark:bg-primary-900/10' : ''
+                        }`}
                       onDragOver={(e) => handleDragOver(e, dayIndex, hour)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dayIndex, hour)}
@@ -920,13 +907,14 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                           const textSizeClass = sessionHeight < 30 ? 'text-[10px]' : 'text-xs';
 
                           const isBeingDragged = draggedSession?.id === session.id;
+                          const isBeingResized = resizePreview?.session.id === session.id;
 
                           return (
                             <motion.div
                               key={session.id}
                               initial={{ opacity: 0, y: 10 }}
                               animate={{
-                                opacity: isBeingDragged ? 0.3 : 1,
+                                opacity: isBeingResized ? 0 : (isBeingDragged ? 0.3 : 1),
                                 y: 0,
                                 scale: isBeingDragged ? 0.95 : 1,
                               }}
@@ -940,139 +928,159 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                 borderColor: session.color || '#3B82F6',
                                 cursor: session.status === 'in_progress' || session.status === 'completed' ? 'default' : 'move',
                               }}
-                            draggable={session.status !== 'in_progress' && session.status !== 'completed'}
-                            onDragStart={(e) => handleDragStart(e as any, session)}
-                            onContextMenu={(e) => handleContextMenu(e, session)}
-                          >
-                            {/* Time badge - start and end time - Only show if height >= 40px */}
-                            {sessionHeight >= 40 && (
-                              <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium">
-                                {formatTime(sessionStart)} - {formatTime(session.endTime)}
-                              </div>
-                            )}
-
-                            {/* Very Small Card (< 30px): Only title, no buttons */}
-                            {sessionHeight < 30 && (
-                              <div className="flex items-center h-full px-1">
-                                <div className={`text-[10px] font-medium truncate ${getSessionTextStyle(session)}`}>
-                                  {session.title}
+                              draggable={session.status !== 'in_progress' && session.status !== 'completed'}
+                              onDragStart={(e) => handleDragStart(e as any, session)}
+                              onContextMenu={(e) => handleContextMenu(e, session)}
+                            >
+                              {/* Time badge - start and end time - Only show if height >= 40px */}
+                              {sessionHeight >= 40 && (
+                                <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium">
+                                  {formatTime(sessionStart)} - {formatTime(session.endTime)}
                                 </div>
-                              </div>
-                            )}
+                              )}
 
-                            {/* Small to Large Card (>= 30px): Full content */}
-                            {sessionHeight >= 30 && (
-                              <div className="flex items-center justify-between h-full">
-                                <div className="flex-1 min-w-0 pr-1">
-                                  <div className={`font-medium truncate text-xs ${getSessionTextStyle(session)}`}>
+                              {/* Very Small Card (< 30px): Only title, no buttons */}
+                              {sessionHeight < 30 && (
+                                <div className="flex items-center h-full px-1">
+                                  <div className={`text-[10px] font-medium truncate ${getSessionTextStyle(session)}`}>
                                     {session.title}
                                   </div>
-                                  {session.duration && sessionHeight >= 45 && (
-                                    <div className="opacity-75 text-[10px] mt-0.5">{session.duration} dk</div>
-                                  )}
                                 </div>
+                              )}
 
-                                {/* Action buttons - Only show if height >= 30px */}
-                                {sessionHeight >= 30 && (
-                                  <div className="flex items-center ml-1">
+                              {/* Small to Large Card (>= 30px): Full content */}
+                              {sessionHeight >= 30 && (
+                                <div className="flex items-center justify-between h-full">
+                                  <div className="flex-1 min-w-0 pr-1">
+                                    <div className={`font-medium truncate text-xs ${getSessionTextStyle(session)}`}>
+                                      {session.title}
+                                    </div>
+                                    {session.duration && sessionHeight >= 45 && (
+                                      <div className="opacity-75 text-[10px] mt-0.5">{session.duration} dk</div>
+                                    )}
+                                  </div>
+
+                                  {/* Action buttons - Responsive sizing based on height */}
+                                  <div className="flex items-center gap-1 ml-1">
                                     {session.sessionType === 'pomodoro' && session.status === 'planned' && canStartSession(session) && (
-                                      <Timer
-                                        className="w-3.5 h-3.5 cursor-pointer text-red-400 hover:text-red-300 transition-colors"
+                                      <button
+                                        className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-all"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleStartPomodoro(session);
                                         }}
-                                      />
+                                        title="Pomodoro Başlat"
+                                      >
+                                        <Timer className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-red-200`} />
+                                      </button>
                                     )}
                                     {session.status === 'planned' && session.sessionType !== 'pomodoro' && canStartSession(session) && (
-                                      <Play
-                                        className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 cursor-pointer text-green-400 hover:text-green-300 transition-all"
+                                      <button
+                                        className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-all"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleStartSession(session);
                                         }}
-                                      />
+                                        title="Başlat"
+                                      >
+                                        <Play className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-green-200`} />
+                                      </button>
                                     )}
                                     {session.status === 'in_progress' && (
-                                      <div className="flex items-center gap-0.5">
-                                        <Pause
-                                          className="w-3.5 h-3.5 cursor-pointer text-orange-400 hover:text-orange-300 transition-colors"
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-all"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handlePauseSession(session);
                                           }}
-                                        />
-                                        <CheckCircle
-                                          className="w-3.5 h-3.5 cursor-pointer text-green-400 hover:text-green-300 transition-colors"
+                                          title="Duraklat"
+                                        >
+                                          <Pause className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-orange-200`} />
+                                        </button>
+                                        <button
+                                          className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-all"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleCompleteSession(session);
                                           }}
-                                        />
+                                          title="Tamamla"
+                                        >
+                                          <CheckCircle className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-green-200`} />
+                                        </button>
                                       </div>
                                     )}
                                     {session.status === 'paused' && (
-                                      <div className="flex items-center gap-0.5">
-                                        <Play
-                                          className="w-3.5 h-3.5 cursor-pointer text-primary-400 hover:text-primary-300 transition-colors"
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-all"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleStartSession(session);
                                           }}
-                                        />
-                                        {sessionHeight >= 35 && (
-                                          <Edit
-                                            className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 cursor-pointer text-yellow-400 hover:text-yellow-300 transition-all"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleEditSession(session);
-                                            }}
-                                          />
-                                        )}
-                                      </div>
-                                    )}
-                                    {session.status === 'completed' && sessionHeight >= 40 && (
-                                      <div className="flex items-center gap-0.5">
-                                        <RotateCcw
-                                          className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer text-purple-400 hover:text-purple-300 transition-all"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleRestartSession(session);
-                                          }}
-                                        />
-                                        <Edit
-                                          className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-pointer text-yellow-400 hover:text-yellow-300 transition-all"
+                                          title="Devam Et"
+                                        >
+                                          <Play className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-primary-200`} />
+                                        </button>
+                                        <button
+                                          className="p-1 rounded-md bg-white/20 hover:bg-white/30 opacity-0 group-hover:opacity-100 transition-all"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleEditSession(session);
                                           }}
-                                        />
+                                          title="Düzenle"
+                                        >
+                                          <Edit className={`${sessionHeight >= 45 ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-yellow-200`} />
+                                        </button>
+                                      </div>
+                                    )}
+                                    {session.status === 'completed' && (
+                                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                        <button
+                                          className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-all"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRestartSession(session);
+                                          }}
+                                          title="Yeniden Başlat"
+                                        >
+                                          <RotateCcw className={`${sessionHeight >= 45 ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-purple-200`} />
+                                        </button>
+                                        <button
+                                          className="p-1 rounded-md bg-white/20 hover:bg-white/30 transition-all"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditSession(session);
+                                          }}
+                                          title="Düzenle"
+                                        >
+                                          <Edit className={`${sessionHeight >= 45 ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-yellow-200`} />
+                                        </button>
                                       </div>
                                     )}
                                   </div>
-                                )}
-                              </div>
-                            )}
+                                </div>
+                              )}
 
-                            {/* Resize handle - bottom border - show for sessions >= 20px */}
-                            {session.status !== 'in_progress' && session.status !== 'completed' && sessionHeight >= 20 && (
-                              <div
-                                className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize hover:bg-white/10"
-                                style={{ zIndex: 100 }}
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleResizeStart(e, session, sessionHeight);
-                                }}
-                                onDragStart={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }}
-                                draggable={false}
-                                title="Süreni ayarlamak için sürükle"
-                              />
-                            )}
-                          </motion.div>
+                              {/* Resize handle - bottom border - show for sessions >= 20px */}
+                              {session.status !== 'in_progress' && session.status !== 'completed' && sessionHeight >= 20 && (
+                                <div
+                                  className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize hover:bg-white/10"
+                                  style={{ zIndex: 100 }}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleResizeStart(e, session, sessionHeight);
+                                  }}
+                                  onDragStart={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }}
+                                  draggable={false}
+                                  title="Süreni ayarlamak için sürükle"
+                                />
+                              )}
+                            </motion.div>
                           );
                         })}
                       </AnimatePresence>
@@ -1089,16 +1097,29 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
 
                           return (
                             <div
-                              className="absolute inset-x-1 p-1 rounded-lg border-2 border-dashed border-yellow-400 dark:border-yellow-500 bg-yellow-100/30 dark:bg-yellow-900/20 z-50 pointer-events-none"
+                              className="absolute inset-x-1 p-1 rounded-lg border-2 border-dashed z-50 pointer-events-none text-white"
                               style={{
                                 top: `${topPosition}px`,
                                 height: `${resizePreview.newHeight}px`,
+                                backgroundColor: session.color || '#3B82F6',
+                                borderColor: 'rgba(255,255,255,0.6)',
+                                opacity: 0.85,
                               }}
                             >
-                              <div className="flex items-center justify-between h-full opacity-70">
+                              {/* Time badge */}
+                              {resizePreview.newHeight >= 40 && (
+                                <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium">
+                                  {formatTime(sessionStart)} - {(() => {
+                                    const newEndTime = new Date(sessionStart);
+                                    newEndTime.setMinutes(sessionStart.getMinutes() + Math.round(newDuration));
+                                    return formatTime(newEndTime.toISOString());
+                                  })()}
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between h-full">
                                 <div className="flex-1 min-w-0">
-                                  <div className="font-medium truncate text-gray-700 dark:text-gray-200 text-xs">{session.title}</div>
-                                  <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5">
+                                  <div className="font-medium truncate text-xs">{session.title}</div>
+                                  <div className="text-[10px] opacity-75 mt-0.5">
                                     {Math.round(newDuration)} dk
                                   </div>
                                 </div>
