@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { studySessionsAPI } from '../../services/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfWeek, addDays, startOfDay, endOfDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useState, useEffect, useMemo } from 'react';
+
+// Gün isimleri sabit sıralama
+const DAY_NAMES = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cts', 'Paz'];
 
 const WeeklyProgressChart = () => {
   // Detect dark mode reactively
@@ -22,16 +25,18 @@ const WeeklyProgressChart = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Son 7 günün verilerini çek
+  // Bu haftanın başlangıcını al (Pazartesi)
+  const weekStart = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 1 }), []);
+
+  // Bu haftanın verilerini çek
   const { data: sessionsData, isLoading } = useQuery({
-    queryKey: ['weekly-progress'],
+    queryKey: ['weekly-progress', format(weekStart, 'yyyy-MM-dd')],
     queryFn: async () => {
-      const today = new Date();
-      const sevenDaysAgo = subDays(today, 6);
+      const weekEnd = addDays(weekStart, 6);
 
       const response = await studySessionsAPI.getSessions({
-        startDate: format(sevenDaysAgo, 'yyyy-MM-dd'),
-        endDate: format(today, 'yyyy-MM-dd'),
+        startDate: format(weekStart, 'yyyy-MM-dd'),
+        endDate: format(weekEnd, 'yyyy-MM-dd'),
         status: 'completed',
       });
       return response.data.data?.sessions || [];
@@ -39,11 +44,11 @@ const WeeklyProgressChart = () => {
     refetchInterval: 30000, // Her 30 saniyede bir yenile
   });
 
-  // Günlere göre grupla - useMemo ile optimize et
+  // Günlere göre grupla - Pazartesi'den Pazar'a
   const chartData = useMemo(() => {
     const data = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = subDays(new Date(), i);
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(weekStart, i);
       const dayStart = startOfDay(date);
       const dayEnd = endOfDay(date);
 
@@ -59,13 +64,15 @@ const WeeklyProgressChart = () => {
       }, 0);
 
       data.push({
-        name: format(date, 'EEE', { locale: tr }),
+        name: DAY_NAMES[i],
+        fullName: format(date, 'EEEE', { locale: tr }),
+        date: format(date, 'dd MMM', { locale: tr }),
         saat: Math.round(totalMinutes / 60 * 10) / 10, // Decimal saat
         dakika: totalMinutes,
       });
     }
     return data;
-  }, [sessionsData]);
+  }, [sessionsData, weekStart]);
 
   if (isLoading) {
     return (
@@ -81,7 +88,7 @@ const WeeklyProgressChart = () => {
     return (
       <div className="h-64 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
         <p className="text-lg mb-2">Henüz tamamlanmış çalışma yok</p>
-        <p className="text-sm">Son 7 günde tamamladığınız çalışmalar burada görünecek</p>
+        <p className="text-sm">Bu hafta tamamladığınız çalışmalar burada görünecek</p>
       </div>
     );
   }
@@ -89,6 +96,12 @@ const WeeklyProgressChart = () => {
   return (
     <ResponsiveContainer width="100%" height={250}>
       <BarChart data={chartData}>
+        <defs>
+          <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={isDarkMode ? '#8b5cf6' : '#6366f1'} />
+            <stop offset="100%" stopColor={isDarkMode ? '#6366f1' : '#3b82f6'} />
+          </linearGradient>
+        </defs>
         <CartesianGrid
           strokeDasharray="3 3"
           stroke={isDarkMode ? '#374151' : '#e5e7eb'}
@@ -110,18 +123,25 @@ const WeeklyProgressChart = () => {
           contentStyle={{
             backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
             border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-            borderRadius: '0.375rem',
-            color: isDarkMode ? '#f3f4f6' : '#111827'
+            borderRadius: '0.5rem',
+            color: isDarkMode ? '#f3f4f6' : '#111827',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
           }}
-          labelStyle={{ color: isDarkMode ? '#f3f4f6' : '#111827' }}
+          labelStyle={{ color: isDarkMode ? '#f3f4f6' : '#111827', fontWeight: 600 }}
           formatter={(value: number, name: string) => {
             if (name === 'saat') return [`${value} saat`, 'Çalışma Süresi'];
             return value;
           }}
+          labelFormatter={(label: string, payload: any[]) => {
+            if (payload && payload[0]) {
+              return `${payload[0].payload.fullName} (${payload[0].payload.date})`;
+            }
+            return label;
+          }}
         />
         <Bar
           dataKey="saat"
-          fill={isDarkMode ? '#6366f1' : '#3b82f6'}
+          fill="url(#barGradient)"
           radius={[8, 8, 0, 0]}
         />
       </BarChart>
@@ -130,4 +150,3 @@ const WeeklyProgressChart = () => {
 };
 
 export default WeeklyProgressChart;
-
