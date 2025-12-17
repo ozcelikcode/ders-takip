@@ -3,7 +3,7 @@ import { studySessionsAPI } from '../../services/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 const WeeklyProgressChart = () => {
   // Detect dark mode reactively
@@ -36,33 +36,52 @@ const WeeklyProgressChart = () => {
       });
       return response.data.data?.sessions || [];
     },
+    refetchInterval: 30000, // Her 30 saniyede bir yenile
   });
 
-  // Günlere göre grupla
-  const chartData = [];
-  for (let i = 6; i >= 0; i--) {
-    const date = subDays(new Date(), i);
-    const dayStart = startOfDay(date);
-    const dayEnd = endOfDay(date);
+  // Günlere göre grupla - useMemo ile optimize et
+  const chartData = useMemo(() => {
+    const data = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = subDays(new Date(), i);
+      const dayStart = startOfDay(date);
+      const dayEnd = endOfDay(date);
 
-    const daySessions = sessionsData?.filter((session: any) => {
-      const sessionDate = new Date(session.startTime);
-      return sessionDate >= dayStart && sessionDate <= dayEnd;
-    }) || [];
+      const daySessions = sessionsData?.filter((session: any) => {
+        const sessionDate = new Date(session.startTime);
+        return sessionDate >= dayStart && sessionDate <= dayEnd;
+      }) || [];
 
-    const totalMinutes = daySessions.reduce((sum: number, session: any) => sum + session.duration, 0);
+      // Duration hesabını doğru yap - null/undefined kontrolü
+      const totalMinutes = daySessions.reduce((sum: number, session: any) => {
+        const duration = session.duration || 0;
+        return sum + duration;
+      }, 0);
 
-    chartData.push({
-      name: format(date, 'EEE', { locale: tr }),
-      saat: Math.round(totalMinutes / 60 * 10) / 10, // Decimal saat
-      dakika: totalMinutes,
-    });
-  }
+      data.push({
+        name: format(date, 'EEE', { locale: tr }),
+        saat: Math.round(totalMinutes / 60 * 10) / 10, // Decimal saat
+        dakika: totalMinutes,
+      });
+    }
+    return data;
+  }, [sessionsData]);
 
   if (isLoading) {
     return (
       <div className="h-64 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+      </div>
+    );
+  }
+
+  // Veri yoksa mesaj göster
+  const totalMinutes = chartData.reduce((sum, day) => sum + day.dakika, 0);
+  if (totalMinutes === 0) {
+    return (
+      <div className="h-64 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+        <p className="text-lg mb-2">Henüz tamamlanmış çalışma yok</p>
+        <p className="text-sm">Son 7 günde tamamladığınız çalışmalar burada görünecek</p>
       </div>
     );
   }
@@ -111,3 +130,4 @@ const WeeklyProgressChart = () => {
 };
 
 export default WeeklyProgressChart;
+
