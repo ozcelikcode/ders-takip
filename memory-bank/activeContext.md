@@ -2,28 +2,47 @@
 
 ## Mevcut Durum
 
-### Son Çalışma (Önceki Session Özeti)
-Önceki session'da 4 ana sorunu çözdük:
+### Son Çalışma (2025-12-18 Session Özeti)
+Bu session'da Haftalık Planlayıcı (WeeklyPlanner) ve ilgili bileşenlerde çok sayıda UI/UX iyileştirmesi yapıldı:
 
-1. **CreateTopicModal Form Validasyonu** ✅
-   - **Sorun**: `description` alanı Zod validasyonunda `.optional()` olmasına rağmen boş string kabul etmiyordu
-   - **Çözüm**: Schema'yı `.optional().or(z.literal(''))` olarak güncelledik
+#### 1. Resize Preview (Görev Boyutlandırma) Düzeltmeleri ✅
+- **Sorun**: Resize işlemi sırasında orijinal session ve preview aynı anda görünüyordu, mouse bırakıldıktan sonra preview kaybolmuyordu
+- **Çözüm**: 
+  - `useEffect` içine taşınan event listener'lar closure sorununu çözdü
+  - State temizliği async işlem öncesine alındı
+  - Orijinal session resize sırasında `opacity: 0` ile gizleniyor
+  - Minimum 5 dakika limitiyle sessiz sınırlama (hata mesajı yok)
 
-2. **"Kategori Rengini Kullan" Butonu** ✅
-   - **Sorun**: DOM manipülasyonu ile renk ataması yapıyordu, React Hook Form state'i güncellenmiyordu
-   - **Çözüm**: `setValue` fonksiyonunu kullanarak doğru form state güncellemesi
+#### 2. Session Kartları Modern Tasarım ✅
+- **Gradient arka plan**: `linear-gradient(135deg, color 0%, adjustColor(color, -20) 100%)`
+- **Shadow ve rounded corners**: `shadow-lg rounded-xl`
+- **Beyaz buton ikonları**: Tüm action butonlar `text-white` ve `drop-shadow-sm`
+- **adjustColor helper fonksiyonu**: Renk tonlaması için
 
-3. **Modal Scroll Görünürlüğü** ✅
-   - **Sorun**: `overflow-y-auto` scrollbar görünmüyordu
-   - **Çözüm**: `overflow-y-scroll` ile her zaman görünür scrollbar
+#### 3. Küçük Kartlarda Buton Görünürlüğü ✅
+- **Sorun**: < 30px yüksekliğindeki kartlarda butonlar görünmüyordu
+- **Çözüm**: Küçük kartlar için minimal buton düzeni eklendi (Play, Edit - 3x3 boyut)
 
-4. **Preset Renk Paleti** ✅
-   - **Sorun**: Custom color picker yerine sabit renk paleti isteniyordu
-   - **Çözüm**: 10 adet güzel renk içeren preset palet uygulandı, color picker kaldırıldı
+#### 4. Duraklatılmış Görevlerde Edit Butonu ✅
+- **Sorun**: Paused durumunda Edit butonu `opacity-0 group-hover:opacity-100` ile gizliydi
+- **Çözüm**: Edit butonu her zaman görünür yapıldı
 
-### Backend Güncellemeleri
-- **topicController.ts**: `order` alanı validasyonu kaldırıldı, otomatik hesaplama eklendi
-- **500 Hata Çözümü**: Backend sunucusu restart edildi, güncel kodlar devreye alındı
+#### 5. Hafta Değiştirme (Sürükle-Bırak) ✅
+- **Özellik**: Görevleri navigasyon oklarına sürükleyerek hafta değiştirme
+- **Çözüm**: Ok butonlarına `onDrop` event handler'ı eklendi
+
+#### 6. Dashboard Haftalık İlerleme Grafiği ✅
+- **Sorun**: Günler rastgele sıralanıyordu, renk tema ile uyumsuzdu
+- **Çözüm**:
+  - Günler Pzt→Paz sabit sıralama
+  - Gradient renk (`#8b5cf6` → `#6366f1`)
+  - `useMemo` ile optimizasyon
+  - Gelişmiş tooltip (tam gün adı ve tarih)
+
+### Değiştirilen Dosyalar
+- `frontend/src/components/planner/WeeklyPlanner.tsx`
+- `frontend/src/components/planner/GoalsOverview.tsx`
+- `frontend/src/components/dashboard/WeeklyProgressChart.tsx`
 
 ## Şu Anki Odak Noktası
 

@@ -950,11 +950,50 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                 </div>
                               )}
 
-                              {/* Very Small Card (< 30px): Only title, no buttons */}
+                              {/* Very Small Card (< 30px): Title + minimal buttons */}
                               {sessionHeight < 30 && (
-                                <div className="flex items-center h-full px-1">
-                                  <div className={`text-[10px] font-medium truncate ${getSessionTextStyle(session)}`}>
+                                <div className="flex items-center justify-between h-full px-1">
+                                  <div className={`text-[10px] font-medium truncate flex-1 ${getSessionTextStyle(session)}`}>
                                     {session.title}
+                                  </div>
+                                  {/* Minimal action buttons for small cards */}
+                                  <div className="flex items-center gap-0.5 ml-1 shrink-0">
+                                    {session.status === 'planned' && session.sessionType !== 'pomodoro' && canStartSession(session) && (
+                                      <button
+                                        className="p-0.5 rounded bg-white/25 hover:bg-white/40 transition-all"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleStartSession(session);
+                                        }}
+                                        title="Başlat"
+                                      >
+                                        <Play className="w-3 h-3 text-white" />
+                                      </button>
+                                    )}
+                                    {session.status === 'paused' && (
+                                      <>
+                                        <button
+                                          className="p-0.5 rounded bg-white/25 hover:bg-white/40 transition-all"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleStartSession(session);
+                                          }}
+                                          title="Devam Et"
+                                        >
+                                          <Play className="w-3 h-3 text-white" />
+                                        </button>
+                                        <button
+                                          className="p-0.5 rounded bg-white/25 hover:bg-white/40 transition-all"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditSession(session);
+                                          }}
+                                          title="Düzenle"
+                                        >
+                                          <Edit className="w-3 h-3 text-white" />
+                                        </button>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
                               )}
@@ -1034,7 +1073,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                           <Play className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-white drop-shadow-sm`} />
                                         </button>
                                         <button
-                                          className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                                          className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleEditSession(session);

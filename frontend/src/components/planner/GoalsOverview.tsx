@@ -25,7 +25,7 @@ const TodaysPlans: React.FC = () => {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   const { data: sessionsData, isLoading: sessionsLoading, refetch } = useQuery({
@@ -282,9 +282,8 @@ const TodaysPlans: React.FC = () => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className={`card hover:shadow-md transition-all duration-200 ${
-                  session.status === 'completed' ? 'opacity-75' : ''
-                }`}
+                className={`card hover:shadow-md transition-all duration-200 ${session.status === 'completed' ? 'opacity-75' : ''
+                  }`}
               >
                 <div className="card-body p-4">
                   <div className="flex items-center justify-between">
@@ -325,9 +324,9 @@ const TodaysPlans: React.FC = () => {
                             {session.status === 'completed' && <Check className="w-3 h-3 mr-1" />}
                             {session.status === 'paused' && <Pause className="w-3 h-3 mr-1" />}
                             {session.status === 'completed' ? 'Tamamlandı' :
-                             session.status === 'in_progress' ? 'Devam Ediyor' :
-                             session.status === 'paused' ? 'Duraklatıldı' :
-                             session.status === 'cancelled' ? 'İptal Edildi' : 'Planlandı'}
+                              session.status === 'in_progress' ? 'Devam Ediyor' :
+                                session.status === 'paused' ? 'Duraklatıldı' :
+                                  session.status === 'cancelled' ? 'İptal Edildi' : 'Planlandı'}
                           </span>
                           <span className="text-xs text-gray-500">
                             {formatTime(sessionStart)} - {formatTime(sessionEnd)}
@@ -391,13 +390,15 @@ const TodaysPlans: React.FC = () => {
                         </>
                       )}
                       {session.status === 'paused' && (
-                        <button
-                          onClick={() => handleStartSession(session)}
-                          className="p-2 text-primary-600 dark:text-blue-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-full transition-colors"
-                          title="Devam Et"
-                        >
-                          <Play className="w-5 h-5" />
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleStartSession(session)}
+                            className="p-2 text-primary-600 dark:text-blue-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-full transition-colors"
+                            title="Devam Et"
+                          >
+                            <Play className="w-5 h-5" />
+                          </button>
+                        </>
                       )}
                       {session.status === 'completed' && (
                         <button
