@@ -1,36 +1,62 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, ChevronLeft, ChevronRight, Plus, Clock, Target, Play, CheckCircle, Check, Edit, Pause, MoveRight, RotateCcw, Trash2 } from 'lucide-react';
-import { StudySession } from '../../types/planner';
+import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, Play, Timer, Square, RotateCcw, CheckCircle, MoveRight, MoveLeft, Edit, Pause, Trash2 } from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { StudySession, WeeklySchedule } from '../../types/planner';
 import { studySessionsAPI } from '../../services/api';
-import { useQuery } from '@tanstack/react-query';
-import { format, addDays, subDays, parseISO, isToday, setHours, setMinutes, addMinutes as addMinutesFn } from 'date-fns';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format, addDays, subDays, parseISO, isToday, setHours, setMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import toast from 'react-hot-toast';
-import CreateSessionModal from './CreateSessionModal';
-import MoveSessionModal from './MoveSessionModal';
+import PomodoroModal from './PomodoroModal';
 import ConfirmDialog from '../common/ConfirmDialog';
-import confetti from 'canvas-confetti';
-import { isSessionMissed, canStartSession, getSessionTextStyle, isSessionOverdue, formatTime } from '../../utils/sessionHelpers';
+import MoveSessionModal from './MoveSessionModal';
+import CreateSessionModal from './CreateSessionModal';
+import { isSessionMissed, canStartSession, getSessionTextStyle, formatTime } from '../../utils/sessionHelpers';
+
+// Robust date parsing for various formats
+const parseDate = (dateStr: string | Date): Date => {
+  if (dateStr instanceof Date) return dateStr;
+  const parsed = parseISO(dateStr);
+  if (!isNaN(parsed.getTime())) return parsed;
+  // Fallback for non-standard formats (e.g., with spaces)
+  const fallback = new Date(dateStr.replace(' ', 'T'));
+  return isNaN(fallback.getTime()) ? new Date(dateStr) : fallback;
+};
 
 interface DailyCalendarProps {
   onCreateSession?: (date: Date, hour: number) => void;
-  onSessionClick?: (session: StudySession) => void;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // Full 24 hours: 0:00 to 23:00
 
-const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessionClick }) => {
+// Helper function to adjust color brightness for gradient
+const adjustColor = (color: string, amount: number): string => {
+  const hex = color.replace('#', '');
+  const r = Math.max(0, Math.min(255, parseInt(hex.substr(0, 2), 16) + amount));
+  const g = Math.max(0, Math.min(255, parseInt(hex.substr(2, 2), 16) + amount));
+  const b = Math.max(0, Math.min(255, parseInt(hex.substr(4, 2), 16) + amount));
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+};
+
+const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
+  const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingSession, setEditingSession] = useState<StudySession | null>(null);
   const [draggedSession, setDraggedSession] = useState<StudySession | null>(null);
   const [dragOffset, setDragOffset] = useState<number>(0);
   const [dragOverTarget, setDragOverTarget] = useState<{ hour: number; minute: number } | null>(null);
+  const [activeSession, setActiveSession] = useState<StudySession | null>(null);
+  const [isPomodoroModalOpen, setIsPomodoroModalOpen] = useState(false);
+  const [isTimerMinimized, setIsTimerMinimized] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [resizingSession, setResizingSession] = useState<{ session: StudySession; startY: number; startHeight: number } | null>(null);
+  const [resizePreview, setResizePreview] = useState<{ session: StudySession; newHeight: number } | null>(null);
+  const [justFinishedAction, setJustFinishedAction] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ session: StudySession; x: number; y: number } | null>(null);
   const [moveModalSession, setMoveModalSession] = useState<StudySession | null>(null);
-  const [isMoving, setIsMoving] = useState(false);
-  const dragOverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<StudySession | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -41,78 +67,87 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
-  const { data: sessionsData, isLoading, refetch } = useQuery({
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Close context menu on click outside
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null);
+    if (contextMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [contextMenu]);
+
+  const { data: sessionsData, isLoading, error, refetch } = useQuery({
     queryKey: ['daily-sessions', format(selectedDate, 'yyyy-MM-dd')],
     queryFn: async () => {
-      const dayStart = format(selectedDate, 'yyyy-MM-dd');
+      const dayStr = format(selectedDate, 'yyyy-MM-dd');
       const response = await studySessionsAPI.getSessions({
-        startDate: dayStart,
-        endDate: dayStart,
+        startDate: dayStr,
+        endDate: dayStr,
       });
       return response.data.data?.sessions || [];
     },
   });
 
-  const getSessionsForHour = (hour: number): StudySession[] => {
+  // Vakti geçmiş in_progress oturumları kontrol et ve otomatik yenile
+  useEffect(() => {
+    const checkOverdueSessions = () => {
+      if (!sessionsData || sessionsData.length === 0) return;
+
+      const now = new Date();
+      const overdueSessions = sessionsData.filter(
+        (session) =>
+          session.status === 'in_progress' &&
+          parseDate(session.endTime) < now
+      );
+
+      if (overdueSessions.length > 0) {
+        console.log('⏰ Vakti geçmiş oturumlar bulundu, yenileniyor...', overdueSessions.length);
+        refetch(); // Backend otomatik cancel edecek
+      }
+    };
+
+    checkOverdueSessions();
+    const interval = setInterval(checkOverdueSessions, 30000);
+    return () => clearInterval(interval);
+  }, [sessionsData, refetch]);
+
+  const getSessionsForTimeSlot = (hour: number): StudySession[] => {
     if (!sessionsData) return [];
-
     return sessionsData.filter((session) => {
-      const sessionStart = parseISO(session.startTime);
+      const sessionStart = parseDate(session.startTime);
       const sessionHour = sessionStart.getHours();
-      const sessionMinutes = sessionStart.getMinutes();
-      const sessionStartInMinutes = sessionHour * 60 + sessionMinutes;
-      const slotStartInMinutes = hour * 60;
-      const slotEndInMinutes = (hour + 1) * 60;
-
-      return sessionStartInMinutes >= slotStartInMinutes && sessionStartInMinutes < slotEndInMinutes;
+      return sessionHour === hour;
     });
   };
 
-  const navigateDate = (direction: 'prev' | 'next') => {
-    setSelectedDate(prev => direction === 'next' ? addDays(prev, 1) : subDays(prev, 1));
-  };
-
-  const goToToday = () => {
-    setSelectedDate(new Date());
-  };
-
-  const handleTimeSlotClick = (hour: number) => {
-    if (onCreateSession) {
-      onCreateSession(selectedDate, hour);
-    }
-  };
-
-  const handleEditSession = (session: StudySession) => {
-    setEditingSession(session);
-    setIsEditModalOpen(true);
-  };
-
   const handleDragStart = (e: React.DragEvent, session: StudySession) => {
-    if (session.status === 'in_progress') {
+    if (session.status === 'in_progress' || session.status === 'completed') {
       e.preventDefault();
-      toast.error('Devam eden oturumlar taşınamaz');
+      toast.error('Devam eden veya tamamlanmış oturumlar taşınamaz');
       return;
     }
 
     const target = e.currentTarget as HTMLElement;
     const rect = target.getBoundingClientRect();
     const offsetY = e.clientY - rect.top;
+    const sessionHeight = rect.height;
 
-    // Create a transparent drag image to prevent ghost artifacts
-    const dragImage = document.createElement('div');
-    dragImage.style.opacity = '0';
-    dragImage.style.position = 'absolute';
-    dragImage.style.top = '-9999px';
-    document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, 0, 0);
-
-    // Clean up drag image after a short delay
-    setTimeout(() => {
-      document.body.removeChild(dragImage);
-    }, 0);
+    if (sessionHeight >= 20 && offsetY > sessionHeight - 12) {
+      e.preventDefault();
+      return;
+    }
 
     setDraggedSession(session);
     setDragOffset(offsetY);
@@ -123,12 +158,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
 
-    // Clear any pending timeout to prevent race conditions
-    if (dragOverTimeoutRef.current) {
-      clearTimeout(dragOverTimeoutRef.current);
-    }
-
-    const timeSlot = e.currentTarget as HTMLElement;
+    const timeSlot = (e.currentTarget as HTMLElement);
     const rect = timeSlot.getBoundingClientRect();
     const mouseY = e.clientY - rect.top;
     const slotHeight = rect.height;
@@ -141,59 +171,63 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
   };
 
   const handleDragLeave = () => {
-    // Use timeout to prevent flickering when quickly moving between slots
-    if (dragOverTimeoutRef.current) {
-      clearTimeout(dragOverTimeoutRef.current);
-    }
-    dragOverTimeoutRef.current = setTimeout(() => {
-      setDragOverTarget(null);
-    }, 50);
+    setDragOverTarget(null);
   };
 
   const handleDrop = async (e: React.DragEvent, hour: number) => {
     e.preventDefault();
-
-    // Clear any pending timeouts
-    if (dragOverTimeoutRef.current) {
-      clearTimeout(dragOverTimeoutRef.current);
-      dragOverTimeoutRef.current = null;
-    }
-
-    if (!draggedSession || isMoving) {
-      // Force cleanup even if we're not processing the drop
-      setDraggedSession(null);
-      setDragOverTarget(null);
-      return;
-    }
+    if (!draggedSession || isMoving) return;
 
     const snappedMinutes = dragOverTarget?.minute ?? 0;
+    setDragOverTarget(null);
 
     try {
       setIsMoving(true);
+      const newStartTime = new Date(selectedDate);
+      newStartTime.setHours(hour, snappedMinutes, 0, 0);
 
-      let newStartTime = setHours(selectedDate, hour);
-      newStartTime = setMinutes(newStartTime, snappedMinutes);
-      const newEndTime = addMinutesFn(newStartTime, draggedSession.duration);
+      const sessionDuration = draggedSession.duration;
+      let newEndTime = new Date(newStartTime);
+      newEndTime.setMinutes(newEndTime.getMinutes() + sessionDuration);
 
-      await studySessionsAPI.updateSession(draggedSession.id.toString(), {
+      const sessionDay = new Date(newStartTime);
+      sessionDay.setHours(23, 59, 59, 999);
+
+      if (newEndTime > sessionDay) {
+        toast.error('Görev gece yarısını geçemez. Görev bu konuma taşınamaz.');
+        throw new Error('Session cannot extend past midnight');
+      }
+
+      toast.loading('Oturum taşınıyor...', { id: 'moving-session' });
+      const response = await studySessionsAPI.updateSession(draggedSession.id.toString(), {
         startTime: newStartTime.toISOString(),
         endTime: newEndTime.toISOString(),
       });
 
-      toast.success('Görev başarıyla taşındı');
-
-      // Immediate cleanup before refetch
-      setDraggedSession(null);
-      setDragOverTarget(null);
-
-      await refetch();
-    } catch (error) {
-      toast.error('Görev taşınırken hata oluştu');
+      if (response.data.success) {
+        toast.success('Oturum başarıyla taşındı', { id: 'moving-session' });
+        queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+        queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+        await refetch();
+      } else {
+        throw new Error(response.data.error?.message || 'Bilinmeyen hata');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Oturum taşınırken hata oluştu', { id: 'moving-session' });
     } finally {
       setIsMoving(false);
-      // Double cleanup to ensure state is cleared
       setDraggedSession(null);
-      setDragOverTarget(null);
+      setJustFinishedAction(true);
+      setTimeout(() => setJustFinishedAction(false), 100);
+    }
+  };
+
+  const handleTimeSlotClick = (hour: number) => {
+    if (justFinishedAction) return;
+    if (onCreateSession) {
+      const sessionDate = new Date(selectedDate);
+      sessionDate.setHours(hour, 0, 0, 0);
+      onCreateSession(sessionDate, hour);
     }
   };
 
@@ -203,59 +237,50 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
     setContextMenu({ session, x: e.clientX, y: e.clientY });
   };
 
-  const handleMoveToDate = async (date: Date) => {
+  const handleEditSession = (session: StudySession) => {
+    setEditingSession(session);
+    setIsEditModalOpen(true);
+  };
+
+  const handleMoveToDate = async (targetDate: Date) => {
     if (!moveModalSession) return;
-
     try {
-      const sessionStart = parseISO(moveModalSession.startTime);
-      const hour = sessionStart.getHours();
-      const minute = sessionStart.getMinutes();
+      setIsMoving(true);
+      toast.loading('Oturum taşınıyor...', { id: 'moving-session' });
+      const sessionStart = parseDate(moveModalSession.startTime);
+      const newStartTime = setHours(setMinutes(targetDate, sessionStart.getMinutes()), sessionStart.getHours());
+      const newEndTime = new Date(newStartTime);
+      newEndTime.setMinutes(newEndTime.getMinutes() + moveModalSession.duration);
 
-      let newStartTime = setHours(date, hour);
-      newStartTime = setMinutes(newStartTime, minute);
-      const newEndTime = addMinutesFn(newStartTime, moveModalSession.duration);
-
-      await studySessionsAPI.updateSession(moveModalSession.id.toString(), {
+      const response = await studySessionsAPI.updateSession(moveModalSession.id.toString(), {
         startTime: newStartTime.toISOString(),
         endTime: newEndTime.toISOString(),
       });
 
-      toast.success('Görev başarıyla taşındı');
-      refetch();
-      setMoveModalSession(null);
-    } catch (error) {
-      toast.error('Görev taşınırken hata oluştu');
+      if (response.data.success) {
+        toast.success('Oturum başarıyla taşındı', { id: 'moving-session' });
+        queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+        queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+        await refetch();
+        setMoveModalSession(null);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error?.message || 'Oturum taşınırken hata oluştu', { id: 'moving-session' });
+    } finally {
+      setIsMoving(false);
     }
-  };
-
-  // Close context menu on click outside
-  useEffect(() => {
-    const handleClickOutside = () => setContextMenu(null);
-    if (contextMenu) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [contextMenu]);
-
-  const triggerConfetti = () => {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#22c55e', '#10b981', '#4ade80', '#86efac'],
-    });
   };
 
   const handleStartSession = async (session: StudySession) => {
-    // Vakti geçmiş oturumlar başlatılamaz
     if (!canStartSession(session)) {
       toast.error('Bu oturum için zaman geçmiş. Lütfen oturum saatini güncelleyin.');
       return;
     }
-
     try {
       await studySessionsAPI.startSession(session.id.toString());
       toast.success('Çalışma seansı başlatıldı');
+      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
       refetch();
     } catch (error) {
       toast.error('Seans başlatılırken hata oluştu');
@@ -270,10 +295,10 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
       type: 'warning',
       onConfirm: async () => {
         try {
-          await studySessionsAPI.updateSession(session.id.toString(), {
-            status: 'paused',
-          });
+          await studySessionsAPI.pauseSession(session.id.toString());
           toast.success('Çalışma seansı duraklatıldı');
+          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
           refetch();
         } catch (error) {
           toast.error('Seans duraklatılırken hata oluştu');
@@ -292,7 +317,9 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
         try {
           await studySessionsAPI.completeSession(session.id.toString());
           toast.success('Çalışma seansı tamamlandı');
-          triggerConfetti();
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
           refetch();
         } catch (error) {
           toast.error('Seans tamamlanırken hata oluştu');
@@ -309,10 +336,10 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
       type: 'info',
       onConfirm: async () => {
         try {
-          await studySessionsAPI.updateSession(session.id.toString(), {
-            status: 'planned',
-          });
+          await studySessionsAPI.updateSession(session.id.toString(), { status: 'planned' });
           toast.success('Oturum yeniden başlatıldı');
+          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
           refetch();
         } catch (error) {
           toast.error('Oturum yeniden başlatılırken hata oluştu');
@@ -321,450 +348,197 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
     });
   };
 
-  const getSessionTypeColor = (sessionType: string) => {
-    switch (sessionType) {
-      case 'study': return 'bg-primary-600 border-primary-700 text-white';
-      case 'pomodoro': return 'bg-red-500 border-red-600 text-white';
-      case 'review': return 'bg-green-500 border-green-600 text-white';
-      case 'break': return 'bg-gray-500 border-gray-600 text-white';
-      default: return 'bg-primary-600 border-primary-700 text-white';
+  const handleStartPomodoro = (session: StudySession) => {
+    if (!canStartSession(session)) {
+      toast.error('Bu oturum için zaman geçmiş. Lütfen oturum saatini güncelleyin.');
+      return;
     }
+    setActiveSession(session);
+    setIsPomodoroModalOpen(true);
   };
 
-  const getStatusColor = (status: string, session: StudySession) => {
+  const handleResizeStart = (e: React.MouseEvent, session: StudySession, currentHeight: number) => {
+    e.stopPropagation();
+    setResizingSession({ session, startY: e.clientY, startHeight: currentHeight });
+  };
+
+  useEffect(() => {
+    if (resizingSession) {
+      const handleMouseMoveEvent = (e: MouseEvent) => {
+        const deltaY = e.clientY - resizingSession.startY;
+        let newHeight = resizingSession.startHeight + deltaY;
+        newHeight = Math.max(5, newHeight);
+        const minutesSnapped = Math.max(5, Math.round(newHeight / 5) * 5);
+        setResizePreview({ session: resizingSession.session, newHeight: minutesSnapped });
+      };
+
+      const handleMouseUpEvent = async (e: MouseEvent) => {
+        const deltaY = e.clientY - resizingSession.startY;
+        let newHeight = resizingSession.startHeight + deltaY;
+        newHeight = Math.max(5, newHeight);
+        let newDuration = Math.max(5, Math.round(newHeight / 5) * 5);
+
+        const sessionStart = parseDate(resizingSession.session.startTime);
+        const newEndTime = new Date(sessionStart);
+        newEndTime.setMinutes(sessionStart.getMinutes() + newDuration);
+
+        const sessionDay = new Date(sessionStart);
+        sessionDay.setHours(23, 59, 59, 999);
+
+        if (newEndTime > sessionDay) {
+          newEndTime.setTime(sessionDay.getTime());
+          newDuration = Math.floor((newEndTime.getTime() - sessionStart.getTime()) / (1000 * 60));
+          toast.error('Görev gece yarısını geçemez (23:59)');
+        }
+
+        setResizingSession(null);
+        setResizePreview(null);
+        setJustFinishedAction(true);
+        setTimeout(() => setJustFinishedAction(false), 100);
+
+        try {
+          await studySessionsAPI.updateSession(resizingSession.session.id.toString(), {
+            endTime: newEndTime.toISOString(),
+          });
+          toast.success('Süre güncellendi');
+          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+          refetch();
+        } catch (error) {
+          toast.error('Süre güncellenirken hata oluştu');
+        }
+      };
+
+      window.addEventListener('mousemove', handleMouseMoveEvent);
+      window.addEventListener('mouseup', handleMouseUpEvent);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMoveEvent);
+        window.removeEventListener('mouseup', handleMouseUpEvent);
+      };
+    }
+  }, [resizingSession, queryClient, refetch]);
+
+  const getStatusColor = (status: string, sessionEndTime: string) => {
+    const now = new Date();
+    const sessionEnd = parseDate(sessionEndTime);
+    const isPast = sessionEnd < now;
+
     switch (status) {
-      case 'completed': return 'opacity-70 ring-2 ring-green-400';
+      case 'completed': return 'opacity-60 ring-2 ring-green-400';
       case 'in_progress':
-        // Vakti geçmiş ve hala devam ediyorsa
-        if (isSessionOverdue(session)) {
-          return 'ring-2 ring-red-400 animate-pulse';
-        }
-        return 'ring-2 ring-yellow-400 animate-pulse';
-      case 'paused': return 'ring-2 ring-orange-400';
+        return isPast ? 'ring-2 ring-red-400 animate-pulse' : 'ring-2 ring-yellow-400 animate-pulse';
+      case 'paused': return 'ring-2 ring-orange-400 text-white/90';
       case 'cancelled': return 'opacity-40 bg-gray-400';
-      case 'planned':
-        // Kaçırılan görevler için
-        if (isSessionMissed(session)) {
-          return 'opacity-70';
-        }
-        return '';
+      case 'planned': return isPast ? 'opacity-70' : '';
       default: return '';
     }
   };
 
-  const calculateDayProgress = () => {
-    if (!sessionsData || sessionsData.length === 0) return { completed: 0, total: 0, percentage: 0 };
-
-    const completed = sessionsData.filter(s => s.status === 'completed').length;
-    const total = sessionsData.length;
-    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-    return { completed, total, percentage };
+  const navigateDate = (direction: 'prev' | 'next') => {
+    setSelectedDate(prev => direction === 'next' ? addDays(prev, 1) : subDays(prev, 1));
   };
-
-  const getTotalStudyTime = () => {
-    if (!sessionsData) return 0;
-
-    return sessionsData
-      .filter(session => session.status === 'completed')
-      .reduce((total, session) => total + session.duration, 0);
-  };
-
-  const progress = calculateDayProgress();
-  const totalStudyTime = getTotalStudyTime();
-
-  // Kaçırılan görevler için uyarı - Sadece bugünün planları için göster
-  // (Günlük takvim ayrı uyarı göstermesin, çünkü GoalsOverview zaten gösteriyor)
-
-  // Cleanup drag state on data change or unmount
-  useEffect(() => {
-    return () => {
-      // Clear timeout on unmount
-      if (dragOverTimeoutRef.current) {
-        clearTimeout(dragOverTimeoutRef.current);
-      }
-      // Reset drag states
-      setDraggedSession(null);
-      setDragOverTarget(null);
-    };
-  }, [sessionsData]);
-
-  // Vakti geçmiş in_progress oturumları kontrol et ve otomatik yenile
-  useEffect(() => {
-    const checkOverdueSessions = () => {
-      if (!sessionsData || sessionsData.length === 0) return;
-
-      const now = new Date();
-      const overdueSessions = sessionsData.filter(
-        (session) =>
-          session.status === 'in_progress' &&
-          parseISO(session.endTime) < now
-      );
-
-      if (overdueSessions.length > 0) {
-        console.log('⏰ Vakti geçmiş oturumlar bulundu, yenileniyor...', overdueSessions.length);
-        refetch(); // Backend otomatik cancel edecek
-      }
-    };
-
-    // İlk kontrolü yap
-    checkOverdueSessions();
-
-    // Her 30 saniyede bir kontrol et
-    const interval = setInterval(checkOverdueSessions, 30000);
-
-    return () => clearInterval(interval);
-  }, [sessionsData, refetch]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Günlük Takvim
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Günlük Planlayıcı</h2>
           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             <Calendar className="w-4 h-4" />
-            <span className={isToday(selectedDate) ? 'font-semibold text-primary-600 dark:text-primary-400' : ''}>
+            <span className={isToday(selectedDate) ? 'font-semibold text-primary-600' : ''}>
               {format(selectedDate, 'dd MMMM yyyy, EEEE', { locale: tr })}
             </span>
           </div>
         </div>
-
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigateDate('prev')}
-            className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          {!isToday(selectedDate) && (
-            <button
-              onClick={goToToday}
-              className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
-            >
-              Bugün
-            </button>
-          )}
-          <button
-            onClick={() => navigateDate('next')}
-            className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+          <button onClick={() => navigateDate('prev')} className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400"><ChevronLeft className="w-5 h-5" /></button>
+          <button onClick={() => setSelectedDate(new Date())} className="px-3 py-1 text-sm font-medium text-primary-600">Bugün</button>
+          <button onClick={() => navigateDate('next')} className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400"><ChevronRight className="w-5 h-5" /></button>
         </div>
       </div>
 
-      {/* Day Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card">
-          <div className="card-body">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
-                <Target className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Günlük İlerleme</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {progress.completed}/{progress.total} seans
-                </p>
-                <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-1">
-                  <div
-                    className="bg-primary-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${progress.percentage}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-body">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <Clock className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Toplam Çalışma</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {Math.floor(totalStudyTime / 60)}s {totalStudyTime % 60}d
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-body">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Tamamlanma</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {progress.percentage}%
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Calendar Grid */}
+      {/* Grid */}
       <div className="card overflow-hidden">
         <div className="bg-white dark:bg-gray-800">
-          {/* Time slots */}
-          <div className="space-y-0">
+          <div className="grid grid-cols-1">
             {HOURS.map((hour) => {
-              const sessions = getSessionsForHour(hour);
-              const nextHourSessions = getSessionsForHour(hour + 1);
+              const sessions = getSessionsForTimeSlot(hour);
+              const currentHour = currentTime.getHours();
+              const isCurrentHour = isToday(selectedDate) && hour === currentHour;
+              const timeIndicatorPos = (currentTime.getMinutes() / 60) * 100;
 
               return (
-                <div
-                  key={hour}
-                  className="flex border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                >
-                  {/* Hour label */}
-                  <div className="w-20 flex-shrink-0 p-4 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {`${hour.toString().padStart(2, '0')}:00`}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {hour + 1 >= 24 ? '00:00' : `${(hour + 1).toString().padStart(2, '0')}:00`}
-                    </div>
+                <div key={hour} className="flex border-b border-gray-100 dark:border-gray-700/50 min-h-[80px] relative group">
+                  <div className="w-20 bg-gray-50/50 dark:bg-gray-900/30 flex flex-col items-center justify-center border-r border-gray-100 dark:border-gray-700/50">
+                    <span className="text-sm font-medium text-gray-500">{`${hour.toString().padStart(2, '0')}:00`}</span>
                   </div>
-
-                  {/* Hour content */}
                   <div
-                    className="flex-1 min-h-[60px] cursor-pointer relative"
+                    className="flex-1 relative p-1 transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-700/20"
                     onClick={() => handleTimeSlotClick(hour)}
                     onDragOver={(e) => handleDragOver(e, hour)}
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, hour)}
                   >
-                    {/* Empty state */}
-                    {sessions.length === 0 && (
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <div className="flex items-center gap-2 text-sm text-gray-400 hover:text-primary-500 transition-colors">
-                          <Plus className="w-4 h-4" />
-                          <span>Seans ekle</span>
-                        </div>
+                    {isCurrentHour && (
+                      <div className="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style={{ top: `${timeIndicatorPos}%` }}>
+                        <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                        <div className="flex-1 h-0.5 bg-red-500/50"></div>
                       </div>
                     )}
+                    {dragOverTarget?.hour === hour && (
+                      <div className="absolute inset-x-1 border-2 border-dashed border-primary-500 rounded-xl bg-primary-500/5 z-10 pointer-events-none" style={{ top: `${(dragOverTarget.minute / 60) * 100}%`, height: `${(draggedSession?.duration || 30) / 60 * 100}%` }} />
+                    )}
+                    {sessions.map((session) => {
+                      const isBeingDragged = draggedSession?.id === session.id;
+                      const sessionStart = parseDate(session.startTime);
+                      const sessionMinutes = sessionStart.getMinutes();
+                      const topPosition = (sessionMinutes / 60) * 100;
+                      const sessionHeight = (session.duration / 60) * 80;
 
-                    {/* Drag Preview - Show where session will be dropped */}
-                    {dragOverTarget && draggedSession && dragOverTarget.hour === hour && (
-                      <div
-                        className="absolute inset-x-1 p-2 rounded-lg border-2 border-dashed border-primary-500 z-40 pointer-events-none"
-                        style={{
-                          top: `${(dragOverTarget.minute / 60) * 60}px`,
-                          height: `${(draggedSession.duration / 60) * 60}px`,
-                        }}
-                      >
-                        <div className="flex items-center justify-center h-full opacity-50">
-                          <div className="text-center">
-                            <div className="text-xs text-primary-600 dark:text-primary-400 font-medium truncate px-2">
-                              {draggedSession.title}
+                      return (
+                        <motion.div
+                          key={session.id}
+                          layoutId={`session-${session.id}`}
+                          className={`absolute inset-x-1 p-2 rounded-xl shadow-sm border text-white transition-all overflow-hidden ${getStatusColor(session.status, session.endTime)} ${isBeingDragged ? 'opacity-30' : ''}`}
+                          style={{
+                            top: `${topPosition}%`,
+                            height: `${sessionHeight}px`,
+                            backgroundColor: session.color || '#3B82F6',
+                            borderColor: adjustColor(session.color || '#3B82F6', -20),
+                            zIndex: isBeingDragged ? 50 : 10,
+                          }}
+                          draggable={session.status !== 'in_progress'}
+                          onDragStart={(e) => handleDragStart(e, session)}
+                          onDragEnd={() => { setDraggedSession(null); setDragOverTarget(null); }}
+                          onContextMenu={(e) => handleContextMenu(e, session)}
+                          onClick={(e) => { e.stopPropagation(); handleEditSession(session); }}
+                        >
+                          <div className="flex flex-col h-full">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-bold bg-black/20 px-1.5 py-0.5 rounded uppercase tracking-wider">{formatTime(session.startTime)}</span>
+                              <div className="flex gap-1">
+                                {session.status === 'planned' && canStartSession(session) && <button onClick={(e) => { e.stopPropagation(); session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all"><Play className="w-3 h-3" /></button>}
+                                {session.status === 'in_progress' && (
+                                  <>
+                                    <button onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all"><Pause className="w-3 h-3" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all"><CheckCircle className="w-3 h-3" /></button>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                            <div className="text-[10px] text-primary-500 dark:text-primary-300 mt-0.5">
-                              {draggedSession.duration} dk
-                            </div>
+                            <div className="font-bold text-xs truncate leading-tight mb-0.5">{session.title}</div>
+                            {sessionHeight >= 50 && <div className="text-[10px] opacity-80 line-clamp-2 leading-tight">{session.description}</div>}
                           </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Sessions */}
-                    <AnimatePresence>
-                      {sessions.map((session, index) => {
-                        const isBeingDragged = draggedSession?.id === session.id;
-                        const sessionStart = parseISO(session.startTime);
-                        const sessionMinutes = sessionStart.getMinutes();
-                        const slotHeight = 60;
-                        const topPosition = (sessionMinutes / 60) * slotHeight;
-                        const sessionHeight = (session.duration / 60) * slotHeight;
-
-                        return (
-                          <motion.div
-                              key={session.id}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{
-                                opacity: isBeingDragged ? 0.3 : 1,
-                                x: 0,
-                                scale: isBeingDragged ? 0.95 : 1
-                              }}
-                              exit={{ opacity: 0, x: 20 }}
-                              className={`absolute inset-x-1 p-2 rounded-lg border-2 transition-all hover:shadow-md group text-white ${
-                                getStatusColor(session.status, session)
-                              } ${
-                                isBeingDragged ? 'ring-2 ring-blue-400' : ''
-                              } ${session.status !== 'in_progress' ? 'cursor-move' : 'cursor-pointer'}`}
-                              style={{
-                                top: `${topPosition}px`,
-                                height: `${sessionHeight}px`,
-                                backgroundColor: session.color || '#3B82F6',
-                                borderColor: session.color || '#3B82F6',
-                                zIndex: isBeingDragged ? 50 : 10,
-                              }}
-                              draggable={session.status !== 'in_progress'}
-                              onDragStart={(e) => handleDragStart(e as any, session)}
-                              onDragEnd={() => {
-                                // Clear any pending timeouts
-                                if (dragOverTimeoutRef.current) {
-                                  clearTimeout(dragOverTimeoutRef.current);
-                                  dragOverTimeoutRef.current = null;
-                                }
-                                // Force immediate cleanup
-                                setDraggedSession(null);
-                                setDragOverTarget(null);
-                              }}
-                              onClick={session.status !== 'in_progress' ? (e) => {
-                                e.stopPropagation();
-                                onSessionClick?.(session);
-                              } : undefined}
-                              onContextMenu={(e) => handleContextMenu(e, session)}
-                            >
-                              {/* Time badge - start and end time - Only show if height >= 40px */}
-                              {sessionHeight >= 40 && (
-                                <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium">
-                                  {formatTime(sessionStart)} - {formatTime(session.endTime)}
-                                </div>
-                              )}
-
-                              {/* Completed checkmark icon - top right - Only show if height >= 35px */}
-                              {session.status === 'completed' && sessionHeight >= 35 && (
-                                <div className="absolute top-2 right-2 opacity-40">
-                                  <Check className="w-5 h-5" />
-                                </div>
-                              )}
-
-                              {/* Very Small Card (< 35px): Only title, no buttons */}
-                              {sessionHeight < 35 && (
-                                <div className="flex items-center h-full px-1">
-                                  <h4 className={`text-[10px] font-medium truncate ${getSessionTextStyle(session)}`}>
-                                    {session.title}
-                                  </h4>
-                                </div>
-                              )}
-
-                              {/* Small to Large Card (>= 35px): Full content */}
-                              {sessionHeight >= 35 && (
-                                <div className="flex items-center justify-between h-full">
-                                  <div className="flex-1 min-w-0 pr-1">
-                                    <h4 className={`font-medium truncate text-sm ${getSessionTextStyle(session)}`}>
-                                      {session.title}
-                                    </h4>
-                                    {sessionHeight >= 55 && (
-                                      <div className="flex items-center gap-2 text-xs opacity-75 mt-0.5">
-                                        <span>({session.duration} dk)</span>
-                                      </div>
-                                    )}
-                                    {session.description && sessionHeight >= 75 && (
-                                      <p className="text-xs opacity-75 mt-1 truncate">
-                                        {session.description}
-                                      </p>
-                                    )}
-                                  </div>
-
-                                  {/* Action buttons - Only show if height >= 35px */}
-                                  {sessionHeight >= 35 && (
-                                    <div className="flex items-center gap-1">
-                                      {session.status === 'planned' && canStartSession(session) && (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleStartSession(session);
-                                          }}
-                                          className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
-                                          title="Başlat"
-                                        >
-                                          <Play className="w-4 h-4 text-green-300" />
-                                        </button>
-                                      )}
-
-                                      {session.status === 'in_progress' && (
-                                        <div className="flex items-center gap-1">
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handlePauseSession(session);
-                                            }}
-                                            className="p-1 hover:bg-white/20 rounded transition-all"
-                                            title="Duraklat"
-                                          >
-                                            <Pause className="w-4 h-4 text-orange-300" />
-                                          </button>
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleCompleteSession(session);
-                                            }}
-                                            className="p-1 hover:bg-white/20 rounded transition-all"
-                                            title="Tamamla"
-                                          >
-                                            <CheckCircle className="w-4 h-4 text-green-300" />
-                                          </button>
-                                        </div>
-                                      )}
-
-                                      {session.status === 'paused' && (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleStartSession(session);
-                                          }}
-                                          className="p-1 hover:bg-white/20 rounded transition-all"
-                                          title="Devam Et"
-                                        >
-                                          <Play className="w-4 h-4 text-primary-300" />
-                                        </button>
-                                      )}
-
-                                      {session.status === 'completed' && sessionHeight >= 40 && (
-                                        <div className="flex items-center gap-1">
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleRestartSession(session);
-                                            }}
-                                            className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
-                                            title="Yeniden Başlat"
-                                          >
-                                            <RotateCcw className="w-3 h-3 text-purple-300" />
-                                          </button>
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleEditSession(session);
-                                            }}
-                                            className="p-1 opacity-0 group-hover:opacity-100 hover:bg-white/20 rounded transition-all"
-                                            title="Düzenle"
-                                          >
-                                            <Edit className="w-3 h-3 text-yellow-300" />
-                                          </button>
-                                        </div>
-                                      )}
-
-                                      {session.sessionType === 'pomodoro' && sessionHeight >= 40 && (
-                                        <Target className="w-3 h-3 text-red-300" />
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-
-                              {session.plan && sessionHeight >= 90 && (
-                                <div className="mt-2 text-xs opacity-75">
-                                  📋 {session.plan.title}
-                                </div>
-                              )}
-                            </motion.div>
-                          );
-                        })}
-                    </AnimatePresence>
+                          {session.status !== 'in_progress' && session.status !== 'completed' && (
+                            <div
+                              className="absolute bottom-0 left-0 right-0 cursor-ns-resize hover:bg-white/10 h-2 group/resize flex items-center justify-center transition-colors"
+                              onMouseDown={(e) => handleResizeStart(e, session, sessionHeight)}
+                            ><div className="w-6 h-0.5 bg-white/40 rounded-full opacity-0 group-hover/resize:opacity-100" /></div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -773,115 +547,73 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession, onSessio
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-6 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-primary-500"></div>
-          <span className="text-gray-600 dark:text-gray-400">Çalışma</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-red-500"></div>
-          <span className="text-gray-600 dark:text-gray-400">Pomodoro</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-green-500"></div>
-          <span className="text-gray-600 dark:text-gray-400">Tekrar</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-gray-500"></div>
-          <span className="text-gray-600 dark:text-gray-400">Mola</span>
-        </div>
-      </div>
-
-      {isLoading && (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-        </div>
-      )}
+      {/* Floating Drop Zones */}
+      <AnimatePresence>
+        {draggedSession && (
+          <div className="fixed top-24 right-8 z-[100] flex flex-col gap-4 items-end pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, x: 50 }} animate={{ opacity: 1, scale: 1, x: 0 }} exit={{ opacity: 0, scale: 0.9, x: 50 }}
+              className="w-64 p-4 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center gap-2 shadow-xl pointer-events-auto"
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-primary-500', 'bg-primary-50', 'scale-105'); }}
+              onDragLeave={(e) => e.currentTarget.classList.remove('border-primary-500', 'bg-primary-50', 'scale-105')}
+              onDrop={async (e) => {
+                e.preventDefault();
+                const newStart = subDays(parseDate(draggedSession.startTime), 1);
+                const newEnd = subDays(parseDate(draggedSession.endTime), 1);
+                try {
+                  toast.loading('Önceki güne taşınıyor...', { id: 'move-day' });
+                  await studySessionsAPI.updateSession(draggedSession.id.toString(), { startTime: newStart.toISOString(), endTime: newEnd.toISOString() });
+                  toast.success('Önceki güne taşındı', { id: 'move-day' });
+                  queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+                  refetch();
+                } catch (err) { toast.error('Hata oluştu', { id: 'move-day' }); }
+                setDraggedSession(null);
+              }}
+            >
+              <MoveLeft className="w-6 h-6 rotate-[45deg] text-gray-500" /><p className="font-bold text-gray-600">Önceki Güne Taşı</p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, x: 50 }} animate={{ opacity: 1, scale: 1, x: 0 }} exit={{ opacity: 0, scale: 0.9, x: 50 }} transition={{ delay: 0.1 }}
+              className="w-64 p-6 rounded-2xl border-2 border-dashed border-primary-400 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center gap-3 shadow-2xl pointer-events-auto"
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-primary-500', 'bg-primary-50', 'scale-105'); }}
+              onDragLeave={(e) => e.currentTarget.classList.remove('border-primary-500', 'bg-primary-50', 'scale-105')}
+              onDrop={async (e) => {
+                e.preventDefault();
+                const newStart = addDays(parseDate(draggedSession.startTime), 1);
+                const newEnd = addDays(parseDate(draggedSession.endTime), 1);
+                try {
+                  toast.loading('Sonraki güne taşınıyor...', { id: 'move-day' });
+                  await studySessionsAPI.updateSession(draggedSession.id.toString(), { startTime: newStart.toISOString(), endTime: newEnd.toISOString() });
+                  toast.success('Sonraki güne taşındı', { id: 'move-day' });
+                  queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+                  refetch();
+                } catch (err) { toast.error('Hata oluştu', { id: 'move-day' }); }
+                setDraggedSession(null);
+              }}
+            >
+              <div className="p-4 rounded-full bg-primary-100 text-primary-600"><MoveRight className="w-8 h-8 rotate-[-45deg]" /></div>
+              <p className="font-bold text-gray-900 dark:text-white text-lg text-center leading-tight">Sonraki Güne Taşı</p>
+              <div className="mt-2 px-3 py-1 rounded-full bg-primary-50 text-[10px] font-bold text-primary-600 uppercase">Bırak ve Taşı</div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Context Menu */}
       {contextMenu && (
-        <div
-          className="fixed bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[160px]"
-          style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
-        >
-          <button
-            onClick={() => {
-              handleEditSession(contextMenu.session);
-              setContextMenu(null);
-            }}
-            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
-          >
-            <Edit className="w-4 h-4" />
-            Düzenle
-          </button>
-          <button
-            onClick={() => {
-              setMoveModalSession(contextMenu.session);
-              setContextMenu(null);
-            }}
-            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
-          >
-            <MoveRight className="w-4 h-4" />
-            Tarihe Taşı
-          </button>
-          <div className="border-t border-gray-200 dark:border-gray-600 my-1" />
-          <button
-            onClick={() => {
-              setConfirmDialog({
-                isOpen: true,
-                title: 'Görevi Sil',
-                message: `"${contextMenu.session.title}" görevini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`,
-                type: 'danger',
-                onConfirm: async () => {
-                  try {
-                    await studySessionsAPI.deleteSession(contextMenu.session.id.toString());
-                    toast.success('Görev başarıyla silindi');
-                    refetch();
-                  } catch (error) {
-                    toast.error('Görev silinirken hata oluştu');
-                  }
-                },
-              });
-              setContextMenu(null);
-            }}
-            className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-            Sil
-          </button>
+        <div className="fixed bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-[110] min-w-[160px]" style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}>
+          <button onClick={() => { handleEditSession(contextMenu.session); setContextMenu(null); }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"><Edit className="w-4 h-4" /> Düzenle</button>
+          <button onClick={() => { setMoveModalSession(contextMenu.session); setContextMenu(null); }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"><MoveRight className="w-4 h-4" /> Tarihe Taşı</button>
+          <div className="border-t my-1" />
+          <button onClick={() => { setConfirmDialog({ isOpen: true, title: 'Görevi Sil', message: `"${contextMenu.session.title}" görevini silmek istiyor musunuz?`, type: 'danger', onConfirm: async () => { try { await studySessionsAPI.deleteSession(contextMenu.session.id.toString()); toast.success('Silindi'); refetch(); } catch (e) { toast.error('Hata'); } } }); setContextMenu(null); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><Trash2 className="w-4 h-4" /> Sil</button>
         </div>
       )}
 
-      {/* Confirm Dialog */}
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
-        onConfirm={confirmDialog.onConfirm}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        type={confirmDialog.type}
-      />
-
-      {/* Edit Session Modal */}
-      <CreateSessionModal
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setEditingSession(null);
-          refetch();
-        }}
-        editSession={editingSession}
-      />
-
-      {/* Move Session Modal */}
-      <MoveSessionModal
-        isOpen={!!moveModalSession}
-        onClose={() => setMoveModalSession(null)}
-        onSelectDate={handleMoveToDate}
-        sessionTitle={moveModalSession?.title || ''}
-        currentDate={moveModalSession ? parseISO(moveModalSession.startTime) : new Date()}
-      />
+      {/* Modals */}
+      <PomodoroModal isOpen={isPomodoroModalOpen} onClose={() => { setIsPomodoroModalOpen(false); setActiveSession(null); }} session={activeSession} isMinimized={isTimerMinimized} onToggleMinimize={() => setIsTimerMinimized(!isTimerMinimized)} />
+      <ConfirmDialog isOpen={confirmDialog.isOpen} onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} onConfirm={confirmDialog.onConfirm} title={confirmDialog.title} message={confirmDialog.message} type={confirmDialog.type} />
+      <CreateSessionModal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); setEditingSession(null); refetch(); }} editSession={editingSession} />
+      <MoveSessionModal isOpen={!!moveModalSession} onClose={() => setMoveModalSession(null)} onSelectDate={handleMoveToDate} sessionTitle={moveModalSession?.title || ''} currentDate={moveModalSession ? parseDate(moveModalSession.startTime) : new Date()} />
     </div>
   );
 };

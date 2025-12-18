@@ -53,10 +53,15 @@ Bu session'da Haftalık Planlayıcı (WeeklyPlanner) ve ilgili bileşenlerde ço
   - Resize handle'a rounded corners eklendi (`rounded-b-xl`).
   - Cursor değişimi korunarak temiz bir görünüm sağlandı.
 
-#### 9. Stabilite ve Bug Fix'ler ✅
-- **Tarih Formatı Hatası**: Bazı backend sürümlerinden gelen boşluklu tarih formatlarının `parseISO` tarafından reddedilmesi (Invalid Date) ve görevlerin görünmez olması düzeltildi (`parseDate` helper eklendi).
-- **Stuck Drag State**: Görev sürüklenirken iptal edilirse veya navigasyon oklarına bırakılırsa `draggedSession` state'inin takılı kalması ve görevlerin soluk görünmesi düzeltildi (`onDragEnd` ve ek temizlik logicleri eklendi).
-- **Syntax Fix**: Yanlışlıkla bozulan bileşen yapısı ve dangling handler'lar düzeltildi.
+#### 9. Günlük Görünüm Senkronizasyonu ✅
+- **Sorun**: Günlük görünümün haftalık planlayıcıdaki zengin özelliklere (sürükle-bırak, resize, modern UI) sahip olmaması.
+- **Çözüm**:
+  - `DailyCalendar.tsx` tamamen yeniden yazılarak `WeeklyPlanner.tsx` ile aynı logic ve UI standartlarına getirildi.
+  * **Sürükle-Bırak**: Görevleri gün içinde serbestçe taşıma.
+  * **Boyutlandırma (Resize)**: Görev sürelerini sürükleyerek ayarlama.
+  * **Yüzen Drop Zone**: Haftalıkta olan "Haftaya Taşı" yerine günlükte "**Sonraki Güne Taşı**" ve "**Önceki Güne Taşı**" drop zone'ları eklendi.
+  * **Context Menu & Modallar**: Tam entegre Pomodoro, Edit ve Move modalları eklendi.
+  - Kod tabanı temizlendi ve ortak yardımcı fonksiyonlar (`parseDate`, `adjustColor`) kullanılmaya başlandı.
 - `frontend/src/components/planner/WeeklyPlanner.tsx`
 - `frontend/src/components/planner/GoalsOverview.tsx`
 - `frontend/src/components/dashboard/WeeklyProgressChart.tsx`
