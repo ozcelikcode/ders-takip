@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, Play, Timer, Square, RotateCcw, CheckCircle, MoveRight, Edit, Pause, Trash2 } from 'lucide-react';
+import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, Play, Timer, Square, RotateCcw, CheckCircle, MoveRight, MoveLeft, Edit, Pause, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { StudySession, WeeklySchedule } from '../../types/planner';
 import { studySessionsAPI } from '../../services/api';
@@ -1279,66 +1279,123 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         editSession={editingSession}
       />
 
-      {/* Floating Drop Zone for Next Week */}
+      {/* Floating Drop Zones for Week Migration */}
       <AnimatePresence>
         {draggedSession && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, x: 50 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.9, x: 50 }}
-            className="fixed top-24 right-8 z-[100] w-64 p-6 rounded-2xl border-2 border-dashed border-primary-400 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center justify-center gap-3 shadow-2xl transition-all"
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.currentTarget.classList.add('border-primary-500', 'bg-primary-50/90', 'dark:bg-primary-900/40', 'scale-105');
-              e.dataTransfer.dropEffect = 'move';
-            }}
-            onDragLeave={(e) => {
-              e.currentTarget.classList.remove('border-primary-500', 'bg-primary-50/90', 'dark:bg-primary-900/40', 'scale-105');
-            }}
-            onDrop={async (e) => {
-              e.preventDefault();
-              if (draggedSession) {
-                const sessionStart = parseDate(draggedSession.startTime);
-                const sessionEnd = parseDate(draggedSession.endTime);
+          <div className="fixed top-24 right-8 z-[100] flex flex-col gap-4 items-end pointer-events-none">
+            {/* Move to Previous Week Drop Zone */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, x: 50 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.9, x: 50 }}
+              className="w-64 p-4 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center justify-center gap-2 shadow-xl transition-all pointer-events-auto"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.add('border-primary-500', 'bg-primary-50/90', 'dark:bg-primary-900/40', 'scale-105');
+                e.dataTransfer.dropEffect = 'move';
+              }}
+              onDragLeave={(e) => {
+                e.currentTarget.classList.remove('border-primary-500', 'bg-primary-50/90', 'dark:bg-primary-900/40', 'scale-105');
+              }}
+              onDrop={async (e) => {
+                e.preventDefault();
+                if (draggedSession) {
+                  const sessionStart = parseDate(draggedSession.startTime);
+                  const sessionEnd = parseDate(draggedSession.endTime);
 
-                const newStartTime = addWeeks(sessionStart, 1);
-                const newEndTime = addWeeks(sessionEnd, 1);
+                  const newStartTime = subWeeks(sessionStart, 1);
+                  const newEndTime = subWeeks(sessionEnd, 1);
 
-                try {
-                  toast.loading('Sonraki haftaya taşınıyor...', { id: 'move-next-week' });
-                  const response = await studySessionsAPI.updateSession(draggedSession.id.toString(), {
-                    startTime: newStartTime.toISOString(),
-                    endTime: newEndTime.toISOString(),
-                  });
+                  try {
+                    toast.loading('Önceki haftaya taşınıyor...', { id: 'move-prev-week' });
+                    const response = await studySessionsAPI.updateSession(draggedSession.id.toString(), {
+                      startTime: newStartTime.toISOString(),
+                      endTime: newEndTime.toISOString(),
+                    });
 
-                  if (response.data.success) {
-                    toast.success('Gelecek haftaya başarıyla taşındı', { id: 'move-next-week' });
-                    // Refresh all relevant views
-                    queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-                    queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-                    queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
-                    await refetch();
-                  } else {
-                    throw new Error(response.data.error?.message || 'Hata oluştu');
+                    if (response.data.success) {
+                      toast.success('Önceki haftaya başarıyla taşındı', { id: 'move-prev-week' });
+                      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+                      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+                      queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
+                      await refetch();
+                    } else {
+                      throw new Error(response.data.error?.message || 'Hata oluştu');
+                    }
+                  } catch (error: any) {
+                    toast.error(error.message || 'Taşıma hatası', { id: 'move-prev-week' });
                   }
-                } catch (error: any) {
-                  toast.error(error.message || 'Taşıma hatası', { id: 'move-next-week' });
                 }
-              }
-              setDraggedSession(null);
-            }}
-          >
-            <div className="p-4 rounded-full bg-primary-100/80 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400 shadow-inner group-hover:scale-110 transition-transform">
-              <MoveRight className="w-8 h-8 rotate-[-45deg]" />
-            </div>
-            <div className="text-center">
-              <p className="font-bold text-gray-900 dark:text-white text-lg">Gelecek Haftaya Taşı</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-1 max-w-[200px]">{draggedSession.title}</p>
-            </div>
-            <div className="mt-2 px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider">
-              Bırak ve Taşı
-            </div>
-          </motion.div>
+                setDraggedSession(null);
+              }}
+            >
+              <div className="p-3 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                <MoveLeft className="w-6 h-6 rotate-[45deg]" />
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-gray-700 dark:text-gray-200 text-base">Önceki Haftaya Taşı</p>
+              </div>
+            </motion.div>
+
+            {/* Move to Next Week Drop Zone */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, x: 50 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.9, x: 50 }}
+              transition={{ delay: 0.1 }}
+              className="w-64 p-6 rounded-2xl border-2 border-dashed border-primary-400 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center justify-center gap-3 shadow-2xl transition-all pointer-events-auto"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.add('border-primary-500', 'bg-primary-50/90', 'dark:bg-primary-900/40', 'scale-105');
+                e.dataTransfer.dropEffect = 'move';
+              }}
+              onDragLeave={(e) => {
+                e.currentTarget.classList.remove('border-primary-500', 'bg-primary-50/90', 'dark:bg-primary-900/40', 'scale-105');
+              }}
+              onDrop={async (e) => {
+                e.preventDefault();
+                if (draggedSession) {
+                  const sessionStart = parseDate(draggedSession.startTime);
+                  const sessionEnd = parseDate(draggedSession.endTime);
+
+                  const newStartTime = addWeeks(sessionStart, 1);
+                  const newEndTime = addWeeks(sessionEnd, 1);
+
+                  try {
+                    toast.loading('Sonraki haftaya taşınıyor...', { id: 'move-next-week' });
+                    const response = await studySessionsAPI.updateSession(draggedSession.id.toString(), {
+                      startTime: newStartTime.toISOString(),
+                      endTime: newEndTime.toISOString(),
+                    });
+
+                    if (response.data.success) {
+                      toast.success('Gelecek haftaya başarıyla taşındı', { id: 'move-next-week' });
+                      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+                      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+                      queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
+                      await refetch();
+                    } else {
+                      throw new Error(response.data.error?.message || 'Hata oluştu');
+                    }
+                  } catch (error: any) {
+                    toast.error(error.message || 'Taşıma hatası', { id: 'move-next-week' });
+                  }
+                }
+                setDraggedSession(null);
+              }}
+            >
+              <div className="p-4 rounded-full bg-primary-100/80 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400 shadow-inner group-hover:scale-110 transition-transform">
+                <MoveRight className="w-8 h-8 rotate-[-45deg]" />
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-gray-900 dark:text-white text-lg">Sonraki Haftaya Taşı</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-1 max-w-[200px]">{draggedSession.title}</p>
+              </div>
+              <div className="mt-2 px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider">
+                Bırak ve Taşı
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

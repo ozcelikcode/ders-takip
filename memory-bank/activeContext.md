@@ -40,10 +40,10 @@ Bu session'da Haftalık Planlayıcı (WeeklyPlanner) ve ilgili bileşenlerde ço
   - **Gelişmiş tooltip**: Tam gün adı ve tarih
 - **Hafta Değiştirme (Sürükle-Bırak)**: Görevleri navigasyon oklarına sürükleyerek hafta değiştirme
 
-#### 7. "Gelecek Haftaya Taşı" Drop Zone ✅
-- **Özellik**: Görev sürüklenirken ekranın sağ üst köşesinde beliren yüzen bir drop zone.
-- **İşlev**: Görev buraya bırakıldığında otomatik olarak 1 hafta sonrasına aynı gün ve saate taşınır.
-- **UX**: Backdrop blur, animasyonlu giriş/çıkış ve görsel geri bildirim.
+#### 7. "Haftalar Arası Taşı" Drop Zones ✅
+- **Özellik**: Görev sürüklenirken ekranın sağ üst köşesinde beliren iki adet yüzen drop zone ("Önceki Hafta" ve "Sonraki Hafta").
+- **İşlev**: Görev ilgili kutuya bırakıldığında otomatik olarak 1 hafta ileriye veya geriye, aynı gün ve saate taşınır.
+- **UX**: Backdrop blur, animasyonlu giriş/çıkış, farklı renk kodları ve görsel geri bildirim.
 
 #### 8. Session Kartı Hover ve Resize İyileştirmesi ✅
 - **Sorun**: Resize handle üzerindeki şeffaf beyaz bandın "çirkin" görünmesi.
