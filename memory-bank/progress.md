@@ -39,6 +39,8 @@
   - [x] Görev boyutunu otomatik ayarlama
   - [x] Context menu (sağ click) işlemleri
   - [x] Race condition handling
+  - [x] **Gelecek Haftaya Taşı (Drop Zone)**: Ekranın sağ üstünde yüzen drop zone ile kolay taşıma
+  - [x] **Gelişmiş Resize UX**: Temiz hover görünümü ve akıcı boyutlandırma
 
 - [x] **Pomodoro Timer**
   - [x] Özelleştirilebilir çalışma süreleri

@@ -14,6 +14,16 @@ import MoveSessionModal from './MoveSessionModal';
 import CreateSessionModal from './CreateSessionModal';
 import { isSessionMissed, canStartSession, getSessionTextStyle, formatTime } from '../../utils/sessionHelpers';
 
+// Robust date parsing for various formats
+const parseDate = (dateStr: string | Date): Date => {
+  if (dateStr instanceof Date) return dateStr;
+  const parsed = parseISO(dateStr);
+  if (!isNaN(parsed.getTime())) return parsed;
+  // Fallback for non-standard formats (e.g., with spaces)
+  const fallback = new Date(dateStr.replace(' ', 'T'));
+  return isNaN(fallback.getTime()) ? new Date(dateStr) : fallback;
+};
+
 interface WeeklyPlannerProps {
   onCreateSession?: (date: Date, hour: number) => void;
 }
@@ -120,7 +130,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     });
 
     sessions?.forEach((session) => {
-      const sessionDate = parseISO(session.startTime);
+      const sessionDate = parseDate(session.startTime);
       const dayIndex = (sessionDate.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
       const dayKey = `day-${dayIndex}`;
 
@@ -146,7 +156,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       const overdueSessions = sessionsData.filter(
         (session) =>
           session.status === 'in_progress' &&
-          parseISO(session.endTime) < now
+          parseDate(session.endTime) < now
       );
 
       if (overdueSessions.length > 0) {
@@ -169,7 +179,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     const daySessions = weeklySchedule[dayKey] || [];
 
     return daySessions.filter((session) => {
-      const sessionStart = parseISO(session.startTime);
+      const sessionStart = parseDate(session.startTime);
       const sessionHour = sessionStart.getHours();
       const sessionMinutes = sessionStart.getMinutes();
       const sessionStartInMinutes = sessionHour * 60 + sessionMinutes;
@@ -189,8 +199,8 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     const slotEndInMinutes = (hour + 1) * 60;
 
     return daySessions.some((session) => {
-      const sessionStart = parseISO(session.startTime);
-      const sessionEnd = parseISO(session.endTime);
+      const sessionStart = parseDate(session.startTime);
+      const sessionEnd = parseDate(session.endTime);
 
       const sessionStartInMinutes = sessionStart.getHours() * 60 + sessionStart.getMinutes();
       const sessionEndInMinutes = sessionEnd.getHours() * 60 + sessionEnd.getMinutes();
@@ -373,7 +383,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       toast.loading('Oturum taşınıyor...', { id: 'moving-session' });
 
       // Keep the same time as original session
-      const sessionStart = parseISO(moveModalSession.startTime);
+      const sessionStart = parseDate(moveModalSession.startTime);
       const newStartTime = setHours(setMinutes(targetDate, sessionStart.getMinutes()), sessionStart.getHours());
 
       const sessionDuration = moveModalSession.duration;
@@ -413,79 +423,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     }
   };
 
-  const handleSessionClick = async (e: React.MouseEvent, session: StudySession) => {
-    e.stopPropagation();
-
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentDay = (now.getDay() + 6) % 7; // Convert to Monday=0
-
-    const sessionStartTime = parseISO(session.startTime);
-    const sessionHour = sessionStartTime.getHours();
-    const sessionDay = (sessionStartTime.getDay() + 6) % 7;
-
-    // Check if session is in current time slot
-    const isCurrentTimeSlot = sessionDay === currentDay && sessionHour === currentHour;
-
-    if (session.status === 'in_progress') {
-      // If session is in progress, show option to complete it
-      setConfirmDialog({
-        isOpen: true,
-        title: 'Oturumu Sonlandır',
-        message: 'Bu oturumu sonlandırmak istiyor musunuz?',
-        type: 'warning',
-        onConfirm: async () => {
-          try {
-            await studySessionsAPI.completeSession(session.id.toString());
-            toast.success('Çalışma seansı tamamlandı');
-            triggerConfetti();
-            queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-            queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-            refetch();
-          } catch (error) {
-            toast.error('Seans tamamlanırken hata oluştu');
-          }
-        },
-      });
-      return;
-    }
-
-    if (session.status === 'completed') {
-      // Allow restarting completed sessions
-      setConfirmDialog({
-        isOpen: true,
-        title: 'Oturumu Tekrar Başlat',
-        message: 'Bu tamamlanmış oturumu tekrar planlanmış duruma getirmek istiyor musunuz?',
-        type: 'info',
-        onConfirm: async () => {
-          try {
-            await studySessionsAPI.updateSession(session.id.toString(), {
-              status: 'planned',
-            });
-            toast.success('Oturum tekrar planlanmış duruma getirildi');
-            queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-            queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-            refetch();
-          } catch (error) {
-            toast.error('Oturum güncellenirken hata oluştu');
-          }
-        },
-      });
-      return;
-    }
-
-    // Vakti geçmiş oturumlar başlatılamaz
-    if (!canStartSession(session)) {
-      toast.error('Bu oturum için zaman geçmiş. Lütfen oturum saatini güncelleyin.');
-      return;
-    }
-
-    // Check if trying to start a session not in current time slot
-    if (!isCurrentTimeSlot) {
-      toast.error('Oturum sadece şu anki saat diliminde başlatılabilir');
-      return;
-    }
-
+  const handleSessionClick = async (session: StudySession) => {
     if (session.sessionType === 'pomodoro') {
       setActiveSession(session);
       setIsPomodoroModalOpen(true);
@@ -638,7 +576,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         newHeight = Math.max(5, newHeight);
         let newDuration = Math.max(5, Math.round(newHeight / 5) * 5);
 
-        const sessionStart = parseISO(resizingSession.session.startTime);
+        const sessionStart = parseDate(resizingSession.session.startTime);
         const newEndTime = new Date(sessionStart);
         newEndTime.setMinutes(sessionStart.getMinutes() + newDuration);
 
@@ -690,9 +628,9 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     }
   };
 
-  const getStatusColor = (status: string, sessionStartTime: string, sessionEndTime: string) => {
+  const getStatusColor = (status: string, _sessionStartTime: string, sessionEndTime: string) => {
     const now = new Date();
-    const sessionEnd = parseISO(sessionEndTime);
+    const sessionEnd = parseDate(sessionEndTime);
     const isPast = sessionEnd < now;
 
     switch (status) {
@@ -758,6 +696,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
               e.preventDefault();
               if (draggedSession) {
                 navigateWeek('prev');
+                setDraggedSession(null);
                 toast('Önceki haftaya geçildi', { icon: '⬅️', duration: 1000 });
               }
               setDragOverArrow(null);
@@ -788,6 +727,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
               e.preventDefault();
               if (draggedSession) {
                 navigateWeek('next');
+                setDraggedSession(null);
                 toast('Sonraki haftaya geçildi', { icon: '➡️', duration: 1000 });
               }
               setDragOverArrow(null);
@@ -904,7 +844,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                       <AnimatePresence>
                         {sessions.map((session, sessionIndex) => {
                           // Calculate session start time within the hour (in minutes)
-                          const sessionStart = parseISO(session.startTime);
+                          const sessionStart = parseDate(session.startTime);
                           const sessionMinutes = sessionStart.getMinutes();
 
                           // Slot height is 60px per hour (min-h-[60px])
@@ -941,6 +881,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                               }}
                               draggable={session.status !== 'in_progress' && session.status !== 'completed'}
                               onDragStart={(e) => handleDragStart(e as any, session)}
+                              onDragEnd={() => setDraggedSession(null)}
                               onContextMenu={(e) => handleContextMenu(e, session)}
                             >
                               {/* Time badge - start and end time - Only show if height >= 40px */}
@@ -1115,7 +1056,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                               {/* Resize handle - bottom border - always show for resizable sessions */}
                               {session.status !== 'in_progress' && session.status !== 'completed' && (
                                 <div
-                                  className="absolute bottom-0 left-0 right-0 cursor-ns-resize hover:bg-white/20 transition-colors"
+                                  className="absolute bottom-0 left-0 right-0 cursor-ns-resize rounded-b-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors group/resize"
                                   style={{
                                     zIndex: 100,
                                     height: sessionHeight < 20 ? `${Math.max(sessionHeight, 5)}px` : '12px',
@@ -1131,7 +1072,10 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                   }}
                                   draggable={false}
                                   title="Süreni ayarlamak için sürükle"
-                                />
+                                >
+                                  {/* Subtle resize indicator line */}
+                                  <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-white/30 rounded-full opacity-0 group-hover/resize:opacity-100 transition-opacity" />
+                                </div>
                               )}
                             </motion.div>
                           );
@@ -1142,7 +1086,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                       {resizePreview && sessions.some(s => s.id === resizePreview.session.id) && (
                         (() => {
                           const session = resizePreview.session;
-                          const sessionStart = parseISO(session.startTime);
+                          const sessionStart = parseDate(session.startTime);
                           const sessionMinutes = sessionStart.getMinutes();
                           const slotHeight = 60;
                           const topPosition = (sessionMinutes / 60) * slotHeight;
@@ -1238,7 +1182,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         onConfirm={confirmDialog.onConfirm}
         title={confirmDialog.title}
         message={confirmDialog.message}
-        type={confirmDialog.type}
+        type={confirmDialog.type || 'info'}
       />
 
       {/* Pomodoro Timer Modal */}
@@ -1321,7 +1265,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         onClose={() => setMoveModalSession(null)}
         onSelectDate={handleMoveToDate}
         sessionTitle={moveModalSession?.title || ''}
-        currentDate={moveModalSession ? parseISO(moveModalSession.startTime) : new Date()}
+        currentDate={moveModalSession ? parseDate(moveModalSession.startTime) : new Date()}
       />
 
       {/* Edit Session Modal */}
@@ -1334,6 +1278,69 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         }}
         editSession={editingSession}
       />
+
+      {/* Floating Drop Zone for Next Week */}
+      <AnimatePresence>
+        {draggedSession && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, x: 50 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.9, x: 50 }}
+            className="fixed top-24 right-8 z-[100] w-64 p-6 rounded-2xl border-2 border-dashed border-primary-400 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center justify-center gap-3 shadow-2xl transition-all"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.currentTarget.classList.add('border-primary-500', 'bg-primary-50/90', 'dark:bg-primary-900/40', 'scale-105');
+              e.dataTransfer.dropEffect = 'move';
+            }}
+            onDragLeave={(e) => {
+              e.currentTarget.classList.remove('border-primary-500', 'bg-primary-50/90', 'dark:bg-primary-900/40', 'scale-105');
+            }}
+            onDrop={async (e) => {
+              e.preventDefault();
+              if (draggedSession) {
+                const sessionStart = parseDate(draggedSession.startTime);
+                const sessionEnd = parseDate(draggedSession.endTime);
+
+                const newStartTime = addWeeks(sessionStart, 1);
+                const newEndTime = addWeeks(sessionEnd, 1);
+
+                try {
+                  toast.loading('Sonraki haftaya taşınıyor...', { id: 'move-next-week' });
+                  const response = await studySessionsAPI.updateSession(draggedSession.id.toString(), {
+                    startTime: newStartTime.toISOString(),
+                    endTime: newEndTime.toISOString(),
+                  });
+
+                  if (response.data.success) {
+                    toast.success('Gelecek haftaya başarıyla taşındı', { id: 'move-next-week' });
+                    // Refresh all relevant views
+                    queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+                    queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+                    queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
+                    await refetch();
+                  } else {
+                    throw new Error(response.data.error?.message || 'Hata oluştu');
+                  }
+                } catch (error: any) {
+                  toast.error(error.message || 'Taşıma hatası', { id: 'move-next-week' });
+                }
+              }
+              setDraggedSession(null);
+            }}
+          >
+            <div className="p-4 rounded-full bg-primary-100/80 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400 shadow-inner group-hover:scale-110 transition-transform">
+              <MoveRight className="w-8 h-8 rotate-[-45deg]" />
+            </div>
+            <div className="text-center">
+              <p className="font-bold text-gray-900 dark:text-white text-lg">Gelecek Haftaya Taşı</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-1 max-w-[200px]">{draggedSession.title}</p>
+            </div>
+            <div className="mt-2 px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider">
+              Bırak ve Taşı
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

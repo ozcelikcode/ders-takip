@@ -37,9 +37,26 @@ Bu session'da Haftalık Planlayıcı (WeeklyPlanner) ve ilgili bileşenlerde ço
   - Günler Pzt→Paz sabit sıralama
   - Gradient renk (`#8b5cf6` → `#6366f1`)
   - `useMemo` ile optimizasyon
-  - Gelişmiş tooltip (tam gün adı ve tarih)
+  - **Gelişmiş tooltip**: Tam gün adı ve tarih
+- **Hafta Değiştirme (Sürükle-Bırak)**: Görevleri navigasyon oklarına sürükleyerek hafta değiştirme
 
-### Değiştirilen Dosyalar
+#### 7. "Gelecek Haftaya Taşı" Drop Zone ✅
+- **Özellik**: Görev sürüklenirken ekranın sağ üst köşesinde beliren yüzen bir drop zone.
+- **İşlev**: Görev buraya bırakıldığında otomatik olarak 1 hafta sonrasına aynı gün ve saate taşınır.
+- **UX**: Backdrop blur, animasyonlu giriş/çıkış ve görsel geri bildirim.
+
+#### 8. Session Kartı Hover ve Resize İyileştirmesi ✅
+- **Sorun**: Resize handle üzerindeki şeffaf beyaz bandın "çirkin" görünmesi.
+- **Çözüm**:
+  - Şeffaf beyaz band kaldırıldı.
+  - Sadece hover durumunda görünen çok ince bir indikasyon çizgisi eklendi.
+  - Resize handle'a rounded corners eklendi (`rounded-b-xl`).
+  - Cursor değişimi korunarak temiz bir görünüm sağlandı.
+
+#### 9. Stabilite ve Bug Fix'ler ✅
+- **Tarih Formatı Hatası**: Bazı backend sürümlerinden gelen boşluklu tarih formatlarının `parseISO` tarafından reddedilmesi (Invalid Date) ve görevlerin görünmez olması düzeltildi (`parseDate` helper eklendi).
+- **Stuck Drag State**: Görev sürüklenirken iptal edilirse veya navigasyon oklarına bırakılırsa `draggedSession` state'inin takılı kalması ve görevlerin soluk görünmesi düzeltildi (`onDragEnd` ve ek temizlik logicleri eklendi).
+- **Syntax Fix**: Yanlışlıkla bozulan bileşen yapısı ve dangling handler'lar düzeltildi.
 - `frontend/src/components/planner/WeeklyPlanner.tsx`
 - `frontend/src/components/planner/GoalsOverview.tsx`
 - `frontend/src/components/dashboard/WeeklyProgressChart.tsx`
@@ -51,7 +68,10 @@ Bu session'da Haftalık Planlayıcı (WeeklyPlanner) ve ilgili bileşenlerde ço
 - ✅ User authentication (login/register/logout)
 - ✅ Kategori ve ders yönetimi (tüm kullanıcılar için)
 - ✅ Konu oluşturma ve yönetimi
-- ✅ Haftalık planlayıcı (drag & drop)
+- ✅ User authentication (login/register/logout)
+- ✅ Kategori ve ders yönetimi (tüm kullanıcılar için)
+- ✅ Konu oluşturma ve yönetimi
+- ✅ Haftalık planlayıcı (drag & drop, week migration, resize UX)
 - ✅ Pomodoro timer
 - ✅ İstatistik ve grafikler
 - ✅ Bildirim sistemi
