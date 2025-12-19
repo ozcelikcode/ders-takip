@@ -13,6 +13,56 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
     <title>Görev Takip Sistemi</title>
+
+    <!-- Theme Initialization Script -->
+    <script>
+      (function() {
+        try {
+          const root = document.documentElement;
+          
+          // 1. Apply Dark/Light Mode
+          const userPrefsStr = localStorage.getItem('user-preferences-storage');
+          let effectiveTheme = 'light';
+          if (userPrefsStr) {
+            const userPrefs = JSON.parse(userPrefsStr).state.preferences;
+            if (userPrefs.theme === 'dark' || (userPrefs.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+              effectiveTheme = 'dark';
+            }
+          }
+          if (effectiveTheme === 'dark') root.classList.add('dark');
+          else root.classList.remove('dark');
+
+          // 2. Apply Primary Color
+          let primaryColor = null;
+          
+          // User preference takes priority
+          if (userPrefsStr) {
+            const userPrefs = JSON.parse(userPrefsStr).state.preferences;
+            if (userPrefs.customPrimaryColor) primaryColor = userPrefs.customPrimaryColor;
+          }
+          
+          // Fallback to site settings
+          if (!primaryColor) {
+            const siteSettingsStr = localStorage.getItem('settings-storage');
+            if (siteSettingsStr) {
+              const siteSettings = JSON.parse(siteSettingsStr).state.settings;
+              if (siteSettings.primaryColor) primaryColor = siteSettings.primaryColor;
+            }
+          }
+
+          if (primaryColor) {
+            const hexToRgb = (hex) => {
+              const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+              return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+            };
+            const rgb = hexToRgb(primaryColor);
+            if (rgb) root.style.setProperty('--color-primary', `${rgb.r} ${rgb.g} ${rgb.b}`);
+          }
+        } catch (e) {
+          console.error('Theme init error:', e);
+        }
+      })();
+    </script>
   </head>
   <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     <div id="root"></div>

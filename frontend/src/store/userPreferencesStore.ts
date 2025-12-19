@@ -38,7 +38,6 @@ interface UserPreferencesState {
 const defaultPreferences: UserPreferences = {
   // Görünüm
   theme: 'system',
-  customPrimaryColor: undefined,
 
   // Bildirimler
   emailNotifications: true,
@@ -106,10 +105,10 @@ export const useUserPreferencesStore = create<UserPreferencesState>()(
             const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
             return result
               ? {
-                  r: parseInt(result[1], 16),
-                  g: parseInt(result[2], 16),
-                  b: parseInt(result[3], 16),
-                }
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16),
+              }
               : null;
           };
 
@@ -125,6 +124,11 @@ export const useUserPreferencesStore = create<UserPreferencesState>()(
       partialize: (state) => ({
         preferences: state.preferences,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.applyTheme();
+        }
+      },
     }
   )
 );
