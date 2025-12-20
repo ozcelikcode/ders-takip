@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Op } from 'sequelize';
 import { Course, Topic, Category } from '../models';
 
 export const getCourses = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -6,6 +7,8 @@ export const getCourses = async (req: Request, res: Response, next: NextFunction
     const { categoryId, isActive = 'true', includeTopics = 'false' } = req.query;
 
     const where: any = {};
+    const userId = (req as any).user?.id;
+    const userRole = (req as any).user?.role;
 
     if (categoryId) {
       where.categoryId = categoryId;
@@ -13,6 +16,14 @@ export const getCourses = async (req: Request, res: Response, next: NextFunction
 
     if (isActive !== undefined) {
       where.isActive = isActive === 'true';
+    }
+
+    // Admins see all courses, students see their own + global ones
+    if (userRole !== 'admin') {
+      where[Op.or] = [
+        { userId: userId },
+        { isGlobal: true }
+      ];
     }
 
     const include: any[] = [
@@ -97,7 +108,9 @@ export const getCourse = async (req: Request, res: Response, next: NextFunction)
 
 export const createCourse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { name, categoryId, description, color, icon, order } = req.body;
+    const { name, categoryId, description, color, icon, order, isGlobal = false } = req.body;
+    const userId = (req as any).user?.id;
+    const userRole = (req as any).user?.role;
 
     // Check if category exists
     const category = await Category.findByPk(categoryId);
@@ -110,7 +123,14 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
     }
 
     const existingCourse = await Course.findOne({
-      where: { name, categoryId },
+      where: {
+        name,
+        categoryId,
+        [Op.or]: [
+          { userId: userId },
+          { isGlobal: true }
+        ]
+      },
     });
 
     if (existingCourse) {
@@ -128,6 +148,8 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       color,
       icon,
       order,
+      userId,
+      isGlobal: userRole === 'admin' ? isGlobal : false
     });
 
     // Fetch course with category
@@ -152,7 +174,9 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
 export const updateCourse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, categoryId, description, color, icon, order, isActive } = req.body;
+    const { name, categoryId, description, color, icon, order, isActive, isGlobal } = req.body;
+    const userId = (req as any).user?.id;
+    const userRole = (req as any).user?.role;
 
     const course = await Course.findByPk(id);
 
@@ -160,6 +184,24 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
       res.status(404).json({
         success: false,
         error: { message: 'Ders bulunamadı' },
+      });
+      return;
+    }
+
+    // Permission check: Global courses can only be updated by admins.
+    // User-specific courses can only be updated by the owner or admin.
+    if (course.isGlobal && userRole !== 'admin') {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Zorunlu dersler öğrenciler tarafından güncellenemez' },
+      });
+      return;
+    }
+
+    if (!course.isGlobal && course.userId !== userId && userRole !== 'admin') {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Bu dersi güncelleme yetkiniz yok' },
       });
       return;
     }
@@ -183,6 +225,7 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
     if (icon !== undefined) course.icon = icon;
     if (order) course.order = order;
     if (isActive !== undefined) course.isActive = isActive;
+    if (isGlobal !== undefined && userRole === 'admin') course.isGlobal = isGlobal;
 
     await course.save();
 
@@ -208,6 +251,8 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
 export const deleteCourse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
+    const userId = (req as any).user?.id;
+    const userRole = (req as any).user?.role;
 
     const course = await Course.findByPk(id);
 
@@ -215,6 +260,23 @@ export const deleteCourse = async (req: Request, res: Response, next: NextFuncti
       res.status(404).json({
         success: false,
         error: { message: 'Ders bulunamadı' },
+      });
+      return;
+    }
+
+    // Permission check
+    if (course.isGlobal && userRole !== 'admin') {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Zorunlu dersler öğrenciler tarafından silinemez' },
+      });
+      return;
+    }
+
+    if (!course.isGlobal && course.userId !== userId && userRole !== 'admin') {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Bu dersi silme yetkiniz yok' },
       });
       return;
     }

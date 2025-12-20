@@ -21,7 +21,11 @@ export const connectDB = async (): Promise<void> => {
     console.log('✅ SQLite veritabanı bağlantısı başarılı');
 
     // Sync all models
-    await sequelize.sync();
+    // In development with SQLite, we might need to disable foreign keys for alter: true to work
+    await sequelize.query('PRAGMA foreign_keys = OFF');
+    await sequelize.sync({ alter: true });
+    await sequelize.query('PRAGMA foreign_keys = ON');
+
     console.log('✅ Database modelleri senkronize edildi');
   } catch (error) {
     console.error('❌ SQLite bağlantı hatası:', error);

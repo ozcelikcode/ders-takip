@@ -19,9 +19,9 @@ router.get('/', getTopics);
 router.get('/:id', getTopic);
 
 // Admin-only routes
-router.post('/', authorize('admin'), createTopic);
-router.put('/:id', authorize('admin'), updateTopic);
-router.delete('/:id', authorize('admin'), deleteTopic);
-router.put('/course/:courseId/reorder', authorize('admin'), reorderTopics);
+router.post('/', createTopic);
+router.put('/:id', updateTopic);
+router.delete('/:id', deleteTopic);
+router.put('/course/:courseId/reorder', reorderTopics);
 
 export default router;

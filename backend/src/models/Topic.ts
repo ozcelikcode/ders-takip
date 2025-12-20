@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
+import { Course } from './Course';
 
 interface TopicAttributes {
   id: number;
@@ -12,9 +13,10 @@ interface TopicAttributes {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  course?: Course;
 }
 
-interface TopicCreationAttributes extends Optional<TopicAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description' | 'isActive'> {}
+interface TopicCreationAttributes extends Optional<TopicAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description' | 'isActive'> { }
 
 export class Topic extends Model<TopicAttributes, TopicCreationAttributes> implements TopicAttributes {
   public id!: number;
@@ -28,6 +30,7 @@ export class Topic extends Model<TopicAttributes, TopicCreationAttributes> imple
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
+  public readonly course?: Course;
 }
 
 Topic.init(

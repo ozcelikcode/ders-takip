@@ -11,12 +11,14 @@ interface CourseAttributes {
   icon?: string;
   order: number;
   isActive: boolean;
+  userId?: number | null;
+  isGlobal: boolean;
   createdAt: Date;
   updatedAt: Date;
   category?: Category;
 }
 
-interface CourseCreationAttributes extends Optional<CourseAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description' | 'icon' | 'isActive'> {}
+interface CourseCreationAttributes extends Optional<CourseAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description' | 'icon' | 'isActive' | 'userId' | 'isGlobal'> { }
 
 export class Course extends Model<CourseAttributes, CourseCreationAttributes> implements CourseAttributes {
   public id!: number;
@@ -27,6 +29,8 @@ export class Course extends Model<CourseAttributes, CourseCreationAttributes> im
   public icon?: string;
   public order!: number;
   public isActive!: boolean;
+  public userId?: number | null;
+  public isGlobal!: boolean;
   public category?: Category;
 
   public readonly createdAt!: Date;
@@ -85,6 +89,21 @@ Course.init(
       allowNull: false,
       defaultValue: true,
     },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'users',
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+    },
+    isGlobal: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -101,6 +120,8 @@ Course.init(
     indexes: [
       { fields: ['name'] },
       { fields: ['categoryId'] },
+      { fields: ['userId'] },
+      { fields: ['isGlobal'] },
       { fields: ['order'] },
       { fields: ['isActive'] },
       { fields: ['categoryId', 'order'] },

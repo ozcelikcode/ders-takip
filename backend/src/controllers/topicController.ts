@@ -111,6 +111,26 @@ export const createTopic = async (req: Request, res: Response, next: NextFunctio
       return;
     }
 
+    const userId = (req as any).user?.id;
+    const userRole = (req as any).user?.role;
+
+    // Permission check
+    if (course.isGlobal && userRole !== 'admin') {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Zorunlu derslere yeni konu ekleyemezsiniz' },
+      });
+      return;
+    }
+
+    if (!course.isGlobal && course.userId !== userId && userRole !== 'admin') {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Bu derse konu ekleme yetkiniz yok' },
+      });
+      return;
+    }
+
     // Check if topic with same name exists in the course
     const existingTopic = await Topic.findOne({
       where: { name, courseId },
@@ -200,12 +220,43 @@ export const updateTopic = async (req: Request, res: Response, next: NextFunctio
     const { id } = req.params;
     const { name, description, estimatedTime, difficulty, order, isActive } = req.body;
 
-    const topic = await Topic.findByPk(id);
+    const topic = await Topic.findByPk(id, {
+      include: [{ model: Course, as: 'course' }]
+    });
 
     if (!topic) {
       res.status(404).json({
         success: false,
         error: { message: 'Konu bulunamadı' },
+      });
+      return;
+    }
+
+    const userId = (req as any).user?.id;
+    const userRole = (req as any).user?.role;
+    const course = topic.course as any;
+
+    if (!course) {
+      res.status(404).json({
+        success: false,
+        error: { message: 'Konunun dersi bulunamadı' },
+      });
+      return;
+    }
+
+    // Permission check
+    if (course.isGlobal && userRole !== 'admin') {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Zorunlu derslerin konularını güncelleyemezsiniz' },
+      });
+      return;
+    }
+
+    if (!course.isGlobal && course.userId !== userId && userRole !== 'admin') {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Bu konuyu güncelleme yetkiniz yok' },
       });
       return;
     }
@@ -298,12 +349,43 @@ export const deleteTopic = async (req: Request, res: Response, next: NextFunctio
   try {
     const { id } = req.params;
 
-    const topic = await Topic.findByPk(id);
+    const topic = await Topic.findByPk(id, {
+      include: [{ model: Course, as: 'course' }]
+    });
 
     if (!topic) {
       res.status(404).json({
         success: false,
         error: { message: 'Konu bulunamadı' },
+      });
+      return;
+    }
+
+    const userId = (req as any).user?.id;
+    const userRole = (req as any).user?.role;
+    const course = topic.course as any;
+
+    if (!course) {
+      res.status(404).json({
+        success: false,
+        error: { message: 'Konunun dersi bulunamadı' },
+      });
+      return;
+    }
+
+    // Permission check
+    if (course.isGlobal && userRole !== 'admin') {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Zorunlu derslerin konularını silemezsiniz' },
+      });
+      return;
+    }
+
+    if (!course.isGlobal && course.userId !== userId && userRole !== 'admin') {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Bu konuyu silme yetkiniz yok' },
       });
       return;
     }
@@ -340,6 +422,26 @@ export const reorderTopics = async (req: Request, res: Response, next: NextFunct
       res.status(404).json({
         success: false,
         error: { message: 'Ders bulunamadı' },
+      });
+      return;
+    }
+
+    const userId = (req as any).user?.id;
+    const userRole = (req as any).user?.role;
+
+    // Permission check
+    if (course.isGlobal && userRole !== 'admin') {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Zorunlu derslerin konu sıralamasını değiştiremezsiniz' },
+      });
+      return;
+    }
+
+    if (!course.isGlobal && course.userId !== userId && userRole !== 'admin') {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Bu dersin konu sıralamasını değiştirme yetkiniz yok' },
       });
       return;
     }

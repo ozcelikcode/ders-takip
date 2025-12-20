@@ -54,6 +54,17 @@ StudySession.belongsTo(User, {
   as: 'user',
 });
 
+User.hasMany(Course, {
+  foreignKey: 'userId',
+  as: 'courses',
+  onDelete: 'SET NULL',
+});
+
+Course.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user',
+});
+
 // Plan associations
 Plan.hasMany(StudySession, {
   foreignKey: 'planId',

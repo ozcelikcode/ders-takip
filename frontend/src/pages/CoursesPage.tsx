@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Clock, Target, TrendingUp, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, Dna, Landmark, Map, Brain, Heart, BookText, Search, X, Plus, Tag } from 'lucide-react';
+import { BookOpen, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, Dna, Landmark, Map, Brain, Heart, BookText, Search, X, Plus, Tag, TrendingUp } from 'lucide-react';
 import { coursesAPI } from '../services/api';
 import CategoryManagementModal from '../components/modals/CategoryManagementModal';
 import CourseCreateModal from '../components/modals/CourseCreateModal';
@@ -33,6 +33,8 @@ interface Course {
   icon: string;
   order: number;
   isActive: boolean;
+  isGlobal: boolean;
+  userId?: number | null;
   topics?: Topic[];
 }
 
@@ -240,6 +242,11 @@ const CoursesPage = () => {
                           }}
                         >
                           {course.category.name}
+                        </span>
+                      )}
+                      {course.isGlobal && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800 uppercase tracking-wider">
+                          Zorunlu
                         </span>
                       )}
                     </div>

@@ -17,11 +17,11 @@ router.get('/', getCourses);
 
 router.get('/:id', getCourse);
 
-router.post('/', authorize('admin'), createCourse);
+router.post('/', createCourse);
 
-router.put('/:id', authorize('admin'), updateCourse);
+router.put('/:id', updateCourse);
 
-router.delete('/:id', authorize('admin'), deleteCourse);
+router.delete('/:id', deleteCourse);
 
 router.get('/:id/topics', getCourseTopics);
 

@@ -55,6 +55,9 @@ interface Course {
   description: string;
   color: string;
   icon: string;
+  isActive: boolean;
+  isGlobal: boolean;
+  userId?: number | null;
   topics?: Topic[];
 }
 
@@ -143,13 +146,6 @@ const CourseDetailPage = () => {
     }
   };
 
-  const getStatusIcon = (status: TopicStatus) => {
-    switch (status) {
-      case 'completed': return <CheckCircle2 className="h-5 w-5 text-green-600" />;
-      case 'in_progress': return <RotateCcw className="h-5 w-5 text-yellow-600" />;
-      default: return <Circle className="h-5 w-5 text-gray-400" />;
-    }
-  };
 
   const getStatusColor = (status: TopicStatus) => {
     switch (status) {
@@ -267,6 +263,8 @@ const CourseDetailPage = () => {
   const progressPercentage = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
   const filteredAndSortedTopics = sortTopics(filterTopics(course.topics || []));
 
+  const canEdit = isAdmin || (!course.isGlobal && course.userId === user?.id);
+
   return (
     <div className="space-y-8">
       {/* Back Button */}
@@ -351,13 +349,15 @@ const CourseDetailPage = () => {
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div className="flex items-center gap-3">
           {/* Add Topic Button */}
-          <button
-            onClick={() => setIsCreateTopicModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Konu Ekle
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => setIsCreateTopicModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Konu Ekle
+            </button>
+          )}
 
           {/* Filter */}
           <div className="flex items-center space-x-2">
@@ -401,8 +401,8 @@ const CourseDetailPage = () => {
 
       {/* Topics List */}
       <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="topics" isDropDisabled={!isAdmin || sortBy !== 'order'}>
-          {(provided, snapshot) => (
+        <Droppable droppableId="topics" isDropDisabled={!canEdit || sortBy !== 'order'}>
+          {(provided) => (
             <div
               {...provided.droppableProps}
               ref={provided.innerRef}
@@ -413,19 +413,18 @@ const CourseDetailPage = () => {
                   key={topic.id}
                   draggableId={topic.id.toString()}
                   index={index}
-                  isDragDisabled={!isAdmin || sortBy !== 'order'}
+                  isDragDisabled={!canEdit || sortBy !== 'order'}
                 >
                   {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.draggableProps}
-                      className={`border rounded-lg p-4 transition-all duration-200 ${getStatusColor(getTopicStatus(topic.id))} ${
-                        snapshot.isDragging ? 'shadow-lg ring-2 ring-primary-500' : ''
-                      }`}
+                      className={`border rounded-lg p-4 transition-all duration-200 ${getStatusColor(getTopicStatus(topic.id))} ${snapshot.isDragging ? 'shadow-lg ring-2 ring-primary-500' : ''
+                        }`}
                     >
                       <div className="flex items-center justify-between">
                         {/* Drag Handle */}
-                        {isAdmin && sortBy === 'order' && (
+                        {canEdit && sortBy === 'order' && (
                           <div
                             {...provided.dragHandleProps}
                             className="mr-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -441,33 +440,30 @@ const CourseDetailPage = () => {
                           <div className="flex space-x-1">
                             <button
                               onClick={() => updateTopicStatus(topic.id, 'not_started')}
-                              className={`p-1 rounded transition-colors ${
-                                getTopicStatus(topic.id) === 'not_started'
-                                  ? 'bg-gray-100 dark:bg-gray-700'
-                                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                              }`}
+                              className={`p-1 rounded transition-colors ${getTopicStatus(topic.id) === 'not_started'
+                                ? 'bg-gray-100 dark:bg-gray-700'
+                                : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                                }`}
                               title="Başlanmadı"
                             >
                               <Circle className="h-4 w-4 text-gray-400" />
                             </button>
                             <button
                               onClick={() => updateTopicStatus(topic.id, 'in_progress')}
-                              className={`p-1 rounded transition-colors ${
-                                getTopicStatus(topic.id) === 'in_progress'
-                                  ? 'bg-yellow-100 dark:bg-yellow-900/20'
-                                  : 'hover:bg-yellow-100 dark:hover:bg-yellow-900/20'
-                              }`}
+                              className={`p-1 rounded transition-colors ${getTopicStatus(topic.id) === 'in_progress'
+                                ? 'bg-yellow-100 dark:bg-yellow-900/20'
+                                : 'hover:bg-yellow-100 dark:hover:bg-yellow-900/20'
+                                }`}
                               title="Devam Ediyor"
                             >
                               <RotateCcw className="h-4 w-4 text-yellow-600" />
                             </button>
                             <button
                               onClick={() => updateTopicStatus(topic.id, 'completed')}
-                              className={`p-1 rounded transition-colors ${
-                                getTopicStatus(topic.id) === 'completed'
-                                  ? 'bg-green-100 dark:bg-green-900/20'
-                                  : 'hover:bg-green-100 dark:hover:bg-green-900/20'
-                              }`}
+                              className={`p-1 rounded transition-colors ${getTopicStatus(topic.id) === 'completed'
+                                ? 'bg-green-100 dark:bg-green-900/20'
+                                : 'hover:bg-green-100 dark:hover:bg-green-900/20'
+                                }`}
                               title="Tamamlandı"
                             >
                               <CheckCircle2 className="h-4 w-4 text-green-600" />

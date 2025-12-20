@@ -30,6 +30,8 @@ interface Course {
   icon?: string;
   order: number;
   isActive: boolean;
+  isGlobal: boolean;
+  userId?: number | null;
 }
 
 const courseSchema = z.object({
@@ -40,6 +42,7 @@ const courseSchema = z.object({
   icon: z.string().optional(),
   order: z.number().min(1, 'Sıra en az 1 olmalıdır'),
   isActive: z.boolean(),
+  isGlobal: z.boolean(),
 });
 
 type CourseForm = z.infer<typeof courseSchema>;
@@ -152,7 +155,7 @@ const AdminCoursesPage = () => {
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Yeni Ders
+          Yeni Zorunlu Ders
         </button>
       </div>
 
@@ -220,9 +223,8 @@ const AdminCoursesPage = () => {
                           {({ active }) => (
                             <button
                               onClick={() => handleEditCourse(course)}
-                              className={`flex items-center gap-2 w-full px-4 py-2 text-sm text-left ${
-                                active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                              } text-gray-700 dark:text-gray-300`}
+                              className={`flex items-center gap-2 w-full px-4 py-2 text-sm text-left ${active ? 'bg-gray-100 dark:bg-gray-700' : ''
+                                } text-gray-700 dark:text-gray-300`}
                             >
                               <Edit2 className="w-4 h-4" />
                               Düzenle
@@ -233,9 +235,8 @@ const AdminCoursesPage = () => {
                           {({ active }) => (
                             <button
                               onClick={() => handleDeleteCourse(course.id.toString(), course.name)}
-                              className={`flex items-center gap-2 w-full px-4 py-2 text-sm text-left ${
-                                active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                              } text-red-600 dark:text-red-400`}
+                              className={`flex items-center gap-2 w-full px-4 py-2 text-sm text-left ${active ? 'bg-gray-100 dark:bg-gray-700' : ''
+                                } text-red-600 dark:text-red-400`}
                             >
                               <Trash2 className="w-4 h-4" />
                               Sil
@@ -263,6 +264,11 @@ const AdminCoursesPage = () => {
                         }}
                       >
                         {course.category.name}
+                      </span>
+                    )}
+                    {course.isGlobal && (
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-600 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                        Zorunlu
                       </span>
                     )}
                     {!course.isActive && (
@@ -348,12 +354,14 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCours
       icon: editingCourse.icon || 'BookOpen',
       order: editingCourse.order,
       isActive: editingCourse.isActive,
+      isGlobal: editingCourse.isGlobal,
     } : {
       categoryId: categories[0]?.id || 0,
       color: '#3b82f6',
       icon: 'BookOpen',
       order: 1,
       isActive: true,
+      isGlobal: true,
     },
   });
 
@@ -367,6 +375,7 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCours
         icon: editingCourse.icon || 'BookOpen',
         order: editingCourse.order,
         isActive: editingCourse.isActive,
+        isGlobal: editingCourse.isGlobal,
       });
       setSelectedIcon(editingCourse.icon || 'BookOpen');
     } else {
@@ -376,6 +385,7 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCours
         icon: 'BookOpen',
         order: 1,
         isActive: true,
+        isGlobal: true,
       });
       setSelectedIcon('BookOpen');
     }
@@ -546,11 +556,10 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCours
                             setSelectedIcon(iconName);
                             setValue('icon', iconName);
                           }}
-                          className={`p-2 rounded-md border-2 transition-all ${
-                            selectedIcon === iconName
+                          className={`p-2 rounded-md border-2 transition-all ${selectedIcon === iconName
                               ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                               : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                          }`}
+                            }`}
                           title={iconName}
                         >
                           {IconComponent && <IconComponent className="w-5 h-5 mx-auto text-gray-700 dark:text-gray-300" />}
@@ -563,16 +572,30 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCours
                   </p>
                 </div>
 
-                <div className="flex items-center">
-                  <input
-                    {...register('isActive')}
-                    type="checkbox"
-                    id="isActive"
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900 dark:text-white">
-                    Ders aktif mi?
-                  </label>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center">
+                    <input
+                      {...register('isActive')}
+                      type="checkbox"
+                      id="isActive"
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900 dark:text-white">
+                      Ders aktif mi?
+                    </label>
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      {...register('isGlobal')}
+                      type="checkbox"
+                      id="isGlobal"
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="isGlobal" className="ml-2 block text-sm text-gray-900 dark:text-white">
+                      Zorunlu ders mi?
+                    </label>
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
