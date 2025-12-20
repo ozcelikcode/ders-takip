@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { studySessionsAPI } from '../../services/api';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { format, startOfWeek, addDays, startOfDay, endOfDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useState, useEffect, useMemo } from 'react';
@@ -94,40 +94,44 @@ const WeeklyProgressChart = () => {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={250}>
-      <BarChart data={chartData}>
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={chartData} margin={{ top: 25, right: 10, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={isDarkMode ? '#8b5cf6' : '#6366f1'} />
-            <stop offset="100%" stopColor={isDarkMode ? '#6366f1' : '#3b82f6'} />
+            <stop offset="0%" stopColor="rgb(var(--color-primary))" />
+            <stop offset="100%" stopColor="rgb(var(--color-primary) / 0.8)" />
           </linearGradient>
         </defs>
         <CartesianGrid
           strokeDasharray="3 3"
           stroke={isDarkMode ? '#374151' : '#e5e7eb'}
+          vertical={false}
         />
         <XAxis
           dataKey="name"
-          tick={{ fill: isDarkMode ? '#d1d5db' : '#4b5563', fontSize: 12 }}
+          tick={{ fill: isDarkMode ? '#9ca3af' : '#4b5563', fontSize: 11 }}
+          axisLine={false}
+          tickLine={false}
         />
         <YAxis
-          tick={{ fill: isDarkMode ? '#d1d5db' : '#4b5563', fontSize: 12 }}
-          label={{
-            value: 'Saat',
-            angle: -90,
-            position: 'insideLeft',
-            style: { fill: isDarkMode ? '#d1d5db' : '#4b5563', fontSize: 12 }
-          }}
+          tick={{ fill: isDarkMode ? '#9ca3af' : '#4b5563', fontSize: 11 }}
+          axisLine={false}
+          tickLine={false}
+          allowDecimals={false}
+          domain={[0, (dataMax: number) => Math.max(Math.ceil(dataMax + 1), 4)]}
+          tickCount={5}
         />
         <Tooltip
+          cursor={{ fill: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)' }}
           contentStyle={{
-            backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+            backgroundColor: isDarkMode ? '#111827' : '#ffffff',
             border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-            borderRadius: '0.5rem',
-            color: isDarkMode ? '#f3f4f6' : '#111827',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            borderRadius: '0.75rem',
+            padding: '12px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
           }}
-          labelStyle={{ color: isDarkMode ? '#f3f4f6' : '#111827', fontWeight: 600 }}
+          itemStyle={{ padding: 0 }}
+          labelStyle={{ color: isDarkMode ? '#f3f4f6' : '#111827', fontWeight: 600, marginBottom: '4px' }}
           formatter={(value: number, name: string) => {
             if (name === 'saat') return [`${value} saat`, 'Çalışma Süresi'];
             return value;
@@ -142,8 +146,17 @@ const WeeklyProgressChart = () => {
         <Bar
           dataKey="saat"
           fill="url(#barGradient)"
-          radius={[8, 8, 0, 0]}
-        />
+          radius={[6, 6, 0, 0]}
+          barSize={32}
+        >
+          <LabelList
+            dataKey="saat"
+            position="top"
+            style={{ fill: isDarkMode ? '#d1d5db' : '#4b5563', fontSize: 10, fontWeight: 600 }}
+            offset={10}
+            formatter={(val: number) => val > 0 ? `${val}s` : ''}
+          />
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
