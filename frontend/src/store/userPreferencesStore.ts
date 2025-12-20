@@ -20,6 +20,8 @@ export interface UserPreferences {
   defaultLongBreak: number; // dakika
   pomodorosUntilLongBreak: number;
   weeklyStudyGoal: number; // saat
+  dailyStudyGoal: number; // saat
+  activeStudyDays: number[]; // [0-6] (0=Pazartesi, 6=Pazar veya 0=Pazar, 6=Cumartesi - fns/tr'ye göre 1=Pazartesi)
 
   // Diğer
   language: Language;
@@ -50,6 +52,8 @@ const defaultPreferences: UserPreferences = {
   defaultLongBreak: 15,
   pomodorosUntilLongBreak: 4,
   weeklyStudyGoal: 20,
+  dailyStudyGoal: 4,
+  activeStudyDays: [1, 2, 3, 4, 5, 6, 0], // Pazartesi-Pazar
 
   // Diğer
   language: 'tr',

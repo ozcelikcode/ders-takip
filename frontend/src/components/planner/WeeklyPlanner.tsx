@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, Play, Timer, Square, RotateCcw, CheckCircle, MoveRight, MoveLeft, Edit, Pause, Trash2 } from 'lucide-react';
+import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, Play, Timer, RotateCcw, CheckCircle, MoveRight, MoveLeft, Edit, Pause, Trash2 } from 'lucide-react';
+// @ts-ignore
 import confetti from 'canvas-confetti';
 import { StudySession, WeeklySchedule } from '../../types/planner';
 import { studySessionsAPI } from '../../services/api';
@@ -12,7 +13,7 @@ import PomodoroModal from './PomodoroModal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import MoveSessionModal from './MoveSessionModal';
 import CreateSessionModal from './CreateSessionModal';
-import { isSessionMissed, canStartSession, getSessionTextStyle, formatTime } from '../../utils/sessionHelpers';
+import { canStartSession, getSessionTextStyle, formatTime } from '../../utils/sessionHelpers';
 
 // Robust date parsing for various formats
 const parseDate = (dateStr: string | Date): Date => {
@@ -88,6 +89,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }
+    return undefined;
   }, [contextMenu]);
 
   // Drag over arrow to change week
@@ -423,23 +425,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     }
   };
 
-  const handleSessionClick = async (session: StudySession) => {
-    if (session.sessionType === 'pomodoro') {
-      setActiveSession(session);
-      setIsPomodoroModalOpen(true);
-    } else {
-      // Start session without changing its time
-      try {
-        await studySessionsAPI.startSession(session.id.toString());
-        toast.success('Çalışma seansı başlatıldı');
-        queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-        queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-        refetch();
-      } catch (error) {
-        toast.error('Seans başlatılırken hata oluştu');
-      }
-    }
-  };
+  // handleSessionClick removed
 
   const navigateWeek = (direction: 'prev' | 'next') => {
     setCurrentWeek(prev => direction === 'next' ? addWeeks(prev, 1) : subWeeks(prev, 1));
@@ -558,6 +544,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
   useEffect(() => {
     if (resizingSession) {
       const handleMouseMoveEvent = (e: MouseEvent) => {
+        if (!resizingSession) return;
         const deltaY = e.clientY - resizingSession.startY;
         let newHeight = resizingSession.startHeight + deltaY;
         // Minimum 5 minutes (5px)
@@ -616,6 +603,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         window.removeEventListener('mouseup', handleMouseUpEvent);
       };
     }
+    return undefined;
   }, [resizingSession, queryClient, refetch]);
 
   const getSessionTypeColor = (sessionType: string) => {
@@ -799,7 +787,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                   return (
                     <div
                       key={`${dayIndex}-${hour}`}
-                      className={`relative min-h-[60px] border-r border-gray-200 dark:border-gray-700 transition-colors ${isCurrentDay ? 'bg-primary-50/50 dark:bg-primary-900/10' : ''
+                      className={`relative min-h-[48px] border-r border-gray-200 dark:border-gray-700 transition-colors ${isCurrentDay ? 'bg-primary-50/50 dark:bg-primary-900/10' : ''
                         }`}
                       onDragOver={(e) => handleDragOver(e, dayIndex, hour)}
                       onDragLeave={handleDragLeave}
@@ -813,8 +801,8 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                         <div
                           className="absolute inset-x-1 p-1 rounded-lg border-2 border-dashed border-primary-500 z-40 pointer-events-none"
                           style={{
-                            top: `${(dragOverTarget.minute / 60) * 60}px`,
-                            height: `${(draggedSession.duration / 60) * 60}px`,
+                            top: `${(dragOverTarget.minute / 60) * 48}px`,
+                            height: `${(draggedSession.duration / 60) * 48}px`,
                           }}
                         >
                           <div className="flex items-center justify-between h-full opacity-50">
@@ -842,13 +830,13 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                       )}
 
                       <AnimatePresence>
-                        {sessions.map((session, sessionIndex) => {
+                        {sessions.map((session) => {
                           // Calculate session start time within the hour (in minutes)
                           const sessionStart = parseDate(session.startTime);
                           const sessionMinutes = sessionStart.getMinutes();
 
-                          // Slot height is 60px per hour (min-h-[60px])
-                          const slotHeight = 60;
+                          // Slot height is 48px per hour (min-h-[48px])
+                          const slotHeight = 48;
                           // Calculate position and height in pixels
                           const topPosition = (sessionMinutes / 60) * slotHeight;
                           // Allow sessions to span multiple hours
@@ -912,28 +900,28 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                       </button>
                                     )}
                                     {session.status === 'paused' && (
-                                      <>
+                                      <div className="flex items-center gap-0.5 ml-1 shrink-0">
                                         <button
-                                          className="p-0.5 rounded bg-white/25 hover:bg-white/40 transition-all"
+                                          className="p-1 rounded-lg bg-white/20 hover:bg-white/40 transition-all"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleStartSession(session);
                                           }}
                                           title="Devam Et"
                                         >
-                                          <Play className="w-3 h-3 text-white" />
+                                          <Play className="w-3.5 h-3.5 text-white" />
                                         </button>
                                         <button
-                                          className="p-0.5 rounded bg-white/25 hover:bg-white/40 transition-all"
+                                          className="p-1 rounded-lg bg-white/20 hover:bg-white/40 transition-all"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleEditSession(session);
                                           }}
                                           title="Düzenle"
                                         >
-                                          <Edit className="w-3 h-3 text-white" />
+                                          <Edit className="w-3.5 h-3.5 text-white" />
                                         </button>
-                                      </>
+                                      </div>
                                     )}
                                   </div>
                                 </div>
@@ -1002,9 +990,9 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                       </div>
                                     )}
                                     {session.status === 'paused' && (
-                                      <div className="flex items-center gap-1">
+                                      <div className="flex items-center gap-1.5">
                                         <button
-                                          className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
+                                          className="p-1.5 rounded-lg bg-white/30 hover:bg-white/50 transition-all shadow-sm"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleStartSession(session);
@@ -1014,14 +1002,14 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                           <Play className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-white drop-shadow-sm`} />
                                         </button>
                                         <button
-                                          className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
+                                          className="p-1.5 rounded-lg bg-white/30 hover:bg-white/50 transition-all shadow-sm"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleEditSession(session);
                                           }}
                                           title="Düzenle"
                                         >
-                                          <Edit className={`${sessionHeight >= 45 ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-white drop-shadow-sm`} />
+                                          <Edit className={`${sessionHeight >= 45 ? 'w-4.5 h-4.5' : 'w-4 h-4'} text-white drop-shadow-sm`} />
                                         </button>
                                       </div>
                                     )}
@@ -1088,7 +1076,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                           const session = resizePreview.session;
                           const sessionStart = parseDate(session.startTime);
                           const sessionMinutes = sessionStart.getMinutes();
-                          const slotHeight = 60;
+                          const slotHeight = 48;
                           const topPosition = (sessionMinutes / 60) * slotHeight;
                           const newDuration = resizePreview.newHeight;
 

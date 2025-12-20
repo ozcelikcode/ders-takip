@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, Play, Timer, Square, RotateCcw, CheckCircle, MoveRight, MoveLeft, Edit, Pause, Trash2 } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Play, CheckCircle, MoveRight, MoveLeft, Edit, Pause, Trash2 } from 'lucide-react';
+// @ts-ignore
 import confetti from 'canvas-confetti';
-import { StudySession, WeeklySchedule } from '../../types/planner';
+import { StudySession } from '../../types/planner';
 import { studySessionsAPI } from '../../services/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, addDays, subDays, parseISO, isToday, setHours, setMinutes } from 'date-fns';
@@ -12,7 +13,7 @@ import PomodoroModal from './PomodoroModal';
 import ConfirmDialog from '../common/ConfirmDialog';
 import MoveSessionModal from './MoveSessionModal';
 import CreateSessionModal from './CreateSessionModal';
-import { isSessionMissed, canStartSession, getSessionTextStyle, formatTime } from '../../utils/sessionHelpers';
+import { canStartSession, formatTime } from '../../utils/sessionHelpers';
 
 // Robust date parsing for various formats
 const parseDate = (dateStr: string | Date): Date => {
@@ -51,7 +52,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
   const [isMoving, setIsMoving] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [resizingSession, setResizingSession] = useState<{ session: StudySession; startY: number; startHeight: number } | null>(null);
-  const [resizePreview, setResizePreview] = useState<{ session: StudySession; newHeight: number } | null>(null);
+  // resizePreview state removed
   const [justFinishedAction, setJustFinishedAction] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ session: StudySession; x: number; y: number } | null>(null);
   const [moveModalSession, setMoveModalSession] = useState<StudySession | null>(null);
@@ -81,14 +82,12 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
 
   // Close context menu on click outside
   useEffect(() => {
-    const handleClickOutside = () => setContextMenu(null);
-    if (contextMenu) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [contextMenu]);
+    return () => {
+      // Cleanup
+    };
+  }, []);
 
-  const { data: sessionsData, isLoading, error, refetch } = useQuery({
+  const { data: sessionsData, refetch } = useQuery({
     queryKey: ['daily-sessions', format(selectedDate, 'yyyy-MM-dd')],
     queryFn: async () => {
       const dayStr = format(selectedDate, 'yyyy-MM-dd');
@@ -328,25 +327,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
     });
   };
 
-  const handleRestartSession = (session: StudySession) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: 'Oturumu Yeniden Başlat',
-      message: 'Bu oturumu yeniden planlananlar arasına eklemek istiyor musunuz?',
-      type: 'info',
-      onConfirm: async () => {
-        try {
-          await studySessionsAPI.updateSession(session.id.toString(), { status: 'planned' });
-          toast.success('Oturum yeniden başlatıldı');
-          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-          refetch();
-        } catch (error) {
-          toast.error('Oturum yeniden başlatılırken hata oluştu');
-        }
-      },
-    });
-  };
+  // handleRestartSession removed
 
   const handleStartPomodoro = (session: StudySession) => {
     if (!canStartSession(session)) {
@@ -368,8 +349,8 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
         const deltaY = e.clientY - resizingSession.startY;
         let newHeight = resizingSession.startHeight + deltaY;
         newHeight = Math.max(5, newHeight);
-        const minutesSnapped = Math.max(5, Math.round(newHeight / 5) * 5);
-        setResizePreview({ session: resizingSession.session, newHeight: minutesSnapped });
+        // minutesSnapped removed
+        // setResizePreview removed
       };
 
       const handleMouseUpEvent = async (e: MouseEvent) => {
@@ -392,7 +373,6 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
         }
 
         setResizingSession(null);
-        setResizePreview(null);
         setJustFinishedAction(true);
         setTimeout(() => setJustFinishedAction(false), 100);
 
@@ -416,6 +396,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
         window.removeEventListener('mouseup', handleMouseUpEvent);
       };
     }
+    return undefined;
   }, [resizingSession, queryClient, refetch]);
 
   const getStatusColor = (status: string, sessionEndTime: string) => {
@@ -469,7 +450,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
               const timeIndicatorPos = (currentTime.getMinutes() / 60) * 100;
 
               return (
-                <div key={hour} className="flex border-b border-gray-100 dark:border-gray-700/50 min-h-[80px] relative group">
+                <div key={hour} className="flex border-b border-gray-100 dark:border-gray-700/50 min-h-[64px] relative group">
                   <div className="w-20 bg-gray-50/50 dark:bg-gray-900/30 flex flex-col items-center justify-center border-r border-gray-100 dark:border-gray-700/50">
                     <span className="text-sm font-medium text-gray-500">{`${hour.toString().padStart(2, '0')}:00`}</span>
                   </div>
@@ -494,7 +475,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
                       const sessionStart = parseDate(session.startTime);
                       const sessionMinutes = sessionStart.getMinutes();
                       const topPosition = (sessionMinutes / 60) * 100;
-                      const sessionHeight = (session.duration / 60) * 80;
+                      const sessionHeight = (session.duration / 60) * 64;
 
                       return (
                         <motion.div
@@ -509,7 +490,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
                             zIndex: isBeingDragged ? 50 : 10,
                           }}
                           draggable={session.status !== 'in_progress'}
-                          onDragStart={(e) => handleDragStart(e, session)}
+                          onDragStart={(e) => handleDragStart(e as any, session)}
                           onDragEnd={() => { setDraggedSession(null); setDragOverTarget(null); }}
                           onContextMenu={(e) => handleContextMenu(e, session)}
                           onClick={(e) => { e.stopPropagation(); handleEditSession(session); }}
@@ -521,8 +502,14 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
                                 {session.status === 'planned' && canStartSession(session) && <button onClick={(e) => { e.stopPropagation(); session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all"><Play className="w-3 h-3" /></button>}
                                 {session.status === 'in_progress' && (
                                   <>
-                                    <button onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all"><Pause className="w-3 h-3" /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all"><CheckCircle className="w-3 h-3" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all" title="Duraklat"><Pause className="w-3 h-3" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all" title="Tamamla"><CheckCircle className="w-3 h-3" /></button>
+                                  </>
+                                )}
+                                {session.status === 'paused' && (
+                                  <>
+                                    <button onClick={(e) => { e.stopPropagation(); handleStartSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all" title="Devam Et"><Play className="w-3 h-3" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleEditSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all" title="Düzenle"><Edit className="w-3 h-3" /></button>
                                   </>
                                 )}
                               </div>
@@ -611,7 +598,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
 
       {/* Modals */}
       <PomodoroModal isOpen={isPomodoroModalOpen} onClose={() => { setIsPomodoroModalOpen(false); setActiveSession(null); }} session={activeSession} isMinimized={isTimerMinimized} onToggleMinimize={() => setIsTimerMinimized(!isTimerMinimized)} />
-      <ConfirmDialog isOpen={confirmDialog.isOpen} onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} onConfirm={confirmDialog.onConfirm} title={confirmDialog.title} message={confirmDialog.message} type={confirmDialog.type} />
+      <ConfirmDialog isOpen={confirmDialog.isOpen} onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} onConfirm={confirmDialog.onConfirm} title={confirmDialog.title} message={confirmDialog.message} type={confirmDialog.type || 'info'} />
       <CreateSessionModal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); setEditingSession(null); refetch(); }} editSession={editingSession} />
       <MoveSessionModal isOpen={!!moveModalSession} onClose={() => setMoveModalSession(null)} onSelectDate={handleMoveToDate} sessionTitle={moveModalSession?.title || ''} currentDate={moveModalSession ? parseDate(moveModalSession.startTime) : new Date()} />
     </div>

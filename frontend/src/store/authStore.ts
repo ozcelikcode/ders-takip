@@ -18,7 +18,8 @@ interface AuthState {
   initializeAuth: () => void;
   setTokens: (accessToken: string, refreshToken: string) => void;
   clearAuth: () => void;
-  
+  setUser: (user: User | null) => void;
+
   // Helpers
   isAdmin: () => boolean;
 }
@@ -120,6 +121,10 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           isLoading: false,
         });
+      },
+
+      setUser: (user: User | null) => {
+        set({ user });
       },
 
       isAdmin: () => {

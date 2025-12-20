@@ -76,7 +76,7 @@ const CourseCreateModal: React.FC<CourseCreateModalProps> = ({ isOpen, onClose }
     enabled: isOpen,
   });
 
-  const categories: Category[] = categoriesData || [];
+  const categories = Array.isArray(categoriesData) ? categoriesData : [];
 
   const {
     register,
@@ -99,7 +99,7 @@ const CourseCreateModal: React.FC<CourseCreateModalProps> = ({ isOpen, onClose }
   });
 
   const selectedCategoryId = watch('categoryId');
-  const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
+  const selectedCategory = categories.length > 0 ? categories.find((c) => c.id === selectedCategoryId) : undefined;
 
   const createMutation = useMutation({
     mutationFn: (data: CourseForm) => coursesAPI.createCourse(data),
@@ -227,11 +227,10 @@ const CourseCreateModal: React.FC<CourseCreateModalProps> = ({ isOpen, onClose }
                           key={color}
                           type="button"
                           onClick={() => setValue('color', color)}
-                          className={`w-8 h-8 rounded-lg border-2 transition-all ${
-                            watch('color') === color
+                          className={`w-8 h-8 rounded-lg border-2 transition-all ${watch('color') === color
                               ? 'border-gray-900 dark:border-white scale-110'
                               : 'border-gray-300 dark:border-gray-600 hover:scale-105'
-                          }`}
+                            }`}
                           style={{ backgroundColor: color }}
                           title={color}
                         />
@@ -266,11 +265,10 @@ const CourseCreateModal: React.FC<CourseCreateModalProps> = ({ isOpen, onClose }
                             key={icon.name}
                             type="button"
                             onClick={() => setSelectedIcon(icon.name)}
-                            className={`p-1.5 rounded border-2 transition-colors ${
-                              selectedIcon === icon.name
+                            className={`p-1.5 rounded border-2 transition-colors ${selectedIcon === icon.name
                                 ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
                                 : 'border-gray-300 dark:border-gray-600 hover:border-primary-300'
-                            }`}
+                              }`}
                           >
                             <IconComp className="w-4 h-4 mx-auto text-gray-700 dark:text-gray-300" />
                           </button>
