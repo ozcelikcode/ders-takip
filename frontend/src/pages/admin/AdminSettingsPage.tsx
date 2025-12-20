@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Save, Globe, Mail, Shield, Database, Palette, Bell } from 'lucide-react';
+import {
+  Settings, Save, Globe, Mail, Shield, Palette, Bell,
+  GraduationCap, BookOpen, Calendar as CalendarIcon, Clock, Trophy, Target, Lightbulb, School, ClipboardList, Users
+} from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,21 +15,20 @@ const siteSettingsSchema = z.object({
   siteDescription: z.string().min(1, 'Site açıklaması gereklidir'),
   siteUrl: z.string().url('Geçerli bir URL girin'),
   adminEmail: z.string().email('Geçerli bir email girin'),
+  siteLogo: z.string().optional(),
+  siteIcon: z.string().optional(),
   allowRegistration: z.boolean(),
   maintenanceMode: z.boolean(),
-  maxStudentsPerCourse: z.number().min(1).max(1000),
-  sessionTimeout: z.number().min(5).max(240), // minutes
   emailNotifications: z.boolean(),
   pushNotifications: z.boolean(),
   primaryColor: z.string(),
-  secondaryColor: z.string(),
 });
 
 type SiteSettingsForm = z.infer<typeof siteSettingsSchema>;
 
 const AdminSettingsPage = () => {
   const [activeTab, setActiveTab] = useState<'general' | 'security' | 'notifications' | 'appearance'>('general');
-  const { settings, fetchSettings, updateSettings, isLoading: storeLoading } = useSettingsStore();
+  const { settings, fetchSettings, updateSettings } = useSettingsStore();
 
   const {
     register,
@@ -49,6 +51,19 @@ const AdminSettingsPage = () => {
   React.useEffect(() => {
     reset(settings);
   }, [settings, reset]);
+
+  const siteIcons = [
+    { id: 'GraduationCap', icon: GraduationCap },
+    { id: 'BookOpen', icon: BookOpen },
+    { id: 'Calendar', icon: CalendarIcon },
+    { id: 'Clock', icon: Clock },
+    { id: 'Trophy', icon: Trophy },
+    { id: 'Target', icon: Target },
+    { id: 'Lightbulb', icon: Lightbulb },
+    { id: 'School', icon: School },
+    { id: 'ClipboardList', icon: ClipboardList },
+    { id: 'Users', icon: Users },
+  ];
 
   const onSubmit = async (data: SiteSettingsForm) => {
     try {
@@ -93,11 +108,10 @@ const AdminSettingsPage = () => {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as any)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors ${
-                        activeTab === tab.id
-                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-r-2 border-blue-500'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
-                      }`}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors ${activeTab === tab.id
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-r-2 border-blue-500'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
                     >
                       <Icon className="w-4 h-4" />
                       {tab.name}
@@ -122,7 +136,7 @@ const AdminSettingsPage = () => {
                     className="space-y-4"
                   >
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Genel Ayarlar</h3>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -167,18 +181,57 @@ const AdminSettingsPage = () => {
                       )}
                     </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Admin Email *
+                        </label>
+                        <input
+                          {...register('adminEmail')}
+                          type="email"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                        />
+                        {errors.adminEmail && (
+                          <p className="mt-1 text-sm text-red-600">{errors.adminEmail.message}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Site Logosu (URL)
+                        </label>
+                        <input
+                          {...register('siteLogo')}
+                          type="text"
+                          placeholder="https://example.com/logo.png"
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                        />
+                      </div>
+                    </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Admin Email *
+                        Site İkonu
                       </label>
-                      <input
-                        {...register('adminEmail')}
-                        type="email"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                      />
-                      {errors.adminEmail && (
-                        <p className="mt-1 text-sm text-red-600">{errors.adminEmail.message}</p>
-                      )}
+                      <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                        {siteIcons.map((item) => {
+                          const Icon = item.icon;
+                          const isSelected = watch('siteIcon') === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => setValue('siteIcon', item.id, { shouldDirty: true })}
+                              className={`p-2 rounded-md border flex items-center justify-center transition-all ${isSelected
+                                ? 'bg-blue-50 border-blue-500 text-blue-600 dark:bg-blue-900/20 dark:border-blue-400 dark:text-blue-300'
+                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600'
+                                }`}
+                            >
+                              <Icon className="w-5 h-5" />
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -191,7 +244,7 @@ const AdminSettingsPage = () => {
                     className="space-y-4"
                   >
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Güvenlik Ayarları</h3>
-                    
+
                     <div className="space-y-4">
                       <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
                         <div>
@@ -222,34 +275,6 @@ const AdminSettingsPage = () => {
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                         </label>
                       </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Ders Başına Max Öğrenci
-                          </label>
-                          <input
-                            {...register('maxStudentsPerCourse', { valueAsNumber: true })}
-                            type="number"
-                            min="1"
-                            max="1000"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Oturum Zaman Aşımı (dakika)
-                          </label>
-                          <input
-                            {...register('sessionTimeout', { valueAsNumber: true })}
-                            type="number"
-                            min="5"
-                            max="240"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                          />
-                        </div>
-                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -262,7 +287,7 @@ const AdminSettingsPage = () => {
                     className="space-y-4"
                   >
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Bildirim Ayarları</h3>
-                    
+
                     <div className="space-y-4">
                       <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
                         <div className="flex items-center gap-3">
@@ -311,7 +336,7 @@ const AdminSettingsPage = () => {
                     className="space-y-4"
                   >
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Görünüm Ayarları</h3>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -325,24 +350,6 @@ const AdminSettingsPage = () => {
                           />
                           <input
                             {...register('primaryColor')}
-                            type="text"
-                            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          İkincil Renk
-                        </label>
-                        <div className="flex items-center gap-3">
-                          <input
-                            {...register('secondaryColor')}
-                            type="color"
-                            className="w-12 h-10 border border-gray-300 dark:border-gray-600 rounded cursor-pointer"
-                          />
-                          <input
-                            {...register('secondaryColor')}
                             type="text"
                             className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                           />
