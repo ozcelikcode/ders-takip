@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { studySessionsAPI } from '../../services/api';
 import { StudySession } from '../../types/planner';
@@ -15,8 +15,7 @@ import {
   TrendingUp,
   Award
 } from 'lucide-react';
-import { format, parseISO, isToday } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -32,7 +31,7 @@ const PomodoroPage = () => {
   const [timeLeft, setTimeLeft] = useState(0);
 
   // Fetch today's pomodoro sessions
-  const { data: sessions, refetch } = useQuery({
+  const { data: sessions } = useQuery({
     queryKey: ['pomodoro-sessions'],
     queryFn: async () => {
       const today = format(new Date(), 'yyyy-MM-dd');
@@ -73,7 +72,7 @@ const PomodoroPage = () => {
 
   // Timer logic
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: any;
 
     if (isRunning && timeLeft > 0) {
       interval = setInterval(() => {
@@ -272,368 +271,337 @@ const PomodoroPage = () => {
   const plannedCount = sessions?.filter(s => s.status === 'planned').length || 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Timer className="w-8 h-8 text-red-500" />
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Pomodoro Çalışma Seansları
-            </h1>
+    <div className="h-[calc(100vh-130px)] flex flex-col gap-6 overflow-hidden pr-1">
+      {/* Header - Fixed height */}
+      <div className="flex-shrink-0">
+        <div className="flex items-center gap-3 mb-1">
+          <Timer className="w-7 h-7 text-red-500" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Pomodoro Çalışma Seansları
+          </h1>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Bugünkü pomodoro planlarınız ve zamanlayıcınız
+        </p>
+      </div>
+
+      {/* Stats - Fixed height */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight">Planlanan</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">{plannedCount}</p>
+            </div>
           </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Bugünkü pomodoro planlarınız ve zamanlayıcınız
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight">Devam Eden</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">{inProgressCount}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+              <Award className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight">Tamamlanan</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">{completedCount}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {sessions && sessions.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+          <Timer className="w-20 h-20 text-gray-200 dark:text-gray-700 mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            Bugün için Pomodoro seansı yok
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Planlayıcıdan Pomodoro türünde bir seans oluşturun
           </p>
         </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Planlanan</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{plannedCount}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Devam Eden</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{inProgressCount}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <Award className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Tamamlanan</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{completedCount}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {sessions && sessions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[400px] bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-            <Timer className="w-24 h-24 text-gray-400 dark:text-gray-600 mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              Bugün için Pomodoro seansı yok
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Planlayıcıdan Pomodoro türünde bir seans oluşturun
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Sessions List */}
-            <div className="lg:col-span-1 space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+      ) : (
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Sessions List - Scrollable */}
+          <div className="lg:col-span-1 flex flex-col min-h-0 overflow-hidden bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+            <div className="p-4 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white">
                 Bugünkü Seanslar
               </h2>
+              <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Liste</span>
+            </div>
 
-              <div className="space-y-3">
-                <AnimatePresence>
-                  {sessions?.map((session) => (
-                    <motion.div
-                      key={session.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      onClick={() => setSelectedSession(session)}
-                      className={`bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border-2 cursor-pointer transition-all hover:shadow-md ${
-                        selectedSession?.id === session.id
-                          ? 'border-red-500 dark:border-red-500'
-                          : 'border-gray-200 dark:border-gray-700'
+            <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+              <AnimatePresence>
+                {sessions?.map((session) => (
+                  <motion.div
+                    key={session.id}
+                    layout
+                    onClick={() => setSelectedSession(session)}
+                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all hover:shadow-sm ${selectedSession?.id === session.id
+                      ? 'border-primary-500 bg-primary-50/10 dark:bg-primary-900/10'
+                      : 'border-transparent bg-gray-50 dark:bg-gray-700/30'
                       }`}
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 dark:text-white truncate mb-1">
-                            {session.title}
-                          </h3>
-                          <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                            <Clock className="w-3 h-3" />
-                            {format(parseISO(session.startTime), 'HH:mm', { locale: tr })} -
-                            {format(parseISO(session.endTime), 'HH:mm', { locale: tr })}
-                          </div>
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                          {session.title}
+                        </h3>
+                        <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-gray-500 dark:text-gray-400 font-medium">
+                          <Clock className="w-3 h-3" />
+                          {format(parseISO(session.startTime), 'HH:mm')} - {format(parseISO(session.endTime), 'HH:mm')}
                         </div>
-                        {getStatusBadge(session.status)}
                       </div>
+                      {getStatusBadge(session.status)}
+                    </div>
 
-                      {session.pomodoroSettings && (
-                        <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400 mb-3">
-                          <div className="flex items-center gap-1">
-                            <Timer className="w-3 h-3" />
-                            {session.pomodoroSettings.workDuration}dk
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Coffee className="w-3 h-3" />
-                            {session.pomodoroSettings.shortBreak}dk
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Target className="w-3 h-3" />
-                            {session.pomodoroSettings.cyclesBeforeLongBreak} döngü
-                          </div>
+                    {session.pomodoroSettings && (
+                      <div className="flex items-center gap-3 text-[10px] text-gray-400 dark:text-gray-500 mb-3 font-semibold">
+                        <div className="flex items-center gap-1 text-red-500/80">
+                          <Timer className="w-3 h-3" />
+                          {session.pomodoroSettings.workDuration}dk
                         </div>
+                        <div className="flex items-center gap-1 text-green-500/80">
+                          <Coffee className="w-3 h-3" />
+                          {session.pomodoroSettings.shortBreak}dk
+                        </div>
+                        <div className="flex items-center gap-1 text-blue-500/80">
+                          <Target className="w-3 h-3" />
+                          {session.pomodoroSettings.cyclesBeforeLongBreak} döngü
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      {session.status === 'planned' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStart(session);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-xs font-bold"
+                        >
+                          <Play className="w-3 h-3 fill-current" />
+                          Başlat
+                        </button>
                       )}
 
-                      <div className="flex items-center gap-2">
-                        {session.status === 'planned' && (
+                      {session.status === 'in_progress' && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePause(session);
+                            }}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors text-xs font-bold"
+                          >
+                            <Pause className="w-3 h-3 fill-current" />
+                            Durdur
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleComplete(session);
+                            }}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors text-xs font-bold"
+                          >
+                            <CheckCircle className="w-3 h-3" />
+                            Bitir
+                          </button>
+                        </>
+                      )}
+
+                      {session.status === 'paused' && (
+                        <>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleStart(session);
                             }}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-sm font-medium"
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-xs font-bold"
                           >
-                            <Play className="w-4 h-4" />
-                            Başlat
+                            <Play className="w-3 h-3 fill-current" />
+                            Devam
                           </button>
-                        )}
-
-                        {session.status === 'in_progress' && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePause(session);
-                              }}
-                              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors text-sm font-medium"
-                            >
-                              <Pause className="w-4 h-4" />
-                              Duraklat
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleComplete(session);
-                              }}
-                              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors text-sm font-medium"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Tamamla
-                            </button>
-                          </>
-                        )}
-
-                        {session.status === 'paused' && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStart(session);
-                              }}
-                              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-sm font-medium"
-                            >
-                              <Play className="w-4 h-4" />
-                              Devam Et
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleComplete(session);
-                              }}
-                              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors text-sm font-medium"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Tamamla
-                            </button>
-                          </>
-                        )}
-
-                        {session.status === 'completed' && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleRestart(session);
+                              handleComplete(session);
                             }}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm font-medium"
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors text-xs font-bold"
                           >
-                            <RotateCcw className="w-4 h-4" />
-                            Yeniden Başlat
+                            <CheckCircle className="w-3 h-3" />
+                            Bitir
                           </button>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
+                        </>
+                      )}
+
+                      {session.status === 'completed' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRestart(session);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-1.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors text-xs font-bold"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          Yeniden
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
+          </div>
 
-            {/* Timer Display */}
-            <div className="lg:col-span-2">
-              {selectedSession ? (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border border-gray-200 dark:border-gray-700">
-                  {/* Session Title */}
-                  <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                      {selectedSession.title}
-                    </h2>
-                    {selectedSession.description && (
-                      <p className="text-gray-600 dark:text-gray-400 text-sm">
-                        {selectedSession.description}
-                      </p>
-                    )}
+          {/* Timer Display - Flexible */}
+          <div className="lg:col-span-2 flex flex-col min-h-0 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+            {selectedSession ? (
+              <div className="flex-1 flex flex-col overflow-y-auto p-6 md:p-8 custom-scrollbar">
+                {/* Session Title */}
+                <div className="text-center mb-6 flex-shrink-0">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                    {selectedSession.title}
+                  </h2>
+                  <div className={`text-sm font-bold uppercase tracking-widest ${getPhaseTextColor()}`}>
+                    {getPhaseText()}
                   </div>
+                </div>
 
-                  {/* Phase Indicator */}
-                  <div className="text-center mb-8">
-                    <h3 className={`text-xl font-bold mb-2 ${getPhaseTextColor()}`}>
-                      {getPhaseText()}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Döngü {currentCycle} / {selectedSession.pomodoroSettings?.cyclesBeforeLongBreak || 4}
-                    </p>
-                  </div>
-
-                  {/* Circular Progress */}
-                  <div className="relative w-72 h-72 mx-auto mb-8">
+                {/* Circular Progress Area */}
+                <div className="flex-1 flex flex-col items-center justify-center min-h-[300px]">
+                  <div className="relative w-64 h-64 md:w-72 md:h-72">
                     <svg className="w-full h-full transform -rotate-90">
-                      {/* Background circle */}
                       <circle
-                        cx="144"
-                        cy="144"
-                        r="128"
+                        cx="50%"
+                        cy="50%"
+                        r="43%"
                         stroke="currentColor"
-                        strokeWidth="20"
+                        strokeWidth="16"
                         fill="none"
-                        className="text-gray-200 dark:text-gray-700"
+                        className="text-gray-100 dark:text-gray-700/50"
                       />
-                      {/* Progress circle */}
                       <circle
-                        cx="144"
-                        cy="144"
-                        r="128"
-                        stroke="url(#gradient)"
-                        strokeWidth="20"
+                        cx="50%"
+                        cy="50%"
+                        r="43%"
+                        stroke="url(#timerGradient)"
+                        strokeWidth="16"
                         fill="none"
-                        strokeDasharray={`${2 * Math.PI * 128}`}
-                        strokeDashoffset={`${2 * Math.PI * 128 * (1 - getProgress() / 100)}`}
+                        strokeDasharray="100 100"
+                        strokeDashoffset={100 - getProgress()}
+                        pathLength="100"
                         strokeLinecap="round"
                         className="transition-all duration-1000"
                       />
                       <defs>
-                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                           <stop offset="0%" className={`${currentPhase === 'work' ? 'text-red-500' : currentPhase === 'shortBreak' ? 'text-green-500' : 'text-blue-500'}`} stopColor="currentColor" />
                           <stop offset="100%" className={`${currentPhase === 'work' ? 'text-orange-500' : currentPhase === 'shortBreak' ? 'text-emerald-500' : 'text-indigo-500'}`} stopColor="currentColor" />
                         </linearGradient>
                       </defs>
                     </svg>
 
-                    {/* Timer Display */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center">
-                        <motion.div
-                          key={timeLeft}
-                          initial={{ scale: 0.95 }}
-                          animate={{ scale: 1 }}
-                          className="text-6xl font-bold text-gray-900 dark:text-white mb-2 font-mono"
-                        >
-                          {formatTime(timeLeft)}
-                        </motion.div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          {Math.floor(getProgress())}% tamamlandı
-                        </div>
+                    {/* Timer Time Display */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <div className="text-5xl md:text-6xl font-black text-gray-900 dark:text-white font-mono tracking-tighter">
+                        {formatTime(timeLeft)}
+                      </div>
+                      <div className="text-[10px] uppercase font-bold text-gray-400 mt-2 tracking-widest">
+                        {currentCycle}. Döngü / {selectedSession.pomodoroSettings?.cyclesBeforeLongBreak || 4}
                       </div>
                     </div>
                   </div>
 
                   {/* Controls */}
-                  <div className="flex items-center justify-center gap-4 mb-8">
+                  <div className="flex items-center justify-center gap-6 mt-10">
                     {selectedSession.status === 'in_progress' && (
-                      <>
-                        <button
-                          onClick={() => setIsRunning(!isRunning)}
-                          className={`p-5 rounded-full transition-all transform hover:scale-110 shadow-lg ${
-                            isRunning
-                              ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                              : 'bg-green-500 hover:bg-green-600 text-white'
+                      <button
+                        onClick={() => setIsRunning(!isRunning)}
+                        className={`p-5 rounded-full shadow-lg transition-all active:scale-95 ${isRunning
+                          ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                          : 'bg-green-500 hover:bg-green-600 text-white'
                           }`}
-                        >
-                          {isRunning ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8" />}
-                        </button>
-
-                        <button
-                          onClick={() => handleComplete(selectedSession)}
-                          className="p-5 bg-purple-500 hover:bg-purple-600 text-white rounded-full transition-all transform hover:scale-110 shadow-lg"
-                          title="Tamamla"
-                        >
-                          <CheckCircle className="w-8 h-8" />
-                        </button>
-                      </>
+                      >
+                        {isRunning ? <Pause className="w-8 h-8 fill-current" /> : <Play className="w-8 h-8 fill-current" />}
+                      </button>
                     )}
 
                     {(selectedSession.status === 'planned' || selectedSession.status === 'paused') && (
                       <button
                         onClick={() => handleStart(selectedSession)}
-                        className="p-5 bg-green-500 hover:bg-green-600 text-white rounded-full transition-all transform hover:scale-110 shadow-lg"
+                        className="p-5 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-lg transition-all active:scale-95"
                       >
-                        <Play className="w-8 h-8" />
+                        <Play className="w-8 h-8 fill-current" />
+                      </button>
+                    )}
+
+                    {selectedSession.status !== 'completed' && (
+                      <button
+                        onClick={() => handleComplete(selectedSession)}
+                        className="p-5 bg-purple-500 hover:bg-purple-600 text-white rounded-full shadow-lg transition-all active:scale-95"
+                        title="Tamamla"
+                      >
+                        <CheckCircle className="w-8 h-8" />
                       </button>
                     )}
                   </div>
+                </div>
 
-                  {/* Session Info */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-center">
-                      <div className="flex items-center justify-center gap-2 text-red-600 dark:text-red-400 mb-2">
-                        <Timer className="w-5 h-5" />
-                        <span className="font-semibold text-sm">Çalışma</span>
-                      </div>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {selectedSession.pomodoroSettings?.workDuration || 25} dk
-                      </p>
-                    </div>
+                {/* Session Settings Info - Bottom */}
+                <div className="grid grid-cols-3 gap-3 mt-auto pt-6 flex-shrink-0">
+                  <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 text-center">
+                    <p className="text-[10px] font-bold text-red-500 dark:text-red-400 uppercase tracking-widest mb-1">Çalışma</p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                      {selectedSession.pomodoroSettings?.workDuration || 25}<span className="text-xs ml-0.5">dk</span>
+                    </p>
+                  </div>
 
-                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-center">
-                      <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400 mb-2">
-                        <Coffee className="w-5 h-5" />
-                        <span className="font-semibold text-sm">Kısa Mola</span>
-                      </div>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {selectedSession.pomodoroSettings?.shortBreak || 5} dk
-                      </p>
-                    </div>
+                  <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 text-center">
+                    <p className="text-[10px] font-bold text-green-500 dark:text-green-400 uppercase tracking-widest mb-1">Mola</p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                      {selectedSession.pomodoroSettings?.shortBreak || 5}<span className="text-xs ml-0.5">dk</span>
+                    </p>
+                  </div>
 
-                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-center">
-                      <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400 mb-2">
-                        <Clock className="w-5 h-5" />
-                        <span className="font-semibold text-sm">Uzun Mola</span>
-                      </div>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {selectedSession.pomodoroSettings?.longBreak || 15} dk
-                      </p>
-                    </div>
+                  <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 text-center">
+                    <p className="text-[10px] font-bold text-blue-500 dark:text-blue-400 uppercase tracking-widest mb-1">Döngü</p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                      {selectedSession.pomodoroSettings?.cyclesBeforeLongBreak || 4}<span className="text-xs ml-0.5">sefer</span>
+                    </p>
                   </div>
                 </div>
-              ) : (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-12 border border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center min-h-[600px]">
-                  <Timer className="w-32 h-32 text-gray-400 dark:text-gray-600 mb-6" />
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                    Bir seans seçin
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-400 text-center">
-                    Sol taraftaki listeden bir Pomodoro seansı seçin
-                  </p>
-                </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                <Timer className="w-24 h-24 text-gray-100 dark:text-gray-700 mb-6" />
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                  Bir seans seçin
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Sol taraftaki listeden bir Pomodoro seansı seçerek başlatın
+                </p>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
