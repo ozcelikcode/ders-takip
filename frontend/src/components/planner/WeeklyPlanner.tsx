@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, Play, Timer, RotateCcw, CheckCircle, MoveRight, MoveLeft, Edit, Pause, Trash2 } from 'lucide-react';
+import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, Play, CheckCircle, MoveRight, MoveLeft, Edit, Pause, Trash2 } from 'lucide-react';
 // @ts-ignore
 import confetti from 'canvas-confetti';
 import { StudySession, WeeklySchedule } from '../../types/planner';
@@ -481,27 +481,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     });
   };
 
-  const handleRestartSession = (session: StudySession) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: 'Oturumu Yeniden Başlat',
-      message: 'Bu oturumu yeniden planlananlar arasına eklemek istiyor musunuz?',
-      type: 'info',
-      onConfirm: async () => {
-        try {
-          await studySessionsAPI.updateSession(session.id.toString(), {
-            status: 'planned',
-          });
-          toast.success('Oturum yeniden başlatıldı');
-          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-          refetch();
-        } catch (error) {
-          toast.error('Oturum yeniden başlatılırken hata oluştu');
-        }
-      },
-    });
-  };
+  // handleRestartSession removed
 
   const handleStartSession = async (session: StudySession) => {
     // Vakti geçmiş oturumlar başlatılamaz
@@ -606,15 +586,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     return undefined;
   }, [resizingSession, queryClient, refetch]);
 
-  const getSessionTypeColor = (sessionType: string) => {
-    switch (sessionType) {
-      case 'study': return 'bg-primary-600 border-primary-700';
-      case 'pomodoro': return 'bg-red-500 border-red-600';
-      case 'review': return 'bg-green-500 border-green-600';
-      case 'break': return 'bg-gray-500 border-gray-600';
-      default: return 'bg-primary-600 border-primary-700';
-    }
-  };
+  // getSessionTypeColor removed
 
   const getStatusColor = (status: string, _sessionStartTime: string, sessionEndTime: string) => {
     const now = new Date();
@@ -780,7 +752,6 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                   // Calculate current time indicator position
                   const currentHour = currentTime.getHours();
                   const currentMinutes = currentTime.getMinutes();
-                  const currentDayIndex = (currentTime.getDay() + 6) % 7; // Convert to Monday=0
                   const isCurrentHour = isCurrentDay && hour === currentHour;
                   const timeIndicatorPosition = (currentMinutes / 60) * 100; // Percentage within the hour
 
@@ -872,174 +843,69 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                               onDragEnd={() => setDraggedSession(null)}
                               onContextMenu={(e) => handleContextMenu(e, session)}
                             >
-                              {/* Time badge - start and end time - Only show if height >= 40px */}
-                              {sessionHeight >= 40 && (
-                                <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium">
-                                  {formatTime(sessionStart)} - {formatTime(session.endTime)}
-                                </div>
-                              )}
-
-                              {/* Very Small Card (< 30px): Title + minimal buttons */}
-                              {sessionHeight < 30 && (
-                                <div className="flex items-center justify-between h-full px-1">
-                                  <div className={`text-[10px] font-medium truncate flex-1 ${getSessionTextStyle(session)}`}>
-                                    {session.title}
+                              {/* Card Content Container */}
+                              <div className="flex flex-col h-full overflow-hidden">
+                                {/* Top Header: Time + Actions */}
+                                <div className="flex items-start justify-between mb-0.5 shrink-0">
+                                  {/* Time Badge */}
+                                  <div className="px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium leading-none whitespace-nowrap">
+                                    {formatTime(sessionStart)}
                                   </div>
-                                  {/* Minimal action buttons for small cards */}
-                                  <div className="flex items-center gap-0.5 ml-1 shrink-0">
-                                    {session.status === 'planned' && session.sessionType !== 'pomodoro' && canStartSession(session) && (
+
+                                  {/* Action buttons */}
+                                  <div className="flex items-center gap-0.5 ml-1">
+                                    {session.status === 'planned' && canStartSession(session) && (
                                       <button
-                                        className="p-0.5 rounded bg-white/25 hover:bg-white/40 transition-all"
+                                        className="p-0.5 rounded-md bg-white/20 hover:bg-white/40 transition-all"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          handleStartSession(session);
+                                          session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session);
                                         }}
-                                        title="Başlat"
                                       >
                                         <Play className="w-3 h-3 text-white" />
                                       </button>
                                     )}
-                                    {session.status === 'paused' && (
-                                      <div className="flex items-center gap-0.5 ml-1 shrink-0">
-                                        <button
-                                          className="p-1 rounded-lg bg-white/20 hover:bg-white/40 transition-all"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleStartSession(session);
-                                          }}
-                                          title="Devam Et"
-                                        >
-                                          <Play className="w-3.5 h-3.5 text-white" />
-                                        </button>
-                                        <button
-                                          className="p-1 rounded-lg bg-white/20 hover:bg-white/40 transition-all"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditSession(session);
-                                          }}
-                                          title="Düzenle"
-                                        >
-                                          <Edit className="w-3.5 h-3.5 text-white" />
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Small to Large Card (>= 30px): Full content */}
-                              {sessionHeight >= 30 && (
-                                <div className="flex items-center justify-between h-full">
-                                  <div className="flex-1 min-w-0 pr-1">
-                                    <div className={`font-medium truncate text-xs ${getSessionTextStyle(session)}`}>
-                                      {session.title}
-                                    </div>
-                                    {session.duration && sessionHeight >= 45 && (
-                                      <div className="opacity-75 text-[10px] mt-0.5">{session.duration} dk</div>
-                                    )}
-                                  </div>
-
-                                  {/* Action buttons - Responsive sizing based on height */}
-                                  <div className="flex items-center gap-1 ml-1">
-                                    {session.sessionType === 'pomodoro' && session.status === 'planned' && canStartSession(session) && (
-                                      <button
-                                        className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleStartPomodoro(session);
-                                        }}
-                                        title="Pomodoro Başlat"
-                                      >
-                                        <Timer className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-white drop-shadow-sm`} />
-                                      </button>
-                                    )}
-                                    {session.status === 'planned' && session.sessionType !== 'pomodoro' && canStartSession(session) && (
-                                      <button
-                                        className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleStartSession(session);
-                                        }}
-                                        title="Başlat"
-                                      >
-                                        <Play className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-white drop-shadow-sm`} />
-                                      </button>
-                                    )}
                                     {session.status === 'in_progress' && (
-                                      <div className="flex items-center gap-1">
+                                      <div className="flex items-center gap-0.5">
                                         <button
-                                          className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handlePauseSession(session);
-                                          }}
-                                          title="Duraklat"
+                                          className="p-0.5 rounded-md bg-white/20 hover:bg-white/40 transition-all"
+                                          onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }}
                                         >
-                                          <Pause className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-white drop-shadow-sm`} />
+                                          <Pause className="w-3 h-3 text-white" />
                                         </button>
                                         <button
-                                          className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleCompleteSession(session);
-                                          }}
-                                          title="Tamamla"
+                                          className="p-0.5 rounded-md bg-white/25 hover:bg-white/40 transition-all"
+                                          onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }}
                                         >
-                                          <CheckCircle className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-white drop-shadow-sm`} />
+                                          <CheckCircle className="w-3 h-3 text-white" />
                                         </button>
                                       </div>
                                     )}
                                     {session.status === 'paused' && (
-                                      <div className="flex items-center gap-1.5">
+                                      <div className="flex items-center gap-0.5">
                                         <button
-                                          className="p-1.5 rounded-lg bg-white/30 hover:bg-white/50 transition-all shadow-sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleStartSession(session);
-                                          }}
-                                          title="Devam Et"
+                                          className="p-0.5 rounded-md bg-white/30 hover:bg-white/50 transition-all"
+                                          onClick={(e) => { e.stopPropagation(); handleStartSession(session); }}
                                         >
-                                          <Play className={`${sessionHeight >= 45 ? 'w-5 h-5' : 'w-4 h-4'} text-white drop-shadow-sm`} />
-                                        </button>
-                                        <button
-                                          className="p-1.5 rounded-lg bg-white/30 hover:bg-white/50 transition-all shadow-sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditSession(session);
-                                          }}
-                                          title="Düzenle"
-                                        >
-                                          <Edit className={`${sessionHeight >= 45 ? 'w-4.5 h-4.5' : 'w-4 h-4'} text-white drop-shadow-sm`} />
-                                        </button>
-                                      </div>
-                                    )}
-                                    {session.status === 'completed' && (
-                                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                        <button
-                                          className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleRestartSession(session);
-                                          }}
-                                          title="Yeniden Başlat"
-                                        >
-                                          <RotateCcw className={`${sessionHeight >= 45 ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-white drop-shadow-sm`} />
-                                        </button>
-                                        <button
-                                          className="p-1.5 rounded-lg bg-white/25 hover:bg-white/40 transition-all shadow-sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditSession(session);
-                                          }}
-                                          title="Düzenle"
-                                        >
-                                          <Edit className={`${sessionHeight >= 45 ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-white drop-shadow-sm`} />
+                                          <Play className="w-3 h-3 text-white" />
                                         </button>
                                       </div>
                                     )}
                                   </div>
                                 </div>
-                              )}
+
+                                {/* Title Area */}
+                                <div className="min-w-0 flex-1 flex flex-col justify-center">
+                                  <div className={`font-bold truncate ${sessionHeight < 35 ? 'text-[10px]' : 'text-xs'} leading-tight ${getSessionTextStyle(session)}`}>
+                                    {session.title}
+                                  </div>
+                                  {sessionHeight >= 50 && (
+                                    <div className="opacity-80 text-[9px] mt-0.5 truncate">
+                                      {session.duration} dk
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
 
                               {/* Resize handle - bottom border - always show for resizable sessions */}
                               {session.status !== 'in_progress' && session.status !== 'completed' && (
@@ -1270,13 +1136,13 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       {/* Floating Drop Zones for Week Migration */}
       <AnimatePresence>
         {draggedSession && (
-          <div className="fixed top-24 right-8 z-[100] flex flex-col gap-4 items-end pointer-events-none">
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] flex flex-row gap-6 items-center pointer-events-none">
             {/* Move to Previous Week Drop Zone */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, x: 50 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.9, x: 50 }}
-              className="w-64 p-4 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center justify-center gap-2 shadow-xl transition-all pointer-events-auto"
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.9 }}
+              className="w-56 p-4 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center justify-center gap-2 shadow-xl transition-all pointer-events-auto hover:border-primary-500"
               onDragOver={(e) => {
                 e.preventDefault();
                 e.currentTarget.classList.add('border-primary-500', 'bg-primary-50/90', 'dark:bg-primary-900/40', 'scale-105');
@@ -1290,17 +1156,14 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                 if (draggedSession) {
                   const sessionStart = parseDate(draggedSession.startTime);
                   const sessionEnd = parseDate(draggedSession.endTime);
-
                   const newStartTime = subWeeks(sessionStart, 1);
                   const newEndTime = subWeeks(sessionEnd, 1);
-
                   try {
                     toast.loading('Önceki haftaya taşınıyor...', { id: 'move-prev-week' });
                     const response = await studySessionsAPI.updateSession(draggedSession.id.toString(), {
                       startTime: newStartTime.toISOString(),
                       endTime: newEndTime.toISOString(),
                     });
-
                     if (response.data.success) {
                       toast.success('Önceki haftaya başarıyla taşındı', { id: 'move-prev-week' });
                       queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
@@ -1317,21 +1180,19 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                 setDraggedSession(null);
               }}
             >
-              <div className="p-3 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-                <MoveLeft className="w-6 h-6 rotate-[45deg]" />
+              <div className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                <MoveLeft className="w-5 h-5 rotate-[45deg]" />
               </div>
-              <div className="text-center">
-                <p className="font-bold text-gray-700 dark:text-gray-200 text-base">Önceki Haftaya Taşı</p>
-              </div>
+              <p className="font-bold text-gray-700 dark:text-gray-200 text-sm">Önceki Hafta</p>
             </motion.div>
 
             {/* Move to Next Week Drop Zone */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, x: 50 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.9, x: 50 }}
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.9 }}
               transition={{ delay: 0.1 }}
-              className="w-64 p-6 rounded-2xl border-2 border-dashed border-primary-400 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center justify-center gap-3 shadow-2xl transition-all pointer-events-auto"
+              className="w-56 p-4 rounded-2xl border-2 border-dashed border-primary-400 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center justify-center gap-2 shadow-2xl transition-all pointer-events-auto hover:border-primary-500"
               onDragOver={(e) => {
                 e.preventDefault();
                 e.currentTarget.classList.add('border-primary-500', 'bg-primary-50/90', 'dark:bg-primary-900/40', 'scale-105');
@@ -1345,17 +1206,14 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                 if (draggedSession) {
                   const sessionStart = parseDate(draggedSession.startTime);
                   const sessionEnd = parseDate(draggedSession.endTime);
-
                   const newStartTime = addWeeks(sessionStart, 1);
                   const newEndTime = addWeeks(sessionEnd, 1);
-
                   try {
                     toast.loading('Sonraki haftaya taşınıyor...', { id: 'move-next-week' });
                     const response = await studySessionsAPI.updateSession(draggedSession.id.toString(), {
                       startTime: newStartTime.toISOString(),
                       endTime: newEndTime.toISOString(),
                     });
-
                     if (response.data.success) {
                       toast.success('Gelecek haftaya başarıyla taşındı', { id: 'move-next-week' });
                       queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
@@ -1372,16 +1230,10 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                 setDraggedSession(null);
               }}
             >
-              <div className="p-4 rounded-full bg-primary-100/80 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400 shadow-inner group-hover:scale-110 transition-transform">
-                <MoveRight className="w-8 h-8 rotate-[-45deg]" />
+              <div className="p-2 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400 shadow-inner">
+                <MoveRight className="w-5 h-5 rotate-[-45deg]" />
               </div>
-              <div className="text-center">
-                <p className="font-bold text-gray-900 dark:text-white text-lg">Sonraki Haftaya Taşı</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-1 max-w-[200px]">{draggedSession.title}</p>
-              </div>
-              <div className="mt-2 px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider">
-                Bırak ve Taşı
-              </div>
+              <p className="font-bold text-gray-900 dark:text-white text-sm">Sonraki Hafta</p>
             </motion.div>
           </div>
         )}

@@ -481,7 +481,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
                         <motion.div
                           key={session.id}
                           layoutId={`session-${session.id}`}
-                          className={`absolute inset-x-1 p-2 rounded-xl shadow-sm border text-white transition-all overflow-hidden ${getStatusColor(session.status, session.endTime)} ${isBeingDragged ? 'opacity-30' : ''}`}
+                          className={`absolute inset-x-1 p-1.5 rounded-xl shadow-sm border text-white transition-all overflow-hidden ${getStatusColor(session.status, session.endTime)} ${isBeingDragged ? 'opacity-30' : ''}`}
                           style={{
                             top: `${topPosition}%`,
                             height: `${sessionHeight}px`,
@@ -495,33 +495,51 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
                           onContextMenu={(e) => handleContextMenu(e, session)}
                           onClick={(e) => { e.stopPropagation(); handleEditSession(session); }}
                         >
-                          <div className="flex flex-col h-full">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] font-bold bg-black/20 px-1.5 py-0.5 rounded uppercase tracking-wider">{formatTime(session.startTime)}</span>
-                              <div className="flex gap-1">
-                                {session.status === 'planned' && canStartSession(session) && <button onClick={(e) => { e.stopPropagation(); session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all"><Play className="w-3 h-3" /></button>}
+                          <div className="flex flex-col h-full overflow-hidden">
+                            {/* Header: Time + Status Icons */}
+                            <div className="flex items-center justify-between mb-0.5 shrink-0">
+                              <span className="text-[9px] font-bold bg-black/20 px-1.5 py-0.5 rounded leading-none whitespace-nowrap uppercase tracking-wider">
+                                {formatTime(session.startTime)}
+                              </span>
+                              <div className="flex gap-0.5">
+                                {session.status === 'planned' && canStartSession(session) && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session);
+                                    }}
+                                    className="p-0.5 hover:bg-white/20 rounded-md transition-all"
+                                  >
+                                    <Play className="w-3 h-3" />
+                                  </button>
+                                )}
                                 {session.status === 'in_progress' && (
                                   <>
-                                    <button onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all" title="Duraklat"><Pause className="w-3 h-3" /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all" title="Tamamla"><CheckCircle className="w-3 h-3" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }} className="p-0.5 hover:bg-white/20 rounded-md transition-all"><Pause className="w-3 h-3" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }} className="p-0.5 hover:bg-white/20 rounded-md transition-all"><CheckCircle className="w-3 h-3" /></button>
                                   </>
                                 )}
                                 {session.status === 'paused' && (
-                                  <>
-                                    <button onClick={(e) => { e.stopPropagation(); handleStartSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all" title="Devam Et"><Play className="w-3 h-3" /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleEditSession(session); }} className="p-1 hover:bg-white/20 rounded ring-1 ring-white/30 transition-all" title="Düzenle"><Edit className="w-3 h-3" /></button>
-                                  </>
+                                  <button onClick={(e) => { e.stopPropagation(); handleStartSession(session); }} className="p-0.5 hover:bg-white/20 rounded-md transition-all"><Play className="w-3 h-3" /></button>
                                 )}
                               </div>
                             </div>
-                            <div className="font-bold text-xs truncate leading-tight mb-0.5">{session.title}</div>
-                            {sessionHeight >= 50 && <div className="text-[10px] opacity-80 line-clamp-2 leading-tight">{session.description}</div>}
+
+                            {/* Title & Description */}
+                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                              <div className="font-bold text-xs truncate leading-tight">{session.title}</div>
+                              {sessionHeight >= 50 && (
+                                <div className="text-[9px] opacity-80 truncate leading-tight mt-0.5">
+                                  {session.duration} dk
+                                </div>
+                              )}
+                            </div>
                           </div>
                           {session.status !== 'in_progress' && session.status !== 'completed' && (
                             <div
                               className="absolute bottom-0 left-0 right-0 cursor-ns-resize hover:bg-white/10 h-2 group/resize flex items-center justify-center transition-colors"
                               onMouseDown={(e) => handleResizeStart(e, session, sessionHeight)}
-                            ><div className="w-6 h-0.5 bg-white/40 rounded-full opacity-0 group-hover/resize:opacity-100" /></div>
+                            ><div className="w-6 h-0.5 bg-white/40 rounded-full opacity-0 group-hover/resize:opacity-100 transition-opacity" /></div>
                           )}
                         </motion.div>
                       );
@@ -537,10 +555,10 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
       {/* Floating Drop Zones */}
       <AnimatePresence>
         {draggedSession && (
-          <div className="fixed top-24 right-8 z-[100] flex flex-col gap-4 items-end pointer-events-none">
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] flex flex-row gap-6 items-center pointer-events-none">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, x: 50 }} animate={{ opacity: 1, scale: 1, x: 0 }} exit={{ opacity: 0, scale: 0.9, x: 50 }}
-              className="w-64 p-4 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center gap-2 shadow-xl pointer-events-auto"
+              initial={{ opacity: 0, y: 50, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 50, scale: 0.9 }}
+              className="w-56 p-4 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center gap-2 shadow-xl pointer-events-auto hover:border-primary-500 transition-all"
               onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-primary-500', 'bg-primary-50', 'scale-105'); }}
               onDragLeave={(e) => e.currentTarget.classList.remove('border-primary-500', 'bg-primary-50', 'scale-105')}
               onDrop={async (e) => {
@@ -557,11 +575,12 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
                 setDraggedSession(null);
               }}
             >
-              <MoveLeft className="w-6 h-6 rotate-[45deg] text-gray-500" /><p className="font-bold text-gray-600">Önceki Güne Taşı</p>
+              <MoveLeft className="w-5 h-5 rotate-[45deg] text-gray-500" />
+              <p className="font-bold text-gray-600 text-sm">Önceki Gün</p>
             </motion.div>
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, x: 50 }} animate={{ opacity: 1, scale: 1, x: 0 }} exit={{ opacity: 0, scale: 0.9, x: 50 }} transition={{ delay: 0.1 }}
-              className="w-64 p-6 rounded-2xl border-2 border-dashed border-primary-400 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center gap-3 shadow-2xl pointer-events-auto"
+              initial={{ opacity: 0, y: 50, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 50, scale: 0.9 }} transition={{ delay: 0.1 }}
+              className="w-56 p-4 rounded-2xl border-2 border-dashed border-primary-400 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center gap-2 shadow-2xl pointer-events-auto hover:border-primary-500 transition-all"
               onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-primary-500', 'bg-primary-50', 'scale-105'); }}
               onDragLeave={(e) => e.currentTarget.classList.remove('border-primary-500', 'bg-primary-50', 'scale-105')}
               onDrop={async (e) => {
@@ -578,9 +597,8 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
                 setDraggedSession(null);
               }}
             >
-              <div className="p-4 rounded-full bg-primary-100 text-primary-600"><MoveRight className="w-8 h-8 rotate-[-45deg]" /></div>
-              <p className="font-bold text-gray-900 dark:text-white text-lg text-center leading-tight">Sonraki Güne Taşı</p>
-              <div className="mt-2 px-3 py-1 rounded-full bg-primary-50 text-[10px] font-bold text-primary-600 uppercase">Bırak ve Taşı</div>
+              <div className="p-1.5 rounded-full bg-primary-100 text-primary-600"><MoveRight className="w-5 h-5 rotate-[-45deg]" /></div>
+              <p className="font-bold text-gray-900 dark:text-white text-sm">Sonraki Gün</p>
             </motion.div>
           </div>
         )}
