@@ -34,6 +34,10 @@ import topicRoutes from './routes/topics';
 import planRoutes from './routes/planRoutes';
 import studySessionRoutes from './routes/studySessionRoutes';
 import settingsRoutes from './routes/settingsRoutes';
+import backupRoutes from './routes/backupRoutes';
+import cron from 'node-cron';
+import { performBackup } from './controllers/backupController';
+import { Settings } from './models';
 
 // Get local network IP address
 const getNetworkIP = (): string => {
@@ -97,6 +101,7 @@ app.use('/api/topics', topicRoutes);
 app.use('/api/plans', planRoutes);
 app.use('/api/study-sessions', studySessionRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/backup', backupRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
@@ -115,9 +120,52 @@ const startServer = async () => {
       console.log(`🔧 Environment: ${process.env.NODE_ENV}`);
       console.log(`\n📱 Telefon için: http://${networkIP}:${PORT}/api\n`);
     });
+
+    // Setup automatic backup cron
+    await setupBackupCron();
+
   } catch (error) {
     console.error('❌ Server başlatma hatası:', error);
     process.exit(1);
+  }
+};
+
+const setupBackupCron = async () => {
+  try {
+    // Initial seeds for backup settings if they don't exist
+    const [setting] = await Settings.findOrCreate({
+      where: { key: 'backup_interval' },
+      defaults: {
+        key: 'backup_interval',
+        value: '7',
+        category: 'backup',
+        type: 'string',
+        description: 'Yedekleme aralığı (gün)'
+      }
+    });
+
+    const getCronTime = (days: string) => {
+      if (days === '1') return '0 3 * * *'; // Every day at 3 AM
+      if (days === '5') return '0 3 */5 * *'; // Every 5 days at 3 AM
+      return '0 3 */7 * *'; // Every 7 days at 3 AM (default)
+    };
+
+    const intervalSetting = await Settings.findOne({ where: { key: 'backup_interval' } });
+    const cronTime = getCronTime(intervalSetting?.value || '7');
+
+    cron.schedule(cronTime, async () => {
+      console.log('⏰ Otomatik yedekleme başlatılıyor...');
+      try {
+        await performBackup('auto');
+        console.log('✅ Otomatik yedekleme tamamlandı');
+      } catch (error) {
+        console.error('❌ Otomatik yedekleme hatası:', error);
+      }
+    });
+
+    console.log(`ℹ️ Otomatik yedekleme planlandı: ${cronTime}`);
+  } catch (error) {
+    console.error('❌ Cron kurulum hatası:', error);
   }
 };
 

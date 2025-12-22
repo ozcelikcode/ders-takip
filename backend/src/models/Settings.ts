@@ -5,26 +5,26 @@ interface SettingsAttributes {
   id: number;
   key: string;
   value: string;
-  category: 'general' | 'security' | 'notifications' | 'appearance';
+  category: 'general' | 'security' | 'notifications' | 'appearance' | 'backup';
   type: 'string' | 'number' | 'boolean' | 'json';
   description?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-interface SettingsCreationAttributes extends Optional<SettingsAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description'> {}
+interface SettingsCreationAttributes extends Optional<SettingsAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description'> { }
 
 export class Settings extends Model<SettingsAttributes, SettingsCreationAttributes> implements SettingsAttributes {
   public id!: number;
   public key!: string;
   public value!: string;
-  public category!: 'general' | 'security' | 'notifications' | 'appearance';
+  public category!: 'general' | 'security' | 'notifications' | 'appearance' | 'backup';
   public type!: 'string' | 'number' | 'boolean' | 'json';
   public description?: string;
-  
+
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
-  
+
   // Helper method to get typed value
   public getTypedValue(): any {
     switch (this.type) {
@@ -61,7 +61,7 @@ Settings.init(
       allowNull: false,
     },
     category: {
-      type: DataTypes.ENUM('general', 'security', 'notifications', 'appearance'),
+      type: DataTypes.ENUM('general', 'security', 'notifications', 'appearance', 'backup'),
       allowNull: false,
     },
     type: {

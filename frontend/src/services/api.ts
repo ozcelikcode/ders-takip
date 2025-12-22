@@ -273,4 +273,19 @@ export const settingsAPI = {
     api.get(`/settings/category/${category}`),
 };
 
+// Backup API
+export const backupAPI = {
+  getBackups: (): Promise<AxiosResponse<ApiResponse<any>>> =>
+    api.get('/backup'),
+
+  createBackup: (): Promise<AxiosResponse<ApiResponse<any>>> =>
+    api.post('/backup/create'),
+
+  restoreBackup: (id: number): Promise<AxiosResponse<ApiResponse<any>>> =>
+    api.post(`/backup/restore/${id}`),
+
+  resetData: (mode: 'settings_only' | 'all'): Promise<AxiosResponse<ApiResponse<any>>> =>
+    api.post('/backup/reset', { mode }),
+};
+
 export default api;

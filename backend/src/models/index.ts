@@ -5,6 +5,7 @@ import { Topic } from './Topic';
 import { Plan } from './Plan';
 import { StudySession } from './StudySession';
 import { Settings } from './Settings';
+import { Backup } from './Backup';
 
 // Define associations
 // Category - Course associations
@@ -100,4 +101,4 @@ StudySession.belongsTo(Topic, {
   as: 'topic',
 });
 
-export { User, Course, Category, Topic, Plan, StudySession, Settings };
+export { User, Course, Category, Topic, Plan, StudySession, Settings, Backup };
