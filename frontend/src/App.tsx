@@ -26,9 +26,9 @@ import AdminRoute from './components/auth/AdminRoute';
 import LoadingScreen from './components/common/LoadingScreen';
 
 function App() {
-  const { isLoading, initializeAuth } = useAuthStore();
+  const { user, isLoading, initializeAuth } = useAuthStore();
   const { fetchSettings, applyTheme } = useSettingsStore();
-  const { applyTheme: applyUserTheme } = useUserPreferencesStore();
+  const { applyTheme: applyUserTheme, syncWithServer } = useUserPreferencesStore();
 
   useEffect(() => {
     initializeAuth();
@@ -40,6 +40,13 @@ function App() {
     applyTheme();
     applyUserTheme();
   }, [applyTheme, applyUserTheme]);
+
+  // Sync user preferences when user data is loaded
+  useEffect(() => {
+    if (user?.preferences) {
+      syncWithServer(user.preferences);
+    }
+  }, [user?.id, syncWithServer]); // Only sync when user ID changes (login/init) or sync function changes
 
   if (isLoading) {
     return <LoadingScreen />;

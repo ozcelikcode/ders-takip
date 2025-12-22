@@ -9,18 +9,7 @@ export interface User {
   userCategory?: 'student' | 'teacher' | 'employee' | 'developer' | 'freelancer' | 'other';
   isActive: boolean;
   profileImage?: string;
-  preferences: {
-    theme: 'light' | 'dark';
-    notifications: {
-      email: boolean;
-      push: boolean;
-      reminders: boolean;
-    };
-    workGoals: {
-      dailyHours: number;
-      weeklyHours: number;
-    };
-  };
+  preferences: any;
   lastLogin?: string;
   createdAt: string;
   updatedAt?: string;

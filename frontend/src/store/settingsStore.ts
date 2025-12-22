@@ -149,9 +149,25 @@ export const useSettingsStore = create<SettingsState>()(
               : null;
           };
 
-          const primaryRgb = hexToRgb(settings.primaryColor);
-          if (primaryRgb) {
-            root.style.setProperty('--color-primary', `${primaryRgb.r} ${primaryRgb.g} ${primaryRgb.b}`);
+          // SITE SETTINGS should not overwrite USER preferences if they exist
+          const userPrefsStr = localStorage.getItem('user-preferences-storage');
+          let hasUserCustomColor = false;
+          if (userPrefsStr) {
+            try {
+              const userPrefs = JSON.parse(userPrefsStr).state.preferences;
+              if (userPrefs.customPrimaryColor) hasUserCustomColor = true;
+            } catch (e) {
+              // Ignore parse errors
+            }
+          }
+
+          if (hasUserCustomColor) {
+            console.log('SettingsStore: Skipping site primary color application as user has a custom color set.');
+          } else {
+            const primaryRgb = hexToRgb(settings.primaryColor);
+            if (primaryRgb) {
+              root.style.setProperty('--color-primary', `${primaryRgb.r} ${primaryRgb.g} ${primaryRgb.b}`);
+            }
           }
         }
 

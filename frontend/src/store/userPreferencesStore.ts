@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { authAPI } from '../services/api';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type Language = 'tr' | 'en';
@@ -32,9 +33,10 @@ interface UserPreferencesState {
   preferences: UserPreferences;
 
   // Actions
-  updatePreferences: (data: Partial<UserPreferences>) => void;
+  updatePreferences: (data: Partial<UserPreferences>, syncToServer?: boolean) => void;
   resetPreferences: () => void;
   applyTheme: () => void;
+  syncWithServer: (backendPrefs: any) => void;
 }
 
 const defaultPreferences: UserPreferences = {
@@ -65,23 +67,48 @@ export const useUserPreferencesStore = create<UserPreferencesState>()(
     (set, get) => ({
       preferences: defaultPreferences,
 
-      updatePreferences: (data: Partial<UserPreferences>) => {
-        set((state) => ({
-          preferences: {
-            ...state.preferences,
-            ...data,
-          },
-        }));
+      updatePreferences: (data: Partial<UserPreferences>, syncToServer = true) => {
+        const oldPrefs = get().preferences;
+        const newPrefs = {
+          ...oldPrefs,
+          ...data,
+        };
+
+        set({ preferences: newPrefs });
 
         // Apply theme if theme-related changes
         if (data.theme !== undefined || data.customPrimaryColor !== undefined) {
           get().applyTheme();
         }
+
+        if (syncToServer) {
+          // We don't await this to keep UI snappy, but it will update the backend
+          authAPI.updateProfile({ preferences: newPrefs }).catch((err: any) => {
+            console.error('Failed to sync preferences to server:', err);
+          });
+        }
+      },
+
+      syncWithServer: (backendPrefs: any) => {
+        if (!backendPrefs) return;
+
+        // Merge backend preferences with local ones, giving priority to backend
+        // but only if they differ to avoid unnecessary re-renders
+        const currentPrefs = get().preferences;
+
+        const mergedPrefs: UserPreferences = {
+          ...currentPrefs,
+          ...backendPrefs,
+        };
+
+        set({ preferences: mergedPrefs });
+        get().applyTheme();
       },
 
       resetPreferences: () => {
         set({ preferences: defaultPreferences });
         get().applyTheme();
+        authAPI.updateProfile({ preferences: defaultPreferences }).catch(console.error);
       },
 
       applyTheme: () => {
