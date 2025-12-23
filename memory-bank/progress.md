@@ -5,8 +5,8 @@
 ### Genel Durum: 🟢 Aktif Geliştirme
 
 **Mevcut Versiyon**: v1.0.0 (Development)
-**Son Güncelleme**: 2025-12-18
-**Development Status**: Aktif kullanıma hazır, UI/UX iyileştirmeleri devam ediyor
+**Son Güncelleme**: 2025-12-23
+**Development Status**: Aktif kullanıma hazır, yedekleme sistemi ve tema kalıcılığı eklendi
 
 ## Çalışan Özellikler ✅
 
@@ -75,6 +75,12 @@
   - [x] Lucide icon set
   - [x] TailwindCSS styling
 
+- [x] **Tema Kalıcılığı** ✨ YENİ
+  - [x] Tema tercihi sunucuya senkronize
+  - [x] Özel birincil renk kalıcılığı
+  - [x] Site geneli renk vs kullanıcı tercihi önceliği
+  - [x] İlk yükleme optimizasyonu (FOUC önleme)
+
 - [x] **Modal Sistemi**
   - [x] Headless UI modallar
   - [x] Smooth animasyonlar
@@ -87,59 +93,47 @@
   - [x] LocalStorage persistence
   - [x] Bulk mark as read
 
+### Site Yedekleme ve Sıfırlama ✨ YENİ
+- [x] **Yedekleme Sistemi**
+  - [x] Manuel yedek alma
+  - [x] Otomatik yedekleme (günlük/5 günlük/7 günlük)
+  - [x] Son 5 yedek saklama
+  - [x] Yedek listesi görüntüleme
+  - [x] Seçili yedekten geri yükleme
+
+- [x] **Veri Sıfırlama**
+  - [x] Yönetim verilerini sıfırla (kullanıcılar korunur)
+  - [x] Tüm verileri sıfırla (admin korunur)
+
 ## Son Yapılan İyileştirmeler
 
-### Critical Bug Fix (2025-11-21) 🔴→🟢
-**React Query Cache Invalidation Sorunu** ✅
-- **Problem #1**: Konu eklendikten sonra "Ders yüklenirken bir hata oluştu" mesajı
-  - **Neden**: Cache key type mismatch (string vs integer)
-  - **İlk Çözüm**: Type consistency sağlandı
-  - **Sonuç**: Hata mesajı gitti ama konular anlık görünmedi
+### Tema Kalıcılığı ve Yedekleme (2025-12-22/23) 🔴→🟢
+**Tema Kalıcılığı** ✅
+- **Problem**: Tema ve özel renk seçimleri oturum kapanınca kayboluyordu
+- **Çözüm**:
+  - `userPreferencesStore.ts`: Sunucu senkronizasyonu eklendi
+  - `settingsStore.ts`: Kullanıcı tercihi önceliği
+  - `App.tsx`: Backend'den tercih yükleme
+  - `index.html`: Erken tema uygulama betiği
 
-- **Problem #2**: Konu eklendikten sonra sayfa yenileme gerekiyordu
-  - **Root Cause**: Query key'de query parameters eksik
-  - **TanStack Query Davranışı**: Query parameters cache hash'ine dahil ediliyor
-  - **Asıl Çözüm**: Query key structure'a parameters eklendi
-    ```typescript
-    // Önceki (yanlış)
-    queryKey: ['course', id]
-    queryFn: () => getCourse(id, { includeTopics: true })
+**Site Yedekleme Sistemi** ✅
+- **Yeni Dosyalar**:
+  - `backend/src/models/Backup.ts`
+  - `backend/src/controllers/backupController.ts`
+  - `backend/src/routes/backupRoutes.ts`
+- **Frontend**:
+  - `AdminSettingsPage.tsx`: Yedekleme sekmesi
+  - `api.ts`: backupAPI
 
-    // Sonraki (doğru)
-    queryKey: ['course', id, { includeTopics: true }]
-    queryFn: () => getCourse(id, { includeTopics: true })
-    invalidation: ['course', id, { includeTopics: true }]
-    ```
-  - **Dosyalar**:
-    - `CourseDetailPage.tsx:111` - Query key güncellendi
-    - `CourseDetailPage.tsx:84` - Invalidation güncellendi
-    - `CreateTopicModal.tsx:32` - Query key güncellendi
-    - `CreateTopicModal.tsx:66` - Invalidation güncellendi
+**Veritabanı Sync Hatası** ✅
+- **Problem**: SQLite _backup tabloları çakışması
+- **Çözüm**: Artık tablolar temizlendi
 
-**Öğrenilen**: React Query'de parametreli sorgularda query key'e parametreleri dahil etmek ZORUNLU!
-
-### Bug Fix'ler (2025-11-10)
+### Bug Fix'ler (2025-11-10 - 2025-11-21)
 1. **CreateTopicModal Validasyonu** ✅
-   - **Problem**: Description alanı boş string kabul etmiyordu
-   - **Çözüm**: Zod schema'ı `.optional().or(z.literal(''))` olarak güncellendi
-
 2. **Kategori Rengini Kullan Butonu** ✅
-   - **Problem**: DOM manipülasyonu form state'i güncellemiyordu
-   - **Çözüm**: `setValue` fonksiyonu ile React Hook Form entegrasyonu
-
 3. **Modal Scroll Optimization** ✅
-   - **Problem**: Scrollbar görünmüyordu
-   - **Çözüm**: `overflow-y-scroll` ile her zaman görünür scrollbar
-
-4. **Preset Renk Paleti** ✅
-   - **Problem**: Custom color picker yerine sabit renkler isteniyordu
-   - **Çözüm**: 10 adet güzel renk içeren preset palet uygulandı
-
-### Backend İyileştirmeleri
-- **topicController**: Order field validasyonu kaldırıldı, otomatik hesaplama eklendi
-- **Error Handling**: Detaylı error mesajları ve logging
-- **Performance**: Query optimization ve caching
-- **Port Migration** (2025-11-14): Backend 5001 → 5002 portuna taşındı
+4. **React Query Cache Invalidation** ✅
 
 ## Geliştirme Önceliği
 
@@ -148,12 +142,14 @@
 - [x] Modal scroll sorunları
 - [x] Backend error handling
 - [x] Authentication issues
+- [x] **Tema kalıcılığı**
+- [x] **Site yedekleme**
 
 ### 🟡 Orta Öncelik
 - [ ] Mobile optimization improvements
 - [ ] Performance optimizations
 - [ ] Advanced filtering and search
-- [ ] Export/import functionality
+- [ ] Export/import functionality (kısmen yedekleme ile)
 
 ### 🟢 Düşük Öncelik
 - [ ] Social features
@@ -183,27 +179,17 @@
 - [x] Input validation
 - [x] CORS configuration
 - [x] Rate limiting
+- [x] **Admin-only backup routes**
 - [ ] Content Security Policy
 - [ ] Security headers optimization
-
-## Test Coverage
-
-### Frontend Tests
-- **Component Tests**: %0 (başlangıç)
-- **Integration Tests**: %0 (planlanıyor)
-- **E2E Tests**: %0 (future)
-
-### Backend Tests
-- **Unit Tests**: %0 (planlanıyor)
-- **Integration Tests**: %10 (basic API tests)
-- **Load Tests**: %0 (future)
 
 ## Deployment Durumu
 
 ### Development ✅
 - **Frontend**: Vite dev server (localhost:3000)
 - **Backend**: Express dev server (localhost:5002)
-- **Database**: SQLite (development.sqlite)
+- **Database**: SQLite (database.sqlite)
+- **Backups**: `backups/` klasörü (son 5 yedek)
 - **Environment**: Local development setup
 
 ### Production 🔄 Plan Aşamasında
@@ -212,53 +198,20 @@
 - **Database**: PostgreSQL migration
 - **Hosting**: Railway/DigitalOcean/Vercel
 
-## User Feedback ve Öğrenmeler
-
-### Positive Feedback
-- **UI/UX**: Temiz ve modern arayüz takdir ediliyor
-- **Performance**: Hızlı ve responsive çalışıyor
-- **Features**: Temel özellikler beklentileri karşılıyor
-- **Ease of Use**: Drag & drop ve form kullanımı kolay
-
-### Areas for Improvement
-- **Mobile Experience**: Touch interactions optimize edilebilir
-- **Documentation**: Kullanım kılavuzu eksik
-- **Advanced Features**: Power user özellikleri eksik
-- **Customization**: Theme ve personalization options
-
 ## Proje Metrikleri
 
 ### Development Metrics
-- **Lines of Code**: ~15,000+ (estimated)
-- **Components**: 50+ React components
-- **API Endpoints**: 25+ REST endpoints
-- **Database Tables**: 7 tables
-- **Dependencies**: 80+ npm packages
+- **Lines of Code**: ~17,000+ (estimated)
+- **Components**: 55+ React components
+- **API Endpoints**: 30+ REST endpoints
+- **Database Tables**: 8 tables (Backup eklendi)
+- **Dependencies**: 85+ npm packages
 
 ### Performance Metrics
 - **Bundle Size**: ~500KB (gzipped)
 - **API Response Time**: <200ms (average)
 - **Page Load Time**: <2s (development)
 - **Lighthouse Score**: 85+ (development)
-
-## Riskler ve Zorluklar
-
-### Technical Risks
-- **Scalability**: SQLite scaling limitations (production'da PostgreSQL gerekli)
-- **Performance**: Large data handling optimization
-- **Browser Compatibility**: Modern browser dependency
-- **Mobile Performance**: Touch interaction optimization
-
-### Business Risks
-- **User Adoption**: Similar products in market
-- **Maintenance**: Ongoing feature development needs
-- **Competition**: Established study tracking apps
-
-### Mitigation Strategies
-- **Scalability**: Database migration plan ready
-- **Performance**: Incremental optimization approach
-- **Competition**: Focus on Turkish market + unique features
-- **Maintenance**: Modular architecture for easy updates
 
 ## Sonraki Sürüm Planı (v1.1.0)
 
@@ -275,7 +228,7 @@
 
 3. **Export/Import**
    - Data export (JSON/CSV)
-   - Backup/restore functionality
+   - ✅ Backup/restore functionality (tamamlandı)
    - Cross-device sync
 
 4. **User Experience**
@@ -295,6 +248,8 @@
 - [x] Responsive design
 - [x] Dark mode support
 - [x] Authentication system
+- [x] **Backup/restore system**
+- [x] **Theme persistence**
 - [ ] Performance benchmarks met
 - [ ] Security audit passed
 
@@ -303,9 +258,3 @@
 - [ ] Feedback incorporated
 - [ ] Documentation complete
 - [ ] Support system ready
-
-### Business Success
-- [ ] Market research completed
-- [ ] Pricing strategy defined
-- [ ] Launch plan ready
-- [ ] Growth metrics established

@@ -2,69 +2,48 @@
 
 ## Mevcut Durum
 
-### Son Çalışma (2025-12-18 Session Özeti)
-Bu session'da Haftalık Planlayıcı (WeeklyPlanner) ve ilgili bileşenlerde çok sayıda UI/UX iyileştirmesi yapıldı:
+### Son Çalışma (2025-12-22/23 Session Özeti)
+Bu session'da tema kalıcılığı, site yedekleme sistemi ve veritabanı senkronizasyon sorunları üzerinde çalışıldı:
 
-#### 1. Resize Preview (Görev Boyutlandırma) Düzeltmeleri ✅
-- **Sorun**: Resize işlemi sırasında orijinal session ve preview aynı anda görünüyordu, mouse bırakıldıktan sonra preview kaybolmuyordu
-- **Çözüm**: 
-  - `useEffect` içine taşınan event listener'lar closure sorununu çözdü
-  - State temizliği async işlem öncesine alındı
-  - Orijinal session resize sırasında `opacity: 0` ile gizleniyor
-  - Minimum 5 dakika limitiyle sessiz sınırlama (hata mesajı yok)
-
-#### 2. Session Kartları Modern Tasarım ✅
-- **Gradient arka plan**: `linear-gradient(135deg, color 0%, adjustColor(color, -20) 100%)`
-- **Shadow ve rounded corners**: `shadow-lg rounded-xl`
-- **Beyaz buton ikonları**: Tüm action butonlar `text-white` ve `drop-shadow-sm`
-- **adjustColor helper fonksiyonu**: Renk tonlaması için
-
-#### 3. Küçük Kartlarda Buton Görünürlüğü ✅
-- **Sorun**: < 30px yüksekliğindeki kartlarda butonlar görünmüyordu
-- **Çözüm**: Küçük kartlar için minimal buton düzeni eklendi (Play, Edit - 3x3 boyut)
-
-#### 4. Duraklatılmış Görevlerde Edit Butonu ✅
-- **Sorun**: Paused durumunda Edit butonu `opacity-0 group-hover:opacity-100` ile gizliydi
-- **Çözüm**: Edit butonu her zaman görünür yapıldı
-
-#### 5. Hafta Değiştirme (Sürükle-Bırak) ✅
-- **Özellik**: Görevleri navigasyon oklarına sürükleyerek hafta değiştirme
-- **Çözüm**: Ok butonlarına `onDrop` event handler'ı eklendi
-
-#### 6. Dashboard Haftalık İlerleme Grafiği ✅
-- **Sorun**: Günler rastgele sıralanıyordu, renk tema ile uyumsuzdu
+#### 1. Tema Kalıcılığı ve Sunucu Senkronizasyonu ✅
+- **Sorun**: Tema tercihleri (light/dark/system) ve özel birincil renk, oturum kapanıp açıldığında veya localStorage temizlendiğinde kayboluyordu.
 - **Çözüm**:
-  - Günler Pzt→Paz sabit sıralama
-  - Gradient renk (`#8b5cf6` → `#6366f1`)
-  - `useMemo` ile optimizasyon
-  - **Gelişmiş tooltip**: Tam gün adı ve tarih
-- **Hafta Değiştirme (Sürükle-Bırak)**: Görevleri navigasyon oklarına sürükleyerek hafta değiştirme
+  - `userPreferencesStore.ts`: `updatePreferences` içine `syncToServer` seçeneği eklendi (`authAPI.updateProfile` ile).
+  - `userPreferencesStore.ts`: `syncWithServer` aksiyonu eklendi, backend'den gelen tercihleri yerel state ile birleştiriyor.
+  - `settingsStore.ts`: `applyTheme` içinde kullanıcının `customPrimaryColor` ayarı varsa site geneli rengin üzerine yazılması engellendi.
+  - `App.tsx`: Kullanıcı yüklenince `syncWithServer(user.preferences)` çağrılarak backend tercihleri senkronize ediliyor.
+  - `index.html`: İlk yükleme betiği daha sağlam hale getirildi, kullanıcı tercihini öncelikle uyguluyor.
+  - `auth.ts` (Frontend Types): `User.preferences` alanı `any` olarak genişletildi.
 
-#### 7. "Haftalar Arası Taşı" Drop Zones ✅
-- **Özellik**: Görev sürüklenirken ekranın sağ üst köşesinde beliren iki adet yüzen drop zone ("Önceki Hafta" ve "Sonraki Hafta").
-- **İşlev**: Görev ilgili kutuya bırakıldığında otomatik olarak 1 hafta ileriye veya geriye, aynı gün ve saate taşınır.
-- **UX**: Backdrop blur, animasyonlu giriş/çıkış, farklı renk kodları ve görsel geri bildirim.
+#### 2. Site Yedekleme ve Sıfırlama Sistemi ✅
+- **Özellikler**:
+  - **Backup Modeli**: `backend/src/models/Backup.ts` oluşturuldu (filename, path, size, type).
+  - **backupController.ts**: `getBackups`, `createManualBackup`, `restoreBackup`, `resetData`, `performBackup` fonksiyonları.
+  - **backupRoutes.ts**: Admin-only API rotaları (`/api/backup/*`).
+  - **Otomatik Yedekleme (node-cron)**: Günlük, 5 günlük veya 7 günlük aralıklarla saat 03:00'te otomatik yedek.
+  - **Son 5 Yedek Saklama**: Eski yedekler otomatik silinir.
+  - **Geri Yükleme**: Seçilen yedek üzerinden veritabanı geri döndürülmesi.
+  - **Veri Sıfırlama**:
+    - `settings_only`: Kategoriler, planlar, konular, oturumlar, ayarlar silinir; kullanıcılar korunur.
+    - `all`: Admin hariç tüm veriler silinir.
+- **Frontend**:
+  - `api.ts`: `backupAPI` eklendi.
+  - `AdminSettingsPage.tsx`: "Yedekleme & Sıfırlama" sekmesi eklendi.
+    - Yedekleme aralığı seçimi
+    - "Şimdi Yedek Al" butonu
+    - Yedek listesi tablosu (tarih, tip, boyut, geri yükle)
+    - Veri sıfırlama butonları
 
-#### 8. Session Kartı Hover ve Resize İyileştirmesi ✅
-- **Sorun**: Resize handle üzerindeki şeffaf beyaz bandın "çirkin" görünmesi.
-- **Çözüm**:
-  - Şeffaf beyaz band kaldırıldı.
-  - Sadece hover durumunda görünen çok ince bir indikasyon çizgisi eklendi.
-  - Resize handle'a rounded corners eklendi (`rounded-b-xl`).
-  - Cursor değişimi korunarak temiz bir görünüm sağlandı.
+#### 3. Veritabanı Senkronizasyon Sorunu Düzeltildi ✅
+- **Sorun**: Sequelize `sync({ alter: true })` sırasında `study_sessions_backup` tablosunda UNIQUE constraint hatası.
+- **Neden**: Önceki başarısız sync denemeleri _backup tabloları bırakmıştı.
+- **Çözüm**: _backup tabloları temizlenerek sync başarılı hale getirildi.
 
-#### 9. Günlük Görünüm Senkronizasyonu ✅
-- **Sorun**: Günlük görünümün haftalık planlayıcıdaki zengin özelliklere (sürükle-bırak, resize, modern UI) sahip olmaması.
-- **Çözüm**:
-  - `DailyCalendar.tsx` tamamen yeniden yazılarak `WeeklyPlanner.tsx` ile aynı logic ve UI standartlarına getirildi.
-  * **Sürükle-Bırak**: Görevleri gün içinde serbestçe taşıma.
-  * **Boyutlandırma (Resize)**: Görev sürelerini sürükleyerek ayarlama.
-  * **Yüzen Drop Zone**: Haftalıkta olan "Haftaya Taşı" yerine günlükte "**Sonraki Güne Taşı**" ve "**Önceki Güne Taşı**" drop zone'ları eklendi.
-  * **Context Menu & Modallar**: Tam entegre Pomodoro, Edit ve Move modalları eklendi.
-  - Kod tabanı temizlendi ve ortak yardımcı fonksiyonlar (`parseDate`, `adjustColor`) kullanılmaya başlandı.
-- `frontend/src/components/planner/WeeklyPlanner.tsx`
-- `frontend/src/components/planner/GoalsOverview.tsx`
-- `frontend/src/components/dashboard/WeeklyProgressChart.tsx`
+### Önceki Session (2025-12-18)
+- Haftalık Planlayıcı resize UX iyileştirmeleri
+- Hafta değiştirme drop zone'ları
+- Dashboard haftalık ilerleme grafiği güncellemesi
+- Günlük görünüm senkronizasyonu (DailyCalendar.tsx)
 
 ## Şu Anki Odak Noktası
 
@@ -73,53 +52,25 @@ Bu session'da Haftalık Planlayıcı (WeeklyPlanner) ve ilgili bileşenlerde ço
 - ✅ User authentication (login/register/logout)
 - ✅ Kategori ve ders yönetimi (tüm kullanıcılar için)
 - ✅ Konu oluşturma ve yönetimi
-- ✅ User authentication (login/register/logout)
-- ✅ Kategori ve ders yönetimi (tüm kullanıcılar için)
-- ✅ Konu oluşturma ve yönetimi
 - ✅ Haftalık planlayıcı (drag & drop, week migration, resize UX)
 - ✅ Pomodoro timer
 - ✅ İstatistik ve grafikler
 - ✅ Bildirim sistemi
-- ✅ Dark/Light mode
+- ✅ Dark/Light mode + Tema kalıcılığı
 - ✅ Responsive design
+- ✅ **Site Yedekleme & Geri Yükleme**
+- ✅ **Otomatik Yedekleme (node-cron)**
+- ✅ **Veri Sıfırlama Seçenekleri**
 
 **Son Bug Fix'ler**:
-- Konu oluşturma form validasyonu
-- Modal scroll sorunları
-- Renk seçim sistemi
+- Tema tercihlerinin sunucu ile senkronizasyonu
+- SQLite sync hataları (_backup tablo çakışması)
+- Backend bağlantı reddedilme sorunu
 
 ### Aktif Geliştirme Alanları
 1. **Sistem Stabilizasyonu**: Mevcut özelliklerin stabilizasyonu
 2. **Kullanıcı Deneyimi**: UX iyileştirmeleri
 3. **Performans Optimizasyonu**: Hız ve verimlilik artışı
-
-### Son Kritik Sorun ve Çözümü (2025-11-21)
-**Sorun #1**: Konu eklendikten sonra "Ders yüklenirken bir hata oluştu" mesajı
-**Neden**: React Query cache key mismatch between CourseDetailPage ve CreateTopicModal
-- CourseDetailPage: `['course', id]` (id: string)
-- CreateTopicModal: `['course', courseId.toString()]` (courseId: integer → string)
-**İlk Çözüm Denemesi**: Cache key'i `['course', courseId]` olarak düzeltildi
-**Sonuç**: Hata mesajı gitti AMA konular anlık görünmüyordu
-
-**Sorun #2**: Konu eklendikten sonra sayfayı yenileme ihtiyacı
-**Neden**: Query key structure'da query parameter eksikliği
-- CourseDetailPage query key: `['course', id]`
-- CourseDetailPage query fn: `getCourse(id, { includeTopics: true })`
-- CreateTopicModal invalidation: `['course', courseId]`
-**Problem**: TanStack Query query parametrelerini cache key hash'ine dahil ediyor
-**Asıl Çözüm**: Her iki yerde de query key'e parametreleri dahil et
-- CourseDetailPage: `['course', id, { includeTopics: true }]`
-- CreateTopicModal: `['course', courseId, { includeTopics: true }]`
-- Invalidation: `['course', courseId, { includeTopics: true }]`
-
-**Öğrenilen**: React Query'de parametreli sorgular için query key'e parametreleri MUTLAKA dahil et!
-
-### Backend Port Sorunu (2025-11-14)
-**Sorun**: Port 5001 kullanımdaydı, connection refused hataları
-**Çözüm**:
-- Backend'i port 5002'ye taşıdı
-- Frontend `.env` dosyasında `VITE_API_BASE_URL=http://localhost:5002/api` olarak güncellendi
-- Backend başarıyla yeniden başlatıldı
 
 ## Önemli Kararlar ve Yaklaşımlar
 
@@ -129,18 +80,13 @@ Bu session'da Haftalık Planlayıcı (WeeklyPlanner) ve ilgili bileşenlerde ço
 - **Styling**: TailwindCSS + Headless UI (accessibility)
 - **Database**: SQLite (development simplicity)
 - **Authentication**: JWT with refresh token pattern
+- **Backup**: node-cron + fs-extra for scheduled file-based backups
 
 ### Development Patterns
 - **Component Structure**: Functional components only, hooks-based
 - **Error Handling**: Global error boundaries + local error states
 - **API Design**: RESTful with consistent response format
 - **Validation**: Client-side + server-side validation
-
-### Code Quality Standards
-- **TypeScript**: Strict mode enabled
-- **File Organization**: Feature-based folder structure
-- **Naming Conventions**: Turkish for UI, English for technical terms
-- **Documentation**: JSDoc comments for functions
 
 ## Bilinmesi Gereken Patterns
 
@@ -176,18 +122,6 @@ const mutation = useMutation({
 });
 ```
 
-### Form Validation Pattern
-```typescript
-const schema = z.object({
-  name: z.string().min(1, 'Bu alan zorunlu'),
-  description: z.string().optional().or(z.literal('')),
-});
-
-const { register, handleSubmit, formState: { errors } } = useForm({
-  resolver: zodResolver(schema),
-});
-```
-
 ## Önemli Dosya Lokasyonları
 
 ### Key Components
@@ -196,99 +130,34 @@ const { register, handleSubmit, formState: { errors } } = useForm({
 - **CategoryManagementModal**: `frontend/src/components/modals/CategoryManagementModal.tsx`
 - **WeeklyPlanner**: `frontend/src/components/planner/WeeklyPlanner.tsx`
 - **DailyCalendar**: `frontend/src/components/planner/DailyCalendar.tsx`
+- **AdminSettingsPage**: `frontend/src/pages/admin/AdminSettingsPage.tsx`
 
 ### Key Backend Files
 - **topicController**: `backend/src/controllers/topicController.ts`
 - **userController**: `backend/src/controllers/userController.ts`
-- **Models**: `backend/src/models/` (User, Course, Topic, StudySession)
+- **backupController**: `backend/src/controllers/backupController.ts`
+- **Models**: `backend/src/models/` (User, Course, Topic, StudySession, Backup)
 
 ### API Services
 - **Main API**: `frontend/src/services/api.ts`
-- **Courses API**: `frontend/src/services/coursesAPI.ts`
-- **Auth API**: `frontend/src/services/authAPI.ts`
+- **Backup API**: `frontend/src/services/api.ts` (backupAPI export)
 
 ## Önemli Insights ve Öğrenmeler
 
 ### Technical Insights
 1. **React Hook Form + Zod**: Güçlü validation ama empty string handling'e dikkat
 2. **TanStack Query**: Automatic caching ama cache invalidation stratejisi önemli
-3. **SQLite**: Development için harika ama production'da PostgreSQL düşünülebilir
-4. **Drag & Drop**: Native HTML5 API yeterli ama race condition'lara dikkat
+3. **SQLite**: Development için harika ama `sync({ alter: true })` _backup tabloları bırakabilir
+4. **node-cron**: Zamanlanmış görevler için basit ve etkili
 
 ### User Experience Insights
 1. **Modal Design**: Flex layout + max-height + overflow-y-scroll kombinasyonu ideal
 2. **Color Selection**: Preset renkler custom color picker'dan daha kullanıcı dostu
-3. **Form Validation**: Anlık feedback + Türkçe hata mesajları öneml
-4. **Loading States**: Skeleton loading kullanıcı deneyimini artırıyor
+3. **Form Validation**: Anlık feedback + Türkçe hata mesajları önemli
+4. **Theme Persistence**: Hem localStorage hem backend senkronizasyonu gerekli
 
-### Development Insights
-1. **Error Handling**: Centralized error handling + local error states
-2. **State Management**: Simple state için Zustand ideal, complex state için Redux
-3. **TypeScript**: Strict mode development'i yavaşlatır ama production'da hayat kurtarır
-4. **Testing**: Component testing E2E testing'den daha değerli
-
-## Mevcut Sorunlar ve Riskler
-
-### Known Issues
-- **Authentication**: Token refresh mechanism'da edge case'ler olabilir
-- **Performance**: Large data sets için pagination eksik
-- **Mobile**: Touch interactions (drag & drop) mobile'da optimize edilebilir
-
-### Technical Debt
-- **Database Schema**: Migration system eksik
-- **API Documentation**: OpenAPI/Swagger eksik
-- **Testing**: E2E tests eksik
-- **Error Logging**: Production error tracking eksik
-
-### Performance Considerations
-- **Bundle Size**: Code splitting optimize edilebilir
-- **Database Queries**: N+1 query problemleri olabilir
-- **Memory Usage**: Large data sets için virtual scrolling gerekli
-
-## Sonraki Potansiyel Adımlar
-
-### Short Term (1-2 weeks)
-1. **Stabilizasyon**: Mevcut bug'ları fixleme
-2. **Testing**: Unit test coverage artırma
-3. **Performance**: Bundle optimization
-4. **Documentation**: API documentation ekleme
-
-### Medium Term (1-2 months)
-1. **Features**: Export/import functionality
-2. **Mobile**: PWA implementation
-3. **Analytics**: Advanced statistics
-4. **Social**: User collaboration features
-
-### Long Term (3+ months)
-1. **Scaling**: Database migration to PostgreSQL
-2. **Mobile App**: React Native implementation
-3. **AI Features**: Smart recommendations
-4. **Enterprise**: Team management features
-
-## Development Guidelines
-
-### Code Review Checklist
-- [ ] TypeScript types are correct
-- [ ] Error handling is implemented
-- [ ] Loading states are considered
-- [ ] Responsive design is checked
-- [ ] Accessibility is considered
-- [ ] Performance implications are evaluated
-- [ ] Security implications are considered
-- [ ] Tests are written if necessary
-
-### Git Workflow
-- **Feature branches**: `feature/description`
-- **Commit format**: `feat: add feature`, `fix: fix bug`, `docs: update docs`
-- **Pull requests**: Required for all changes
-- **Code reviews**: At least one approval required
-
-### Environment Management
-- **Development**: Local SQLite + environment variables
-- **Testing**: In-memory database
-- **Production**: External database with proper backups
-- **Secrets**: Environment variables, never commit secrets
-
-## Development Workflow Update (2025-12-12)
+## Development Workflow Update (2025-12-23)
 - Root `npm run dev:all` starts backend + frontend together (`npm run dev` is an alias).
 - Frontend proxy and env now point to backend port 5002.
+- Backup routes added at `/api/backup/*` (admin only).
+- Settings model extended with 'backup' category.

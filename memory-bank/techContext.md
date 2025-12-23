@@ -1029,3 +1029,34 @@ api.interceptors.response.use(
 **Çözüm**: `.optional().or(z.literal(''))`
 
 **Öğrenilen**: React Hook Form + Zod'da empty string handling özel dikkat gerektirir
+
+### Tema Kalıcılığı ve Sunucu Senkronizasyonu (2025-12-22) ✅
+**Problem**: Tema ve özel renk tercihleri oturum sonrası kayboluyordu
+**Çözüm**:
+- `userPreferencesStore.ts`: `syncToServer` ve `syncWithServer` aksiyonları eklendi
+- `settingsStore.ts`: Kullanıcı tercihi site genelinden öncelikli
+- `App.tsx`: Backend'den tercih yükleme
+- `index.html`: Erken tema uygulama (FOUC önleme)
+
+### Site Yedekleme Sistemi (2025-12-22/23) ✅
+**Yeni Dosyalar**:
+- `backend/src/models/Backup.ts`: Yedek metadata modeli
+- `backend/src/controllers/backupController.ts`: Yedekleme işlemleri
+- `backend/src/routes/backupRoutes.ts`: Admin-only API rotaları
+
+**Özellikler**:
+- Manuel ve otomatik yedekleme (node-cron)
+- Son 5 yedek saklama
+- Geri yükleme (process.exit ile restart)
+- Veri sıfırlama (settings_only / all)
+
+**API Endpoints**:
+- `GET /api/backup` - Yedek listesi
+- `POST /api/backup/create` - Manuel yedek
+- `POST /api/backup/restore/:id` - Geri yükleme
+- `POST /api/backup/reset` - Veri sıfırlama
+
+### SQLite Sync Hatası (2025-12-22) ✅
+**Problem**: `sync({ alter: true })` sırasında _backup tablo çakışması
+**Neden**: Önceki başarısız sync denemeleri
+**Çözüm**: _backup tabloları manuel temizleme
