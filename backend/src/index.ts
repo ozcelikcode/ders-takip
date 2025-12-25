@@ -6,8 +6,7 @@ import path from 'path';
 const envPath = path.resolve(process.cwd(), '.env');
 dotenv.config({ path: envPath });
 
-console.log('DEBUG: Env Path:', envPath);
-console.log('DEBUG: JWT_SECRET loaded:', !!process.env.JWT_SECRET);
+// Debug logları kaldırıldı - temiz terminal çıktısı için
 if (!process.env.JWT_SECRET) {
   console.error('CRITICAL: JWT_SECRET is missing from environment variables!');
   // Fallback for development if file read fails strangely
@@ -80,7 +79,10 @@ app.use(cors({
 if (process.env.NODE_ENV === 'production') {
   app.use(limiter);
 }
-app.use(morgan('combined'));
+// Morgan logger - sadece production'da aktif (development'ta temiz terminal için kapalı)
+if (process.env.NODE_ENV === 'production') {
+  app.use(morgan('combined'));
+}
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 

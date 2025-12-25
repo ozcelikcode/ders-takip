@@ -420,28 +420,28 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-6 animate-fade-in">
+      {/* Header - iOS Style */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Günlük Planlayıcı</h2>
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <div className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-full transition-colors ${isToday(selectedDate) ? 'bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 font-semibold' : 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800'}`}>
             <Calendar className="w-4 h-4" />
-            <span className={isToday(selectedDate) ? 'font-semibold text-primary-600' : ''}>
+            <span>
               {format(selectedDate, 'dd MMMM yyyy, EEEE', { locale: tr })}
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => navigateDate('prev')} className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400"><ChevronLeft className="w-5 h-5" /></button>
-          <button onClick={() => setSelectedDate(new Date())} className="px-3 py-1 text-sm font-medium text-primary-600">Bugün</button>
-          <button onClick={() => navigateDate('next')} className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400"><ChevronRight className="w-5 h-5" /></button>
+        <div className="flex items-center gap-1 p-1 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50">
+          <button onClick={() => navigateDate('prev')} className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 rounded-lg transition-all"><ChevronLeft className="w-5 h-5" /></button>
+          <button onClick={() => setSelectedDate(new Date())} className="px-4 py-2 text-sm font-medium text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-lg transition-all">Bugün</button>
+          <button onClick={() => navigateDate('next')} className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 rounded-lg transition-all"><ChevronRight className="w-5 h-5" /></button>
         </div>
       </div>
 
-      {/* Grid */}
-      <div className="card overflow-hidden">
-        <div className="bg-white dark:bg-gray-800">
+      {/* Grid - iOS Style */}
+      <div className="overflow-hidden rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50">
+        <div>
           <div className="grid grid-cols-1">
             {HOURS.map((hour) => {
               const sessions = getSessionsForTimeSlot(hour);
@@ -450,9 +450,9 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
               const timeIndicatorPos = (currentTime.getMinutes() / 60) * 100;
 
               return (
-                <div key={hour} className="flex border-b border-gray-100 dark:border-gray-700/50 min-h-[64px] relative group">
-                  <div className="w-20 bg-gray-50/50 dark:bg-gray-900/30 flex flex-col items-center justify-center border-r border-gray-100 dark:border-gray-700/50">
-                    <span className="text-sm font-medium text-gray-500">{`${hour.toString().padStart(2, '0')}:00`}</span>
+                <div key={hour} className="flex border-b border-gray-100/80 dark:border-gray-700/30 min-h-[64px] relative group">
+                  <div className="w-20 bg-gradient-to-r from-gray-50/80 to-gray-50/40 dark:from-gray-900/50 dark:to-gray-800/30 flex flex-col items-center justify-center border-r border-gray-100/80 dark:border-gray-700/50">
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 tabular-nums">{`${hour.toString().padStart(2, '0')}:00`}</span>
                   </div>
                   <div
                     className="flex-1 relative p-1 transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-700/20"

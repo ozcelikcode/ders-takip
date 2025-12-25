@@ -627,14 +627,14 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Week Navigation */}
+    <div className="space-y-6 animate-fade-in">
+      {/* Week Navigation - iOS Style */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Haftalık Planlayıcı
           </h2>
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
             <Calendar className="w-4 h-4" />
             <span>
               {format(currentWeek, 'd MMMM', { locale: tr })} - {format(addDays(currentWeek, 6), 'd MMMM yyyy', { locale: tr })}
@@ -642,7 +642,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 p-1 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50">
           <button
             onClick={() => navigateWeek('prev')}
             onDragOver={(e) => {
@@ -661,16 +661,16 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
               }
               setDragOverArrow(null);
             }}
-            className={`p-2 transition-colors ${dragOverArrow === 'prev'
-              ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
-              : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+            className={`p-2 rounded-lg transition-all ${dragOverArrow === 'prev'
+              ? 'bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400'
+              : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-white dark:hover:bg-gray-700'
               }`}
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={() => setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-            className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-lg transition-all"
           >
             Bugün
           </button>
@@ -692,9 +692,9 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
               }
               setDragOverArrow(null);
             }}
-            className={`p-2 transition-colors ${dragOverArrow === 'next'
-              ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
-              : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+            className={`p-2 rounded-lg transition-all ${dragOverArrow === 'next'
+              ? 'bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400'
+              : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-white dark:hover:bg-gray-700'
               }`}
           >
             <ChevronRight className="w-5 h-5" />
@@ -702,13 +702,13 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         </div>
       </div>
 
-      {/* Weekly Grid */}
-      <div className="card overflow-hidden">
-        <div className="bg-white dark:bg-gray-800 overflow-x-auto">
+      {/* Weekly Grid - iOS Style */}
+      <div className="overflow-hidden rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50">
+        <div className="overflow-x-auto">
           <div className="min-w-[800px]">
             {/* Header with days */}
-            <div className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-700">
-              <div className="p-4 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center">
+            <div className="grid grid-cols-8 border-b border-gray-100 dark:border-gray-700/50">
+              <div className="p-4 bg-gradient-to-b from-gray-50 to-gray-100/50 dark:from-gray-900 dark:to-gray-800/50 border-r border-gray-100 dark:border-gray-700/50 flex items-center justify-center">
                 <Clock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
               </div>
               {DAYS.map((day, index) => {
@@ -718,13 +718,17 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                 return (
                   <div
                     key={day}
-                    className={`p-4 text-center border-r border-gray-200 dark:border-gray-700 ${isCurrentDay ? 'bg-primary-50 dark:bg-primary-900/20' : 'bg-gray-50 dark:bg-gray-900'
+                    className={`p-4 text-center border-r border-gray-100 dark:border-gray-700/50 transition-all duration-300 ${isCurrentDay
+                      ? 'bg-gradient-to-b from-sky-50 via-cyan-50/80 to-blue-50/60 dark:from-sky-900/30 dark:via-cyan-900/20 dark:to-blue-900/10'
+                      : 'bg-gradient-to-b from-gray-50 to-gray-100/50 dark:from-gray-900 dark:to-gray-800/50'
                       }`}
                   >
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    <div className={`text-sm font-semibold ${isCurrentDay ? 'text-sky-700 dark:text-sky-300' : 'text-gray-900 dark:text-white'}`}>
                       {day}
                     </div>
-                    <div className={`text-xs ${isCurrentDay ? 'text-primary-600 dark:text-primary-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
+                    <div className={`text-xs mt-0.5 ${isCurrentDay
+                      ? 'text-sky-600 dark:text-sky-400 font-bold bg-sky-100 dark:bg-sky-900/40 px-2 py-0.5 rounded-full inline-block'
+                      : 'text-gray-500 dark:text-gray-400'}`}>
                       {format(dayDate, 'd MMM', { locale: tr })}
                     </div>
                   </div>
@@ -734,10 +738,10 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
 
             {/* Time slots */}
             {HOURS.map((hour) => (
-              <div key={hour} className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-700">
+              <div key={hour} className="grid grid-cols-8 border-b border-gray-100/80 dark:border-gray-700/30">
                 {/* Hour label */}
-                <div className="relative p-3 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center">
-                  <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <div className="relative p-3 bg-gray-50/80 dark:bg-gray-900/50 border-r border-gray-100 dark:border-gray-700/50 flex items-center justify-center">
+                  <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 tabular-nums">
                     {`${hour.toString().padStart(2, '0')}:00`}
                   </div>
                 </div>
@@ -758,14 +762,16 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                   return (
                     <div
                       key={`${dayIndex}-${hour}`}
-                      className={`relative min-h-[48px] border-r border-gray-200 dark:border-gray-700 transition-colors ${isCurrentDay ? 'bg-primary-50/50 dark:bg-primary-900/10' : ''
+                      className={`relative min-h-[48px] border-r border-gray-100/80 dark:border-gray-700/30 transition-all duration-200 ${isCurrentDay
+                        ? 'bg-gradient-to-b from-sky-50/60 to-cyan-50/40 dark:from-sky-900/10 dark:to-cyan-900/5'
+                        : 'hover:bg-gray-50/80 dark:hover:bg-gray-700/20'
                         }`}
                       onDragOver={(e) => handleDragOver(e, dayIndex, hour)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, dayIndex, hour)}
                     >
                       {/* 30-minute interval guide - subtle */}
-                      <div className="absolute top-1/2 left-0 right-0 h-px bg-gray-200 dark:bg-gray-700 opacity-30"></div>
+                      <div className="absolute top-1/2 left-0 right-0 h-px bg-gray-200/50 dark:bg-gray-700/40"></div>
 
                       {/* Drag Preview - Show where session will be dropped */}
                       {isDragOver && draggedSession && dragOverTarget && (

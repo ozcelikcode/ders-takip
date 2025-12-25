@@ -7,7 +7,7 @@ const dbPath = path.join(__dirname, '..', '..', 'database.sqlite');
 export const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: dbPath,
-  logging: isDevelopment ? console.log : false,
+  logging: false, // Temiz terminal çıktısı için SQL logları kapatıldı
   define: {
     timestamps: true,
     underscored: false,
