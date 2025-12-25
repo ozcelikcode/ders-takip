@@ -53,21 +53,21 @@ const TodaysPlans: React.FC = () => {
 
   const getSessionStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'in_progress': return 'bg-primary-100 text-primary-800 border-primary-200';
-      case 'paused': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'completed': return 'bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700/50';
+      case 'in_progress': return 'bg-sky-50 text-sky-700 border-sky-200/50 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-700/50';
+      case 'paused': return 'bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700/50';
+      case 'cancelled': return 'bg-red-50 text-red-700 border-red-200/50 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700/50';
+      default: return 'bg-gray-50 text-gray-700 border-gray-200/50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700/50';
     }
   };
 
   const getSessionTypeColor = (sessionType: string) => {
     switch (sessionType) {
-      case 'study': return 'bg-primary-500';
-      case 'pomodoro': return 'bg-red-500';
-      case 'review': return 'bg-green-500';
-      case 'break': return 'bg-gray-500';
-      default: return 'bg-primary-500';
+      case 'study': return 'bg-sky-400';
+      case 'pomodoro': return 'bg-rose-400';
+      case 'review': return 'bg-emerald-400';
+      case 'break': return 'bg-gray-400';
+      default: return 'bg-sky-400';
     }
   };
 
@@ -228,42 +228,46 @@ const TodaysPlans: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-6 animate-fade-in">
+      {/* Header - iOS Style */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <CalendarIcon className="w-6 h-6 text-primary-600 dark:text-blue-400" />
+          <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-900/30">
+            <CalendarIcon className="w-5 h-5 text-sky-500" />
+          </div>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Bugünün Planları
           </h2>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            ({totalSessions} seans, {completionRate}% tamamlandı)
+          <span className="text-sm px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+            {totalSessions} seans, {completionRate}% tamamlandı
           </span>
         </div>
 
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
         >
           <Plus className="w-4 h-4" />
           Yeni Seans
         </button>
       </div>
 
-      {/* Today's Sessions */}
+      {/* Today's Sessions - iOS Style Cards */}
       {sortedSessions.length === 0 ? (
-        <div className="card">
-          <div className="card-body text-center py-12">
-            <CalendarIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+        <div className="rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50">
+          <div className="text-center py-12 px-6">
+            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/50 w-fit mx-auto mb-4">
+              <CalendarIcon className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               Bugün için planlanmış seans yok
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
               Bugün için çalışma seansı oluşturmak ister misiniz?
             </p>
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
             >
               <Plus className="w-4 h-4" />
               İlk Seansımı Oluştur
@@ -279,13 +283,13 @@ const TodaysPlans: React.FC = () => {
             return (
               <motion.div
                 key={session.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className={`card hover:shadow-md transition-all duration-200 ${session.status === 'completed' ? 'opacity-75' : ''
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className={`rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-sm hover:shadow-lg border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 ${session.status === 'completed' ? 'opacity-70' : ''
                   }`}
               >
-                <div className="card-body p-4">
+                <div className="p-4">
                   <div className="flex items-center justify-between">
                     {/* Left side - Session info */}
                     <div className="flex items-center gap-4">

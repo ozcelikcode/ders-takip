@@ -1009,26 +1009,6 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-6 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-primary-500"></div>
-          <span className="text-gray-600 dark:text-gray-400">Çalışma</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-red-500"></div>
-          <span className="text-gray-600 dark:text-gray-400">Pomodoro</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-green-500"></div>
-          <span className="text-gray-600 dark:text-gray-400">Tekrar</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded bg-gray-500"></div>
-          <span className="text-gray-600 dark:text-gray-400">Mola</span>
-        </div>
-      </div>
-
       {isLoading && (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>

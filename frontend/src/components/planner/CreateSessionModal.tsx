@@ -13,20 +13,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../common/ConfirmDialog';
 
-// Color palette for sessions
+// Color palette for sessions - Soft/Pastel iOS style colors
 const SESSION_COLORS = [
-  { name: 'Mavi', value: '#3B82F6', bg: 'bg-blue-500' },
-  { name: 'Yeşil', value: '#10B981', bg: 'bg-emerald-500' },
-  { name: 'Mor', value: '#8B5CF6', bg: 'bg-violet-500' },
-  { name: 'Kırmızı', value: '#EF4444', bg: 'bg-red-500' },
-  { name: 'Turuncu', value: '#F59E0B', bg: 'bg-amber-500' },
-  { name: 'Pembe', value: '#EC4899', bg: 'bg-pink-500' },
-  { name: 'İndigo', value: '#6366F1', bg: 'bg-indigo-500' },
-  { name: 'Teal', value: '#14B8A6', bg: 'bg-teal-500' },
-  { name: 'Gri', value: '#6B7280', bg: 'bg-gray-500' },
-  { name: 'Sarı', value: '#EAB308', bg: 'bg-yellow-500' },
-  { name: 'Lacivert', value: '#1E40AF', bg: 'bg-blue-700' },
-  { name: 'Koyu Yeşil', value: '#047857', bg: 'bg-emerald-700' },
+  { name: 'Gök Mavisi', value: '#60A5FA', bg: 'bg-blue-400' },
+  { name: 'Nane Yeşili', value: '#34D399', bg: 'bg-emerald-400' },
+  { name: 'Lavanta', value: '#A78BFA', bg: 'bg-violet-400' },
+  { name: 'Mercan', value: '#F87171', bg: 'bg-red-400' },
+  { name: 'Kayısı', value: '#FBBF24', bg: 'bg-amber-400' },
+  { name: 'Şakayık', value: '#F472B6', bg: 'bg-pink-400' },
+  { name: 'Safir', value: '#818CF8', bg: 'bg-indigo-400' },
+  { name: 'Deniz', value: '#2DD4BF', bg: 'bg-teal-400' },
+  { name: 'Beton', value: '#9CA3AF', bg: 'bg-gray-400' },
+  { name: 'Ayçiçeği', value: '#FCD34D', bg: 'bg-yellow-400' },
+  { name: 'Okyanus', value: '#38BDF8', bg: 'bg-sky-400' },
+  { name: 'Çimen', value: '#4ADE80', bg: 'bg-green-400' },
 ];
 
 interface CreateSessionModalProps {
@@ -115,7 +115,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
       duration: 60,
       endTime: '',
       sessionType: 'study',
-      color: '#3B82F6', // Default blue color
+      color: '#60A5FA', // Default soft blue color
       pomodoroSettings: {
         workDuration: 25,
         shortBreak: 5,
@@ -198,7 +198,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
         // Check if course name already contains category to prevent duplication
         const categoryName = selectedCourse.category?.name || '';
         const hasCategory = selectedCourse.name.includes(`(${categoryName})`) ||
-                          selectedCourse.name.includes(`(${categoryName.toLowerCase()})`);
+          selectedCourse.name.includes(`(${categoryName.toLowerCase()})`);
         finalTitle = hasCategory ? selectedCourse.name : `${selectedCourse.name}${categoryName ? ` (${categoryName})` : ''}`;
       } else {
         finalTitle = 'Ders Çalışması';
@@ -390,38 +390,37 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="mx-auto max-w-lg w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl my-8 max-h-[90vh] flex flex-col"
+              className="mx-auto max-w-lg w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl my-8 max-h-[90vh] flex flex-col border border-gray-200/50 dark:border-gray-700/50"
             >
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700/50">
                 <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
                   {isEditMode ? 'Çalışma Seansını Düzenle' : 'Yeni Çalışma Seansı'}
                 </Dialog.Title>
                 <button
                   onClick={handleClose}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="p-2 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form id="create-session-form" onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4 overflow-y-auto flex-1">
+              <form id="create-session-form" onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-5 overflow-y-auto flex-1">
                 {/* Study Category Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                     Çalışma Türü *
                   </label>
                   <div className="grid grid-cols-3 gap-3">
                     <button
                       type="button"
                       onClick={() => setSessionCategory('course')}
-                      className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                        sessionCategory === 'course'
-                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
-                      }`}
+                      className={`p-4 rounded-xl border-2 transition-all duration-300 ${sessionCategory === 'course'
+                        ? 'border-sky-400 bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 shadow-sm'
+                        : 'border-gray-200/80 dark:border-gray-600/80 hover:border-gray-300 dark:hover:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                        }`}
                     >
-                      <div className="flex flex-col items-center gap-1.5">
-                        <BookOpen className={`w-5 h-5 ${sessionCategory === 'course' ? 'text-primary-500' : 'text-gray-400'}`} />
+                      <div className="flex flex-col items-center gap-2">
+                        <BookOpen className={`w-6 h-6 ${sessionCategory === 'course' ? 'text-sky-500' : 'text-gray-400'}`} />
                         <span className="font-medium text-xs">Ders Çalışması</span>
                       </div>
                     </button>
@@ -429,14 +428,13 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setSessionCategory('break')}
-                      className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                        sessionCategory === 'break'
-                          ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
-                      }`}
+                      className={`p-4 rounded-xl border-2 transition-all duration-300 ${sessionCategory === 'break'
+                        ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 shadow-sm'
+                        : 'border-gray-200/80 dark:border-gray-600/80 hover:border-gray-300 dark:hover:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                        }`}
                     >
-                      <div className="flex flex-col items-center gap-1.5">
-                        <Coffee className={`w-5 h-5 ${sessionCategory === 'break' ? 'text-orange-500' : 'text-gray-400'}`} />
+                      <div className="flex flex-col items-center gap-2">
+                        <Coffee className={`w-6 h-6 ${sessionCategory === 'break' ? 'text-amber-500' : 'text-gray-400'}`} />
                         <span className="font-medium text-xs">Mola</span>
                       </div>
                     </button>
@@ -444,14 +442,13 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setSessionCategory('custom')}
-                      className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                        sessionCategory === 'custom'
-                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
-                      }`}
+                      className={`p-4 rounded-xl border-2 transition-all duration-300 ${sessionCategory === 'custom'
+                        ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 shadow-sm'
+                        : 'border-gray-200/80 dark:border-gray-600/80 hover:border-gray-300 dark:hover:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                        }`}
                     >
-                      <div className="flex flex-col items-center gap-1.5">
-                        <Target className={`w-5 h-5 ${sessionCategory === 'custom' ? 'text-green-500' : 'text-gray-400'}`} />
+                      <div className="flex flex-col items-center gap-2">
+                        <Target className={`w-6 h-6 ${sessionCategory === 'custom' ? 'text-emerald-500' : 'text-gray-400'}`} />
                         <span className="font-medium text-xs">Özel Görev</span>
                       </div>
                     </button>
@@ -470,7 +467,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
                     >
                       <option value="">Ders seçin</option>
-                       {coursesData?.map((course: any) => (
+                      {coursesData?.map((course: any) => (
                         <option key={course.id} value={course.id.toString()}>
                           {course.name} {course.category?.name ? `(${course.category.name})` : ''}
                         </option>
@@ -566,11 +563,10 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setDurationMode('minutes')}
-                      className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                        durationMode === 'minutes'
-                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
-                      }`}
+                      className={`p-3 rounded-lg border-2 transition-all duration-200 ${durationMode === 'minutes'
+                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
+                        }`}
                     >
                       <div className="flex items-center justify-center gap-2">
                         <Timer className={`w-4 h-4 ${durationMode === 'minutes' ? 'text-primary-500' : 'text-gray-400'}`} />
@@ -581,11 +577,10 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setDurationMode('timeRange')}
-                      className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                        durationMode === 'timeRange'
-                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
-                      }`}
+                      className={`p-3 rounded-lg border-2 transition-all duration-200 ${durationMode === 'timeRange'
+                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300'
+                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
+                        }`}
                     >
                       <div className="flex items-center justify-center gap-2">
                         <Calendar className={`w-4 h-4 ${durationMode === 'timeRange' ? 'text-purple-500' : 'text-gray-400'}`} />
@@ -684,40 +679,40 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                   </div>
                 )}
 
-                 {/* End Time Display - Only for Minutes Mode */}
-                 {durationMode === 'minutes' && (
-                   <div className="bg-gradient-to-r from-primary-50 to-purple-50 dark:from-primary-900/20 dark:to-purple-900/20 rounded-lg p-3 border border-primary-200 dark:border-primary-800">
-                     <div className="flex items-center justify-between">
-                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                         📅 Bitiş Saati:
-                       </span>
-                       <span className="text-lg font-bold text-primary-600 dark:text-primary-400">
-                         {(() => {
-                           const duration = watch('duration') || 60;
-                           const startDateValue = watch('startDate');
-                           const startTimeValue = watch('startTime');
+                {/* End Time Display - Only for Minutes Mode */}
+                {durationMode === 'minutes' && (
+                  <div className="bg-gradient-to-r from-primary-50 to-purple-50 dark:from-primary-900/20 dark:to-purple-900/20 rounded-lg p-3 border border-primary-200 dark:border-primary-800">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        📅 Bitiş Saati:
+                      </span>
+                      <span className="text-lg font-bold text-primary-600 dark:text-primary-400">
+                        {(() => {
+                          const duration = watch('duration') || 60;
+                          const startDateValue = watch('startDate');
+                          const startTimeValue = watch('startTime');
 
-                           if (!startDateValue || !startTimeValue) return '--:--';
+                          if (!startDateValue || !startTimeValue) return '--:--';
 
-                           const [startHours, startMinutes] = startTimeValue.split(':').map(Number);
-                           const startTime = new Date(startDateValue);
-                           startTime.setHours(startHours, startMinutes, 0, 0);
+                          const [startHours, startMinutes] = startTimeValue.split(':').map(Number);
+                          const startTime = new Date(startDateValue);
+                          startTime.setHours(startHours, startMinutes, 0, 0);
 
-                           const endTime = new Date(startTime);
-                           endTime.setMinutes(endTime.getMinutes() + duration);
+                          const endTime = new Date(startTime);
+                          endTime.setMinutes(endTime.getMinutes() + duration);
 
-                           return format(endTime, 'HH:mm');
-                         })()}
-                       </span>
-                     </div>
-                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5 flex items-center gap-1">
-                       <Timer className="w-3 h-3" />
-                       Başlangıç + {watch('duration') || 60} dakika
-                     </p>
-                   </div>
-                 )}
+                          return format(endTime, 'HH:mm');
+                        })()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5 flex items-center gap-1">
+                      <Timer className="w-3 h-3" />
+                      Başlangıç + {watch('duration') || 60} dakika
+                    </p>
+                  </div>
+                )}
 
-                 {/* Pomodoro Settings */}
+                {/* Pomodoro Settings */}
                 <AnimatePresence>
                   {showPomodoroSettings && (
                     <motion.div
@@ -834,34 +829,33 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                   )}
                 </AnimatePresence>
 
-                 {/* Color Selection */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                      Renk Seçimi
-                    </label>
-                    <input type="hidden" {...register('color')} />
-                    <div className="grid grid-cols-6 gap-2">
-                      {SESSION_COLORS.map((color) => (
-                        <button
-                          key={color.value}
-                          type="button"
-                          onClick={() => setValue('color', color.value, { shouldValidate: true, shouldDirty: true })}
-                          className={`w-10 h-10 rounded-full border-2 transition-all duration-200 ${
-                            watch('color') === color.value
-                              ? 'border-gray-800 dark:border-gray-200 scale-110 shadow-lg ring-2 ring-offset-2 ring-primary-500'
-                              : 'border-gray-300 dark:border-gray-600 hover:scale-105 hover:border-gray-400'
+                {/* Color Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Renk Seçimi
+                  </label>
+                  <input type="hidden" {...register('color')} />
+                  <div className="grid grid-cols-6 gap-2">
+                    {SESSION_COLORS.map((color) => (
+                      <button
+                        key={color.value}
+                        type="button"
+                        onClick={() => setValue('color', color.value, { shouldValidate: true, shouldDirty: true })}
+                        className={`w-10 h-10 rounded-full border-2 transition-all duration-200 ${watch('color') === color.value
+                          ? 'border-gray-800 dark:border-gray-200 scale-110 shadow-lg ring-2 ring-offset-2 ring-primary-500'
+                          : 'border-gray-300 dark:border-gray-600 hover:scale-105 hover:border-gray-400'
                           }`}
-                          style={{ backgroundColor: color.value }}
-                          title={color.name}
-                        />
-                      ))}
-                    </div>
+                        style={{ backgroundColor: color.value }}
+                        title={color.name}
+                      />
+                    ))}
                   </div>
+                </div>
 
 
 
-                 {/* Buttons */}
-               </form>
+                {/* Buttons */}
+              </form>
 
               {/* Footer with buttons */}
               <div className="flex justify-between items-center gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">

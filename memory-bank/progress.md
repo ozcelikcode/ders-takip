@@ -5,8 +5,8 @@
 ### Genel Durum: 🟢 Aktif Geliştirme
 
 **Mevcut Versiyon**: v1.0.0 (Development)
-**Son Güncelleme**: 2025-12-23
-**Development Status**: Aktif kullanıma hazır, yedekleme sistemi ve tema kalıcılığı eklendi
+**Son Güncelleme**: 2025-12-25
+**Development Status**: Aktif kullanıma hazır, iOS tarzı tasarım sistemi uygulandı
 
 ## Çalışan Özellikler ✅
 
@@ -93,6 +93,14 @@
   - [x] LocalStorage persistence
   - [x] Bulk mark as read
 
+- [x] **iOS Tarzı Tasarım Sistemi** ✨ YENİ (2025-12-25)
+  - [x] Glassmorphism efektleri (backdrop-blur-xl)
+  - [x] Pastel/soft renk paleti (400 serisi Tailwind renkleri)
+  - [x] Gradient butonlar ve arka planlar
+  - [x] Yuvarlatılmış köşeler (rounded-2xl, rounded-xl)
+  - [x] Framer Motion animasyonlu tab geçişleri
+  - [x] Modern kart tasarımları
+
 ### Site Yedekleme ve Sıfırlama ✨ YENİ
 - [x] **Yedekleme Sistemi**
   - [x] Manuel yedek alma
@@ -106,6 +114,22 @@
   - [x] Tüm verileri sıfırla (admin korunur)
 
 ## Son Yapılan İyileştirmeler
+
+### iOS Tarzı Planner UI Tasarımı (2025-12-25) 🔴→🟢
+**Tasarım Güncellemesi** ✅
+- **Hedef**: Planner sayfasının iOS tarzı modern tasarıma dönüştürülmesi
+- **Yapılan Değişiklikler**:
+  - `WeeklyPlanner.tsx`: Sky blue/cyan gradient, glassmorphism kartlar, Legend kaldırıldı
+  - `DailyCalendar.tsx`: iOS tarzı header, modern navigasyon, yumuşak sınırlar
+  - `PlannerNavigation.tsx`: Framer Motion animasyonlu tab geçişleri
+  - `PlannerPage.tsx`: Gradient başlık, smooth view transitions
+  - `GoalsOverview.tsx`: Glassmorphism kartlar, pastel status badge'leri
+  - `CreateSessionModal.tsx`: Modern modal, pastel renk paleti, rounded-xl butonlar
+
+**Renk Paleti Değişikliği** ✅
+- Eski: Pembe/magenta tonları (primary-50, primary-900/20)
+- Yeni: Sky blue/cyan gradient (sky-50, cyan-50, sky-400)
+- Session renkleri: 500 serisi → 400 serisi (daha pastel)
 
 ### Tema Kalıcılığı ve Yedekleme (2025-12-22/23) 🔴→🟢
 **Tema Kalıcılığı** ✅
