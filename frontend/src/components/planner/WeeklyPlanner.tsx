@@ -523,25 +523,36 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
 
   useEffect(() => {
     if (resizingSession) {
+      // Slot height is 48px per hour
+      const SLOT_HEIGHT = 48;
+
       const handleMouseMoveEvent = (e: MouseEvent) => {
         if (!resizingSession) return;
         const deltaY = e.clientY - resizingSession.startY;
-        let newHeight = resizingSession.startHeight + deltaY;
-        // Minimum 5 minutes (5px)
-        newHeight = Math.max(5, newHeight);
-        const minutesSnapped = Math.max(5, Math.round(newHeight / 5) * 5);
+        let newHeightPx = resizingSession.startHeight + deltaY;
+        // Minimum 5 px
+        newHeightPx = Math.max(5, newHeightPx);
+        // Convert pixels to minutes: 48px = 60 minutes
+        const newDurationMinutes = (newHeightPx / SLOT_HEIGHT) * 60;
+        // Snap to 5-minute intervals
+        const minutesSnapped = Math.max(5, Math.round(newDurationMinutes / 5) * 5);
+        // Convert back to height for preview (in pixels for CSS)
+        const previewHeightPx = (minutesSnapped / 60) * SLOT_HEIGHT;
         setResizePreview({
           session: resizingSession.session,
-          newHeight: minutesSnapped,
+          newHeight: previewHeightPx,
         });
       };
 
       const handleMouseUpEvent = async (e: MouseEvent) => {
         const deltaY = e.clientY - resizingSession.startY;
-        let newHeight = resizingSession.startHeight + deltaY;
-        // Minimum 5 minutes - no error, just silently cap
-        newHeight = Math.max(5, newHeight);
-        let newDuration = Math.max(5, Math.round(newHeight / 5) * 5);
+        let newHeightPx = resizingSession.startHeight + deltaY;
+        // Minimum 5 px
+        newHeightPx = Math.max(5, newHeightPx);
+        // Convert pixels to minutes: 48px = 60 minutes
+        const newDurationMinutes = (newHeightPx / SLOT_HEIGHT) * 60;
+        // Snap to 5-minute intervals
+        let newDuration = Math.max(5, Math.round(newDurationMinutes / 5) * 5);
 
         const sessionStart = parseDate(resizingSession.session.startTime);
         const newEndTime = new Date(sessionStart);
@@ -817,10 +828,15 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                           // Calculate position and height in pixels
                           const topPosition = (sessionMinutes / 60) * slotHeight;
                           // Allow sessions to span multiple hours
-                          const sessionHeight = (session.duration / 60) * slotHeight;
+                          const rawHeight = (session.duration / 60) * slotHeight;
+                          // Minimum height for visibility (16px minimum)
+                          const sessionHeight = Math.max(rawHeight, 16);
 
-                          // Determine text size based on height
-                          const textSizeClass = sessionHeight < 30 ? 'text-[10px]' : 'text-xs';
+                          // Define layout modes based on height
+                          const isUltraCompact = rawHeight < 20; // 5dk and under
+                          const isCompact = rawHeight >= 20 && rawHeight < 35; // 5-15dk
+                          const isNormal = rawHeight >= 35 && rawHeight < 60; // 15-45dk
+                          // const isLarge = rawHeight >= 60; // 45dk+
 
                           const isBeingDragged = draggedSession?.id === session.id;
                           const isBeingResized = resizePreview?.session.id === session.id;
@@ -835,91 +851,247 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                 scale: isBeingDragged ? 0.95 : 1,
                               }}
                               exit={{ opacity: 0, y: -10 }}
-                              className={`absolute inset-x-1 p-1.5 rounded-xl shadow-lg text-white ${getStatusColor(session.status, session.startTime, session.endTime)} group ${textSizeClass} ${isBeingDragged ? 'ring-2 ring-white/50' : ''}`}
+                              className={`absolute inset-x-1 rounded-xl shadow-lg text-white ${getStatusColor(session.status, session.startTime, session.endTime)} group ${isBeingDragged ? 'ring-2 ring-white/50' : ''}`}
                               style={{
                                 top: `${topPosition}px`,
                                 height: `${sessionHeight}px`,
                                 zIndex: isBeingDragged ? 50 : 10,
                                 background: `linear-gradient(135deg, ${session.color || '#3B82F6'} 0%, ${session.color ? adjustColor(session.color, -20) : '#2563EB'} 100%)`,
                                 border: 'none',
-                                cursor: session.status === 'in_progress' || session.status === 'completed' ? 'default' : 'move',
+                                cursor: session.status === 'in_progress' || session.status === 'completed'
+                                  ? 'default'
+                                  : (isUltraCompact ? 'ns-resize' : 'move'),
+                                padding: isUltraCompact ? '2px 4px' : '6px',
                               }}
-                              draggable={session.status !== 'in_progress' && session.status !== 'completed'}
+                              draggable={session.status !== 'in_progress' && session.status !== 'completed' && !isUltraCompact}
                               onDragStart={(e) => handleDragStart(e as any, session)}
                               onDragEnd={() => setDraggedSession(null)}
                               onContextMenu={(e) => handleContextMenu(e, session)}
+                              title={`${session.title} (${formatTime(sessionStart)} - ${session.duration}dk)`}
                             >
-                              {/* Card Content Container */}
-                              <div className="flex flex-col h-full overflow-hidden">
-                                {/* Top Header: Time + Actions */}
-                                <div className="flex items-start justify-between mb-0.5 shrink-0">
-                                  {/* Time Badge */}
-                                  <div className="px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium leading-none whitespace-nowrap">
-                                    {formatTime(sessionStart)}
-                                  </div>
-
-                                  {/* Action buttons */}
-                                  <div className="flex items-center gap-0.5 ml-1">
+                              {/* Ultra Compact Layout - Only colored bar with title on hover */}
+                              {isUltraCompact && (
+                                <div className="flex items-center justify-between h-full overflow-hidden gap-1">
+                                  <span className="text-[8px] font-bold truncate leading-none flex-1">
+                                    {session.title.length > 8 ? session.title.substring(0, 8) + '…' : session.title}
+                                  </span>
+                                  {/* Action buttons - always visible for ultra compact */}
+                                  <div className="flex items-center gap-0.5 shrink-0">
                                     {session.status === 'planned' && canStartSession(session) && (
                                       <button
-                                        className="p-0.5 rounded-md bg-white/20 hover:bg-white/40 transition-all"
+                                        className="p-0.5 rounded bg-white/20 hover:bg-white/40 transition-all"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session);
                                         }}
                                       >
-                                        <Play className="w-3 h-3 text-white" />
+                                        <Play className="w-2.5 h-2.5 text-white" />
                                       </button>
                                     )}
-                                    {session.status === 'in_progress' && (
-                                      <div className="flex items-center gap-0.5">
+                                    {session.status === 'paused' && (
+                                      <button
+                                        className="p-0.5 rounded bg-white/30 hover:bg-white/50 transition-all"
+                                        onClick={(e) => { e.stopPropagation(); handleStartSession(session); }}
+                                      >
+                                        <Play className="w-2.5 h-2.5 text-white" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Compact Layout - Single line with time and title */}
+                              {isCompact && (
+                                <div className="flex flex-col h-full overflow-hidden">
+                                  <div className="flex items-center justify-between gap-1">
+                                    <div className="flex items-center gap-1 min-w-0 flex-1">
+                                      <span className="text-[9px] font-medium text-white/80 shrink-0">{formatTime(sessionStart)}</span>
+                                      <span className={`text-[10px] font-bold truncate ${getSessionTextStyle(session)}`}>
+                                        {session.title}
+                                      </span>
+                                    </div>
+                                    {/* Action buttons */}
+                                    <div className="flex items-center gap-0.5 shrink-0">
+                                      {session.status === 'planned' && canStartSession(session) && (
                                         <button
                                           className="p-0.5 rounded-md bg-white/20 hover:bg-white/40 transition-all"
-                                          onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session);
+                                          }}
                                         >
-                                          <Pause className="w-3 h-3 text-white" />
+                                          <Play className="w-3 h-3 text-white" />
                                         </button>
-                                        <button
-                                          className="p-0.5 rounded-md bg-white/25 hover:bg-white/40 transition-all"
-                                          onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }}
-                                        >
-                                          <CheckCircle className="w-3 h-3 text-white" />
-                                        </button>
-                                      </div>
-                                    )}
-                                    {session.status === 'paused' && (
-                                      <div className="flex items-center gap-0.5">
+                                      )}
+                                      {session.status === 'in_progress' && (
+                                        <>
+                                          <button
+                                            className="p-0.5 rounded-md bg-white/20 hover:bg-white/40 transition-all"
+                                            onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }}
+                                          >
+                                            <Pause className="w-3 h-3 text-white" />
+                                          </button>
+                                          <button
+                                            className="p-0.5 rounded-md bg-white/25 hover:bg-white/40 transition-all"
+                                            onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }}
+                                          >
+                                            <CheckCircle className="w-3 h-3 text-white" />
+                                          </button>
+                                        </>
+                                      )}
+                                      {session.status === 'paused' && (
                                         <button
                                           className="p-0.5 rounded-md bg-white/30 hover:bg-white/50 transition-all"
                                           onClick={(e) => { e.stopPropagation(); handleStartSession(session); }}
                                         >
                                           <Play className="w-3 h-3 text-white" />
                                         </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {rawHeight >= 28 && (
+                                    <div className="text-[8px] opacity-70 mt-0.5">{session.duration} dk</div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Normal/Large Layout - Full content */}
+                              {isNormal && (
+                                <div className="flex flex-col h-full overflow-hidden">
+                                  {/* Top Header: Time + Actions */}
+                                  <div className="flex items-start justify-between mb-0.5 shrink-0">
+                                    {/* Time Badge */}
+                                    <div className="px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium leading-none whitespace-nowrap">
+                                      {formatTime(sessionStart)}
+                                    </div>
+
+                                    {/* Action buttons */}
+                                    <div className="flex items-center gap-0.5 ml-1">
+                                      {session.status === 'planned' && canStartSession(session) && (
+                                        <button
+                                          className="p-0.5 rounded-md bg-white/20 hover:bg-white/40 transition-all"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session);
+                                          }}
+                                        >
+                                          <Play className="w-3 h-3 text-white" />
+                                        </button>
+                                      )}
+                                      {session.status === 'in_progress' && (
+                                        <div className="flex items-center gap-0.5">
+                                          <button
+                                            className="p-0.5 rounded-md bg-white/20 hover:bg-white/40 transition-all"
+                                            onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }}
+                                          >
+                                            <Pause className="w-3 h-3 text-white" />
+                                          </button>
+                                          <button
+                                            className="p-0.5 rounded-md bg-white/25 hover:bg-white/40 transition-all"
+                                            onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }}
+                                          >
+                                            <CheckCircle className="w-3 h-3 text-white" />
+                                          </button>
+                                        </div>
+                                      )}
+                                      {session.status === 'paused' && (
+                                        <div className="flex items-center gap-0.5">
+                                          <button
+                                            className="p-0.5 rounded-md bg-white/30 hover:bg-white/50 transition-all"
+                                            onClick={(e) => { e.stopPropagation(); handleStartSession(session); }}
+                                          >
+                                            <Play className="w-3 h-3 text-white" />
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Title Area */}
+                                  <div className="min-w-0 flex-1 flex flex-col justify-center">
+                                    <div className={`font-bold truncate text-xs leading-tight ${getSessionTextStyle(session)}`}>
+                                      {session.title}
+                                    </div>
+                                    {rawHeight >= 50 && (
+                                      <div className="opacity-80 text-[9px] mt-0.5 truncate">
+                                        {session.duration} dk
                                       </div>
                                     )}
                                   </div>
                                 </div>
+                              )}
 
-                                {/* Title Area */}
-                                <div className="min-w-0 flex-1 flex flex-col justify-center">
-                                  <div className={`font-bold truncate ${sessionHeight < 35 ? 'text-[10px]' : 'text-xs'} leading-tight ${getSessionTextStyle(session)}`}>
-                                    {session.title}
+                              {/* Large Layout - Full content with more details */}
+                              {!isUltraCompact && !isCompact && !isNormal && (
+                                <div className="flex flex-col h-full overflow-hidden">
+                                  {/* Top Header: Time + Actions */}
+                                  <div className="flex items-start justify-between mb-0.5 shrink-0">
+                                    {/* Time Badge */}
+                                    <div className="px-1.5 py-0.5 bg-black/20 rounded text-[10px] font-medium leading-none whitespace-nowrap">
+                                      {formatTime(sessionStart)}
+                                    </div>
+
+                                    {/* Action buttons */}
+                                    <div className="flex items-center gap-0.5 ml-1">
+                                      {session.status === 'planned' && canStartSession(session) && (
+                                        <button
+                                          className="p-1 rounded-md bg-white/20 hover:bg-white/40 transition-all"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session);
+                                          }}
+                                        >
+                                          <Play className="w-3.5 h-3.5 text-white" />
+                                        </button>
+                                      )}
+                                      {session.status === 'in_progress' && (
+                                        <div className="flex items-center gap-0.5">
+                                          <button
+                                            className="p-1 rounded-md bg-white/20 hover:bg-white/40 transition-all"
+                                            onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }}
+                                          >
+                                            <Pause className="w-3.5 h-3.5 text-white" />
+                                          </button>
+                                          <button
+                                            className="p-1 rounded-md bg-white/25 hover:bg-white/40 transition-all"
+                                            onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }}
+                                          >
+                                            <CheckCircle className="w-3.5 h-3.5 text-white" />
+                                          </button>
+                                        </div>
+                                      )}
+                                      {session.status === 'paused' && (
+                                        <div className="flex items-center gap-0.5">
+                                          <button
+                                            className="p-1 rounded-md bg-white/30 hover:bg-white/50 transition-all"
+                                            onClick={(e) => { e.stopPropagation(); handleStartSession(session); }}
+                                          >
+                                            <Play className="w-3.5 h-3.5 text-white" />
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                  {sessionHeight >= 50 && (
-                                    <div className="opacity-80 text-[9px] mt-0.5 truncate">
+
+                                  {/* Title Area */}
+                                  <div className="min-w-0 flex-1 flex flex-col justify-center">
+                                    <div className={`font-bold truncate text-sm leading-tight ${getSessionTextStyle(session)}`}>
+                                      {session.title}
+                                    </div>
+                                    <div className="opacity-80 text-[10px] mt-1 truncate">
                                       {session.duration} dk
                                     </div>
-                                  )}
+                                  </div>
                                 </div>
-                              </div>
+                              )}
 
                               {/* Resize handle - bottom border - always show for resizable sessions */}
                               {session.status !== 'in_progress' && session.status !== 'completed' && (
                                 <div
-                                  className="absolute bottom-0 left-0 right-0 cursor-ns-resize rounded-b-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors group/resize"
+                                  className={`absolute left-0 right-0 cursor-ns-resize transition-colors group/resize ${isUltraCompact ? 'inset-0 rounded-xl' : 'bottom-0 rounded-b-xl hover:bg-black/5 dark:hover:bg-white/5'}`}
                                   style={{
                                     zIndex: 100,
-                                    height: sessionHeight < 20 ? `${Math.max(sessionHeight, 5)}px` : '12px',
+                                    height: isUltraCompact ? '100%' : (sessionHeight < 20 ? `${Math.max(sessionHeight, 5)}px` : '12px'),
                                   }}
                                   onMouseDown={(e) => {
                                     e.preventDefault();
@@ -933,8 +1105,10 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                   draggable={false}
                                   title="Süreni ayarlamak için sürükle"
                                 >
-                                  {/* Subtle resize indicator line */}
-                                  <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-white/30 rounded-full opacity-0 group-hover/resize:opacity-100 transition-opacity" />
+                                  {/* Subtle resize indicator line - only show for non-ultra-compact */}
+                                  {!isUltraCompact && (
+                                    <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-white/30 rounded-full opacity-0 group-hover/resize:opacity-100 transition-opacity" />
+                                  )}
                                 </div>
                               )}
                             </motion.div>

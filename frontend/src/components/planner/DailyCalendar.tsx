@@ -345,19 +345,29 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
 
   useEffect(() => {
     if (resizingSession) {
+      // Daily calendar uses 64px per hour slot
+      const SLOT_HEIGHT = 64;
+
       const handleMouseMoveEvent = (e: MouseEvent) => {
         const deltaY = e.clientY - resizingSession.startY;
-        let newHeight = resizingSession.startHeight + deltaY;
-        newHeight = Math.max(5, newHeight);
-        // minutesSnapped removed
-        // setResizePreview removed
+        let newHeightPx = resizingSession.startHeight + deltaY;
+        newHeightPx = Math.max(5, newHeightPx);
+        // Convert pixels to minutes: 64px = 60 minutes
+        const newDurationMinutes = (newHeightPx / SLOT_HEIGHT) * 60;
+        // Snap to 5-minute intervals
+        const minutesSnapped = Math.max(5, Math.round(newDurationMinutes / 5) * 5);
+        // Convert back to height for visual feedback (no preview state but log for debug)
+        console.log('Resize preview:', minutesSnapped, 'dk');
       };
 
       const handleMouseUpEvent = async (e: MouseEvent) => {
         const deltaY = e.clientY - resizingSession.startY;
-        let newHeight = resizingSession.startHeight + deltaY;
-        newHeight = Math.max(5, newHeight);
-        let newDuration = Math.max(5, Math.round(newHeight / 5) * 5);
+        let newHeightPx = resizingSession.startHeight + deltaY;
+        newHeightPx = Math.max(5, newHeightPx);
+        // Convert pixels to minutes: 64px = 60 minutes
+        const newDurationMinutes = (newHeightPx / SLOT_HEIGHT) * 60;
+        // Snap to 5-minute intervals
+        let newDuration = Math.max(5, Math.round(newDurationMinutes / 5) * 5);
 
         const sessionStart = parseDate(resizingSession.session.startTime);
         const newEndTime = new Date(sessionStart);
@@ -475,71 +485,201 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
                       const sessionStart = parseDate(session.startTime);
                       const sessionMinutes = sessionStart.getMinutes();
                       const topPosition = (sessionMinutes / 60) * 100;
-                      const sessionHeight = (session.duration / 60) * 64;
+                      const rawHeight = (session.duration / 60) * 64;
+                      // Minimum height for visibility (16px minimum)
+                      const sessionHeight = Math.max(rawHeight, 16);
+
+                      // Define layout modes based on height
+                      const isUltraCompact = rawHeight < 20; // 5dk and under
+                      const isCompact = rawHeight >= 20 && rawHeight < 40; // 5-20dk
+                      const isNormal = rawHeight >= 40 && rawHeight < 70; // 20-45dk
+                      // const isLarge = rawHeight >= 70; // 45dk+
 
                       return (
                         <motion.div
                           key={session.id}
                           layoutId={`session-${session.id}`}
-                          className={`absolute inset-x-1 p-1.5 rounded-xl shadow-sm border text-white transition-all overflow-hidden ${getStatusColor(session.status, session.endTime)} ${isBeingDragged ? 'opacity-30' : ''}`}
+                          className={`absolute inset-x-1 rounded-xl shadow-sm border text-white transition-all overflow-hidden ${getStatusColor(session.status, session.endTime)} ${isBeingDragged ? 'opacity-30' : ''}`}
                           style={{
                             top: `${topPosition}%`,
                             height: `${sessionHeight}px`,
                             backgroundColor: session.color || '#3B82F6',
                             borderColor: adjustColor(session.color || '#3B82F6', -20),
                             zIndex: isBeingDragged ? 50 : 10,
+                            padding: isUltraCompact ? '2px 6px' : '6px',
+                            cursor: session.status === 'in_progress' || session.status === 'completed'
+                              ? 'default'
+                              : (isUltraCompact ? 'ns-resize' : 'move'),
                           }}
-                          draggable={session.status !== 'in_progress'}
+                          draggable={session.status !== 'in_progress' && !isUltraCompact}
                           onDragStart={(e) => handleDragStart(e as any, session)}
                           onDragEnd={() => { setDraggedSession(null); setDragOverTarget(null); }}
                           onContextMenu={(e) => handleContextMenu(e, session)}
                           onClick={(e) => { e.stopPropagation(); handleEditSession(session); }}
+                          title={`${session.title} (${formatTime(session.startTime)} - ${session.duration}dk)`}
                         >
-                          <div className="flex flex-col h-full overflow-hidden">
-                            {/* Header: Time + Status Icons */}
-                            <div className="flex items-center justify-between mb-0.5 shrink-0">
-                              <span className="text-[9px] font-bold bg-black/20 px-1.5 py-0.5 rounded leading-none whitespace-nowrap uppercase tracking-wider">
-                                {formatTime(session.startTime)}
+                          {/* Ultra Compact Layout */}
+                          {isUltraCompact && (
+                            <div className="flex items-center justify-between h-full overflow-hidden gap-1">
+                              <span className="text-[8px] font-bold truncate leading-none flex-1">
+                                {session.title.length > 15 ? session.title.substring(0, 15) + '…' : session.title}
                               </span>
-                              <div className="flex gap-0.5">
+                              <div className="flex gap-0.5 shrink-0">
                                 {session.status === 'planned' && canStartSession(session) && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session);
                                     }}
-                                    className="p-0.5 hover:bg-white/20 rounded-md transition-all"
+                                    className="p-0.5 hover:bg-white/20 rounded transition-all"
                                   >
-                                    <Play className="w-3 h-3" />
+                                    <Play className="w-2.5 h-2.5" />
                                   </button>
                                 )}
-                                {session.status === 'in_progress' && (
-                                  <>
-                                    <button onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }} className="p-0.5 hover:bg-white/20 rounded-md transition-all"><Pause className="w-3 h-3" /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }} className="p-0.5 hover:bg-white/20 rounded-md transition-all"><CheckCircle className="w-3 h-3" /></button>
-                                  </>
-                                )}
                                 {session.status === 'paused' && (
-                                  <button onClick={(e) => { e.stopPropagation(); handleStartSession(session); }} className="p-0.5 hover:bg-white/20 rounded-md transition-all"><Play className="w-3 h-3" /></button>
+                                  <button onClick={(e) => { e.stopPropagation(); handleStartSession(session); }} className="p-0.5 hover:bg-white/20 rounded transition-all">
+                                    <Play className="w-2.5 h-2.5" />
+                                  </button>
                                 )}
                               </div>
                             </div>
+                          )}
 
-                            {/* Title & Description */}
-                            <div className="flex-1 min-w-0 flex flex-col justify-center">
-                              <div className="font-bold text-xs truncate leading-tight">{session.title}</div>
-                              {sessionHeight >= 50 && (
-                                <div className="text-[9px] opacity-80 truncate leading-tight mt-0.5">
-                                  {session.duration} dk
+                          {/* Compact Layout */}
+                          {isCompact && (
+                            <div className="flex flex-col h-full overflow-hidden">
+                              <div className="flex items-center justify-between gap-1">
+                                <div className="flex items-center gap-1 min-w-0 flex-1">
+                                  <span className="text-[9px] font-medium text-white/80 shrink-0">{formatTime(session.startTime)}</span>
+                                  <span className="text-[10px] font-bold truncate">{session.title}</span>
                                 </div>
+                                <div className="flex gap-0.5 shrink-0">
+                                  {session.status === 'planned' && canStartSession(session) && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session);
+                                      }}
+                                      className="p-0.5 hover:bg-white/20 rounded-md transition-all"
+                                    >
+                                      <Play className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                  {session.status === 'in_progress' && (
+                                    <>
+                                      <button onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }} className="p-0.5 hover:bg-white/20 rounded-md transition-all"><Pause className="w-3 h-3" /></button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }} className="p-0.5 hover:bg-white/20 rounded-md transition-all"><CheckCircle className="w-3 h-3" /></button>
+                                    </>
+                                  )}
+                                  {session.status === 'paused' && (
+                                    <button onClick={(e) => { e.stopPropagation(); handleStartSession(session); }} className="p-0.5 hover:bg-white/20 rounded-md transition-all"><Play className="w-3 h-3" /></button>
+                                  )}
+                                </div>
+                              </div>
+                              {rawHeight >= 30 && (
+                                <div className="text-[8px] opacity-70 mt-0.5">{session.duration} dk</div>
                               )}
                             </div>
-                          </div>
+                          )}
+
+                          {/* Normal Layout */}
+                          {isNormal && (
+                            <div className="flex flex-col h-full overflow-hidden">
+                              <div className="flex items-center justify-between mb-0.5 shrink-0">
+                                <span className="text-[9px] font-bold bg-black/20 px-1.5 py-0.5 rounded leading-none whitespace-nowrap uppercase tracking-wider">
+                                  {formatTime(session.startTime)}
+                                </span>
+                                <div className="flex gap-0.5">
+                                  {session.status === 'planned' && canStartSession(session) && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session);
+                                      }}
+                                      className="p-0.5 hover:bg-white/20 rounded-md transition-all"
+                                    >
+                                      <Play className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                  {session.status === 'in_progress' && (
+                                    <>
+                                      <button onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }} className="p-0.5 hover:bg-white/20 rounded-md transition-all"><Pause className="w-3 h-3" /></button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }} className="p-0.5 hover:bg-white/20 rounded-md transition-all"><CheckCircle className="w-3 h-3" /></button>
+                                    </>
+                                  )}
+                                  {session.status === 'paused' && (
+                                    <button onClick={(e) => { e.stopPropagation(); handleStartSession(session); }} className="p-0.5 hover:bg-white/20 rounded-md transition-all"><Play className="w-3 h-3" /></button>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                <div className="font-bold text-xs truncate leading-tight">{session.title}</div>
+                                {rawHeight >= 55 && (
+                                  <div className="text-[9px] opacity-80 truncate leading-tight mt-0.5">
+                                    {session.duration} dk
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Large Layout - Full content */}
+                          {!isUltraCompact && !isCompact && !isNormal && (
+                            <div className="flex flex-col h-full overflow-hidden">
+                              <div className="flex items-center justify-between mb-0.5 shrink-0">
+                                <span className="text-[10px] font-bold bg-black/20 px-1.5 py-0.5 rounded leading-none whitespace-nowrap uppercase tracking-wider">
+                                  {formatTime(session.startTime)}
+                                </span>
+                                <div className="flex gap-0.5">
+                                  {session.status === 'planned' && canStartSession(session) && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session);
+                                      }}
+                                      className="p-1 hover:bg-white/20 rounded-md transition-all"
+                                    >
+                                      <Play className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  {session.status === 'in_progress' && (
+                                    <>
+                                      <button onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }} className="p-1 hover:bg-white/20 rounded-md transition-all"><Pause className="w-3.5 h-3.5" /></button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }} className="p-1 hover:bg-white/20 rounded-md transition-all"><CheckCircle className="w-3.5 h-3.5" /></button>
+                                    </>
+                                  )}
+                                  {session.status === 'paused' && (
+                                    <button onClick={(e) => { e.stopPropagation(); handleStartSession(session); }} className="p-1 hover:bg-white/20 rounded-md transition-all"><Play className="w-3.5 h-3.5" /></button>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                <div className="font-bold text-sm truncate leading-tight">{session.title}</div>
+                                <div className="text-[10px] opacity-80 truncate leading-tight mt-1">
+                                  {session.duration} dk
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Resize handle */}
                           {session.status !== 'in_progress' && session.status !== 'completed' && (
                             <div
-                              className="absolute bottom-0 left-0 right-0 cursor-ns-resize hover:bg-white/10 h-2 group/resize flex items-center justify-center transition-colors"
-                              onMouseDown={(e) => handleResizeStart(e, session, sessionHeight)}
-                            ><div className="w-6 h-0.5 bg-white/40 rounded-full opacity-0 group-hover/resize:opacity-100 transition-opacity" /></div>
+                              className={`absolute left-0 right-0 cursor-ns-resize transition-colors group/resize ${isUltraCompact ? 'inset-0 rounded-xl' : 'bottom-0 hover:bg-white/10 h-2 flex items-center justify-center'}`}
+                              style={{
+                                height: isUltraCompact ? '100%' : undefined,
+                                zIndex: 100,
+                              }}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleResizeStart(e, session, sessionHeight);
+                              }}
+                            >
+                              {!isUltraCompact && (
+                                <div className="w-6 h-0.5 bg-white/40 rounded-full opacity-0 group-hover/resize:opacity-100 transition-opacity" />
+                              )}
+                            </div>
                           )}
                         </motion.div>
                       );
