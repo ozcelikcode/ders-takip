@@ -1,4 +1,4 @@
-import { Menu, Search, Bell, User as UserIcon, Check, CheckCheck } from 'lucide-react';
+import { Menu, Search, Bell, User as UserIcon, Check, CheckCheck, Settings, LogOut, UserCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -6,6 +6,7 @@ import { studySessionsAPI } from '../../services/api';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -99,145 +100,155 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   };
 
   return (
-    <header className="bg-white dark:bg-gray-950 shadow-sm border-b border-gray-200 dark:border-gray-900">
+    <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left side */}
-          <div className="flex items-center">
+          <div className="flex items-center gap-4">
+            {/* Mobile menu button */}
             <button
               type="button"
-              className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
+              className="lg:hidden p-2.5 rounded-xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 transition-all duration-200"
               onClick={onMenuClick}
             >
-              <Menu className="h-6 w-6" />
+              <Menu className="h-5 w-5" />
             </button>
 
             {/* Search */}
-            <div className="hidden md:block ml-4 lg:ml-0 lg:w-64">
-              <form onSubmit={handleSearch} className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+            <div className="hidden md:block lg:w-72">
+              <form onSubmit={handleSearch} className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400 dark:text-gray-500 group-focus-within:text-sky-500 transition-colors" />
                 </div>
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
-                  placeholder="Ara..."
-                  className="block w-full pl-9 pr-16 py-2 border border-gray-300 dark:border-gray-700 rounded-lg leading-5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm hover:border-gray-400 dark:hover:border-gray-600"
+                  placeholder="Ders veya konu ara..."
+                  className="block w-full pl-10 pr-20 py-2.5 border border-gray-200/80 dark:border-gray-700/80 rounded-xl leading-5 bg-gray-50/80 dark:bg-gray-800/80 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 dark:focus:border-sky-500 transition-all text-sm"
                 />
                 <button
                   type="submit"
-                  className="absolute inset-y-0 right-0 pr-1 flex items-center"
+                  className="absolute inset-y-0 right-1.5 my-1.5 flex items-center px-3 py-1 bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 text-white text-xs font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow"
                 >
-                  <span className="px-2.5 py-1 bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium rounded-md transition-colors">
-                    Ara
-                  </span>
+                  Ara
                 </button>
               </form>
             </div>
           </div>
 
           {/* Right side */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-2">
             {/* Notifications */}
             <div className="relative" ref={notificationRef}>
               <button
-                className="p-2 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 relative"
+                className="relative p-2.5 rounded-xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 transition-all duration-200"
                 onClick={() => setShowNotifications(!showNotifications)}
               >
-                <Bell className="h-6 w-6" />
+                <Bell className="h-5 w-5" />
                 {hasUnreadNotifications && (
-                  <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white dark:ring-gray-800"></span>
+                  <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                  </span>
                 )}
               </button>
 
               {/* Notifications dropdown */}
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-950 rounded-md shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5">
-                  <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                      Bildirimler {unreadCount > 0 && <span className="ml-1 text-xs text-primary-600 dark:text-primary-400">({unreadCount})</span>}
-                    </h3>
-                    {recentSessions && recentSessions.length > 0 && unreadCount > 0 && (
-                      <button
-                        onClick={markAllAsRead}
-                        className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1"
-                      >
-                        <CheckCheck className="w-3 h-3" />
-                        Hepsini Okundu İşaretle
-                      </button>
-                    )}
-                  </div>
-                  <div className="max-h-96 overflow-y-auto">
-                    {recentSessions && recentSessions.length > 0 ? (
-                      recentSessions.map((session: any) => {
-                        const isRead = readNotifications.has(session.id);
-                        return (
-                          <div
-                            key={session.id}
-                            className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 transition-colors ${
-                              isRead ? 'opacity-60' : ''
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1">
-                                <p className="text-sm text-gray-900 dark:text-white">
-                                  ✅ {session.title} tamamlandı
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                  {session.duration} dakika • {formatDistanceToNow(new Date(session.completedAt || session.endTime), {
-                                    addSuffix: true,
-                                    locale: tr,
-                                  })}
-                                </p>
-                              </div>
-                              {!isRead && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    markAsRead(session.id);
-                                  }}
-                                  className="p-1 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 rounded transition-colors"
-                                  title="Okundu olarak işaretle"
-                                >
-                                  <Check className="w-4 h-4" />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="px-4 py-8 text-center">
-                        <Bell className="h-8 w-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Henüz bildirim yok
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  {recentSessions && recentSessions.length > 0 && (
-                    <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700">
-                      <button
-                        onClick={() => setShowNotifications(false)}
-                        className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
-                      >
-                        Kapat
-                      </button>
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                    className="absolute right-0 mt-2 w-80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-xl py-1 z-50 border border-gray-200/50 dark:border-gray-700/50 overflow-hidden"
+                  >
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700/50 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-sky-500" />
+                        Bildirimler
+                        {unreadCount > 0 && (
+                          <span className="px-2 py-0.5 text-xs font-medium bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400 rounded-full">
+                            {unreadCount}
+                          </span>
+                        )}
+                      </h3>
+                      {recentSessions && recentSessions.length > 0 && unreadCount > 0 && (
+                        <button
+                          onClick={markAllAsRead}
+                          className="text-xs text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 flex items-center gap-1 font-medium transition-colors"
+                        >
+                          <CheckCheck className="w-3.5 h-3.5" />
+                          Tümünü Oku
+                        </button>
+                      )}
                     </div>
-                  )}
-                </div>
-              )}
+                    <div className="max-h-80 overflow-y-auto">
+                      {recentSessions && recentSessions.length > 0 ? (
+                        recentSessions.map((session: any) => {
+                          const isRead = readNotifications.has(session.id);
+                          return (
+                            <div
+                              key={session.id}
+                              className={`px-4 py-3 hover:bg-gray-50/80 dark:hover:bg-gray-700/50 border-b border-gray-100/80 dark:border-gray-700/30 transition-colors ${isRead ? 'opacity-50' : ''
+                                }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
+                                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
+                                      <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                    </span>
+                                    <span className="truncate font-medium">{session.title}</span>
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                                    {session.duration} dk • {formatDistanceToNow(new Date(session.completedAt || session.endTime), {
+                                      addSuffix: true,
+                                      locale: tr,
+                                    })}
+                                  </p>
+                                </div>
+                                {!isRead && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      markAsRead(session.id);
+                                    }}
+                                    className="p-1.5 text-gray-400 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-lg transition-colors"
+                                    title="Okundu olarak işaretle"
+                                  >
+                                    <Check className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="px-4 py-10 text-center">
+                          <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700/50 flex items-center justify-center mx-auto mb-3">
+                            <Bell className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                          </div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Henüz bildirim yok
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* User menu */}
             <div className="relative" ref={userMenuRef}>
               <button
-                className="flex items-center space-x-3 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                className="flex items-center gap-3 p-1.5 pr-3 rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-800/80 transition-all duration-200"
                 onClick={() => setShowUserMenu(!showUserMenu)}
               >
-                <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center overflow-hidden shadow-sm">
                   {user?.profileImage ? (
                     <img
                       src={user.profileImage}
@@ -249,7 +260,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                   )}
                 </div>
                 <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
                     {user?.fullName}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -259,34 +270,55 @@ const Header = ({ onMenuClick }: HeaderProps) => {
               </button>
 
               {/* User dropdown menu */}
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-950 rounded-md shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5">
-                  <a
-                    href="/profile"
-                    className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    onClick={() => setShowUserMenu(false)}
+              <AnimatePresence>
+                {showUserMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                    className="absolute right-0 mt-2 w-56 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-xl py-2 z-50 border border-gray-200/50 dark:border-gray-700/50 overflow-hidden"
                   >
-                    Profil
-                  </a>
-                  <a
-                    href="/settings"
-                    className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    onClick={() => setShowUserMenu(false)}
-                  >
-                    Ayarlar
-                  </a>
-                  <hr className="my-1 border-gray-200 dark:border-gray-600" />
-                  <button
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    onClick={() => {
-                      useAuthStore.getState().logout();
-                      setShowUserMenu(false);
-                    }}
-                  >
-                    Çıkış Yap
-                  </button>
-                </div>
-              )}
+                    {/* User info header */}
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700/50">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.fullName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
+                    </div>
+
+                    <div className="py-1">
+                      <a
+                        href="/profile"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 transition-colors"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <UserCircle className="w-4 h-4 text-gray-400" />
+                        Profil
+                      </a>
+                      <a
+                        href="/settings"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 transition-colors"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <Settings className="w-4 h-4 text-gray-400" />
+                        Ayarlar
+                      </a>
+                    </div>
+
+                    <div className="border-t border-gray-100 dark:border-gray-700/50 pt-1">
+                      <button
+                        className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                        onClick={() => {
+                          useAuthStore.getState().logout();
+                          setShowUserMenu(false);
+                        }}
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Çıkış Yap
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
@@ -296,3 +328,4 @@ const Header = ({ onMenuClick }: HeaderProps) => {
 };
 
 export default Header;
+
