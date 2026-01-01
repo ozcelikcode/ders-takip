@@ -118,7 +118,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             <div className="hidden md:block lg:w-72">
               <form onSubmit={handleSearch} className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400 dark:text-gray-500 group-focus-within:text-sky-500 transition-colors" />
+                  <Search className="h-4 w-4 text-gray-400 dark:text-gray-500 group-focus-within:text-primary-500 transition-colors" />
                 </div>
                 <input
                   type="text"
@@ -126,11 +126,11 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
                   placeholder="Ders veya konu ara..."
-                  className="block w-full pl-10 pr-20 py-2.5 border border-gray-200/80 dark:border-gray-700/80 rounded-xl leading-5 bg-gray-50/80 dark:bg-gray-800/80 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 dark:focus:border-sky-500 transition-all text-sm"
+                  className="block w-full pl-10 pr-20 py-2.5 border border-gray-200/80 dark:border-gray-700/80 rounded-xl leading-5 bg-gray-50/80 dark:bg-gray-800/80 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 dark:focus:border-primary-500 transition-all text-sm"
                 />
                 <button
                   type="submit"
-                  className="absolute inset-y-0 right-1.5 my-1.5 flex items-center px-3 py-1 bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 text-white text-xs font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow"
+                  className="absolute inset-y-0 right-1.5 my-1.5 flex items-center px-3 py-1 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white text-xs font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow"
                 >
                   Ara
                 </button>
@@ -167,10 +167,10 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                   >
                     <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700/50 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
                       <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Bell className="w-4 h-4 text-sky-500" />
+                        <Bell className="w-4 h-4 text-primary-500" />
                         Bildirimler
                         {unreadCount > 0 && (
-                          <span className="px-2 py-0.5 text-xs font-medium bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400 rounded-full">
+                          <span className="px-2 py-0.5 text-xs font-medium bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400 rounded-full">
                             {unreadCount}
                           </span>
                         )}
@@ -178,7 +178,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                       {recentSessions && recentSessions.length > 0 && unreadCount > 0 && (
                         <button
                           onClick={markAllAsRead}
-                          className="text-xs text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 flex items-center gap-1 font-medium transition-colors"
+                          className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1 font-medium transition-colors"
                         >
                           <CheckCheck className="w-3.5 h-3.5" />
                           Tümünü Oku
@@ -216,7 +216,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                                       e.stopPropagation();
                                       markAsRead(session.id);
                                     }}
-                                    className="p-1.5 text-gray-400 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-lg transition-colors"
+                                    className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
                                     title="Okundu olarak işaretle"
                                   >
                                     <Check className="w-4 h-4" />
@@ -248,7 +248,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                 className="flex items-center gap-3 p-1.5 pr-3 rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-800/80 transition-all duration-200"
                 onClick={() => setShowUserMenu(!showUserMenu)}
               >
-                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center overflow-hidden shadow-sm">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center overflow-hidden shadow-sm">
                   {user?.profileImage ? (
                     <img
                       src={user.profileImage}

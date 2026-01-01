@@ -23,7 +23,7 @@ const Layout = () => {
       />
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="lg:pl-72 lg:ml-2">
         {/* Header */}
         <Header onMenuClick={() => setSidebarOpen(true)} />
 
