@@ -1,12 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { JsonWebTokenError } from 'jsonwebtoken';
+import { ZodError } from 'zod';
+import { NextFunction, Request, Response } from 'express';
 import { User } from '../models/User';
-
-interface JwtPayload {
-  id: string;
-  email: string;
-  role: string;
-}
+import { AuthSession } from '../models/AuthSession';
+import { verifyAccessToken } from '../utils/jwt';
 
 declare global {
   namespace Express {
@@ -33,8 +30,14 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+    const decoded = verifyAccessToken(token);
 
+    const session = await AuthSession.findByPk(decoded.sid);
+    if (!session || String(session.userId) !== decoded.id || session.revokedAt || session.expiresAt.getTime() <= Date.now()) {
+      res.status(401).json({ success: false, error: { message: 'Oturum sona erdi. Lütfen yeniden giriş yapın' } });
+      return;
+    }
+    res.setHeader('Cache-Control', 'no-store');
     const user = await User.findByPk(decoded.id, {
       attributes: { exclude: ['password'] }
     });
@@ -58,6 +61,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
     req.user = user;
     next();
   } catch (error) {
+    if (!(error instanceof JsonWebTokenError) && !(error instanceof ZodError)) { next(error); return; }
     res.status(401).json({
       success: false,
       error: { message: 'Token geçersiz' },
@@ -74,12 +78,6 @@ export const authorize = (...roles: string[]) => {
       });
       return;
     }
-
-    console.log('🔍 Authorization check:', {
-      userRole: req.user.role,
-      requiredRoles: roles,
-      hasAccess: roles.includes(req.user.role)
-    });
 
     if (!roles.includes(req.user.role)) {
       res.status(403).json({

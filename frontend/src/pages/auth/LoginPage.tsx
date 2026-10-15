@@ -38,15 +38,15 @@ const LoginPage = () => {
     try {
       await login(data);
       toast.success('Başarıyla giriş yapıldı');
-    } catch (error: any) {
-      console.error('Login error:', error);
+    } catch {
+      // The auth store presents a safe error without logging credentials.
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[var(--canvas)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -55,14 +55,14 @@ const LoginPage = () => {
       >
         <div className="text-center">
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="mx-auto h-16 w-16 bg-primary-600 rounded-full flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.15 }}
+            className="brand-mark mx-auto !h-10 !w-10"
           >
-            <BookOpen className="h-8 w-8 text-white" />
+            <BookOpen className="h-5 w-5" />
           </motion.div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
+          <h2 className="mt-6 text-[28px] font-semibold tracking-tight text-gray-900 dark:text-white">
             Giriş Yap
           </h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -70,7 +70,7 @@ const LoginPage = () => {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+        <div className="panel p-6 sm:p-8">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -79,6 +79,7 @@ const LoginPage = () => {
               <div className="mt-1">
                 <input
                   {...register('email')}
+                  id="email"
                   type="email"
                   autoComplete="email"
                   className={`input ${errors.email ? 'input-error' : ''}`}
@@ -97,6 +98,7 @@ const LoginPage = () => {
               <div className="mt-1 relative">
                 <input
                   {...register('password')}
+                  id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   className={`input pr-10 ${errors.password ? 'input-error' : ''}`}
@@ -105,6 +107,7 @@ const LoginPage = () => {
                 <button
                   type="button"
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -149,17 +152,7 @@ const LoginPage = () => {
             </div>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Demo Hesapları:
-              </h3>
-              <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                <p><strong>Admin:</strong> admin@localhost.com / 12345678</p>
-                <p><strong>Öğrenci:</strong> test@email.com / 123456</p>
-              </div>
-            </div>
-          </div>
+
         </div>
       </motion.div>
     </div>

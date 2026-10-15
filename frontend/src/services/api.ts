@@ -1,39 +1,25 @@
-import axios, { AxiosResponse } from 'axios';
+import { withAuthLock } from '../lib/authLock';
+import axios, { AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
+import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 import type { ApiResponse } from '../types/api';
-import type { LoginCredentials, RegisterData, AuthResponse, User } from '../types/auth';
-import type { Plan, StudySession, CreatePlanRequest, CreateStudySessionRequest, UpdateStudySessionRequest, Topic, CreateTopicRequest, UpdateTopicRequest } from '../types/planner';
+import type { AuthResponse, LoginCredentials, RegisterData, User } from '../types/auth';
+import type { CreatePlanRequest, CreateStudySessionRequest, CreateTopicRequest, Plan, StudySession, Topic, UpdateStudySessionRequest, UpdateTopicRequest } from '../types/planner';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000, // Increased from 10s to 30s to prevent timeout errors
-  headers: {
-    'Content-Type': 'application/json',
-  },
+interface AuthRequest extends InternalAxiosRequestConfig { _retry?: boolean; authEpoch?: number; }
+const configuration = { baseURL: API_BASE_URL, timeout: 30000, withCredentials: true, headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'StudyTracker' } };
+const api = axios.create(configuration);
+const authTransport = axios.create(configuration);
+api.interceptors.request.use(config => {
+  const state = useAuthStore.getState();
+  const request = config as AuthRequest;
+  if (request.authEpoch !== undefined && request.authEpoch !== state.epoch) throw new axios.CanceledError('Session changed');
+  request.authEpoch = state.epoch;
+  if (state.accessToken) config.headers.Authorization = `Bearer ${state.accessToken}`;
+  return request;
 });
-
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const authData = localStorage.getItem('auth-storage');
-    if (authData) {
-      try {
-        const { state } = JSON.parse(authData);
-        if (state?.accessToken) {
-          config.headers.Authorization = `Bearer ${state.accessToken}`;
-        }
-      } catch (error) {
-        console.error('Error parsing auth data:', error);
-      }
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 
 // Toast debounce to prevent spam
 const toastShown = new Set<string>();
@@ -42,48 +28,23 @@ const toastShown = new Set<string>();
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const originalRequest = error.config as AuthRequest | undefined;
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true;
-
+      const state = useAuthStore.getState();
+      if (!state.isAuthenticated || state.epoch !== originalRequest.authEpoch) return Promise.reject(error);
       try {
-        const authData = localStorage.getItem('auth-storage');
-        if (authData) {
-          const { state } = JSON.parse(authData);
-          if (state?.refreshToken) {
-            const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {
-              refreshToken: state.refreshToken,
-            });
-
-            const { accessToken, refreshToken } = response.data.data.tokens;
-
-            // Update tokens in localStorage
-            const updatedAuthData = {
-              ...JSON.parse(authData),
-              state: {
-                ...state,
-                accessToken,
-                refreshToken,
-              },
-            };
-            localStorage.setItem('auth-storage', JSON.stringify(updatedAuthData));
-
-            // Retry original request with new token
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-            return api(originalRequest);
-          }
-        }
-      } catch (refreshError) {
-        // Refresh failed, logout user
-        localStorage.removeItem('auth-storage');
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
-      }
+        const token = state.accessToken && originalRequest.headers.Authorization !== `Bearer ${state.accessToken}` ? state.accessToken : await state.refreshSession();
+        if (useAuthStore.getState().epoch !== originalRequest.authEpoch) return Promise.reject(new axios.CanceledError('Session changed'));
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        return api(originalRequest);
+      } catch (refreshError) { return Promise.reject(refreshError); }
     }
 
+    if (error.response?.status === 401 && originalRequest?.authEpoch === useAuthStore.getState().epoch) useAuthStore.getState().clearAuth();
+
     // Handle common errors with debouncing
-    let errorMessage = '';
+    let errorMessage: string;
     if (error.response?.data?.error?.message) {
       errorMessage = error.response.data.error.message;
     } else if (error.message === 'Network Error') {
@@ -111,13 +72,13 @@ api.interceptors.response.use(
 // Auth API
 export const authAPI = {
   login: (credentials: LoginCredentials): Promise<AxiosResponse<AuthResponse>> =>
-    api.post('/auth/login', credentials),
+    withAuthLock(() => authTransport.post('/auth/login', credentials)),
 
   register: (data: RegisterData): Promise<AxiosResponse<AuthResponse>> =>
-    api.post('/auth/register', data),
+    withAuthLock(() => authTransport.post('/auth/register', data)),
 
   logout: (): Promise<AxiosResponse<ApiResponse>> =>
-    api.post('/auth/logout'),
+    withAuthLock(() => authTransport.post('/auth/logout')),
 
   getMe: (): Promise<AxiosResponse<ApiResponse<{ user: User }>>> =>
     api.get('/auth/me'),
@@ -126,10 +87,9 @@ export const authAPI = {
     api.put('/auth/profile', data),
 
   changePassword: (data: { currentPassword: string; newPassword: string }): Promise<AxiosResponse<ApiResponse>> =>
-    api.put('/auth/change-password', data),
+    api.put('/auth/change-password', data).then(response => { useAuthStore.getState().logout(); return response; }),
 
-  refreshToken: (refreshToken: string): Promise<AxiosResponse<ApiResponse<{ tokens: any }>>> =>
-    api.post('/auth/refresh-token', { refreshToken }),
+  refreshToken: (): Promise<AxiosResponse<AuthResponse>> => withAuthLock(() => authTransport.post('/auth/refresh-token')),
 };
 
 // Courses API

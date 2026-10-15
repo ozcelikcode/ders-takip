@@ -14,7 +14,7 @@ const registerSchema = z.object({
   lastName: z.string().min(2, 'Soyad en az 2 karakter olmalıdır'),
   username: z.string().min(3, 'Kullanıcı adı en az 3 karakter olmalıdır'),
   email: z.string().email('Geçerli bir e-posta adresi giriniz'),
-  password: z.string().min(6, 'Şifre en az 6 karakter olmalıdır'),
+  password: z.string().min(12, 'Şifre en az 12 karakter olmalıdır').refine(value => new TextEncoder().encode(value).length <= 72, 'Şifre en fazla 72 UTF-8 baytı olabilir'),
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -41,15 +41,15 @@ const RegisterPage = () => {
     try {
       await registerUser(data);
       toast.success('Hesap başarıyla oluşturuldu');
-    } catch (error: any) {
-      console.error('Register error:', error);
+    } catch {
+      // The auth store presents a safe error without logging credentials.
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[var(--canvas)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -58,14 +58,14 @@ const RegisterPage = () => {
       >
         <div className="text-center">
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="mx-auto h-16 w-16 bg-primary-600 rounded-full flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.15 }}
+            className="brand-mark mx-auto !h-10 !w-10"
           >
-            <BookOpen className="h-8 w-8 text-white" />
+            <BookOpen className="h-5 w-5" />
           </motion.div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
+          <h2 className="mt-6 text-[28px] font-semibold tracking-tight text-gray-900 dark:text-white">
             Kayıt Ol
           </h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -73,7 +73,7 @@ const RegisterPage = () => {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+        <div className="panel p-6 sm:p-8">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -83,6 +83,7 @@ const RegisterPage = () => {
                 <div className="mt-1">
                   <input
                     {...register('firstName')}
+                  id="firstName"
                     type="text"
                     className={`input ${errors.firstName ? 'input-error' : ''}`}
                     placeholder="Adınız"
@@ -100,6 +101,7 @@ const RegisterPage = () => {
                 <div className="mt-1">
                   <input
                     {...register('lastName')}
+                  id="lastName"
                     type="text"
                     className={`input ${errors.lastName ? 'input-error' : ''}`}
                     placeholder="Soyadınız"
@@ -118,6 +120,7 @@ const RegisterPage = () => {
               <div className="mt-1">
                 <input
                   {...register('username')}
+                  id="username"
                   type="text"
                   className={`input ${errors.username ? 'input-error' : ''}`}
                   placeholder="kullaniciadi"
@@ -135,6 +138,7 @@ const RegisterPage = () => {
               <div className="mt-1">
                 <input
                   {...register('email')}
+                  id="email"
                   type="email"
                   autoComplete="email"
                   className={`input ${errors.email ? 'input-error' : ''}`}
@@ -153,6 +157,7 @@ const RegisterPage = () => {
               <div className="mt-1 relative">
                 <input
                   {...register('password')}
+                  id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   className={`input pr-10 ${errors.password ? 'input-error' : ''}`}
@@ -161,6 +166,7 @@ const RegisterPage = () => {
                 <button
                   type="button"
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (

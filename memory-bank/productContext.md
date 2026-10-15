@@ -1,5 +1,13 @@
 # Ders Takip Sistemi - Product Context
 
+## Güncel Geliştirme Önceliği (15 Ekim 2026)
+
+Mevcut ürünün güvenilirliği, gerçek çalışma süresinin doğru ölçülmesi, kullanıcılar arasında veri gizliliği ve veri kaybetmeden devam edebilmek yeni özelliklerden önce gelir. Teknik açıklar `audits/2026-10-15-project-audit.md`, kalıcı çalışma disiplini `workingPrinciples.md` içinde kayıtlıdır.
+
+Aşağıdaki kullanıcı yolculukları ve gelecek vizyonu ürün hedefleridir; uygulanmış/ölçülmüş davranış değildir. Kısa/orta/uzun vade süreleri tarihsel vizyon olarak okunmalı, güncel teslim taahhüdü sayılmamalıdır. AI, sosyal, PWA/offline ve takım özellikleri şu anda aktif iş kapsamına alınmadı. Eğitim odağı ile genel iş/görev takibi arasındaki ürün yönü yeni özellik öncesi netleştirilecektir.
+
+İlk iyileştirme paketi geliştirme tabanını ve temel erişim/veri güvenliğini ele aldı. Kullanıcıya görünen Türkçe içerik korundu; yanıltıcı sabit demo hesap bilgileri kaldırıldı. Yeni özellik veya ürün yönü kararı alınmadı.
+
 ## Neden Bu Proje Var?
 
 ### Çözülen Problem
@@ -98,3 +106,7 @@
 - Öğrenci grupları ve rekabet
 - Online ders entegrasyonu
 - Eğitim içerik pazarı
+
+## Güncel görsel gereksinim — 15 Ekim 2026
+
+Kullanıcı modern, basit, sade ve özenli; Vercel benzeri tasarım istedi. Güncel Geist/Linear resmî kaynakları incelenerek nötr yüzey, belirgin tipografi, ince sınır ve anlamlı renk standardı uygulandı. Eski pastel/iOS/cam yönü geçersizdir. Kalıcı kurallar, uygulama kapsamı ve kanıt sınırları `design-system.md` içindedir. Türkçe kullanıcı içeriği korunur.

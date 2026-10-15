@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Calendar as CalendarIcon, Plus, Play, Timer, Clock, CheckCircle, AlertCircle, Book, RotateCcw, Check, Edit, Pause, Activity } from 'lucide-react';
-import { StudySession } from '../../types/planner';
-import { studySessionsAPI } from '../../services/api';
 import { useQuery } from '@tanstack/react-query';
-import { format, parseISO, isBefore, isAfter } from 'date-fns';
-import CreateSessionModal from './CreateSessionModal';
-import confetti from 'canvas-confetti';
+import { format, isAfter, isBefore, parseISO } from 'date-fns';
+import { motion } from 'framer-motion';
+import { Activity, AlertCircle, Book, Calendar as CalendarIcon, Check, CheckCircle, ChevronDown, Clock, Edit, Pause, Play, Plus, RotateCcw, Timer } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { studySessionsAPI } from '../../services/api';
+import { StudySession } from '../../types/planner';
+import { canStartSession, formatTime, getSessionTextStyle, isSessionMissed } from '../../utils/sessionHelpers';
 import ConfirmDialog from '../common/ConfirmDialog';
-import { isSessionMissed, canStartSession, getSessionTextStyle, formatTime } from '../../utils/sessionHelpers';
+import CreateSessionModal from './CreateSessionModal';
 
 const TodaysPlans: React.FC = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<StudySession | null>(null);
@@ -28,22 +28,13 @@ const TodaysPlans: React.FC = () => {
     onConfirm: () => { },
   });
 
-  const { data: sessionsData, isLoading: sessionsLoading, refetch } = useQuery({
+  const { data: sessionsData, isLoading: sessionsLoading, isError: sessionsError, refetch } = useQuery({
     queryKey: ['todays-sessions'],
     queryFn: async () => {
       const today = format(new Date(), 'yyyy-MM-dd');
-      console.log('🔍 GoalsOverview: Fetching sessions for date:', today);
-      try {
-        const response = await studySessionsAPI.getSessions({
-          startDate: today,
-          endDate: today,
-        });
-        console.log('✅ GoalsOverview: Sessions received:', response.data.data?.sessions);
-        return response.data.data?.sessions || [];
-      } catch (error: any) {
-        console.error('❌ GoalsOverview: Error fetching sessions:', error.response?.data || error.message);
-        throw error;
-      }
+
+      const response = await studySessionsAPI.getSessions({ startDate: today, endDate: today });
+      return response.data.data?.sessions || [];
     },
     refetchInterval: 30000, // Refetch every 30 seconds
     staleTime: 0, // Always consider data stale for immediate updates
@@ -71,14 +62,6 @@ const TodaysPlans: React.FC = () => {
     }
   };
 
-  const triggerConfetti = () => {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#22c55e', '#10b981', '#4ade80', '#86efac'],
-    });
-  };
 
   const handleStartSession = async (session: StudySession) => {
     // Vakti geçmiş oturumlar başlatılamaz
@@ -91,7 +74,7 @@ const TodaysPlans: React.FC = () => {
       await studySessionsAPI.startSession(session.id.toString());
       toast.success('Çalışma seansı başlatıldı');
       refetch();
-    } catch (error) {
+    } catch {
       toast.error('Seans başlatılırken hata oluştu');
     }
   };
@@ -109,7 +92,7 @@ const TodaysPlans: React.FC = () => {
           });
           toast.success('Çalışma seansı duraklatıldı');
           refetch();
-        } catch (error) {
+        } catch {
           toast.error('Seans duraklatılırken hata oluştu');
         }
       },
@@ -129,7 +112,7 @@ const TodaysPlans: React.FC = () => {
           });
           toast.success('Oturum tekrar planlanmış duruma getirildi');
           refetch();
-        } catch (error) {
+        } catch {
           toast.error('Oturum güncellenirken hata oluştu');
         }
       },
@@ -161,9 +144,9 @@ const TodaysPlans: React.FC = () => {
     }
   };
 
-  const sortedSessions = sessionsData?.sort((a, b) =>
+  const sortedSessions = [...(sessionsData || [])].sort((a, b) =>
     parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime()
-  ) || [];
+  );
 
   const completedSessions = sortedSessions.filter(s => s.status === 'completed').length;
   const totalSessions = sortedSessions.length;
@@ -183,100 +166,33 @@ const TodaysPlans: React.FC = () => {
     }
   }, [sessionsData]);
 
-  // Vakti geçmiş in_progress oturumları kontrol et ve otomatik yenile
-  useEffect(() => {
-    const checkOverdueSessions = () => {
-      if (!sessionsData || sessionsData.length === 0) return;
-
-      const now = new Date();
-      const overdueSessions = sessionsData.filter(
-        (session) =>
-          session.status === 'in_progress' &&
-          parseISO(session.endTime) < now
-      );
-
-      if (overdueSessions.length > 0) {
-        console.log('⏰ Vakti geçmiş oturumlar bulundu, yenileniyor...', overdueSessions.length);
-        refetch(); // Backend otomatik cancel edecek
-      }
-    };
-
-    // İlk kontrolü yap
-    checkOverdueSessions();
-
-    // Her 30 saniyede bir kontrol et
-    const interval = setInterval(checkOverdueSessions, 30000);
-
-    return () => clearInterval(interval);
-  }, [sessionsData, refetch]);
-
   if (sessionsLoading) {
-    return (
-      <div className="card">
-        <div className="card-body">
-          <div className="animate-pulse space-y-4">
-            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-            <div className="space-y-3">
-              <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <div className="panel px-4 py-5 text-xs text-[var(--muted)]" role="status">Bugünün planları yükleniyor…</div>;
+  }
+  if (sessionsError) {
+    return <div className="panel flex flex-wrap items-center justify-between gap-3 px-4 py-3"><p className="text-sm text-[var(--muted)]">Bugünün planları alınamadı.</p><button className="btn btn-secondary" onClick={() => refetch()}>Tekrar dene</button></div>;
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header - iOS Style */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-900/30">
-            <CalendarIcon className="w-5 h-5 text-sky-500" />
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Bugünün Planları
-          </h2>
-          <span className="text-sm px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-            {totalSessions} seans, {completionRate}% tamamlandı
-          </span>
-        </div>
-
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
-        >
-          <Plus className="w-4 h-4" />
-          Yeni Seans
+    <div className="panel overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <button type="button" aria-expanded={isExpanded} aria-controls="today-sessions" onClick={() => setIsExpanded(value => !value)} className="flex flex-wrap items-center gap-3 rounded text-left">
+          <ChevronDown className={`h-4 w-4 text-[var(--muted)] transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+          <span className="text-sm font-medium">Bugünün planları</span>
+          <span className="text-xs text-[var(--muted)]">{completedSessions}/{totalSessions} tamamlandı</span>
+          {totalSessions > 0 && <span className="h-1 w-16 overflow-hidden rounded-full bg-[var(--subtle)]"><span className="block h-full bg-[var(--solid)]" style={{ width: `${completionRate}%` }} /></span>}
         </button>
+        <button onClick={() => setIsCreateModalOpen(true)} className="btn btn-primary"><Plus className="h-4 w-4" />Yeni seans</button>
       </div>
-
-      {/* Today's Sessions - iOS Style Cards */}
+      {isExpanded && <div id="today-sessions" className="border-t">
       {sortedSessions.length === 0 ? (
-        <div className="rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50">
-          <div className="text-center py-12 px-6">
-            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/50 w-fit mx-auto mb-4">
-              <CalendarIcon className="w-10 h-10 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Bugün için planlanmış seans yok
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
-              Bugün için çalışma seansı oluşturmak ister misiniz?
-            </p>
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <Plus className="w-4 h-4" />
-              İlk Seansımı Oluştur
-            </button>
-          </div>
+        <div className="flex items-center gap-4 px-5 py-5">
+          <CalendarIcon className="h-5 w-5 shrink-0 text-[var(--muted)]" strokeWidth={1.5} />
+          <div><h3 className="text-sm font-medium">Bugün için planlanmış seans yok</h3><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Yeni bir seans ekle veya takvimde bir saat seç.</p></div>
         </div>
       ) : (
-        <div className="space-y-3">
-          {sortedSessions.map((session, index) => {
+        <div className="divide-y divide-[var(--line)]">
+          {sortedSessions.map((session) => {
             const sessionStart = parseISO(session.startTime);
             const sessionEnd = parseISO(session.endTime);
 
@@ -285,16 +201,16 @@ const TodaysPlans: React.FC = () => {
                 key={session.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className={`rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-sm hover:shadow-lg border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 ${session.status === 'completed' ? 'opacity-70' : ''
+                transition={{ duration: 0.15 }}
+                className={`transition-colors ${session.status === 'completed' ? 'opacity-70' : ''
                   }`}
               >
-                <div className="p-4">
-                  <div className="flex items-center justify-between">
+                <div className="px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     {/* Left side - Session info */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
                       {/* Time and type indicator */}
-                      <div className="flex flex-col items-center min-w-[80px]">
+                      <div className="flex flex-col items-center min-w-[56px]">
                         <div className="text-sm font-semibold text-gray-900 dark:text-white">
                           {formatTime(sessionStart)}
                         </div>
@@ -344,7 +260,7 @@ const TodaysPlans: React.FC = () => {
                       {getSessionStatusIcon(session)}
                       <button
                         onClick={() => handleEditSession(session)}
-                        className="p-2 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-full transition-colors"
+                        className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
                         title="Düzenle"
                       >
                         <Edit className="w-4 h-4" />
@@ -378,9 +294,9 @@ const TodaysPlans: React.FC = () => {
                                   try {
                                     await studySessionsAPI.completeSession(session.id.toString());
                                     toast.success('Çalışma seansı tamamlandı');
-                                    triggerConfetti();
+
                                     refetch();
-                                  } catch (error) {
+                                  } catch {
                                     toast.error('Seans tamamlanırken hata oluştu');
                                   }
                                 },
@@ -407,7 +323,7 @@ const TodaysPlans: React.FC = () => {
                       {session.status === 'completed' && (
                         <button
                           onClick={() => handleRestartSession(session)}
-                          className="p-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-full transition-colors"
+                          className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
                           title="Tekrar Başlat"
                         >
                           <RotateCcw className="w-5 h-5" />
@@ -422,6 +338,8 @@ const TodaysPlans: React.FC = () => {
         </div>
       )}
 
+      </div>}
+
       {/* Confirm Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
@@ -429,7 +347,7 @@ const TodaysPlans: React.FC = () => {
         onConfirm={confirmDialog.onConfirm}
         title={confirmDialog.title}
         message={confirmDialog.message}
-        type={confirmDialog.type}
+        type={confirmDialog.type ?? 'warning'}
       />
 
       {/* Create Session Modal */}

@@ -1,13 +1,13 @@
 import express from 'express';
-import { protect, authorize } from '../middleware/auth';
 import {
-  getTopics,
-  getTopic,
-  createTopic,
-  updateTopic,
-  deleteTopic,
-  reorderTopics,
+createTopic,
+deleteTopic,
+getTopic,
+getTopics,
+reorderTopics,
+updateTopic,
 } from '../controllers/topicController';
+import { protect } from '../middleware/auth';
 
 const router = express.Router();
 

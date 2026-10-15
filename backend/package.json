@@ -1,25 +1,22 @@
 {
-  "name": "ders-takip-backend",
+  "name": "@study-tracker/backend",
   "version": "1.0.0",
   "description": "Ders Takip ve Planlama Sistemi - Backend API",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "setup": "node scripts/setup.js",
-    "db:setup": "node scripts/database-setup.js",
-    "seed": "ts-node src/scripts/seed.ts",
-    "lint": "eslint src/**/*.ts",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "seed": "tsx src/scripts/seed.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test tests/*.test.cjs",
+    "db:migrate": "npm run build && node dist/scripts/migrate.js",
+    "admin:manage": "npm run build && node dist/scripts/manage-admin.js"
   },
   "keywords": [
-    "ders",
-    "takip",
-    "tyt",
-    "ayt",
     "education",
+    "study-tracker",
+    "planning",
     "api"
   ],
   "author": "Your Name",
@@ -30,39 +27,28 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
-    "express-validator": "^7.0.1",
-    "fs-extra": "^11.3.3",
     "helmet": "^7.1.0",
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "node-cron": "^4.2.1",
     "sequelize": "^6.37.7",
-    "sqlite3": "^5.1.7",
-    "winston": "^3.11.0",
+    "sqlite3": "^6.0.1",
     "zod": "^4.1.9"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
-    "@types/fs-extra": "^11.0.4",
-    "@types/jest": "^29.5.8",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/morgan": "^1.9.9",
-    "@types/node": "^20.10.0",
-    "@types/node-cron": "^3.0.11",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
-    "@typescript-eslint/parser": "^6.13.0",
-    "eslint": "^8.54.0",
-    "jest": "^29.7.0",
-    "nodemon": "^3.0.2",
-    "ts-jest": "^29.1.1",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.3.2"
+    "@types/node": "^24.0.0",
+    "supertest": "^7.3.1",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
+    "node": ">=24.21.0 <25",
+    "npm": ">=11.19.0 <12"
   }
 }

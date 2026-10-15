@@ -1,13 +1,13 @@
 import express from 'express';
 import {
-  getCourses,
-  getCourse,
-  createCourse,
-  updateCourse,
-  deleteCourse,
-  getCourseTopics,
+createCourse,
+deleteCourse,
+getCourse,
+getCourses,
+getCourseTopics,
+updateCourse,
 } from '../controllers/courseController';
-import { protect, authorize } from '../middleware/auth';
+import { protect } from '../middleware/auth';
 
 const router = express.Router();
 

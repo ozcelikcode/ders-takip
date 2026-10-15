@@ -1,17 +1,14 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, BookOpen, Eye, MoreVertical, Calculator, Book, Globe, Triangle, Atom, Beaker, Dna, Building, MapPin, Brain, Heart, Bookmark, Pen, Pencil, FileText, BookMarked, GraduationCap, Award, Globe2, Clock, Music, Palette, Code, Database, BarChart3, TrendingUp, Target, Lightbulb, Sparkles } from 'lucide-react';
-import { coursesAPI, categoriesAPI } from '../../services/api';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Menu } from '@headlessui/react';
-import toast from 'react-hot-toast';
-import { Dialog } from '@headlessui/react';
-import { X } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
-import { useForm } from 'react-hook-form';
+import { Dialog, Menu } from '@headlessui/react';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Atom, Award, BarChart3, Beaker, Book, Bookmark, BookMarked, BookOpen, Brain, Building, Calculator, Clock, Code, Database, Dna, Edit2, FileText, Globe, Globe2, GraduationCap, Heart, Lightbulb, MapPin, MoreVertical, Music, Palette, Pen, Pencil, Plus, Search, Sparkles, Target, Trash2, TrendingUp, Triangle, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
 import { z } from 'zod';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { categoriesAPI, coursesAPI } from '../../services/api';
 
 interface Category {
   id: number;

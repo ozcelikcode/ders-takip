@@ -1,44 +1,21 @@
+import path from 'node:path';
 import { Sequelize } from 'sequelize';
-import path from 'path';
+import { backendDirectory, getEnvironment } from './environment';
 
-const dbPath = path.join(__dirname, '..', '..', 'database.sqlite');
+const environment = getEnvironment();
+export const databasePath = environment.DB_PATH === ':memory:'
+  ? ':memory:'
+  : path.resolve(backendDirectory, environment.DB_PATH);
+export const backupDirectory = path.resolve(backendDirectory, environment.BACKUP_DIR);
 
 export const sequelize = new Sequelize({
   dialect: 'sqlite',
-  storage: dbPath,
-  logging: false, // Temiz terminal çıktısı için SQL logları kapatıldı
-  define: {
-    timestamps: true,
-    underscored: false,
-    freezeTableName: true,
-  },
+  storage: databasePath,
+  logging: false,
+  define: { timestamps: true, underscored: false, freezeTableName: true },
 });
 
+// Schema changes belong to the explicit migration command, never server startup.
 export const connectDB = async (): Promise<void> => {
-  try {
-    await sequelize.authenticate();
-    console.log('✅ SQLite veritabanı bağlantısı başarılı');
-
-    // First, drop any leftover backup tables that cause sync issues
-    try {
-      const [results] = await sequelize.query(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%_backup'"
-      );
-      for (const row of results as any[]) {
-        await sequelize.query(`DROP TABLE IF EXISTS "${row.name}"`);
-        console.log(`🗑️ Backup tablosu silindi: ${row.name}`);
-      }
-    } catch (e) {
-      // Ignore errors when dropping backup tables
-    }
-
-    // Sync all models - using simple sync without alter to avoid backup table issues
-    // force: false ensures we don't drop existing tables
-    await sequelize.sync({ force: false });
-
-    console.log('✅ Database modelleri senkronize edildi');
-  } catch (error) {
-    console.error('❌ SQLite bağlantı hatası:', error);
-    process.exit(1);
-  }
+  await sequelize.authenticate();
 };

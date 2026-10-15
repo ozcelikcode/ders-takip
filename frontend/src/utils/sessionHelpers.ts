@@ -1,4 +1,4 @@
-import { parseISO, format } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { StudySession } from '../types/planner';
 
 /**
@@ -76,3 +76,9 @@ export const formatTime = (date: Date | string): string => {
 
   return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
+
+export const getRecentSessions = <T extends { endTime: string; completedAt?: string }>(sessions: readonly T[], limit = 5): T[] => (
+  [...sessions]
+    .sort((first, second) => new Date(second.completedAt || second.endTime).getTime() - new Date(first.completedAt || first.endTime).getTime())
+    .slice(0, limit)
+);

@@ -1,19 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, ChevronLeft, ChevronRight, Plus, Play, CheckCircle, MoveRight, MoveLeft, Edit, Pause, Trash2 } from 'lucide-react';
-// @ts-ignore
-import confetti from 'canvas-confetti';
-import { StudySession, WeeklySchedule } from '../../types/planner';
-import { studySessionsAPI } from '../../services/api';
+import { initializeCalendarViewport } from './calendarViewport';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Calendar, CheckCircle, ChevronLeft, ChevronRight, Clock, Edit, MoveLeft, MoveRight, Pause, Play, Plus, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format, startOfWeek, addDays, addWeeks, subWeeks, parseISO, isToday, setHours, setMinutes } from 'date-fns';
+import { addDays, addWeeks, format, isToday, parseISO, setHours, setMinutes, startOfWeek, subWeeks } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import toast from 'react-hot-toast';
-import PomodoroModal from './PomodoroModal';
+import { studySessionsAPI } from '../../services/api';
+import { StudySession, WeeklySchedule } from '../../types/planner';
+import { canStartSession, formatTime, getSessionTextStyle } from '../../utils/sessionHelpers';
 import ConfirmDialog from '../common/ConfirmDialog';
-import MoveSessionModal from './MoveSessionModal';
 import CreateSessionModal from './CreateSessionModal';
-import { canStartSession, getSessionTextStyle, formatTime } from '../../utils/sessionHelpers';
+import MoveSessionModal from './MoveSessionModal';
+import PomodoroModal from './PomodoroModal';
 
 // Robust date parsing for various formats
 const parseDate = (dateStr: string | Date): Date => {
@@ -31,15 +30,6 @@ interface WeeklyPlannerProps {
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // Full 24 hours: 0:00 to 23:00
 const DAYS = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
-
-// Helper function to adjust color brightness for gradient
-const adjustColor = (color: string, amount: number): string => {
-  const hex = color.replace('#', '');
-  const r = Math.max(0, Math.min(255, parseInt(hex.substr(0, 2), 16) + amount));
-  const g = Math.max(0, Math.min(255, parseInt(hex.substr(2, 2), 16) + amount));
-  const b = Math.max(0, Math.min(255, parseInt(hex.substr(4, 2), 16) + amount));
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-};
 
 const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
   const queryClient = useQueryClient();
@@ -288,7 +278,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       newStartTime.setHours(hour, snappedMinutes, 0, 0);
 
       const sessionDuration = draggedSession.duration;
-      let newEndTime = new Date(newStartTime);
+      const newEndTime = new Date(newStartTime);
       newEndTime.setMinutes(newEndTime.getMinutes() + sessionDuration);
 
       // Check if session extends past midnight (23:59:59)
@@ -389,7 +379,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       const newStartTime = setHours(setMinutes(targetDate, sessionStart.getMinutes()), sessionStart.getHours());
 
       const sessionDuration = moveModalSession.duration;
-      let newEndTime = new Date(newStartTime);
+      const newEndTime = new Date(newStartTime);
       newEndTime.setMinutes(newEndTime.getMinutes() + sessionDuration);
 
       // Check if session extends past midnight (23:59:59)
@@ -431,14 +421,6 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     setCurrentWeek(prev => direction === 'next' ? addWeeks(prev, 1) : subWeeks(prev, 1));
   };
 
-  const triggerConfetti = () => {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#22c55e', '#10b981', '#4ade80', '#86efac'],
-    });
-  };
 
   const handlePauseSession = (session: StudySession) => {
     setConfirmDialog({
@@ -453,7 +435,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
           queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
           queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
           refetch();
-        } catch (error) {
+        } catch {
           toast.error('Seans duraklatılırken hata oluştu');
         }
       },
@@ -470,11 +452,11 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         try {
           await studySessionsAPI.completeSession(session.id.toString());
           toast.success('Çalışma seansı tamamlandı');
-          triggerConfetti();
+
           queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
           queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
           refetch();
-        } catch (error) {
+        } catch {
           toast.error('Seans tamamlanırken hata oluştu');
         }
       },
@@ -496,7 +478,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
       refetch();
-    } catch (error) {
+    } catch {
       toast.error('Seans başlatılırken hata oluştu');
     }
   };
@@ -552,7 +534,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         // Convert pixels to minutes: 48px = 60 minutes
         const newDurationMinutes = (newHeightPx / SLOT_HEIGHT) * 60;
         // Snap to 5-minute intervals
-        let newDuration = Math.max(5, Math.round(newDurationMinutes / 5) * 5);
+        const newDuration = Math.max(5, Math.round(newDurationMinutes / 5) * 5);
 
         const sessionStart = parseDate(resizingSession.session.startTime);
         const newEndTime = new Date(sessionStart);
@@ -563,8 +545,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
 
         if (newEndTime > sessionDay) {
           newEndTime.setTime(sessionDay.getTime());
-          const cappedDuration = Math.floor((newEndTime.getTime() - sessionStart.getTime()) / (1000 * 60));
-          newDuration = cappedDuration;
+
           toast.error('Görev gece yarısını geçemez (23:59)');
         }
 
@@ -582,7 +563,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
           queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
           queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
           await refetch();
-        } catch (error) {
+        } catch {
           toast.error('Süre güncellenirken hata oluştu');
         }
       };
@@ -638,14 +619,14 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Week Navigation - iOS Style */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+    <div className="space-y-4">
+      {/* Calendar navigation */}
+      <div className="calendar-toolbar">
+        <div className="calendar-toolbar-title">
+          <h2 className="text-sm font-medium text-gray-900 dark:text-[var(--text)]">
             Haftalık Planlayıcı
           </h2>
-          <div className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
             <Calendar className="w-4 h-4" />
             <span>
               {format(currentWeek, 'd MMMM', { locale: tr })} - {format(addDays(currentWeek, 6), 'd MMMM yyyy', { locale: tr })}
@@ -653,8 +634,9 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 p-1 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50">
+        <div className="date-navigation">
           <button
+            aria-label="Önceki hafta"
             onClick={() => navigateWeek('prev')}
             onDragOver={(e) => {
               if (draggedSession) {
@@ -673,19 +655,20 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
               setDragOverArrow(null);
             }}
             className={`p-2 rounded-lg transition-all ${dragOverArrow === 'prev'
-              ? 'bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400'
-              : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-white dark:hover:bg-gray-700'
+              ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+              : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-[var(--text)] hover:bg-white dark:hover:bg-gray-700'
               }`}
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={() => setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-            className="px-4 py-2 text-sm font-medium text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 rounded-lg transition-all"
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
           >
             Bugün
           </button>
           <button
+            aria-label="Sonraki hafta"
             onClick={() => navigateWeek('next')}
             onDragOver={(e) => {
               if (draggedSession) {
@@ -704,8 +687,8 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
               setDragOverArrow(null);
             }}
             className={`p-2 rounded-lg transition-all ${dragOverArrow === 'next'
-              ? 'bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400'
-              : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-white dark:hover:bg-gray-700'
+              ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+              : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-[var(--text)] hover:bg-white dark:hover:bg-gray-700'
               }`}
           >
             <ChevronRight className="w-5 h-5" />
@@ -713,13 +696,13 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         </div>
       </div>
 
-      {/* Weekly Grid - iOS Style */}
-      <div className="overflow-hidden rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50">
-        <div className="overflow-x-auto">
+      {/* Weekly calendar */}
+      <div className="panel overflow-hidden">
+        <div className="relative max-h-[640px] overflow-auto" tabIndex={0} aria-label="Haftalık takvim, saatleri görmek için kaydırın" ref={initializeCalendarViewport}>
           <div className="min-w-[800px]">
             {/* Header with days */}
-            <div className="grid grid-cols-8 border-b border-gray-100 dark:border-gray-700/50">
-              <div className="p-4 bg-gradient-to-b from-gray-50 to-gray-100/50 dark:from-gray-900 dark:to-gray-800/50 border-r border-gray-100 dark:border-gray-700/50 flex items-center justify-center">
+            <div data-calendar-header className="sticky top-0 z-30 grid grid-cols-[64px_repeat(7,minmax(0,1fr))] border-b border-gray-200 bg-[var(--surface)] dark:border-gray-700">
+              <div className="p-4 bg-[var(--surface)] border-r border-gray-100 dark:border-gray-700/50 flex items-center justify-center">
                 <Clock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
               </div>
               {DAYS.map((day, index) => {
@@ -730,15 +713,15 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                   <div
                     key={day}
                     className={`p-4 text-center border-r border-gray-100 dark:border-gray-700/50 transition-all duration-300 ${isCurrentDay
-                      ? 'bg-gradient-to-b from-sky-50 via-cyan-50/80 to-blue-50/60 dark:from-sky-900/30 dark:via-cyan-900/20 dark:to-blue-900/10'
-                      : 'bg-gradient-to-b from-gray-50 to-gray-100/50 dark:from-gray-900 dark:to-gray-800/50'
+                      ? 'bg-[var(--subtle)]'
+                      : 'bg-[var(--surface)]'
                       }`}
                   >
-                    <div className={`text-sm font-semibold ${isCurrentDay ? 'text-sky-700 dark:text-sky-300' : 'text-gray-900 dark:text-white'}`}>
+                    <div className={`text-sm font-semibold ${isCurrentDay ? 'text-gray-900 dark:text-[var(--text)]' : 'text-gray-900 dark:text-[var(--text)]'}`}>
                       {day}
                     </div>
                     <div className={`text-xs mt-0.5 ${isCurrentDay
-                      ? 'text-sky-600 dark:text-sky-400 font-bold bg-sky-100 dark:bg-sky-900/40 px-2 py-0.5 rounded-full inline-block'
+                      ? 'text-gray-700 dark:text-gray-300 font-bold bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full inline-block'
                       : 'text-gray-500 dark:text-gray-400'}`}>
                       {format(dayDate, 'd MMM', { locale: tr })}
                     </div>
@@ -749,7 +732,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
 
             {/* Time slots */}
             {HOURS.map((hour) => (
-              <div key={hour} className="grid grid-cols-8 border-b border-gray-100/80 dark:border-gray-700/30">
+              <div key={hour} data-calendar-hour={hour} className="grid grid-cols-[64px_repeat(7,minmax(0,1fr))] border-b border-gray-100/80 dark:border-gray-700/30">
                 {/* Hour label */}
                 <div className="relative p-3 bg-gray-50/80 dark:bg-gray-900/50 border-r border-gray-100 dark:border-gray-700/50 flex items-center justify-center">
                   <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 tabular-nums">
@@ -774,7 +757,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                     <div
                       key={`${dayIndex}-${hour}`}
                       className={`relative min-h-[48px] border-r border-gray-100/80 dark:border-gray-700/30 transition-all duration-200 ${isCurrentDay
-                        ? 'bg-gradient-to-b from-sky-50/60 to-cyan-50/40 dark:from-sky-900/10 dark:to-cyan-900/5'
+                        ? 'bg-gray-50/60 dark:bg-gray-900/30'
                         : 'hover:bg-gray-50/80 dark:hover:bg-gray-700/20'
                         }`}
                       onDragOver={(e) => handleDragOver(e, dayIndex, hour)}
@@ -851,13 +834,13 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                 scale: isBeingDragged ? 0.95 : 1,
                               }}
                               exit={{ opacity: 0, y: -10 }}
-                              className={`absolute inset-x-1 rounded-xl shadow-lg text-white ${getStatusColor(session.status, session.startTime, session.endTime)} group ${isBeingDragged ? 'ring-2 ring-white/50' : ''}`}
+                              className={`absolute inset-x-1 rounded-md text-[var(--text)] ${getStatusColor(session.status, session.startTime, session.endTime)} group ${isBeingDragged ? 'ring-2 ring-white/50' : ''}`}
                               style={{
                                 top: `${topPosition}px`,
                                 height: `${sessionHeight}px`,
                                 zIndex: isBeingDragged ? 50 : 10,
-                                background: `linear-gradient(135deg, ${session.color || '#3B82F6'} 0%, ${session.color ? adjustColor(session.color, -20) : '#2563EB'} 100%)`,
-                                border: 'none',
+                                backgroundColor: `color-mix(in srgb, ${session.color || '#3B82F6'} 10%, var(--surface))`,
+                                borderLeft: `3px solid ${session.color || '#3B82F6'}`,
                                 cursor: session.status === 'in_progress' || session.status === 'completed'
                                   ? 'default'
                                   : (isUltraCompact ? 'ns-resize' : 'move'),
@@ -879,21 +862,21 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                   <div className="flex items-center gap-0.5 shrink-0">
                                     {session.status === 'planned' && canStartSession(session) && (
                                       <button
-                                        className="p-0.5 rounded bg-white/20 hover:bg-white/40 transition-all"
+                                        className="p-0.5 rounded bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-all"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session);
                                         }}
                                       >
-                                        <Play className="w-2.5 h-2.5 text-white" />
+                                        <Play className="w-2.5 h-2.5 text-[var(--text)]" />
                                       </button>
                                     )}
                                     {session.status === 'paused' && (
                                       <button
-                                        className="p-0.5 rounded bg-white/30 hover:bg-white/50 transition-all"
+                                        className="p-0.5 rounded bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-all"
                                         onClick={(e) => { e.stopPropagation(); handleStartSession(session); }}
                                       >
-                                        <Play className="w-2.5 h-2.5 text-white" />
+                                        <Play className="w-2.5 h-2.5 text-[var(--text)]" />
                                       </button>
                                     )}
                                   </div>
@@ -905,7 +888,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                 <div className="flex flex-col h-full overflow-hidden">
                                   <div className="flex items-center justify-between gap-1">
                                     <div className="flex items-center gap-1 min-w-0 flex-1">
-                                      <span className="text-[9px] font-medium text-white/80 shrink-0">{formatTime(sessionStart)}</span>
+                                      <span className="text-[9px] font-medium text-[var(--muted)] shrink-0">{formatTime(sessionStart)}</span>
                                       <span className={`text-[10px] font-bold truncate ${getSessionTextStyle(session)}`}>
                                         {session.title}
                                       </span>
@@ -914,37 +897,37 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                     <div className="flex items-center gap-0.5 shrink-0">
                                       {session.status === 'planned' && canStartSession(session) && (
                                         <button
-                                          className="p-0.5 rounded-md bg-white/20 hover:bg-white/40 transition-all"
+                                          className="p-0.5 rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-all"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session);
                                           }}
                                         >
-                                          <Play className="w-3 h-3 text-white" />
+                                          <Play className="w-3 h-3 text-[var(--text)]" />
                                         </button>
                                       )}
                                       {session.status === 'in_progress' && (
                                         <>
                                           <button
-                                            className="p-0.5 rounded-md bg-white/20 hover:bg-white/40 transition-all"
+                                            className="p-0.5 rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-all"
                                             onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }}
                                           >
-                                            <Pause className="w-3 h-3 text-white" />
+                                            <Pause className="w-3 h-3 text-[var(--text)]" />
                                           </button>
                                           <button
-                                            className="p-0.5 rounded-md bg-white/25 hover:bg-white/40 transition-all"
+                                            className="p-0.5 rounded-md bg-white/25 hover:bg-black/10 dark:hover:bg-white/20 transition-all"
                                             onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }}
                                           >
-                                            <CheckCircle className="w-3 h-3 text-white" />
+                                            <CheckCircle className="w-3 h-3 text-[var(--text)]" />
                                           </button>
                                         </>
                                       )}
                                       {session.status === 'paused' && (
                                         <button
-                                          className="p-0.5 rounded-md bg-white/30 hover:bg-white/50 transition-all"
+                                          className="p-0.5 rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-all"
                                           onClick={(e) => { e.stopPropagation(); handleStartSession(session); }}
                                         >
-                                          <Play className="w-3 h-3 text-white" />
+                                          <Play className="w-3 h-3 text-[var(--text)]" />
                                         </button>
                                       )}
                                     </div>
@@ -961,7 +944,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                   {/* Top Header: Time + Actions */}
                                   <div className="flex items-start justify-between mb-0.5 shrink-0">
                                     {/* Time Badge */}
-                                    <div className="px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium leading-none whitespace-nowrap">
+                                    <div className="px-1 py-0.5 bg-black/5 dark:bg-white/10 rounded text-[9px] font-medium leading-none whitespace-nowrap">
                                       {formatTime(sessionStart)}
                                     </div>
 
@@ -969,38 +952,38 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                     <div className="flex items-center gap-0.5 ml-1">
                                       {session.status === 'planned' && canStartSession(session) && (
                                         <button
-                                          className="p-0.5 rounded-md bg-white/20 hover:bg-white/40 transition-all"
+                                          className="p-0.5 rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-all"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session);
                                           }}
                                         >
-                                          <Play className="w-3 h-3 text-white" />
+                                          <Play className="w-3 h-3 text-[var(--text)]" />
                                         </button>
                                       )}
                                       {session.status === 'in_progress' && (
                                         <div className="flex items-center gap-0.5">
                                           <button
-                                            className="p-0.5 rounded-md bg-white/20 hover:bg-white/40 transition-all"
+                                            className="p-0.5 rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-all"
                                             onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }}
                                           >
-                                            <Pause className="w-3 h-3 text-white" />
+                                            <Pause className="w-3 h-3 text-[var(--text)]" />
                                           </button>
                                           <button
-                                            className="p-0.5 rounded-md bg-white/25 hover:bg-white/40 transition-all"
+                                            className="p-0.5 rounded-md bg-white/25 hover:bg-black/10 dark:hover:bg-white/20 transition-all"
                                             onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }}
                                           >
-                                            <CheckCircle className="w-3 h-3 text-white" />
+                                            <CheckCircle className="w-3 h-3 text-[var(--text)]" />
                                           </button>
                                         </div>
                                       )}
                                       {session.status === 'paused' && (
                                         <div className="flex items-center gap-0.5">
                                           <button
-                                            className="p-0.5 rounded-md bg-white/30 hover:bg-white/50 transition-all"
+                                            className="p-0.5 rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-all"
                                             onClick={(e) => { e.stopPropagation(); handleStartSession(session); }}
                                           >
-                                            <Play className="w-3 h-3 text-white" />
+                                            <Play className="w-3 h-3 text-[var(--text)]" />
                                           </button>
                                         </div>
                                       )}
@@ -1027,7 +1010,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                   {/* Top Header: Time + Actions */}
                                   <div className="flex items-start justify-between mb-0.5 shrink-0">
                                     {/* Time Badge */}
-                                    <div className="px-1.5 py-0.5 bg-black/20 rounded text-[10px] font-medium leading-none whitespace-nowrap">
+                                    <div className="px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded text-[10px] font-medium leading-none whitespace-nowrap">
                                       {formatTime(sessionStart)}
                                     </div>
 
@@ -1035,38 +1018,38 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                     <div className="flex items-center gap-0.5 ml-1">
                                       {session.status === 'planned' && canStartSession(session) && (
                                         <button
-                                          className="p-1 rounded-md bg-white/20 hover:bg-white/40 transition-all"
+                                          className="p-1 rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-all"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             session.sessionType === 'pomodoro' ? handleStartPomodoro(session) : handleStartSession(session);
                                           }}
                                         >
-                                          <Play className="w-3.5 h-3.5 text-white" />
+                                          <Play className="w-3.5 h-3.5 text-[var(--text)]" />
                                         </button>
                                       )}
                                       {session.status === 'in_progress' && (
                                         <div className="flex items-center gap-0.5">
                                           <button
-                                            className="p-1 rounded-md bg-white/20 hover:bg-white/40 transition-all"
+                                            className="p-1 rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-all"
                                             onClick={(e) => { e.stopPropagation(); handlePauseSession(session); }}
                                           >
-                                            <Pause className="w-3.5 h-3.5 text-white" />
+                                            <Pause className="w-3.5 h-3.5 text-[var(--text)]" />
                                           </button>
                                           <button
-                                            className="p-1 rounded-md bg-white/25 hover:bg-white/40 transition-all"
+                                            className="p-1 rounded-md bg-white/25 hover:bg-black/10 dark:hover:bg-white/20 transition-all"
                                             onClick={(e) => { e.stopPropagation(); handleCompleteSession(session); }}
                                           >
-                                            <CheckCircle className="w-3.5 h-3.5 text-white" />
+                                            <CheckCircle className="w-3.5 h-3.5 text-[var(--text)]" />
                                           </button>
                                         </div>
                                       )}
                                       {session.status === 'paused' && (
                                         <div className="flex items-center gap-0.5">
                                           <button
-                                            className="p-1 rounded-md bg-white/30 hover:bg-white/50 transition-all"
+                                            className="p-1 rounded-md bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-all"
                                             onClick={(e) => { e.stopPropagation(); handleStartSession(session); }}
                                           >
-                                            <Play className="w-3.5 h-3.5 text-white" />
+                                            <Play className="w-3.5 h-3.5 text-[var(--text)]" />
                                           </button>
                                         </div>
                                       )}
@@ -1107,7 +1090,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                                 >
                                   {/* Subtle resize indicator line - only show for non-ultra-compact */}
                                   {!isUltraCompact && (
-                                    <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-white/30 rounded-full opacity-0 group-hover/resize:opacity-100 transition-opacity" />
+                                    <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-black/5 dark:bg-white/10 rounded-full opacity-0 group-hover/resize:opacity-100 transition-opacity" />
                                   )}
                                 </div>
                               )}
@@ -1128,17 +1111,18 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
 
                           return (
                             <div
-                              className="absolute inset-x-1 p-1.5 rounded-xl shadow-lg z-50 pointer-events-none text-white"
+                              className="absolute inset-x-1 p-1.5 rounded-xl shadow-lg z-50 pointer-events-none text-[var(--text)]"
                               style={{
                                 top: `${topPosition}px`,
                                 height: `${resizePreview.newHeight}px`,
-                                background: `linear-gradient(135deg, ${session.color || '#3B82F6'} 0%, ${adjustColor(session.color || '#3B82F6', -20)} 100%)`,
+                                backgroundColor: `color-mix(in srgb, ${session.color || '#3B82F6'} 10%, var(--surface))`,
+                                borderLeft: `3px solid ${session.color || '#3B82F6'}`,
                                 border: '2px dashed rgba(255,255,255,0.5)',
                               }}
                             >
                               {/* Time badge */}
                               {resizePreview.newHeight >= 40 && (
-                                <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-black/20 rounded text-[9px] font-medium">
+                                <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-black/5 dark:bg-white/10 rounded text-[9px] font-medium">
                                   {formatTime(sessionStart)} - {(() => {
                                     const newEndTime = new Date(sessionStart);
                                     newEndTime.setMinutes(sessionStart.getMinutes() + Math.round(newDuration));
@@ -1258,7 +1242,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                     queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
                     queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
                     refetch();
-                  } catch (error) {
+                  } catch {
                     toast.error('Görev silinirken hata oluştu');
                   }
                 },
@@ -1302,7 +1286,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
               initial={{ opacity: 0, y: 50, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 50, scale: 0.9 }}
-              className="w-56 p-4 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center justify-center gap-2 shadow-xl transition-all pointer-events-auto hover:border-primary-500"
+              className="w-56 p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-[var(--surface)] flex flex-col items-center justify-center gap-2 shadow-lg transition-all pointer-events-auto hover:border-primary-500"
               onDragOver={(e) => {
                 e.preventDefault();
                 e.currentTarget.classList.add('border-primary-500', 'bg-primary-50/90', 'dark:bg-primary-900/40', 'scale-105');
@@ -1352,7 +1336,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 50, scale: 0.9 }}
               transition={{ delay: 0.1 }}
-              className="w-56 p-4 rounded-2xl border-2 border-dashed border-primary-400 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md flex flex-col items-center justify-center gap-2 shadow-2xl transition-all pointer-events-auto hover:border-primary-500"
+              className="w-56 p-4 rounded-lg border-2 border-dashed border-primary-400 bg-[var(--surface)] flex flex-col items-center justify-center gap-2 shadow-lg transition-all pointer-events-auto hover:border-primary-500"
               onDragOver={(e) => {
                 e.preventDefault();
                 e.currentTarget.classList.add('border-primary-500', 'bg-primary-50/90', 'dark:bg-primary-900/40', 'scale-105');
@@ -1393,7 +1377,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
               <div className="p-2 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400 shadow-inner">
                 <MoveRight className="w-5 h-5 rotate-[-45deg]" />
               </div>
-              <p className="font-bold text-gray-900 dark:text-white text-sm">Sonraki Hafta</p>
+              <p className="font-bold text-gray-900 dark:text-[var(--text)] text-sm">Sonraki Hafta</p>
             </motion.div>
           </div>
         )}

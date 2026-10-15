@@ -1,284 +1,69 @@
-# Ders Takip Sistemi - Progress
+# Ders Takip Sistemi — İlerleme
 
-## Proje Durumu
+Son güncelleme: 15 Ekim 2026, tasarım sistemi paketi.
 
-### Genel Durum: 🟢 Aktif Geliştirme
+## Genel durum
 
-**Mevcut Versiyon**: v1.0.0 (Development)
-**Son Güncelleme**: 2025-12-25
-**Development Status**: Aktif kullanıma hazır, iOS tarzı tasarım sistemi uygulandı
+İnceleme sonrası geliştirme başladı. Derleme ve kalite tabanı çalışır hale getirildi; kritik erişim/veri okuma sorunları kapatıldı. Bütün audit bulguları çözülmüş veya üretime hazır kabul edilmez.
 
-## Çalışan Özellikler ✅
+Kurallar: `workingPrinciples.md`. Başlangıç incelemesi: `audits/2026-10-15-project-audit.md`. Uygulama kaydı: `implementation/2026-10-15-foundation.md`.
 
-### Temel Sistem Özellikleri
-- [x] **User Authentication System**
-  - [x] Kullanıcı kayıt/giriş/çıkış
-  - [x] JWT token authentication
-  - [x] Refresh token mechanism
-  - [x] Profil yönetimi
-  - [x] Avatar yükleme
+## Tasarım paketi
 
-- [x] **Kategori ve Ders Yönetimi**
-  - [x] Kategori oluşturma/düzenleme/silme (tüm kullanıcılar için)
-  - [x] Ders oluşturma/düzenleme/silme
-  - [x] Icon ve renk seçimi (preset 10 renk)
-  - [x] Sıralama sistemi
-  - [x] Aktif/pasif durum yönetimi
+Güncel resmî Geist/Linear örnekleri incelendi; sade nötr ürün dili uygulandı. Ortak kabuk/kontroller ve ana kullanıcı ekranları yenilendi; eski pastel/cam/gradyan yönü geçersiz. Kalıcı kararlar, kapsam ve doğrulama `design-system.md` içinde.
 
-- [x] **Konu Yönetimi**
-  - [x] Konu oluşturma/düzenleme/silme
-  - [x] Tahmini süre ve zorluk seviyesi
-  - [x] Açıklama ekleme
-  - [x] Otomatik sıralama
+Son aktivitelerin zaman sırası, dashboard konu verisi/sayıları, query response uyumu ve günlük özetin cache mutasyonu da düzeltildi. Gerçek çalışma süresi, admin istatistikleri ve Preferences hâlâ açık.
 
-### Planlama ve Takip
-- [x] **Haftalık Planlayıcı**
-  - [x] Drag & drop görev taşıma
-  - [x] 15 dakikalık grid sistemi
-  - [x] Çoklu gün desteği
-  - [x] Görev boyutunu otomatik ayarlama
-  - [x] Context menu (sağ click) işlemleri
-  - [x] Race condition handling
-  - [x] **Gelecek Haftaya Taşı (Drop Zone)**: Ekranın sağ üstünde yüzen drop zone ile kolay taşıma
-  - [x] **Gelişmiş Resize UX**: Temiz hover görünümü ve akıcı boyutlandırma
+## Doğrulananlar
 
-- [x] **Pomodoro Timer**
-  - [x] Özelleştirilebilir çalışma süreleri
-  - [x] Otomatik mola yönetimi
-  - [x] Timer tamamlama bildirimleri
-  - [x] Mini timer modu
+| Kontrol | Güncel durum |
+|---|---|
+| Temiz npm ci | Başarılı, kök lock ile |
+| İngilizce/ASCII teknik adlandırma | Kural kaydedildi; otomatik ASCII kontrolü geçti, anlam incelemesi ayrı |
+| Backend/frontend typecheck | Başarılı, strict korunuyor |
+| Lint | ESLint 10 flat config, sıfır uyarı |
+| Backend test | 22 test; gerçek HTTP + geçici SQLite ve yapılandırma/hata katmanı |
+| Frontend test | 8 test; hata sınırı, hesap cache izolasyonu ve son seans sıralaması |
+| Backend/frontend production build | Başarılı, Vite 8 |
+| Production bundle tarayıcı smoke | Dolu geçici veride giriş/dashboard/dersler, planner/özet, arama, mobil özel seans oluşturma; açık/koyu görünüm |
+| GitHub CI | Workflow eklendi; uzak koşum yapılmadı |
+| Kullanıcı DB'sinde işlem | Yapılmadı |
+| Mobil manuel kontrol | 390×844; günlük görünüm, menü, Escape/odak, arama ve form; yatay sayfa taşması yok |
+| Otomatik tarayıcı E2E / tam WCAG / Lighthouse / yük | Henüz yok |
 
-- [x] **Study Sessions**
-  - [x] Oturum oluşturma/düzenleme
-  - [x] Manuel zaman girişi
-  - [x] Durum yönetimi (planned/in_progress/completed)
-  - [x] Not ekleme
+## Audit durumları
 
-### İstatistik ve Analiz
-- [x] **Dashboard**
-  - [x] Günlük/haftalık çalışma özeti
-  - [x] Ders bazında ilerleme
-  - [x] Hedef takibi
-  - [x] Verimlilik grafiği
+| Bulgu | Durum / kanıt sınırı |
+|---|---|
+| A01 | Ders/konu/kullanıcı okuma kapsamı düzeltildi; owner/other/admin HTTP matrisi var. |
+| A02 | Sabit secret fallback kaldırıldı; env doğrulama ve güvenli development seed eklendi. Gerçek dağıtım anahtarı/oturum yenilemesi yapılmadı. |
+| A03 | Tek DB yolu uygulandı; snapshot'ın aynı geçici DB'deki kayıtları içerdiği doğrulandı. |
+| A04 | Açık. Snapshot/restore atomikliği, hata kurtarma ve gerçek aralık planı tamamlanmadı; timezone/noOverlap eklendi. |
+| A05 | GET durum/not değiştirmiyor; tekrar okuma regresyonu var. Zaman aşımı ürün politikası ayrı iş. |
+| A06 | Yeni oturumların ders/konu yetkisi, eşleşmesi ve aktifliği doğrulanıyor. Tarihsel hatalı ilişkiler gerçek DB'de taranmadı. |
+| A07–A11 | Açık: atomik çakışma, durum makinesi, gerçek süre, transaction'lı silme/reset, Preferences. |
+| A12 | Yerel check zinciri çalışıyor; 30 test ve CI workflow var. Uzak CI ve kapsamlı E2E henüz yok. |
+| A13 | Açık: sunucuda refresh iptali, logout ve parola değişimi sonrası oturum iptali eksik. |
+| A14 | Kısmen: hesap cache temizliği ve geç yanıt izolasyonu tamam. Tarih/query key/invalidation ve kişisel yerel saklama tamamlanmadı. |
+| A15–A16, A18 | Açık: tek timer, timezone ve gerçek ayar uygulaması. |
+| A17 | Kısmen: dashboard includeTopics ve yanlış TYT/AYT sayımı düzeltildi; gerçek süre ve admin agregasyonları hâlâ açık. |
+| A19 | Kısmen: MongoDB hata kalıntıları kaldırıldı, Sequelize 400/409 dönüşümü ve güvenli hata mesajları test edildi. Ortak doğrulama/DTO işi açık. |
+| A20 | Lock, modern dev araçları, güvenli setup ve açık baseline migration var. Legacy şema evrimleri için sonraki explicit migration'lar gerekiyor. |
+| A21 | Kısmen: yedi ölü modül/eski script/paket kaldırıldı; route splitting tamam. Planner/timer tekrarı ve kalan bağımlılık modernizasyonu açık. |
+| A22 | Kısmen: ErrorBoundary, mobil Dialog odak/Escape, skip link, reduced-motion ve 390 px manuel kontrolü var. Tam klavye/touch takvim, WCAG, Lighthouse ve otomatik E2E tamamlanmadı. |
 
-- [x] **Detaylı İstatistikler**
-  - [x] Recharts ile interaktif grafikler
-  - [x] Zaman bazlı analizler
-  - [x] Kategori performansı
-  - [x] Çalışma trend'leri
+## Bağımlılıklar
 
-### UI/UX Özellikleri
-- [x] **Modern Tasarım**
-  - [x] Responsive design (mobil uyumlu)
-  - [x] Dark/Light mode desteği
-  - [x] Framer Motion animasyonları
-  - [x] Lucide icon set
-  - [x] TailwindCSS styling
+Node 24.21.0, npm 11.19.0; Vite 8.3.4, plugin-react 6.1.2, ESLint 10.12.0, typescript-eslint 8.71.2, Vitest 5.0.4, sqlite3 6.0.1, tsx 4.23.15. TypeScript 5.9.3 sabit; React 18/Recharts 2/Router 6/Tailwind 3 dönüşümleri tamamlanmadı.
 
-- [x] **Tema Kalıcılığı** ✨ YENİ
-  - [x] Tema tercihi sunucuya senkronize
-  - [x] Özel birincil renk kalıcılığı
-  - [x] Site geneli renk vs kullanıcı tercihi önceliği
-  - [x] İlk yükleme optimizasyonu (FOUC önleme)
+İlk mühendislik paketinde lock audit sonucu: 12 paket düğümü (0 critical / 5 high / 7 moderate). Başlangıçta bağımsız manifest çözümlemeleri kullanıldığından eski sayılarla doğrudan yüzde karşılaştırması yapılmaz. Aynı advisory birden fazla düğümü etkileyebilir. Bunlar açık iş olarak tutulur.
 
-- [x] **Modal Sistemi**
-  - [x] Headless UI modallar
-  - [x] Smooth animasyonlar
-  - [x] Form validation
-  - [x] Scroll optimization
+## Öncelik sırası
 
-- [x] **Bildirim Sistemi**
-  - [x] React Hot Toast bildirimler
-  - [x] Okundu/okunmadı takibi
-  - [x] LocalStorage persistence
-  - [x] Bulk mark as read
+1. Auth yaşam döngüsü ve güvenilir backup/restore/reset.
+2. Oturum çakışması/durum/gerçek süre/timezone.
+3. Preferences ve diğer API sözleşmeleri; kullanıcı/tarih cache kapsamı.
+4. Timer/planner birleştirmesi, doğru özetler, ayarların uygulanması.
+5. Kalan güvenlik/bağımlılık güncellemeleri ve E2E/mobil/erişilebilirlik.
 
-- [x] **iOS Tarzı Tasarım Sistemi** ✨ YENİ (2025-12-25)
-  - [x] Glassmorphism efektleri (backdrop-blur-xl)
-  - [x] Pastel/soft renk paleti (400 serisi Tailwind renkleri)
-  - [x] Gradient butonlar ve arka planlar
-  - [x] Yuvarlatılmış köşeler (rounded-2xl, rounded-xl)
-  - [x] Framer Motion animasyonlu tab geçişleri
-  - [x] Modern kart tasarımları
-
-### Site Yedekleme ve Sıfırlama ✨ YENİ
-- [x] **Yedekleme Sistemi**
-  - [x] Manuel yedek alma
-  - [x] Otomatik yedekleme (günlük/5 günlük/7 günlük)
-  - [x] Son 5 yedek saklama
-  - [x] Yedek listesi görüntüleme
-  - [x] Seçili yedekten geri yükleme
-
-- [x] **Veri Sıfırlama**
-  - [x] Yönetim verilerini sıfırla (kullanıcılar korunur)
-  - [x] Tüm verileri sıfırla (admin korunur)
-
-## Son Yapılan İyileştirmeler
-
-### iOS Tarzı Planner UI Tasarımı (2025-12-25) 🔴→🟢
-**Tasarım Güncellemesi** ✅
-- **Hedef**: Planner sayfasının iOS tarzı modern tasarıma dönüştürülmesi
-- **Yapılan Değişiklikler**:
-  - `WeeklyPlanner.tsx`: Sky blue/cyan gradient, glassmorphism kartlar, Legend kaldırıldı
-  - `DailyCalendar.tsx`: iOS tarzı header, modern navigasyon, yumuşak sınırlar
-  - `PlannerNavigation.tsx`: Framer Motion animasyonlu tab geçişleri
-  - `PlannerPage.tsx`: Gradient başlık, smooth view transitions
-  - `GoalsOverview.tsx`: Glassmorphism kartlar, pastel status badge'leri
-  - `CreateSessionModal.tsx`: Modern modal, pastel renk paleti, rounded-xl butonlar
-
-**Renk Paleti Değişikliği** ✅
-- Eski: Pembe/magenta tonları (primary-50, primary-900/20)
-- Yeni: Sky blue/cyan gradient (sky-50, cyan-50, sky-400)
-- Session renkleri: 500 serisi → 400 serisi (daha pastel)
-
-### Tema Kalıcılığı ve Yedekleme (2025-12-22/23) 🔴→🟢
-**Tema Kalıcılığı** ✅
-- **Problem**: Tema ve özel renk seçimleri oturum kapanınca kayboluyordu
-- **Çözüm**:
-  - `userPreferencesStore.ts`: Sunucu senkronizasyonu eklendi
-  - `settingsStore.ts`: Kullanıcı tercihi önceliği
-  - `App.tsx`: Backend'den tercih yükleme
-  - `index.html`: Erken tema uygulama betiği
-
-**Site Yedekleme Sistemi** ✅
-- **Yeni Dosyalar**:
-  - `backend/src/models/Backup.ts`
-  - `backend/src/controllers/backupController.ts`
-  - `backend/src/routes/backupRoutes.ts`
-- **Frontend**:
-  - `AdminSettingsPage.tsx`: Yedekleme sekmesi
-  - `api.ts`: backupAPI
-
-**Veritabanı Sync Hatası** ✅
-- **Problem**: SQLite _backup tabloları çakışması
-- **Çözüm**: Artık tablolar temizlendi
-
-### Bug Fix'ler (2025-11-10 - 2025-11-21)
-1. **CreateTopicModal Validasyonu** ✅
-2. **Kategori Rengini Kullan Butonu** ✅
-3. **Modal Scroll Optimization** ✅
-4. **React Query Cache Invalidation** ✅
-
-## Geliştirme Önceliği
-
-### 🔴 Kritik (Halledildi)
-- [x] Form validasyon sorunları
-- [x] Modal scroll sorunları
-- [x] Backend error handling
-- [x] Authentication issues
-- [x] **Tema kalıcılığı**
-- [x] **Site yedekleme**
-
-### 🟡 Orta Öncelik
-- [ ] Mobile optimization improvements
-- [ ] Performance optimizations
-- [ ] Advanced filtering and search
-- [ ] Export/import functionality (kısmen yedekleme ile)
-
-### 🟢 Düşük Öncelik
-- [ ] Social features
-- [ ] AI integration
-- [ ] Advanced analytics
-- [ ] Team collaboration
-
-## Technical Debt ve Refactoring
-
-### Code Quality
-- [x] TypeScript strict mode implementation
-- [x] ESLint + Prettier configuration
-- [x] Component organization
-- [ ] Unit test coverage (30% target)
-- [ ] E2E testing setup
-- [ ] API documentation (Swagger)
-
-### Performance
-- [x] Code splitting (route-based)
-- [ ] Bundle size optimization
-- [ ] Image optimization
-- [ ] Database indexing
-- [ ] Caching strategies
-
-### Security
-- [x] JWT authentication
-- [x] Input validation
-- [x] CORS configuration
-- [x] Rate limiting
-- [x] **Admin-only backup routes**
-- [ ] Content Security Policy
-- [ ] Security headers optimization
-
-## Deployment Durumu
-
-### Development ✅
-- **Frontend**: Vite dev server (localhost:3000)
-- **Backend**: Express dev server (localhost:5002)
-- **Database**: SQLite (database.sqlite)
-- **Backups**: `backups/` klasörü (son 5 yedek)
-- **Environment**: Local development setup
-
-### Production 🔄 Plan Aşamasında
-- **Frontend**: Static build + CDN
-- **Backend**: Node.js + PM2
-- **Database**: PostgreSQL migration
-- **Hosting**: Railway/DigitalOcean/Vercel
-
-## Proje Metrikleri
-
-### Development Metrics
-- **Lines of Code**: ~17,000+ (estimated)
-- **Components**: 55+ React components
-- **API Endpoints**: 30+ REST endpoints
-- **Database Tables**: 8 tables (Backup eklendi)
-- **Dependencies**: 85+ npm packages
-
-### Performance Metrics
-- **Bundle Size**: ~500KB (gzipped)
-- **API Response Time**: <200ms (average)
-- **Page Load Time**: <2s (development)
-- **Lighthouse Score**: 85+ (development)
-
-## Sonraki Sürüm Planı (v1.1.0)
-
-### Planned Features
-1. **Mobile Optimization**
-   - Touch-friendly interactions
-   - PWA support
-   - Offline functionality
-
-2. **Advanced Analytics**
-   - Custom date ranges
-   - Detailed time analysis
-   - Progress predictions
-
-3. **Export/Import**
-   - Data export (JSON/CSV)
-   - ✅ Backup/restore functionality (tamamlandı)
-   - Cross-device sync
-
-4. **User Experience**
-   - Quick actions shortcuts
-   - Advanced search/filter
-   - Custom themes
-
-### Timeline Estimate
-- **Development**: 4-6 weeks
-- **Testing**: 1-2 weeks
-- **Deployment**: 1 week
-
-## Başarı Kriterleri
-
-### Technical Success
-- [x] All core features working
-- [x] Responsive design
-- [x] Dark mode support
-- [x] Authentication system
-- [x] **Backup/restore system**
-- [x] **Theme persistence**
-- [ ] Performance benchmarks met
-- [ ] Security audit passed
-
-### User Success
-- [ ] User testing completed
-- [ ] Feedback incorporated
-- [ ] Documentation complete
-- [ ] Support system ready
+Her iş ilgili davranış testi, gerekli kontroller ve memory-bank güncellemesiyle kapanır. İnceleme raporu tarihsel kalır; güncel durum bu dosyadan izlenir.

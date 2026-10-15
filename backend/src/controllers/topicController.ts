@@ -1,6 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import { Topic, Course, Category } from '../models';
-import { ValidationError, Op } from 'sequelize';
+import { NextFunction, Request, Response } from 'express';
+import { Op, ValidationError } from 'sequelize';
+import { Category, Course, Topic } from '../models';
+import { visibleCourseWhere } from '../policies/courseAccess';
 
 export const getTopics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -28,6 +29,8 @@ export const getTopics = async (req: Request, res: Response, next: NextFunction)
         {
           model: Course,
           as: 'course',
+          required: true,
+          where: visibleCourseWhere(req.user!),
           attributes: ['id', 'name', 'color', 'icon'],
           include: [
             {
@@ -59,6 +62,8 @@ export const getTopic = async (req: Request, res: Response, next: NextFunction):
         {
           model: Course,
           as: 'course',
+          required: true,
+          where: visibleCourseWhere(req.user!),
           attributes: ['id', 'name', 'color', 'icon'],
           include: [
             {

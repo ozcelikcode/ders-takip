@@ -1,2 +1,0 @@
-Admin: admin@test.com mailto:admin@test.com / admin123
-Student: test@test.com mailto:test@test.com / 123456

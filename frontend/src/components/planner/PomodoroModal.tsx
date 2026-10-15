@@ -80,7 +80,6 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
                 <PomodoroTimer
                   session={session}
                   onComplete={onClose}
-                  onStop={onClose}
                 />
               </div>
             </Dialog.Panel>

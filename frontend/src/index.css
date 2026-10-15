@@ -5,7 +5,30 @@
 @layer base {
   :root {
     --color-primary: 59 130 246; /* #3B82F6 - blue-600 */
-    --color-secondary: 16 185 129; /* #10B981 - green-600 */
+    --color-secondary: 16 185 129;
+    --canvas: #fafafa;
+    --surface: #fff;
+    --sidebar: #fcfcfc;
+    --subtle: #f5f5f5;
+    --line: #e5e5e5;
+    --text: #171717;
+    --muted: #666;
+    --solid: #171717;
+    --solid-text: #fff;
+    color-scheme: light;
+  }
+
+  .dark {
+    --canvas: #0a0a0a;
+    --surface: #111;
+    --sidebar: #0d0d0d;
+    --subtle: #1a1a1a;
+    --line: #2a2a2a;
+    --text: #ededed;
+    --muted: #a1a1a1;
+    --solid: #ededed;
+    --solid-text: #111;
+    color-scheme: dark;
   }
 
   html {
@@ -13,14 +36,15 @@
   }
 
   body {
-    font-family: 'Inter', system-ui, sans-serif;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-family: 'Geist Variable', system-ui, sans-serif;
+    background: var(--canvas);
+    color: var(--text);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   * {
-    @apply border-gray-200 dark:border-gray-700;
+    border-color: var(--line);
   }
 
   /* Custom scrollbar */
@@ -44,11 +68,14 @@
 @layer components {
   /* Button variants */
   .btn {
-    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium gap-2 min-h-9 rounded-md border transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-primary {
-    @apply bg-primary-600 text-white border-primary-600 hover:bg-primary-700 focus:ring-primary-500;
+    background: var(--solid);
+    color: var(--solid-text);
+    border-color: var(--solid);
+    @apply hover:opacity-90;
   }
 
   .btn-secondary {
@@ -67,9 +94,30 @@
     @apply bg-error-600 text-white border-error-600 hover:bg-error-700 focus:ring-error-500;
   }
 
+  .page-heading { @apply flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between; }
+  .page-title { @apply text-[28px] font-semibold leading-tight tracking-[-0.04em] sm:text-[32px]; }
+  .page-description { @apply mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]; }
+  .eyebrow { @apply text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--muted)]; }
+  .panel { @apply rounded-lg border bg-[var(--surface)]; }
+  .panel-heading { @apply flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4; }
+  .icon-button { @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--subtle)] hover:text-[var(--text)]; }
+  .brand-mark { @apply inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[var(--solid)] text-[var(--solid-text)]; }
+  .avatar { @apply inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border bg-[var(--subtle)] font-medium text-[var(--text)]; }
+  .nav-label { @apply mb-2 px-3 text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--muted)]; }
+  .nav-item { @apply flex items-center gap-3 rounded-md px-3 py-2 text-[13px] text-[var(--muted)] transition-colors hover:bg-[var(--subtle)] hover:text-[var(--text)]; }
+  .nav-item-active { @apply bg-[var(--subtle)] font-medium text-[var(--text)]; }
+  .dropdown-panel { @apply absolute right-0 z-50 mt-2 overflow-hidden rounded-lg border bg-[var(--surface)] shadow-lg; }
+  .segmented-control { @apply inline-flex rounded-md border bg-[var(--surface)] p-0.5; }
+  .segment { @apply flex items-center justify-center gap-2 rounded px-3 py-1.5 text-xs font-medium text-[var(--muted)] transition-colors hover:text-[var(--text)]; }
+  .segment-active { @apply bg-[var(--subtle)] text-[var(--text)]; }
+  .calendar-toolbar { @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between; }
+  .calendar-toolbar-title { @apply flex flex-wrap items-center gap-3 text-sm font-medium; }
+  .date-navigation { @apply flex w-fit items-center rounded-md border bg-[var(--surface)] p-0.5; }
+  .skip-link { @apply fixed left-4 top-4 z-[100] -translate-y-24 rounded-md bg-[var(--solid)] px-4 py-2 text-sm text-[var(--solid-text)] focus:translate-y-0; }
+
   /* Input styles */
   .input {
-    @apply block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-500 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500;
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-500 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500;
   }
 
   .input-error {
@@ -78,7 +126,7 @@
 
   /* Card styles */
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700;
+    @apply bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700;
   }
 
   .card-header {
@@ -143,48 +191,11 @@
   }
 }
 
-@layer utilities {
-  /* Text utilities */
-  .text-gradient {
-    @apply bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent;
-  }
 
-  /* Animation utilities */
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-in-out;
-  }
-
-  .animate-slide-up {
-    animation: slideUp 0.3s ease-out;
-  }
-
-  .animate-bounce-in {
-    animation: bounceIn 0.6s ease-out;
-  }
-
-  /* Layout utilities */
-  .container-sm {
-    @apply max-w-2xl mx-auto px-4 sm:px-6;
-  }
-
-  .container-md {
-    @apply max-w-4xl mx-auto px-4 sm:px-6;
-  }
-
-  .container-lg {
-    @apply max-w-6xl mx-auto px-4 sm:px-6;
-  }
-
-  .container-xl {
-    @apply max-w-7xl mx-auto px-4 sm:px-6;
-  }
-
-  /* Grid utilities */
-  .grid-cols-auto-fit {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  }
-
-  .grid-cols-auto-fill {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+@layer base {
+  :focus-visible { outline: 2px solid rgb(var(--color-primary)); outline-offset: 3px; }
+  h1, h2, h3 { text-wrap: balance; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
   }
 }

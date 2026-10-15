@@ -1,21 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Square, RotateCcw, Coffee, Target, Volume2, VolumeX } from 'lucide-react';
-import { StudySession } from '../../types/planner';
-import { studySessionsAPI } from '../../services/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Coffee, Pause, Play, RotateCcw, Square, Target, Volume2, VolumeX } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { studySessionsAPI } from '../../services/api';
+import { StudySession } from '../../types/planner';
 
 interface PomodoroTimerProps {
   session: StudySession;
   onComplete?: () => void;
-  onStop?: () => void;
 }
 
 type TimerPhase = 'work' | 'shortBreak' | 'longBreak';
 type TimerStatus = 'idle' | 'running' | 'paused' | 'completed';
 
-const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete, onStop }) => {
+const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete }) => {
   const queryClient = useQueryClient();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -68,7 +67,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete, onSt
     let interval: number;
 
     if (timerStatus === 'running' && timeLeft > 0) {
-      interval = setInterval(() => {
+      interval = window.setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             handlePhaseComplete();

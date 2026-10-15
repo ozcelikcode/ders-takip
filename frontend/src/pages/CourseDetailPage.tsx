@@ -1,36 +1,36 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { DragDropContext, Draggable, Droppable, DropResult } from '@hello-pangea/dnd';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft,
-  Clock,
-  Target,
-  CheckCircle2,
-  Circle,
-  Plus,
-  RotateCcw,
-  BookOpen,
-  Filter,
-  SortAsc,
-  SortDesc,
-  Calculator,
-  Microscope,
-  Globe,
-  Triangle,
-  Atom,
-  FlaskConical,
-  Dna,
-  Landmark,
-  Map,
-  Brain,
-  Heart,
-  BookText
+ArrowLeft,
+Atom,
+BookOpen,
+BookText,
+Brain,
+Calculator,
+CheckCircle2,
+Circle,
+Clock,
+Dna,
+Filter,
+FlaskConical,
+Globe,
+Heart,
+Landmark,
+Map,
+Microscope,
+Plus,
+RotateCcw,
+SortAsc,
+SortDesc,
+Target,
+Triangle
 } from 'lucide-react';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { Link, useParams } from 'react-router-dom';
+import CreateTopicModal from '../components/modals/CreateTopicModal';
 import { coursesAPI, topicsAPI } from '../services/api';
 import { useAuthStore } from '../store/authStore';
-import toast from 'react-hot-toast';
-import CreateTopicModal from '../components/modals/CreateTopicModal';
 
 interface Topic {
   id: number;
@@ -166,10 +166,11 @@ const CourseDetailPage = () => {
         case 'name':
           comparison = a.name.localeCompare(b.name, 'tr');
           break;
-        case 'difficulty':
+        case 'difficulty': {
           const difficultyOrder = { 'Kolay': 1, 'Orta': 2, 'Zor': 3 };
           comparison = difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
           break;
+        }
         case 'time':
           comparison = a.estimatedTime - b.estimatedTime;
           break;

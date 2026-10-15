@@ -1,20 +1,14 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, BookOpen, Calculator, Globe, Brain, Heart, Code, Target, Lightbulb, Sparkles, Briefcase, Users, MoreHorizontal, GraduationCap, Tag } from 'lucide-react';
-import { coursesAPI, categoriesAPI } from '../../services/api';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
 import { Dialog } from '@headlessui/react';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'framer-motion';
+import { BookOpen, Brain, Briefcase, Calculator, Code, Globe, GraduationCap, Heart, Lightbulb, MoreHorizontal, Sparkles, Tag, Target, Users, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
 import { z } from 'zod';
+import { categoriesAPI, coursesAPI } from '../../services/api';
 
-interface Category {
-  id: number;
-  name: string;
-  color: string;
-  icon?: string;
-}
 
 const courseSchema = z.object({
   name: z.string().min(1, 'Ders adı gereklidir').max(100, 'Ders adı çok uzun'),

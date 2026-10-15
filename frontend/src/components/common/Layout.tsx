@@ -7,31 +7,13 @@ const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black">
-      {/* Mobile sidebar backdrop */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-
-      {/* Main content */}
-      <div className="lg:pl-72 lg:ml-2">
-        {/* Header */}
+    <div className="min-h-screen bg-[var(--canvas)] text-[var(--text)]">
+      <a className="skip-link" href="#main-content">İçeriğe geç</a>
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="lg:pl-[232px]">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-
-        {/* Page content */}
-        <main className="py-6">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <Outlet />
-          </div>
+        <main id="main-content" tabIndex={-1} className="mx-auto max-w-[1440px] px-4 py-7 outline-none sm:px-7 lg:px-10 lg:py-9">
+          <Outlet />
         </main>
       </div>
     </div>

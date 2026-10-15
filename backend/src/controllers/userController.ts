@@ -1,6 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import { User } from '../models/User';
+import { Transaction } from 'sequelize';
+import { sequelize } from '../config/database';
+import { revokeUserSessions } from '../services/authSessions';
+import { NextFunction, Request, Response } from 'express';
 import { Op } from 'sequelize';
+import { User } from '../models/User';
 
 export const getUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -65,6 +68,11 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction):
 export const getUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
+
+    if (req.user?.role !== 'admin' && String(req.user?.id) !== id) {
+      res.status(404).json({ success: false, error: { message: 'Kullanıcı bulunamadı' } });
+      return;
+    }
 
     const user = await User.findByPk(id, {
       attributes: { exclude: ['password'] },
@@ -162,7 +170,11 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
     if (isActive !== undefined) user.isActive = isActive;
     if (preferences) user.preferences = { ...user.preferences, ...preferences };
 
-    await user.save();
+    const privilegesChanged = user.changed('role') || user.changed('isActive');
+    await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
+      await user.save({ transaction });
+      if (privilegesChanged) await revokeUserSessions(user.id, transaction);
+    });
 
     const userResponse = {
       id: user.id,

@@ -1,457 +1,139 @@
-# 📚 Ders Takip Sistemi
+# Ders Takip Sistemi
 
-<div align="center">
+Ders, görev ve çalışma oturumlarını planlayan Türkçe web uygulaması. Teknik adlandırma İngilizcedir; kullanıcıya görünen içerik Türkçe kalır.
 
-![Status](https://img.shields.io/badge/status-active-success.svg)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+## Geliştirme gereksinimleri
 
-Öğrenci, öğretmen, çalışan ve yazılımcılar için modern, kullanıcı dostu görev takip ve zaman yönetimi sistemi.
-
-[Özellikler](#-özellikler) • [Kurulum](#-kurulum) • [Kullanım](#-kullanım) • [Teknolojiler](#-teknoloji-stack)
-
-</div>
-
----
-
-## 📋 İçindekiler
-
-- [Özellikler](#-özellikler)
-- [Ekran Görüntüleri](#-ekran-görüntüleri)
-- [Teknoloji Stack](#-teknoloji-stack)
-- [Kurulum](#-kurulum)
-- [Kullanım](#-kullanım)
-- [API Dokümantasyonu](#-api-dokümantasyonu)
-- [Proje Yapısı](#-proje-yapısı)
-- [Katkıda Bulunma](#-katkıda-bulunma)
-- [Lisans](#-lisans)
-
-## ✨ Özellikler
-
-### 🎯 Ana Özellikler
-
-- **📅 Haftalık Planlayıcı**
-  - Drag & drop ile görev taşıma
-  - 15 dakikalık hassas zaman aralıkları
-  - Geçmiş ve gelecek haftalara görev taşıma
-  - Bağlam menüsü ile hızlı işlemler
-  - Gerçek zamanlı görsel önizleme
-
-- **⏱️ Pomodoro Timer**
-  - Özelleştirilebilir çalışma süreleri
-  - Otomatik mola yönetimi
-  - Çalışma istatistikleri
-  - Minimize edilebilir timer
-
-- **📊 İstatistikler & Analiz**
-  - Günlük, haftalık, aylık çalışma grafikleri
-  - Ders bazında ilerleme takibi
-  - Hedef başarı oranları
-  - Recharts ile interaktif grafikler
-
-- **📚 Görev & Proje Yönetimi**
-  - Özelleştirilebilir kategoriler
-  - Renk kodlu görev grupları
-  - Görev oluşturma ve düzenleme
-  - Konu bazında organizasyon
-
-- **👤 Profil Yönetimi**
-  - Profil fotoğrafı yükleme
-  - Kullanıcı bilgileri düzenleme
-  - Gerçek zamanlı bildirimler
-  - Karanlık/Aydınlık tema
-
-- **📱 Modern UI/UX**
-  - Responsive tasarım (mobil uyumlu)
-  - Dark mode desteği
-  - Smooth animasyonlar (Framer Motion)
-  - Lucide icons
-
-## 🖼️ Ekran Görüntüleri
-
-> _Ekran görüntüleri buraya eklenecek_
-
-## 🚀 Teknoloji Stack
-
-### Backend
-
-| Teknoloji | Açıklama |
-|-----------|----------|
-| **Node.js** | JavaScript runtime |
-| **Express.js** | Web framework |
-| **TypeScript** | Type-safe JavaScript |
-| **SQLite** | Veritabanı (Sequelize ORM) |
-| **JWT** | Authentication |
-| **bcrypt** | Password hashing |
-| **Helmet** | Güvenlik middleware |
-| **Express Rate Limit** | Rate limiting |
-| **Morgan** | HTTP request logger |
-| **CORS** | Cross-origin resource sharing |
-
-### Frontend
-
-| Teknoloji | Açıklama |
-|-----------|----------|
-| **React 18** | UI library |
-| **TypeScript** | Type-safe JavaScript |
-| **Vite** | Build tool & dev server |
-| **Zustand** | State management |
-| **React Query (TanStack Query)** | Server state management |
-| **React Router v6** | Routing |
-| **Axios** | HTTP client |
-| **TailwindCSS** | Utility-first CSS |
-| **Framer Motion** | Animasyon kütüphanesi |
-| **Recharts** | Grafik ve istatistik |
-| **Lucide React** | Icon set |
-| **React Hot Toast** | Bildirimler |
-| **date-fns** | Tarih işlemleri |
-
-## 📋 Kurulum
-
-### Gereksinimler
-
-- Node.js >= 18.0.0
-- npm >= 9.0.0
-
-### Adım Adım Kurulum
-
-1. **Repository'yi klonlayın**
-   ```bash
-   git clone https://github.com/yourusername/ders-takip.git
-   cd ders-takip
-   ```
-
-2. **Backend kurulumu**
-   ```bash
-   cd backend
-   npm install
-   ```
-
-3. **Backend environment variables**
-
-   `backend/.env` dosyası oluşturun:
-   ```env
-   PORT=5002
-   NODE_ENV=development
-   JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-   JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-this-in-production
-   JWT_EXPIRE=1d
-   JWT_REFRESH_EXPIRE=7d
-   BCRYPT_SALT_ROUNDS=12
-   FRONTEND_URL=http://localhost:3000
-
-   # Rate Limiting (Development'ta devre dışı)
-   RATE_LIMIT_WINDOW_MS=60000
-   RATE_LIMIT_MAX_REQUESTS=10000
-   ```
-
-4. **Frontend kurulumu**
-   ```bash
-   cd ../frontend
-   npm install
-   ```
-
-5. **Frontend environment variables**
-
-   `frontend/.env` dosyası oluşturun:
-   ```env
-   VITE_API_BASE_URL=http://localhost:5002/api
-   ```
-
-   Not: Root dizinde `npm run dev:all` komutu backend ve frontend'i beraber calistirir.
-
-6. **Veritabanını başlatın**
-   ```bash
-   cd ../backend
-   npm run dev
-   ```
-
-   İlk çalıştırmada SQLite veritabanı otomatik oluşturulacak ve örnek veriler yüklenecektir.
-
-7. **Frontend'i başlatın**
-
-   Yeni bir terminal açın:
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-
-8. **Tarayıcıda açın**
-
-   http://localhost:3000
-
-### 🔑 Varsayılan Kullanıcı Bilgileri
-
-#### Admin
-- **Email:** admin@localhost.com
-- **Şifre:** 12345678
-
-#### Öğrenci
-- **Email:** student@localhost.com
-- **Şifre:** 12345678
-
-## 🎯 Kullanım
-
-### Kullanıcı İş Akışı
-
-1. **Giriş Yapın**
-   - Kayıt ol veya mevcut hesapla giriş yap
-   - Profil türünü seç (öğrenci, öğretmen, çalışan, yazılımcı, vb.)
-
-2. **Dashboard'ı İnceleyin**
-   - Bugünün görevleri ve hedefleri
-   - Haftalık ilerleme grafikleri
-   - Üretkenlik istatistikleri
-
-3. **Haftalık Planlar Oluşturun**
-   - Planlayıcı'ya gidin
-   - Görev ekle butonuna tıklayın
-   - Kategori, tarih ve süre seçin
-   - Drag & drop ile görevleri taşıyın
-
-4. **Çalışma/Görev Oturumu Başlatın**
-   - Görev üzerine tıklayın
-   - "Başlat" butonuna tıklayın
-   - Pomodoro timer ile odaklan
-
-5. **İlerlemeyi Takip Edin**
-   - İstatistikler sayfasında detaylı analiz
-   - Kategori bazında performans grafikleri
-
-### Yönetici İş Akışı
-
-1. **Kullanıcı Yönetimi**
-   - Kullanıcılar sayfasından tüm kullanıcıları görüntüle
-   - Yeni kullanıcı ekle
-   - Kullanıcı bilgilerini düzenle
-
-2. **Kategori ve Görev Yönetimi**
-   - Kategoriler sayfasından kategori ekle/düzenle
-   - Özelleştirilebilir kategori sistemleri
-   - Renk ve ikon atamaları
-
-## 📡 API Dokümantasyonu
-
-### Base URL
-```
-http://localhost:5002/api
-```
-
-### Authentication Endpoints
-
-```http
-POST   /auth/register       # Yeni kullanıcı kaydı
-POST   /auth/login          # Giriş yap
-POST   /auth/logout         # Çıkış yap
-POST   /auth/refresh        # Token yenile
-GET    /auth/me             # Kullanıcı bilgisi
-PUT    /auth/profile        # Profil güncelle
-POST   /auth/upload-avatar  # Avatar yükle
-```
-
-### Study Sessions
-
-```http
-GET    /study-sessions                    # Oturumları listele
-GET    /study-sessions/:id                # Oturum detayı
-POST   /study-sessions                    # Yeni oturum oluştur
-PUT    /study-sessions/:id                # Oturum güncelle
-DELETE /study-sessions/:id                # Oturum sil
-PUT    /study-sessions/:id/complete       # Oturumu tamamla
-```
-
-### Courses
-
-```http
-GET    /courses             # Ders listesi
-GET    /courses/:id         # Ders detayı
-POST   /courses             # Yeni ders (Admin)
-PUT    /courses/:id         # Ders güncelle (Admin)
-DELETE /courses/:id         # Ders sil (Admin)
-```
-
-### Plans
-
-```http
-GET    /plans               # Plan listesi
-GET    /plans/:id           # Plan detayı
-POST   /plans               # Yeni plan
-PUT    /plans/:id           # Plan güncelle
-DELETE /plans/:id           # Plan sil
-```
-
-### Örnek Request
-
-```javascript
-// Login
-const response = await axios.post('/api/auth/login', {
-  email: 'student@localhost.com',
-  password: '12345678'
-});
-
-// Çalışma oturumu oluştur
-const session = await axios.post('/api/study-sessions', {
-  courseId: 1,
-  title: 'Matematik Çalışması',
-  startTime: '2025-10-07T09:00:00Z',
-  endTime: '2025-10-07T10:30:00Z',
-  duration: 90,
-  type: 'study'
-}, {
-  headers: {
-    'Authorization': `Bearer ${token}`
-  }
-});
-```
-
-## 📁 Proje Yapısı
-
-```
-ders-takip/
-├── backend/
-│   ├── src/
-│   │   ├── config/          # Veritabanı ve konfigürasyon
-│   │   ├── controllers/     # Route controller'ları
-│   │   ├── middleware/      # Express middleware
-│   │   ├── models/          # Sequelize modelleri
-│   │   ├── routes/          # API route tanımları
-│   │   ├── services/        # Business logic
-│   │   ├── types/           # TypeScript tipleri
-│   │   ├── utils/           # Yardımcı fonksiyonlar
-│   │   └── index.ts         # Express uygulama giriş noktası
-│   ├── uploads/             # Kullanıcı yüklemeleri
-│   ├── database.sqlite      # SQLite veritabanı
-│   └── package.json
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/      # React bileşenleri
-│   │   │   ├── common/      # Ortak bileşenler
-│   │   │   ├── dashboard/   # Dashboard bileşenleri
-│   │   │   ├── planner/     # Planlayıcı bileşenleri
-│   │   │   └── ...
-│   │   ├── pages/           # Sayfa bileşenleri
-│   │   ├── services/        # API servisleri
-│   │   ├── store/           # Zustand store'lar
-│   │   ├── types/           # TypeScript tipleri
-│   │   ├── utils/           # Yardımcı fonksiyonlar
-│   │   ├── App.tsx          # Ana uygulama bileşeni
-│   │   └── main.tsx         # React giriş noktası
-│   ├── public/              # Statik dosyalar
-│   ├── index.html           # HTML şablonu
-│   └── package.json
-│
-├── README.md                # Bu dosya
-└── package.json             # Root package.json
-```
-
-## 🔐 Güvenlik
-
-- **JWT Authentication**: Access ve refresh token sistemi
-- **Password Hashing**: bcrypt ile güvenli şifre hash'leme
-- **CORS Protection**: Cross-origin güvenliği
-- **Rate Limiting**: Brute force saldırı koruması (production'da aktif)
-- **Helmet**: HTTP header güvenliği
-- **Input Validation**: Tüm girişler doğrulanır
-- **SQL Injection**: Sequelize ORM ile korunmalı
-
-## 🐛 Sorun Giderme
-
-### Port Çakışması
+- Node.js 24.21.0 (`.nvmrc` / `.node-version`).
+- npm 11.19.0; tek paket yöneticisi ve kökteki `package-lock.json` kullanılır.
+- npm workspaces: `backend` ve `frontend`.
 
 ```bash
-# Windows
-netstat -ano | findstr :5002
-taskkill /PID <PID> /F
-
-# Linux/Mac
-lsof -ti:5002 | xargs kill -9
+nvm use
+npm install --global npm@11.19.0
+npm run setup
 ```
 
-### Database Sıfırlama
+`setup`, kilitli bağımlılıkları kurar, mevcut dosya yoksa rastgele JWT imzalama anahtarı içeren yerel `backend/.env` oluşturur ve iki uygulamayı derler. Mevcut ortam dosyasına ve kullanıcı verilerine dokunmaz. Yapılandırma dosyası Git'e eklenmez.
+
+Veritabanı ilk kurulumda **ayrı ve açık** bir komutla hazırlanır:
 
 ```bash
-cd backend
-rm database.sqlite
-npm run dev  # Otomatik yeniden oluşturulur
+npm run db:migrate
+npm run dev
 ```
 
-### Environment Variables
+- Frontend: [localhost:3000](http://localhost:3000).
+- API: [localhost:5002/api/health](http://localhost:5002/api/health).
+- Frontend `/api` çağrılarını Vite proxy üzerinden backend'e iletir.
+- Sunucu açılışı şema oluşturmaz, değiştirmez veya tablo silmez. Bekleyen migration ya da uyumsuz şema varsa başlangıç durur.
+- İlk migration mevcut uyumlu tabloları ve kayıtlarını koruyarak baseline oluşturur; `002-auth-sessions` iptal edilebilir oturum tablolarını ekler. Eksik kolon içeren eski şema otomatik onarılmaz; bunun için ayrı migration gerekir.
 
-`.env` dosyalarının doğru konumda olduğundan emin olun:
-- `backend/.env`
-- `frontend/.env`
+## Yapılandırma
 
-## 🚀 Deployment
+Örnekler: [backend/.env.example](backend/.env.example), [frontend/.env.example](frontend/.env.example).
 
-### Production Build
+| Alan | Anlamı |
+|---|---|
+| `JWT_SECRET` | Rastgele, en az 32 karakter; eksik, kısa veya örnek anahtarla uygulama başlamaz. |
+| `JWT_EXPIRE` | Access token süresi, en fazla 15 dakika; varsayılan `15m`. |
+| `SESSION_TTL_DAYS` | Oturumun uzatılmayan mutlak ömrü; 1–30 gün, varsayılan 7. |
+| `BCRYPT_SALT_ROUNDS` | Yeni parola hash maliyeti; 12–16, varsayılan 12. |
+| `PORT` | Varsayılan 5002. |
+| `FRONTEND_URL` | İzin verilen tarayıcı origin'i; varsayılan `http://localhost:3000`, production'da HTTPS zorunlu. |
+| `DB_PATH` | Mutlak yol veya backend klasörüne göre göreli SQLite yolu; varsayılan `database.sqlite`. |
+| `BACKUP_DIR` | Mutlak yol veya backend klasörüne göre göreli yedek dizini. |
+| `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS` | Production API sınırı; varsayılan 15 dakikada 100 istek. |
+| `VITE_API_BASE_URL` | Varsayılan `/api`; ayrı origin kullanılacaksa frontend build öncesi tanımlanır. |
+
+Production dağıtımında geliştirme ortam dosyası yerine ortam değişkenleri sağlanır. Frontend `/api` yolu dağıtımın reverse proxy'si üzerinden backend'e yönlendirilmelidir. Geliştirme sunucusu production hosting olarak kullanılmaz.
+
+## Yerel admin oluşturma ve kurtarma
+
+Önce migration çalıştırın. En az 12 karakter, en fazla 72 UTF-8 bayt olan güçlü parolayı yalnız sahibinin okuyabildiği bir dosyaya kaydedin (`chmod 600`). Parolayı komut argümanına, sohbet veya Git'e yazmayın. Örneğin Git dışında tutulan `.local/admin-password.txt` dosyasıyla:
 
 ```bash
-# Frontend build
-cd frontend
+npm run admin:manage -- --mode create --email admin@example.com --username admin --password-file /absolute/path/to/admin-password.txt
+```
+
+`create`, yalnız henüz hiçbir admin yoksa çalışır. Unutulan mevcut admin parolası için aynı komutta `--mode recover` ve hesabın tam e-posta adresi kullanılır. Kurtarma yalnız aktif admin hesabına uygulanır; öğrenciyi admin yapmaz, diğer kullanıcıları değiştirmez, hesabın bütün oturumlarını iptal eder. Araç veritabanı yoksa durur; sessizce yeni dosya veya örnek veri üretmez.
+
+15 Ekim 2026'da kullanıcının açık talimatıyla bu çalışma klasöründe ilk yerel kurulum ve `admin@example.com` hesabı oluşturuldu. Rastgele parola `.local/admin-password.txt` içinde 0600 izinle tutulur; dosya Git dışında kalır. Bu hesap örnek veya production için varsayılan parola sağlamaz.
+
+## Oturum sözleşmesi
+
+Access token yalnız uygulama belleğindedir. Refresh credential yalnız `HttpOnly`, `SameSite=Strict`, `/api/auth` kapsamlı cookie ile taşınır; production'da `Secure` zorunludur. Refresh her kullanımda döner, tüketilmiş credential tekrar kullanılırsa bütün oturum ailesi iptal edilir. Logout o oturumu; parola değişikliği ve admin kurtarma ilgili kullanıcının bütün oturumlarını kapatır. Rol/aktiflik değişikliği de eski oturumları iptal eder.
+
+`/api/auth` istekleri `X-Requested-With: StudyTracker` başlığı ve tarayıcıda `credentials: include` gerektirir. Origin kontrol edilir. Arayüz istemcisi bunları uygular; aynı anda gelen 401 yanıtları ortak refresh kullanır, geç yanıtlar hesap değişimini geri alamaz. Modern tarayıcılarda Web Locks sekmeler arasında cookie işlemlerini sıraya koyar; BroadcastChannel diğer sekmelerin kimlik/cache durumunu temizler. Çevrimdışı çıkış niyeti sonraki açılışta otomatik giriş yapılmasını engeller.
+
+Bu değişiklik eski JSON refresh-token sözleşmesinin yerini alır. Mevcut kurulumlarda backend/frontend birlikte güncellenmeli, `npm run db:migrate` uygulanmalı ve kullanıcılar yeniden giriş yapmalıdır. `JWT_REFRESH_SECRET` / `JWT_REFRESH_EXPIRE` artık kullanılmaz.
+
+## Yedekleme ve kurtarma
+
+Yönetim ekranı canlı SQLite dosyasından native Online Backup API ile tutarlı snapshot oluşturur. Dosyanın bütünlüğü, foreign key'leri, migration/kolon uyumu ve SHA-256 değeri denetlenir. Snapshot ile yanındaki `.sqlite.json` manifest birlikte saklanmalıdır; katalog geri yüklemeden sonra bu manifestlerden yeniden kurulur. Dizin 0700, yeni dosyalar 0600 izinlidir.
+
+Restore önce kaynak doğrulaması ve mevcut verinin güvenlik yedeğini alır, SQLite destination transaction ile geri yükler, şemayı kontrol eder ve eski oturumların tamamını iptal eder. Son kontrol başarısızsa güvenlik yedeğine döner; bu da başarısızsa API bakım durumunda kalır. İşlem sırasında yeni veri istekleri 503/Retry-After alır; sunucu kapanmaz. Manifesti bulunmayan eski kayıtlar arayüzde doğrulanmamış görünür ve geri yüklenemez.
+
+Otomatik yedek kontrolü her 5 dakikada çalışır. Son başarılı otomatik yedekten itibaren 1, 5 veya 7 **tam gün** dolması esas alınır; aralık ayarı her çalışmada yeniden okunur. Yedekler otomatik silinmez. Kapasite takibi, şifreli/ayrı diskte yedek, saklama politikası ve gerçek ortam kurtarma tatbikatı ayrıca kurulmalıdır.
+
+`settings_only` yalnız site ayarlarını sıfırlar. `all`, öğrenci hesapları ve ders/çalışma verilerini temizler; adminleri ve yedekleri korur. İki işlem de önce güvenlik yedeği alır ve silmeleri transaction içinde yürütür. Doğrulama testleri geçici veritabanlarında çalışır. Koordinasyon tek backend süreci içindir; çoklu instance ve harici SQLite yazıcıları bu kilide dahil değildir.
+
+## Geliştirme verileri
+
+Varsayılan parolalı hesap otomatik oluşturulmaz. Geliştirme ortamında örnek kategorileri ve admin hesabını açıkça oluşturmak için `backend/.env` içine `ADMIN_EMAIL`, `ADMIN_USERNAME` ve en az 12 karakterli `ADMIN_PASSWORD` ekleyin:
+
+```bash
+npm run seed
+```
+
+Seed yalnız development modunda çalışır. Mevcut hesapların parolasını veya kayıtlarını sıfırlamaz; parolayı loglamaz. Gerçek kullanıcı verilerini test için seed/reset/restore etmeyin.
+
+## Kalite kontrolleri
+
+```bash
+npm run check
+```
+
+Bu komut teknik adlandırma kontrolü, backend/frontend typecheck, sıfır uyarılı lint, testler ve production derlemelerini çalıştırır. Aynı akış GitHub Actions CI içinde tanımlıdır.
+
+```bash
+npm run typecheck
+npm run lint
+npm test
 npm run build
-
-# Backend
-cd backend
-npm run build  # TypeScript compile (opsiyonel)
-
-# Production modda çalıştır
-NODE_ENV=production npm start
 ```
 
-### Environment Güvenliği
+Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 43 backend + 14 frontend = 57 testtir. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
 
-Production ortamında:
-- Güçlü JWT secret'lar kullanın
-- `NODE_ENV=production` ayarlayın
-- Rate limiting'i aktif tutun
-- HTTPS kullanın
-- Environment variable'ları güvenli saklayın
+Adlandırma kontrolü dosya/klasör ve kod sembollerinde ASCII dışı adları yakalar. İsimlerin anlam bakımından İngilizce oluşu kod incelemesinde doğrulanır; Türkçe arayüz metinleri bu kontrolün dışındadır.
 
-## 🤝 Katkıda Bulunma
+## Teknik yapı
 
-1. Fork edin
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Değişikliklerinizi commit edin (`git commit -m 'feat: Add amazing feature'`)
-4. Branch'inizi push edin (`git push origin feature/amazing-feature`)
-5. Pull Request açın
-
-### Commit Mesaj Formatı
-
+```text
+backend/src/
+  app.ts             HTTP uygulaması; import edilmesi sunucu veya cron başlatmaz
+  index.ts           Başlangıç, bağlantı kontrolü ve kapanış
+  config/            Doğrulanmış ortam ve tek veritabanı yolu
+  database/          Açık, sürümlü migration çalıştırıcısı
+  policies/          Ortak kaynak görünürlük kuralları
+  controllers/       API işlemleri
+  middleware/        Auth, doğrulama ve hata katmanı
+  models/            Sequelize modelleri ve ilişkileri
+  services/          Oturum yaşam döngüsü, admin kurtarma, bakım ve snapshot
+  scripts/           Migration, admin yönetimi ve geliştirme seed girişleri
+backend/tests/       İzole HTTP/veritabanı ve yapılandırma regresyonları
+frontend/src/
+  components/        Ortak ve özellik bileşenleri
+  lib/               Paylaşılan QueryClient
+  pages/             İhtiyaç anında yüklenen sayfalar
+  services/          API istemcisi
+  store/             Auth, site ayarları ve kişisel tercihler
+scripts/             Yerel yapılandırma ve adlandırma kontrolleri
+memory-bank/         Kalıcı kararlar, mevcut durum ve teknik inceleme
 ```
-feat: Yeni özellik
-fix: Hata düzeltmesi
-docs: Dokümantasyon değişikliği
-style: Kod formatı
-refactor: Kod yeniden yapılandırma
-test: Test ekleme/düzenleme
-chore: Yapılandırma değişiklikleri
-```
 
-## 📝 Lisans
+## Mevcut kapsam ve açık işler
 
-Bu proje MIT lisansı altında lisanslanmıştır.
+Uygulamada kayıt/giriş, ders/konu yönetimi, haftalık/günlük planlayıcı, Pomodoro ve yönetim ekranları bulunur. Oturum iptali ve tek süreçli snapshot/restore/reset paketi uygulandı ve hata senaryolarıyla test edildi. Üretime hazır olma iddiası yoktur. Gerçek çalışma süresi, zaman dilimi, tercih sözleşmesi, planner durum/çakışma bütünlüğü, diğer çok adımlı silmeler ve dağıtım/kurtarma operasyonları açık işlerdir.
 
-## 👥 İletişim
-
-Proje Linki: [https://github.com/ozcelikcode/ders-takip](https://github.com/ozcelikcode/ders-takip)
-
-## 🙏 Teşekkürler
-- [Claude](https://claude.ai/)
-- [React](https://reactjs.org/)
-- [TailwindCSS](https://tailwindcss.com/)
-- [Vite](https://vitejs.dev/)
-- [Zustand](https://zustand-demo.pmnd.rs/)
-- [TanStack Query](https://tanstack.com/query)
-- [Framer Motion](https://www.framer.com/motion/)
-- [Recharts](https://recharts.org/)
-- Tüm açık kaynak katkıcılarına
-
----
-
-<div align="center">
-
-**⚡ Hızlı Başlangıç**: Backend ve frontend'i paralel terminallerde başlatın!
-
-Made with ❤️ ozcelikcode & Claude Sonnet 4.5
-
-</div>
+Güncel ilerleme [memory-bank/progress.md](memory-bank/progress.md), çalışma kuralları [memory-bank/workingPrinciples.md](memory-bank/workingPrinciples.md), başlangıç incelemesi [teknik audit](memory-bank/audits/2026-10-15-project-audit.md) içindedir.

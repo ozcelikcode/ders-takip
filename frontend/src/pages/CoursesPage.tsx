@@ -6,6 +6,7 @@ import { BookOpen, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, 
 import { coursesAPI } from '../services/api';
 import CategoryManagementModal from '../components/modals/CategoryManagementModal';
 import CourseCreateModal from '../components/modals/CourseCreateModal';
+import PageHeader from '../components/common/PageHeader';
 
 interface Topic {
   id: number;
@@ -142,53 +143,31 @@ const CoursesPage = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex-1"></div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex-1">
-            Dersler ve Konular
-          </h1>
-          <div className="flex-1 flex justify-end gap-3">
-            <button
-              onClick={() => setShowCategoryModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <Tag className="w-4 h-4" />
-              Kategoriler
-            </button>
-            <button
-              onClick={() => setShowCourseModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Ders Ekle
-            </button>
-          </div>
-        </div>
-        <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-          Görevlerinizi kategorize etmek ve takip etmek için hazırladığımız kapsamlı ders ve konu listesi.
-          Her konunun tahmini süresini ve zorluk seviyesini görebilirsiniz.
-        </p>
-      </div>
+      <PageHeader title="Dersler" description="Derslerini düzenle, konularını keşfet ve sıradaki çalışmana hazırlan."
+        actions={<>
+          <button onClick={() => setShowCategoryModal(true)} className="btn btn-secondary"><Tag className="h-4 w-4" />Kategoriler</button>
+          <button onClick={() => setShowCourseModal(true)} className="btn btn-primary"><Plus className="h-4 w-4" />Ders ekle</button>
+        </>} />
 
       {/* Search Bar */}
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-lg">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-gray-400" />
           </div>
           <input
-            type="text"
+            aria-label="Ders veya konu ara"
+            type="search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            placeholder="Ders veya konu ara... (örn: Matematik, Türkçe, Geometri)"
-            className="block w-full pl-12 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-shadow"
+            placeholder="Ders veya konu ara..."
+            className="input pl-10 pr-10"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
+              aria-label="Aramayı temizle"
               className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
               <X className="h-5 w-5" />
@@ -204,33 +183,33 @@ const CoursesPage = () => {
 
 
       {/* Courses Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCourses.map((course, index) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredCourses.map((course) => (
           <motion.div
             key={course.id}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
+            transition={{ duration: 0.15 }}
           >
             <Link
               to={`/courses/${course.id}`}
-              className="block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow group"
+              className="panel block h-full transition-colors hover:border-gray-400 dark:hover:border-gray-500 group"
             >
               <div className="p-6">
                 {/* Course Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center">
                     <div
-                      className="w-12 h-12 rounded-lg flex items-center justify-center text-white"
-                      style={{ backgroundColor: course.color }}
+                      className="w-10 h-10 rounded-md flex items-center justify-center bg-[var(--subtle)]"
+                      style={{ color: course.color }}
                     >
                       {(() => {
                         const IconComponent = getIconComponent(course.icon);
-                        return <IconComponent className="w-6 h-6" />;
+                        return <IconComponent className="w-5 h-5" />;
                       })()}
                     </div>
                     <div className="ml-3">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                      <h3 className="text-base font-medium text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                         {course.name}
                       </h3>
                       {course.category && (
@@ -318,7 +297,7 @@ const CoursesPage = () => {
       {filteredCourses.length === 0 && (
         <div className="text-center py-12">
           <Search className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="mt-2 text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 className="mt-2 text-base font-medium text-gray-900 dark:text-white">
             {searchTerm ? 'Sonuç bulunamadı' : 'Ders bulunamadı'}
           </h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -329,6 +308,7 @@ const CoursesPage = () => {
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
+              aria-label="Aramayı temizle"
               className="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
             >
               Aramayı Temizle

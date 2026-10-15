@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { studySessionsAPI } from '../../services/api';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
-import { format, startOfWeek, addDays, startOfDay, endOfDay } from 'date-fns';
+import { addDays, endOfDay, format, startOfDay, startOfWeek } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { studySessionsAPI } from '../../services/api';
 
 // Gün isimleri sabit sıralama
 const DAY_NAMES = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cts', 'Paz'];
@@ -67,8 +67,8 @@ const WeeklyProgressChart = () => {
         name: DAY_NAMES[i],
         fullName: format(date, 'EEEE', { locale: tr }),
         date: format(date, 'dd MMM', { locale: tr }),
-        saat: Math.round(totalMinutes / 60 * 10) / 10, // Decimal saat
-        dakika: totalMinutes,
+        hours: Math.round(totalMinutes / 60 * 10) / 10, // Rounded decimal hours
+        minutes: totalMinutes,
       });
     }
     return data;
@@ -83,11 +83,11 @@ const WeeklyProgressChart = () => {
   }
 
   // Veri yoksa mesaj göster
-  const totalMinutes = chartData.reduce((sum, day) => sum + day.dakika, 0);
+  const totalMinutes = chartData.reduce((sum, day) => sum + day.minutes, 0);
   if (totalMinutes === 0) {
     return (
-      <div className="h-64 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
-        <p className="text-lg mb-2">Henüz tamamlanmış çalışma yok</p>
+      <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400">
+        <p className="text-sm font-medium mb-2">Henüz tamamlanmış çalışma yok</p>
         <p className="text-sm">Bu hafta tamamladığınız çalışmalar burada görünecek</p>
       </div>
     );
@@ -96,15 +96,9 @@ const WeeklyProgressChart = () => {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={chartData} margin={{ top: 25, right: 10, left: -20, bottom: 0 }}>
-        <defs>
-          <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgb(var(--color-primary))" />
-            <stop offset="100%" stopColor="rgb(var(--color-primary) / 0.8)" />
-          </linearGradient>
-        </defs>
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke={isDarkMode ? '#374151' : '#e5e7eb'}
+          stroke={isDarkMode ? '#2a2a2a' : '#e5e5e5'}
           vertical={false}
         />
         <XAxis
@@ -124,16 +118,16 @@ const WeeklyProgressChart = () => {
         <Tooltip
           cursor={{ fill: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)' }}
           contentStyle={{
-            backgroundColor: isDarkMode ? '#111827' : '#ffffff',
-            border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+            backgroundColor: isDarkMode ? '#171717' : '#ffffff',
+            border: `1px solid ${isDarkMode ? '#2a2a2a' : '#e5e5e5'}`,
             borderRadius: '0.75rem',
             padding: '12px',
             boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
           }}
           itemStyle={{ padding: 0 }}
-          labelStyle={{ color: isDarkMode ? '#f3f4f6' : '#111827', fontWeight: 600, marginBottom: '4px' }}
+          labelStyle={{ color: isDarkMode ? '#f3f4f6' : '#171717', fontWeight: 600, marginBottom: '4px' }}
           formatter={(value: number, name: string) => {
-            if (name === 'saat') return [`${value} saat`, 'Çalışma Süresi'];
+            if (name === 'hours') return [`${value} saat`, 'Çalışma Süresi'];
             return value;
           }}
           labelFormatter={(label: string, payload: any[]) => {
@@ -144,17 +138,17 @@ const WeeklyProgressChart = () => {
           }}
         />
         <Bar
-          dataKey="saat"
-          fill="url(#barGradient)"
+          dataKey="hours"
+          fill={isDarkMode ? '#d4d4d4' : '#262626'}
           radius={[6, 6, 0, 0]}
           barSize={32}
         >
           <LabelList
-            dataKey="saat"
+            dataKey="hours"
             position="top"
             style={{ fill: isDarkMode ? '#d1d5db' : '#4b5563', fontSize: 10, fontWeight: 600 }}
             offset={10}
-            formatter={(val: number) => val > 0 ? `${val}s` : ''}
+            formatter={(val: number) => val > 0 ? `${val} sa` : ''}
           />
         </Bar>
       </BarChart>

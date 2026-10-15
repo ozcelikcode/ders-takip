@@ -1,185 +1,84 @@
-import { NavLink } from 'react-router-dom';
-import { X, Home, BookOpen, Calendar, User, Users, Settings, LayoutDashboard, Timer, Sliders, GraduationCap } from 'lucide-react';
+import { Dialog } from '@headlessui/react';
+import { NavLink, Link } from 'react-router-dom';
+import { X, Home, BookOpen, Calendar, User, Users, Settings, LayoutDashboard, Timer, Sliders, GraduationCap, ArrowUpRight, type LucideIcon } from 'lucide-react';
+import { clsx } from 'clsx';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { clsx } from 'clsx';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
-  const { user } = useAuthStore();
-  const { settings } = useSettingsStore();
-
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Dersler', href: '/courses', icon: BookOpen },
-    { name: 'Planlayıcı', href: '/planner', icon: Calendar },
-    { name: 'Pomodoro', href: '/pomodoro', icon: Timer },
-    { name: 'Profil', href: '/profile', icon: User },
-    { name: 'Ayarlar', href: '/settings', icon: Settings },
-  ];
-
-  const adminNavigation = [
-    { name: 'Admin Dashboard', href: '/admin', icon: LayoutDashboard },
-    { name: 'Kullanıcılar', href: '/admin/users', icon: Users },
-    { name: 'Ders Yönetimi', href: '/admin/courses', icon: BookOpen },
-    { name: 'Site Ayarları', href: '/admin/settings', icon: Sliders },
-  ];
-
-  return (
-    <>
-      {/* Mobile sidebar overlay */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden"
-            onClick={onClose}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Mobile sidebar */}
-      <div
-        className={clsx(
-          'fixed inset-y-0 left-0 z-50 w-72 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl transform transition-transform duration-300 ease-out lg:hidden border-r border-gray-200/50 dark:border-gray-700/50',
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        )}
-      >
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-100 dark:border-gray-800/50">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center shadow-sm">
-              <GraduationCap className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-lg font-bold bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">
-              {settings.siteName}
-            </h1>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 transition-all"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <SidebarContent
-          navigation={navigation}
-          adminNavigation={adminNavigation}
-          user={user}
-          onLinkClick={onClose}
-        />
-      </div>
-
-      {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
-        <div className="flex-1 flex flex-col min-h-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-700/50">
-          <div className="flex items-center h-16 flex-shrink-0 px-6 border-b border-gray-100 dark:border-gray-800/50">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center shadow-sm">
-                <GraduationCap className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-lg font-bold bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">
-                {settings.siteName}
-              </h1>
-            </div>
-          </div>
-          <SidebarContent
-            navigation={navigation}
-            adminNavigation={adminNavigation}
-            user={user}
-          />
-        </div>
-      </div>
-    </>
-  );
-};
-
-interface SidebarContentProps {
-  navigation: any[];
-  adminNavigation: any[];
-  user: any;
-  onLinkClick?: () => void;
+interface NavigationItem {
+  name: string;
+  href: string;
+  icon: LucideIcon;
 }
 
-const SidebarContent = ({ navigation, adminNavigation, user, onLinkClick }: SidebarContentProps) => {
-  return (
-    <div className="flex-1 flex flex-col overflow-y-auto py-4">
-      <nav className="flex-1 px-3 space-y-1">
-        {navigation.map((item) => (
-          <NavLink
-            key={item.name}
-            to={item.href}
-            onClick={onLinkClick}
-            className={({ isActive }) =>
-              clsx(
-                'group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200',
-                isActive
-                  ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/20'
-                  : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800/80 dark:hover:text-white'
-              )
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <item.icon className={clsx(
-                  'mr-3 h-5 w-5 flex-shrink-0 transition-colors',
-                  isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'
-                )} />
-                {item.name}
-              </>
-            )}
-          </NavLink>
-        ))}
+const navigation: NavigationItem[] = [
+  { name: 'Genel bakış', href: '/dashboard', icon: Home },
+  { name: 'Planlayıcı', href: '/planner', icon: Calendar },
+  { name: 'Dersler', href: '/courses', icon: BookOpen },
+  { name: 'Pomodoro', href: '/pomodoro', icon: Timer },
+];
+const adminNavigation: NavigationItem[] = [
+  { name: 'Yönetim özeti', href: '/admin', icon: LayoutDashboard },
+  { name: 'Kullanıcılar', href: '/admin/users', icon: Users },
+  { name: 'Ders yönetimi', href: '/admin/courses', icon: BookOpen },
+  { name: 'Site ayarları', href: '/admin/settings', icon: Sliders },
+];
+const accountNavigation: NavigationItem[] = [
+  { name: 'Profil', href: '/profile', icon: User },
+  { name: 'Ayarlar', href: '/settings', icon: Settings },
+];
 
-        {user?.role === 'admin' && (
-          <>
-            <div className="pt-6 pb-2">
-              <div className="px-3 flex items-center gap-2">
-                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700/50"></div>
-                <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  Yönetim
-                </span>
-                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700/50"></div>
-              </div>
-            </div>
-            <div className="space-y-1">
-              {adminNavigation.map((item) => (
-                <NavLink
-                  key={item.name}
-                  to={item.href}
-                  onClick={onLinkClick}
-                  className={({ isActive }) =>
-                    clsx(
-                      'group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200',
-                      isActive
-                        ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-md shadow-violet-500/20'
-                        : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800/80 dark:hover:text-white'
-                    )
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <item.icon className={clsx(
-                        'mr-3 h-5 w-5 flex-shrink-0 transition-colors',
-                        isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'
-                      )} />
-                      {item.name}
-                    </>
-                  )}
-                </NavLink>
-              ))}
-            </div>
-          </>
-        )}
+const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
+  const user = useAuthStore(state => state.user);
+  const siteName = useSettingsStore(state => state.settings.siteName);
+
+  const renderLinks = (items: NavigationItem[]) => items.map(item => (
+    <NavLink key={item.href} to={item.href} end={item.href === '/admin'} onClick={onClose}
+      className={({ isActive }) => clsx('nav-item', isActive && 'nav-item-active')}>
+      <item.icon className="h-4 w-4 shrink-0" strokeWidth={1.7} />
+      <span>{item.name}</span>
+    </NavLink>
+  ));
+
+  const content = (
+    <div className="flex h-full flex-col bg-[var(--sidebar)]">
+      <div className="flex h-16 shrink-0 items-center gap-2.5 border-b px-5">
+        <Link to="/dashboard" onClick={onClose} className="flex min-w-0 items-center gap-2.5 text-sm font-semibold tracking-tight">
+          <span className="brand-mark"><GraduationCap className="h-4 w-4" strokeWidth={1.8} /></span>
+          <span className="truncate">{siteName}</span>
+        </Link>
+        <button onClick={onClose} aria-label="Menüyü kapat" className="icon-button ml-auto lg:hidden"><X className="h-4 w-4" /></button>
+      </div>
+      <nav aria-label="Ana gezinme" className="flex-1 overflow-y-auto px-3 py-6">
+        <p className="nav-label">Çalışma alanı</p>
+        <div className="space-y-1">{renderLinks(navigation)}</div>
+        {user?.role === 'admin' && <div className="mt-7"><p className="nav-label">Yönetim</p><div className="space-y-1">{renderLinks(adminNavigation)}</div></div>}
+        <div className="mt-7"><p className="nav-label">Hesap</p><div className="space-y-1">{renderLinks(accountNavigation)}</div></div>
       </nav>
+      <div className="mx-3 mb-4 rounded-lg border bg-[var(--surface)] p-3.5">
+        <div className="mb-2 flex items-center gap-2 text-xs font-medium"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Odaklanmaya hazır</div>
+        <p className="text-xs leading-5 text-[var(--muted)]">Bir seans, tek bir hedef.</p>
+        <Link to="/pomodoro" onClick={onClose} className="mt-3 flex items-center justify-between text-xs font-medium">Odaklanmaya başla<ArrowUpRight className="h-3.5 w-3.5" /></Link>
+      </div>
+      <div className="flex items-center gap-2 border-t px-5 py-4 text-xs text-[var(--muted)]"><span className="avatar h-7 w-7 text-[10px]">{user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}</span><span className="truncate">{user?.fullName}</span></div>
     </div>
   );
+
+  return <>
+    <aside className="fixed inset-y-0 left-0 hidden w-[232px] border-r lg:block">{content}</aside>
+    <Dialog open={isOpen} onClose={onClose} className="relative z-50 lg:hidden">
+      <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
+      <Dialog.Panel className="fixed inset-y-0 left-0 w-[min(288px,85vw)] border-r">
+        <Dialog.Title className="sr-only">Ana menü</Dialog.Title>
+        {content}
+      </Dialog.Panel>
+    </Dialog>
+  </>;
 };
 
 export default Sidebar;

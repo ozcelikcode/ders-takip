@@ -15,6 +15,7 @@ export interface SiteSettings {
   pushNotifications: boolean;
   primaryColor: string;
   secondaryColor: string;
+  backup_interval: string;
 }
 
 interface SettingsState {
@@ -41,6 +42,7 @@ const defaultSettings: SiteSettings = {
   pushNotifications: true,
   primaryColor: '#3B82F6',
   secondaryColor: '#10B981',
+  backup_interval: '7',
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -66,6 +68,7 @@ export const useSettingsStore = create<SettingsState>()(
           const settingsData = response.data.data || {};
 
           const settings: SiteSettings = {
+            backup_interval: String(settingsData.backup_interval || '7'),
             siteName: settingsData.siteName || defaultSettings.siteName,
             siteDescription: settingsData.siteDescription || defaultSettings.siteDescription,
             siteUrl: settingsData.siteUrl || defaultSettings.siteUrl,
@@ -102,6 +105,7 @@ export const useSettingsStore = create<SettingsState>()(
           const settingsData = response.data.data || {};
 
           const settings: SiteSettings = {
+            backup_interval: String(settingsData.backup_interval || '7'),
             siteName: settingsData.siteName || defaultSettings.siteName,
             siteDescription: settingsData.siteDescription || defaultSettings.siteDescription,
             siteUrl: settingsData.siteUrl || defaultSettings.siteUrl,
@@ -156,7 +160,7 @@ export const useSettingsStore = create<SettingsState>()(
             try {
               const userPrefs = JSON.parse(userPrefsStr).state.preferences;
               if (userPrefs.customPrimaryColor) hasUserCustomColor = true;
-            } catch (e) {
+            } catch {
               // Ignore parse errors
             }
           }

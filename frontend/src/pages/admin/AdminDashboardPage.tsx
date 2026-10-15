@@ -1,9 +1,8 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Users, BookOpen, Calendar, Settings, TrendingUp, Activity, Clock, Target } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { usersAPI, coursesAPI, studySessionsAPI } from '../../services/api';
+import { motion } from 'framer-motion';
+import { Activity, BookOpen, Calendar, Clock, Settings, Target, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { coursesAPI, studySessionsAPI, usersAPI } from '../../services/api';
 
 const AdminDashboardPage = () => {
   const { data: usersData } = useQuery({
@@ -193,7 +192,7 @@ const AdminDashboardPage = () => {
             <div className="space-y-3">
               {usersData?.slice(0, 5).map((user: any) => (
                 <div key={user.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                  <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-white text-sm font-semibold">
                     {user.firstName[0]}{user.lastName[0]}
                   </div>
                   <div className="flex-1 min-w-0">

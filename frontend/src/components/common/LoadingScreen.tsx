@@ -5,7 +5,7 @@ const LoadingScreen = () => {
   const { settings } = useSettingsStore();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--canvas)] flex items-center justify-center">
       <div className="text-center">
         <motion.div
           className="inline-block w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full"

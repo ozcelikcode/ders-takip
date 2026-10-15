@@ -1,14 +1,13 @@
 import express from 'express';
 import {
-  getUsers,
-  getUser,
-  createUser,
-  updateUser,
-  deleteUser,
+createUser,
+deleteUser,
+getUser,
+getUsers,
+updateUser,
 } from '../controllers/userController';
-import { protect, authorize } from '../middleware/auth';
-import { validateRequest } from '../utils/validation';
-import { registerSchema } from '../utils/validation';
+import { authorize, protect } from '../middleware/auth';
+import { registerSchema, validateRequest } from '../utils/validation';
 
 const router = express.Router();
 

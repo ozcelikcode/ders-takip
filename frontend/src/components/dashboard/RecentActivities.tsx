@@ -1,3 +1,4 @@
+import { getRecentSessions } from '../../utils/sessionHelpers';
 import { useQuery } from '@tanstack/react-query';
 import { studySessionsAPI } from '../../services/api';
 import { formatDistanceToNow } from 'date-fns';
@@ -11,8 +12,7 @@ const RecentActivities = () => {
     queryFn: async () => {
       const response = await studySessionsAPI.getSessions({ status: 'completed' });
       const sessions = response.data.data?.sessions || [];
-      // Son 5 oturumu göster
-      return sessions.slice(0, 5);
+      return getRecentSessions(sessions);
     },
   });
 

@@ -1,9 +1,8 @@
-import { User } from '../models/User';
-import { Category } from '../models/Category';
-import { connectDB } from '../config/database';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { z } from 'zod';
+import { connectDB, sequelize } from '../config/database';
+import { getEnvironment } from '../config/environment';
+import { assertDatabaseReady } from '../database/migrations';
+import { Category, User } from '../models';
 
 const categories = [
   { name: 'İş', description: 'İş ile ilgili görevler', color: '#3b82f6', icon: 'Briefcase', order: 1 },
@@ -15,53 +14,31 @@ const categories = [
   { name: 'Diğer', description: 'Genel görevler', color: '#6b7280', icon: 'MoreHorizontal', order: 7 },
 ];
 
-const seedDatabase = async () => {
-  try {
-    await connectDB();
 
-    console.log('\n🌱 Veritabanı seed işlemi başlıyor...\n');
-
-    // Seed Admin User
-    const existingAdmin = await User.findOne({
-      where: { email: process.env.ADMIN_EMAIL || 'admin@localhost.com' },
+async function seedDevelopmentData() {
+  if (getEnvironment().NODE_ENV !== 'development') throw new Error('Development seeding is only allowed in development.');
+  const admin = z.object({
+    ADMIN_EMAIL: z.email(),
+    ADMIN_USERNAME: z.string().min(3).max(20).regex(/^[a-zA-Z0-9]+$/),
+    ADMIN_PASSWORD: z.string().min(12).refine(value => Buffer.byteLength(value, 'utf8') <= 72),
+  }).safeParse(process.env);
+  if (!admin.success) throw new Error('Set ADMIN_EMAIL, ADMIN_USERNAME and a password of at least 12 characters before seeding.');
+  await connectDB();
+  await assertDatabaseReady();
+  await sequelize.transaction(async (transaction) => {
+    await User.findOrCreate({
+      where: { email: admin.data.ADMIN_EMAIL },
+      defaults: { username: admin.data.ADMIN_USERNAME, email: admin.data.ADMIN_EMAIL, password: admin.data.ADMIN_PASSWORD, firstName: 'Admin', lastName: 'User', role: 'admin', isActive: true },
+      transaction,
     });
-
-    if (!existingAdmin) {
-      await User.create({
-        username: process.env.ADMIN_USERNAME || 'admin',
-        email: process.env.ADMIN_EMAIL || 'admin@localhost.com',
-        password: process.env.ADMIN_PASSWORD || '12345678',
-        firstName: 'Admin',
-        lastName: 'User',
-        role: 'admin',
-        isActive: true,
-      });
-
-      console.log('✅ Admin kullanıcısı oluşturuldu');
-      console.log(`📧 Email: ${process.env.ADMIN_EMAIL || 'admin@localhost.com'}`);
-      console.log(`🔑 Password: ${process.env.ADMIN_PASSWORD || '12345678'}`);
-      console.log(`👤 Username: ${process.env.ADMIN_USERNAME || 'admin'}\n`);
-    } else {
-      console.log('ℹ️  Admin kullanıcısı zaten mevcut\n');
+    for (const category of categories) {
+      await Category.findOrCreate({ where: { name: category.name }, defaults: category, transaction });
     }
+  });
+  console.log('Development seed completed. Existing records were preserved.');
+}
 
-    // Seed Categories
-    const existingCategoriesCount = await Category.count();
-
-    if (existingCategoriesCount === 0) {
-      await Category.bulkCreate(categories);
-      console.log(`✅ ${categories.length} kategori oluşturuldu:`);
-      categories.forEach(cat => console.log(`   - ${cat.name}`));
-    } else {
-      console.log(`ℹ️  ${existingCategoriesCount} kategori zaten mevcut`);
-    }
-
-    console.log('\n✅ Seed işlemi tamamlandı!\n');
-    process.exit(0);
-  } catch (error) {
-    console.error('❌ Seed hatası:', error);
-    process.exit(1);
-  }
-};
-
-seedDatabase();
+void seedDevelopmentData().catch((error: unknown) => {
+  console.error('Development seed failed:', error instanceof Error ? error.name : 'UnknownError');
+  process.exitCode = 1;
+}).finally(() => sequelize.close());

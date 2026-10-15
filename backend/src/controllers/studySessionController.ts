@@ -1,6 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import { StudySession, Plan, Course, Topic, Category } from '../models';
+import { NextFunction, Request, Response } from 'express';
 import { Op } from 'sequelize';
+import { Category, Course, Plan, StudySession, Topic } from '../models';
+import { visibleCourseWhere } from '../policies/courseAccess';
 
 export const getStudySessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -13,24 +14,6 @@ export const getStudySessions = async (req: Request, res: Response, next: NextFu
       });
       return;
     }
-
-    // Önce vakti geçmiş in_progress oturumları otomatik cancelled yap
-    const now = new Date();
-    await StudySession.update(
-      {
-        status: 'cancelled',
-        notes: 'Otomatik iptal edildi - Zaman aşımı'
-      },
-      {
-        where: {
-          userId,
-          status: 'in_progress',
-          endTime: {
-            [Op.lt]: now
-          }
-        }
-      }
-    );
 
     const { planId, startDate, endDate, status, sessionType } = req.query;
 
@@ -46,14 +29,6 @@ export const getStudySessions = async (req: Request, res: Response, next: NextFu
 
       // Set end date to end of day (23:59:59.999)
       end.setHours(23, 59, 59, 999);
-
-      console.log('🔍 Query date range:', {
-        startDate: startDate as string,
-        endDate: endDate as string,
-        start: start.toISOString(),
-        end: end.toISOString(),
-        userId
-      });
 
       where.startTime = {
         [Op.between]: [start, end],
@@ -94,13 +69,6 @@ export const getStudySessions = async (req: Request, res: Response, next: NextFu
       ],
       order: [['startTime', 'ASC']],
     });
-
-    console.log('✅ Found sessions:', sessions.length, sessions.map(s => ({
-      id: s.id,
-      title: s.title,
-      startTime: s.startTime,
-      status: s.status
-    })));
 
     res.json({
       success: true,
@@ -177,14 +145,11 @@ export const getStudySession = async (req: Request, res: Response, next: NextFun
 
 export const createStudySession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    console.log('createStudySession çağrıldı');
-    console.log('req.body:', req.body);
-    console.log('req.user:', req.user ? { id: req.user.id } : 'undefined');
 
     const userId = req.user?.id;
 
     if (!userId) {
-      console.log('UserId bulunamadı');
+
       res.status(401).json({
         success: false,
         error: { message: 'Kullanıcı kimlik doğrulaması gerekli' },
@@ -224,6 +189,26 @@ export const createStudySession = async (req: Request, res: Response, next: Next
       }
     }
 
+    let resolvedCourseId = courseId;
+    if (topicId) {
+      const topic = await Topic.findOne({
+        where: { id: topicId, isActive: true },
+        include: [{ model: Course, as: 'course', required: true, where: { ...visibleCourseWhere(req.user!), isActive: true } }],
+      });
+      if (!topic || (courseId !== undefined && topic.courseId !== courseId)) {
+        res.status(400).json({ success: false, error: { message: 'Geçersiz ders veya konu seçimi' } });
+        return;
+      }
+      resolvedCourseId = topic.courseId;
+    }
+    if (resolvedCourseId !== undefined) {
+      const course = await Course.findOne({ where: { id: resolvedCourseId, ...visibleCourseWhere(req.user!), isActive: true } });
+      if (!course) {
+        res.status(400).json({ success: false, error: { message: 'Geçersiz ders veya konu seçimi' } });
+        return;
+      }
+    }
+
     // Check for overlapping sessions
     const overlappingSession = await StudySession.findOne({
       where: {
@@ -253,7 +238,7 @@ export const createStudySession = async (req: Request, res: Response, next: Next
       userId,
       planId,
       topicId,
-      courseId,
+      courseId: resolvedCourseId,
       title,
       description,
       startTime: start,
@@ -302,19 +287,12 @@ export const createStudySession = async (req: Request, res: Response, next: Next
 
 export const updateStudySession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    console.log('updateStudySession çağrıldı');
-    console.log('req.url:', req.url);
-    console.log('req.originalUrl:', req.originalUrl);
-    console.log('req.params:', req.params);
-    console.log('req.route:', req.route);
-    console.log('updateStudySession - req.body:', req.body);
-    console.log('updateStudySession - req.user:', req.user ? { id: req.user.id } : 'undefined');
 
     const { id } = req.params || {};
     const userId = req.user?.id;
 
     if (!id) {
-      console.log('updateStudySession - ID bulunamadı, params:', req.params);
+
       res.status(400).json({
         success: false,
         error: { message: 'Çalışma seansı ID gerekli' },
@@ -323,7 +301,7 @@ export const updateStudySession = async (req: Request, res: Response, next: Next
     }
 
     if (!userId) {
-      console.log('updateStudySession - UserId bulunamadı');
+
       res.status(401).json({
         success: false,
         error: { message: 'Kullanıcı kimlik doğrulaması gerekli' },

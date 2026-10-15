@@ -1,3 +1,4 @@
+import PageHeader from '../../components/common/PageHeader';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
@@ -80,8 +81,8 @@ const UserSettingsPage = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error('Şifre en az 6 karakter olmalıdır');
+    if (newPassword.length < 12 || new TextEncoder().encode(newPassword).length > 72) {
+      toast.error('Şifre en az 12 karakter ve en fazla 72 UTF-8 baytı olmalıdır');
       return;
     }
 
@@ -131,25 +132,19 @@ const UserSettingsPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Ayarlar</h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Hesabınızı ve tercihlerinizi yönetin
-        </p>
-      </div>
+      <PageHeader title="Ayarlar" description="Hesabını, görünümü ve çalışma tercihlerini yönet." />
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="-mb-px flex gap-5 overflow-x-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
-                className={`flex items-center gap-2 py-4 px-1 border-b-3 font-semibold text-sm transition-colors ${activeTab === tab.id
-                    ? 'border-primary-600 text-primary-600 dark:border-primary-400 dark:text-primary-400'
+                className={`flex items-center gap-2 py-4 px-1 whitespace-nowrap border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
+                    ? 'border-gray-900 text-gray-900 dark:border-gray-100 dark:text-gray-100'
                     : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-400 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-500'
                   }`}
               >
@@ -162,7 +157,7 @@ const UserSettingsPage = () => {
       </div>
 
       {/* Content */}
-      <div className="bg-white dark:bg-gray-950 rounded-lg shadow-sm border border-gray-200 dark:border-gray-900 p-6">
+      <div className="panel p-5 sm:p-6">
         {/* Profile Tab */}
         {activeTab === 'profile' && (
           <div className="space-y-6">
@@ -201,7 +196,7 @@ const UserSettingsPage = () => {
                 <button
                   type="submit"
                   disabled={updateProfileMutation.isPending}
-                  className="flex items-center gap-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                  className="btn btn-primary"
                 >
                   <Save className="w-4 h-4" />
                   {updateProfileMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
@@ -274,7 +269,7 @@ const UserSettingsPage = () => {
                     <button
                       type="submit"
                       disabled={changePasswordMutation.isPending}
-                      className="flex items-center gap-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                      className="btn btn-primary"
                     >
                       <Save className="w-4 h-4" />
                       {changePasswordMutation.isPending ? 'Değiştiriliyor...' : 'Şifreyi Değiştir'}
@@ -315,8 +310,8 @@ const UserSettingsPage = () => {
                       key={theme.value}
                       onClick={() => handleThemeChange(theme.value as ThemeMode)}
                       className={`p-6 rounded-xl border-2 transition-all text-left ${preferences.theme === theme.value
-                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 shadow-lg'
-                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-md'
+                          ? 'border-gray-900 bg-gray-50 dark:border-gray-300 dark:bg-gray-800'
+                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-500'
                         }`}
                     >
                       <ThemeIcon className={`w-10 h-10 mb-3 ${preferences.theme === theme.value ? 'text-primary-600 dark:text-primary-400' : 'text-gray-600 dark:text-gray-400'
@@ -331,7 +326,7 @@ const UserSettingsPage = () => {
 
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Ana Renk Teması</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Sitenin ana rengini özelleştirin</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Vurgu ve odak rengini özelleştirin</p>
               <div className="grid grid-cols-4 md:grid-cols-8 gap-3 mb-6">
                 {predefinedColors.map((color) => {
                   const isSelected = preferences.customPrimaryColor === color.value;
@@ -344,9 +339,9 @@ const UserSettingsPage = () => {
                       title={color.name}
                     >
                       <div
-                        className={`w-14 h-14 rounded-xl transition-all shadow-md flex items-center justify-center ${isSelected
+                        className={`w-14 h-14 rounded-md transition-colors flex items-center justify-center ${isSelected
                             ? 'ring-4 ring-offset-2 ring-primary-400 dark:ring-primary-500 dark:ring-offset-gray-800 scale-110'
-                            : 'hover:scale-110 hover:shadow-lg'
+                            : 'hover:opacity-80'
                           }`}
                         style={{ backgroundColor: color.value }}
                       >
@@ -548,7 +543,7 @@ const UserSettingsPage = () => {
                   updatePreferences(studyPrefs);
                   toast.success('Çalışma tercihleri kaydedildi');
                 }}
-                className="flex items-center gap-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors shadow-sm"
+                className="btn btn-primary"
               >
                 <Save className="w-4 h-4" />
                 Kaydet

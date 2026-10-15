@@ -1,30 +1,28 @@
 import express from 'express';
 import {
-  register,
-  login,
-  refreshToken,
-  logout,
-  getMe,
-  updateProfile,
-  changePassword,
+changePassword,
+getMe,
+login,
+logout,
+refreshToken,
+register,
+updateProfile,
 } from '../controllers/authController';
 import { protect } from '../middleware/auth';
-import { validateRequest } from '../utils/validation';
+import { requireTrustedAuthRequest } from '../middleware/authCookies';
 import {
-  registerSchema,
-  loginSchema,
-  refreshTokenSchema,
-  updateProfileSchema,
-  changePasswordSchema,
+changePasswordSchema,loginSchema,
+registerSchema,updateProfileSchema,validateRequest
 } from '../utils/validation';
 
 const router = express.Router();
+router.use(requireTrustedAuthRequest);
 
 router.post('/register', validateRequest(registerSchema), register);
 
 router.post('/login', validateRequest(loginSchema), login);
 
-router.post('/refresh-token', validateRequest(refreshTokenSchema), refreshToken);
+router.post('/refresh-token', refreshToken);
 
 router.post('/logout', logout);
 

@@ -1,18 +1,18 @@
-import React from 'react';
 import { Dialog } from '@headlessui/react';
-import { X, User, Mail, Lock, Shield } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { usersAPI } from '../../services/api';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Lock, Mail, Shield, User, X } from 'lucide-react';
+import React from 'react';
+import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
+import { z } from 'zod';
+import { usersAPI } from '../../services/api';
 
 const createUserSchema = z.object({
   username: z.string().min(3, 'En az 3 karakter').max(20, 'En fazla 20 karakter'),
   email: z.string().email('Geçerli bir email girin'),
-  password: z.string().min(6, 'En az 6 karakter'),
+  password: z.string().min(12, 'En az 12 karakter').refine(value => new TextEncoder().encode(value).length <= 72, 'En fazla 72 UTF-8 baytı'),
   confirmPassword: z.string(),
   firstName: z.string().min(2, 'En az 2 karakter').max(50, 'En fazla 50 karakter'),
   lastName: z.string().min(2, 'En az 2 karakter').max(50, 'En fazla 50 karakter'),
@@ -50,7 +50,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose }) =>
 
   const createUserMutation = useMutation({
     mutationFn: async (data: CreateUserForm) => {
-      const { confirmPassword, ...userData } = data;
+      const userData = { username: data.username, email: data.email, password: data.password, firstName: data.firstName, lastName: data.lastName, role: data.role, isActive: data.isActive };
       const response = await usersAPI.createUser(userData);
       return response.data;
     },

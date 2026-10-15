@@ -1,17 +1,37 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import {
-  Settings, Save, Globe, Mail, Shield, Palette, Bell, Database, Download, RotateCcw, AlertTriangle, FileText, Trash2,
-  GraduationCap, BookOpen, Calendar as CalendarIcon, Clock, Trophy, Target, Lightbulb, School, ClipboardList, Users
-} from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useAuthStore } from '../../store/authStore';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import toast from 'react-hot-toast';
-import { useSettingsStore } from '../../store/settingsStore';
-import { backupAPI } from '../../services/api';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { motion } from 'framer-motion';
+import {
+AlertTriangle,
+Bell,
+BookOpen,Calendar as CalendarIcon,
+ClipboardList,
+Clock,
+Database,Download,
+FileText,
+Globe,
+GraduationCap,
+Lightbulb,
+Mail,
+Palette,
+RotateCcw,
+Save,
+School,
+Settings,
+Shield,
+Target,
+Trash2,
+Trophy,
+Users
+} from 'lucide-react';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
+import { z } from 'zod';
+import { backupAPI } from '../../services/api';
+import { useSettingsStore } from '../../store/settingsStore';
 
 const siteSettingsSchema = z.object({
   siteName: z.string().min(1, 'Site adı gereklidir'),
@@ -25,10 +45,11 @@ const siteSettingsSchema = z.object({
   emailNotifications: z.boolean(),
   pushNotifications: z.boolean(),
   primaryColor: z.string(),
-  backup_interval: z.string().optional(),
+  backup_interval: z.enum(['1', '5', '7']),
 });
 
 type SiteSettingsForm = z.infer<typeof siteSettingsSchema>;
+const toBackupInterval = (value: unknown): '1' | '5' | '7' => value === '1' || value === '5' ? value : '7';
 
 const AdminSettingsPage = () => {
   const [activeTab, setActiveTab] = useState<'general' | 'security' | 'notifications' | 'appearance' | 'backup'>('general');
@@ -45,7 +66,7 @@ const AdminSettingsPage = () => {
     formState: { errors, isDirty },
   } = useForm<SiteSettingsForm>({
     resolver: zodResolver(siteSettingsSchema),
-    defaultValues: settings,
+    defaultValues: { ...settings, backup_interval: toBackupInterval(settings.backup_interval) },
   });
 
   // Fetch settings on mount
@@ -55,14 +76,14 @@ const AdminSettingsPage = () => {
 
   // Update form when settings change
   React.useEffect(() => {
-    reset(settings);
+    reset({ ...settings, backup_interval: toBackupInterval(settings.backup_interval) });
   }, [settings, reset]);
 
   const loadBackups = async () => {
     try {
       const response = await backupAPI.getBackups();
       setBackups(response.data.data);
-    } catch (error) {
+    } catch {
       console.error('Failed to load backups');
     }
   };
@@ -79,7 +100,7 @@ const AdminSettingsPage = () => {
       await backupAPI.createBackup();
       toast.success('Yedek başarıyla oluşturuldu');
       loadBackups();
-    } catch (error) {
+    } catch {
       toast.error('Yedekleme hatası');
     } finally {
       setIsBackingUp(false);
@@ -87,13 +108,13 @@ const AdminSettingsPage = () => {
   };
 
   const handleRestore = async (id: number) => {
-    if (window.confirm('Bu yedeği geri yüklemek istediğinizden emin misiniz? Mevcut tüm veriler silinecek ve bu yedek üzerine yazılacak.')) {
+    if (window.confirm('Bu yedeği geri yüklemek istediğinizden emin misiniz? Mevcut verinin güvenlik yedeği alınacak, seçilen yedekteki hesaplar ve parolalar geri gelecek. Bütün oturumlar kapanacak.')) {
       try {
         toast.loading('Yedek geri yükleniyor...', { id: 'restore' });
         await backupAPI.restoreBackup(id);
-        toast.success('Yedek başarıyla yüklendi. Sayfa yenileniyor...', { id: 'restore' });
-        setTimeout(() => window.location.reload(), 2000);
-      } catch (error) {
+        toast.success('Yedek doğrulandı ve geri yüklendi. Yeniden giriş yapın.', { id: 'restore' });
+        useAuthStore.getState().logout();
+      } catch {
         toast.error('Geri yükleme hatası', { id: 'restore' });
       }
     }
@@ -101,15 +122,15 @@ const AdminSettingsPage = () => {
 
   const handleReset = async (mode: 'settings_only' | 'all') => {
     const msg = mode === 'settings_only'
-      ? 'Sadece yönetim verilerini sıfırlamak istediğinizden emin misiniz? Giriş-Kayıt verileri korunacaktır.'
-      : 'BÜTÜN VERİLERİ sıfırlamak istediğinizden emin misiniz? Bu işlem geri alınamaz!';
+      ? 'Yalnızca site ayarları sıfırlanacak. Hesaplar, dersler, konular ve çalışma geçmişi korunacak. İşlem öncesinde güvenlik yedeği alınacak. Devam edilsin mi?'
+      : 'Öğrenci hesapları, dersler, konular, planlar, çalışma geçmişi ve ayarlar silinecek. Yönetici hesapları korunacak ve işlem öncesi güvenlik yedeği alınacak. Devam edilsin mi?';
 
     if (window.confirm(msg)) {
       try {
         await backupAPI.resetData(mode);
         toast.success('Veriler başarıyla sıfırlandı');
         setTimeout(() => window.location.reload(), 1000);
-      } catch (error) {
+      } catch {
         toast.error('Sıfırlama hatası');
       }
     }
@@ -456,7 +477,7 @@ const AdminSettingsPage = () => {
                           <option value="5">5 Günde Bir</option>
                           <option value="7">7 Günde Bir</option>
                         </select>
-                        <p className="mt-2 text-xs text-gray-500">Yedekler otomatik olarak saat 03:00'te alınacaktır.</p>
+                        <p className="mt-2 text-xs text-gray-500">Son başarılı otomatik yedekten itibaren seçilen süre dolduğunda yeni yedek alınır. Sistem her 5 dakikada bir kontrol eder.</p>
                       </div>
 
                       <div className="p-4 border border-orange-200 dark:border-orange-900/30 bg-orange-50 dark:bg-orange-900/10 rounded-lg">
@@ -470,7 +491,7 @@ const AdminSettingsPage = () => {
                             onClick={() => handleReset('settings_only')}
                             className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-orange-700 hover:bg-orange-200/50 rounded transition-colors"
                           >
-                            Site Ayarlarını Resetle (Yönetim Verileri)
+                            Yalnızca Site Ayarlarını Sıfırla
                             <RotateCcw className="w-3 h-3" />
                           </button>
                           <button
@@ -478,7 +499,7 @@ const AdminSettingsPage = () => {
                             onClick={() => handleReset('all')}
                             className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-100 rounded transition-colors"
                           >
-                            Bütün Verileri Temizle
+                            Öğrenci ve Çalışma Verilerini Temizle
                             <Trash2 className="w-3 h-3" />
                           </button>
                         </div>
@@ -488,7 +509,7 @@ const AdminSettingsPage = () => {
                     <div className="space-y-3">
                       <h4 className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
                         <FileText className="w-4 h-4 text-gray-400" />
-                        Son Yedeklemeler (En fazla 5 adet saklanır)
+                        Doğrulanmış Yedekler ve Geçmiş Kayıtlar
                       </h4>
                       <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -520,10 +541,12 @@ const AdminSettingsPage = () => {
                                 <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
                                   <button
                                     type="button"
+                                    disabled={backup.verified === false}
+                                    title={backup.verified === false ? 'Eski yedek doğrulanmamış; yeni bir yedek oluşturun' : 'Doğrulanmış yedeği geri yükle'}
                                     onClick={() => handleRestore(backup.id)}
                                     className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
                                   >
-                                    Geri Yükle
+                                    {backup.verified === false ? 'Doğrulanmamış' : 'Geri Yükle'}
                                   </button>
                                 </td>
                               </tr>

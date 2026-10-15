@@ -5,18 +5,18 @@ import { Settings } from '../models';
 export const getSettings = async (req: Request, res: Response) => {
   try {
     const settings = await Settings.findAll();
-    
+
     // Convert to key-value object
     const settingsObj = settings.reduce((acc, setting) => {
       acc[setting.key] = setting.getTypedValue();
       return acc;
     }, {} as any);
-    
+
     res.json({
       success: true,
       data: settingsObj,
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({
       success: false,
       error: {
@@ -30,14 +30,18 @@ export const getSettings = async (req: Request, res: Response) => {
 export const updateSettings = async (req: Request, res: Response) => {
   try {
     const updates = req.body;
-    
+    if (updates.backup_interval !== undefined && !['1', '5', '7'].includes(String(updates.backup_interval))) {
+      res.status(400).json({ success: false, error: { message: 'Yedekleme aralığı 1, 5 veya 7 gün olmalıdır' } });
+      return;
+    }
+
     for (const [key, value] of Object.entries(updates)) {
       // Determine type
       let type = 'string';
       if (typeof value === 'boolean') type = 'boolean';
       else if (typeof value === 'number') type = 'number';
       else if (typeof value === 'object') type = 'json';
-      
+
       // Convert value to string for storage
       let stringValue: string;
       if (type === 'json') {
@@ -45,7 +49,7 @@ export const updateSettings = async (req: Request, res: Response) => {
       } else {
         stringValue = String(value);
       }
-      
+
       // Determine category based on key
       let category: 'general' | 'security' | 'notifications' | 'appearance' = 'general';
       if (key.includes('Color') || key.includes('Theme')) {
@@ -55,7 +59,7 @@ export const updateSettings = async (req: Request, res: Response) => {
       } else if (key.includes('maintenance') || key.includes('registration') || key.includes('session')) {
         category = 'security';
       }
-      
+
       // Update or create setting
       await Settings.upsert({
         key,
@@ -64,14 +68,14 @@ export const updateSettings = async (req: Request, res: Response) => {
         category,
       });
     }
-    
+
     // Get all settings after update
     const settings = await Settings.findAll();
     const settingsObj = settings.reduce((acc, setting) => {
       acc[setting.key] = setting.getTypedValue();
       return acc;
     }, {} as any);
-    
+
     res.json({
       success: true,
       message: 'Ayarlar güncellendi',
@@ -92,21 +96,21 @@ export const updateSettings = async (req: Request, res: Response) => {
 export const getSettingsByCategory = async (req: Request, res: Response) => {
   try {
     const { category } = req.params;
-    
+
     const settings = await Settings.findAll({
       where: { category },
     });
-    
+
     const settingsObj = settings.reduce((acc, setting) => {
       acc[setting.key] = setting.getTypedValue();
       return acc;
     }, {} as any);
-    
+
     res.json({
       success: true,
       data: settingsObj,
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({
       success: false,
       error: {

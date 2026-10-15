@@ -1,7 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
-import { User } from '../models/User';
-import { generateTokens, verifyRefreshToken } from '../utils/jwt';
+import { NextFunction, Request, Response } from 'express';
 import { Op } from 'sequelize';
+import { User } from '../models/User';
+import { Transaction } from 'sequelize';
+import { sequelize } from '../config/database';
+import { createAuthSession, rotateAuthSession, revokeCredential, revokeUserSessions } from '../services/authSessions';
+import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from '../middleware/authCookies';
 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -33,13 +36,9 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       lastName,
     });
 
-    const tokenPayload = {
-      id: user.id.toString(),
-      email: user.email,
-      role: user.role,
-    };
-
-    const tokens = generateTokens(tokenPayload);
+    const session = await createAuthSession(user);
+    setRefreshCookie(res, session.credential, session.session.expiresAt);
+    const tokens = session.tokens;
 
     user.lastLogin = new Date();
     await user.save();
@@ -106,13 +105,9 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
       return;
     }
 
-    const tokenPayload = {
-      id: user.id.toString(),
-      email: user.email,
-      role: user.role,
-    };
-
-    const tokens = generateTokens(tokenPayload);
+    const session = await createAuthSession(user);
+    setRefreshCookie(res, session.credential, session.session.expiresAt);
+    const tokens = session.tokens;
 
     user.lastLogin = new Date();
     await user.save();
@@ -147,59 +142,24 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
 export const refreshToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-      res.status(401).json({
-        success: false,
-        error: { message: 'Refresh token zorunludur' },
-      });
+    const result = await rotateAuthSession(readRefreshCookie(req));
+    if (!result) {
+      clearRefreshCookie(res);
+      res.status(401).json({ success: false, error: { message: 'Oturum sona erdi. Lütfen yeniden giriş yapın' } });
       return;
     }
-
-    const decoded = verifyRefreshToken(refreshToken);
-
-    const user = await User.findByPk(decoded.id);
-
-    if (!user || !user.isActive) {
-      res.status(401).json({
-        success: false,
-        error: { message: 'Geçersiz refresh token' },
-      });
-      return;
-    }
-
-    const tokenPayload = {
-      id: user.id.toString(),
-      email: user.email,
-      role: user.role,
-    };
-
-    const tokens = generateTokens(tokenPayload);
-
-    res.json({
-      success: true,
-      message: 'Token yenilendi',
-      data: { tokens },
-    });
-  } catch (error) {
-    res.status(401).json({
-      success: false,
-      error: { message: 'Geçersiz refresh token' },
-    });
-    return;
-  }
+    setRefreshCookie(res, result.credential, result.session.expiresAt);
+    const user = result.user;
+    res.json({ success: true, message: 'Oturum yenilendi', data: { tokens: result.tokens, user: { ...user.toJSON(), fullName: user.getFullName(), password: undefined } } });
+  } catch (error) { next(error); }
 };
 
 export const logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    res.json({
-      success: true,
-      message: 'Çıkış başarılı',
-    });
-  } catch (error) {
-    next(error);
-  }
+    await revokeCredential(readRefreshCookie(req));
+    clearRefreshCookie(res);
+    res.json({ success: true, message: 'Çıkış başarılı' });
+  } catch (error) { next(error); }
 };
 
 export const getMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -320,8 +280,14 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
       return;
     }
 
-    user.password = newPassword;
-    await user.save();
+    await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
+      const current = await User.findByPk(user.id, { attributes: { include: ['password'] }, transaction });
+      if (!current?.isActive || current.password !== user.password) throw Object.assign(new Error('Kimlik bilgileri değişti. Yeniden giriş yapın'), { statusCode: 409 });
+      current.password = newPassword;
+      await current.save({ transaction });
+      await revokeUserSessions(user.id, transaction);
+    });
+    clearRefreshCookie(res);
 
     res.json({
       success: true,

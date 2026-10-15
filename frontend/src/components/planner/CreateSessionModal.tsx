@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
 import { Dialog } from '@headlessui/react';
-import { X, Calendar, Timer, BookOpen, Target, Coffee, Trash2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { format, parseISO, differenceInMinutes } from 'date-fns';
-import { tr } from 'date-fns/locale';
-import { CreateStudySessionRequest, StudySession } from '../../types/planner';
-import { studySessionsAPI, coursesAPI } from '../../services/api';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { differenceInMinutes, format, parseISO } from 'date-fns';
+import { AnimatePresence, motion } from 'framer-motion';
+import { BookOpen, Calendar, Coffee, Target, Timer, Trash2, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
+import { z } from 'zod';
+import { coursesAPI, studySessionsAPI } from '../../services/api';
+import { CreateStudySessionRequest, StudySession } from '../../types/planner';
 import ConfirmDialog from '../common/ConfirmDialog';
 
 // Color palette for sessions - Soft/Pastel iOS style colors
@@ -390,7 +389,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="mx-auto max-w-lg w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl my-8 max-h-[90vh] flex flex-col border border-gray-200/50 dark:border-gray-700/50"
+              className="mx-auto max-w-lg w-full bg-[var(--surface)] rounded-lg shadow-lg my-8 max-h-[90vh] flex flex-col border border-gray-200/50 dark:border-gray-700/50"
             >
               <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700/50">
                 <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -398,6 +397,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                 </Dialog.Title>
                 <button
                   onClick={handleClose}
+                  aria-label="Pencereyi kapat"
                   className="p-2 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
                 >
                   <X className="w-5 h-5" />
@@ -414,13 +414,13 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setSessionCategory('course')}
-                      className={`p-4 rounded-xl border-2 transition-all duration-300 ${sessionCategory === 'course'
-                        ? 'border-sky-400 bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 shadow-sm'
+                      className={`p-4 rounded-md border transition-colors duration-150 ${sessionCategory === 'course'
+                        ? 'border-gray-900 bg-gray-50 text-gray-900 dark:border-gray-300 dark:bg-gray-800 dark:text-white'
                         : 'border-gray-200/80 dark:border-gray-600/80 hover:border-gray-300 dark:hover:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                         }`}
                     >
                       <div className="flex flex-col items-center gap-2">
-                        <BookOpen className={`w-6 h-6 ${sessionCategory === 'course' ? 'text-sky-500' : 'text-gray-400'}`} />
+                        <BookOpen className={`w-6 h-6 ${sessionCategory === 'course' ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`} />
                         <span className="font-medium text-xs">Ders Çalışması</span>
                       </div>
                     </button>
@@ -428,13 +428,13 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setSessionCategory('break')}
-                      className={`p-4 rounded-xl border-2 transition-all duration-300 ${sessionCategory === 'break'
-                        ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 shadow-sm'
+                      className={`p-4 rounded-md border transition-colors duration-150 ${sessionCategory === 'break'
+                        ? 'border-gray-900 bg-gray-50 text-gray-900 dark:border-gray-300 dark:bg-gray-800 dark:text-white'
                         : 'border-gray-200/80 dark:border-gray-600/80 hover:border-gray-300 dark:hover:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                         }`}
                     >
                       <div className="flex flex-col items-center gap-2">
-                        <Coffee className={`w-6 h-6 ${sessionCategory === 'break' ? 'text-amber-500' : 'text-gray-400'}`} />
+                        <Coffee className={`w-6 h-6 ${sessionCategory === 'break' ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`} />
                         <span className="font-medium text-xs">Mola</span>
                       </div>
                     </button>
@@ -442,13 +442,13 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setSessionCategory('custom')}
-                      className={`p-4 rounded-xl border-2 transition-all duration-300 ${sessionCategory === 'custom'
-                        ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 shadow-sm'
+                      className={`p-4 rounded-md border transition-colors duration-150 ${sessionCategory === 'custom'
+                        ? 'border-gray-900 bg-gray-50 text-gray-900 dark:border-gray-300 dark:bg-gray-800 dark:text-white'
                         : 'border-gray-200/80 dark:border-gray-600/80 hover:border-gray-300 dark:hover:border-gray-500 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                         }`}
                     >
                       <div className="flex flex-col items-center gap-2">
-                        <Target className={`w-6 h-6 ${sessionCategory === 'custom' ? 'text-emerald-500' : 'text-gray-400'}`} />
+                        <Target className={`w-6 h-6 ${sessionCategory === 'custom' ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`} />
                         <span className="font-medium text-xs">Özel Görev</span>
                       </div>
                     </button>
@@ -563,7 +563,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setDurationMode('minutes')}
-                      className={`p-3 rounded-lg border-2 transition-all duration-200 ${durationMode === 'minutes'
+                      className={`p-3 rounded-md border transition-colors duration-150 ${durationMode === 'minutes'
                         ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
                         }`}
@@ -577,7 +577,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setDurationMode('timeRange')}
-                      className={`p-3 rounded-lg border-2 transition-all duration-200 ${durationMode === 'timeRange'
+                      className={`p-3 rounded-md border transition-colors duration-150 ${durationMode === 'timeRange'
                         ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300'
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
                         }`}
@@ -627,7 +627,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                     </div>
 
                     {/* Auto-calculated duration display */}
-                    <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
+                    <div className="bg-[var(--subtle)] rounded-lg p-3 border border-purple-200 dark:border-purple-800">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           ⏱️ Toplam Süre:
@@ -681,10 +681,10 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
 
                 {/* End Time Display - Only for Minutes Mode */}
                 {durationMode === 'minutes' && (
-                  <div className="bg-gradient-to-r from-primary-50 to-purple-50 dark:from-primary-900/20 dark:to-purple-900/20 rounded-lg p-3 border border-primary-200 dark:border-primary-800">
+                  <div className="bg-[var(--subtle)] rounded-lg p-3 border border-primary-200 dark:border-primary-800">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        📅 Bitiş Saati:
+                        Bitiş saati:
                       </span>
                       <span className="text-lg font-bold text-primary-600 dark:text-primary-400">
                         {(() => {
@@ -887,7 +887,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
                     type="submit"
                     form="create-session-form"
                     disabled={sessionMutation.isPending || !isValid}
-                    className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                    className="btn btn-primary"
                   >
                     {sessionMutation.isPending
                       ? (isEditMode ? 'Güncelleniyor...' : 'Oluşturuluyor...')

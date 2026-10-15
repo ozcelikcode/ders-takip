@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, Tag, X, BookOpen, Calculator, Book, Globe, Triangle, Atom, Beaker, Dna, Building, MapPin, Brain, Heart, Bookmark, Pen, Pencil, FileText, BookMarked, GraduationCap, Award, Globe2, Clock, Music, Palette, Code, Database, BarChart3, TrendingUp, Target, Lightbulb, Sparkles, Briefcase, Users, MoreHorizontal } from 'lucide-react';
-import { categoriesAPI } from '../../services/api';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
 import { Dialog } from '@headlessui/react';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'framer-motion';
+import { BookOpen, Brain, Briefcase, Calculator, Code, Edit2, Globe, GraduationCap, Heart, Lightbulb, MoreHorizontal, Plus, Search, Sparkles, Tag, Target, Trash2, Users, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
 import { z } from 'zod';
+import { categoriesAPI } from '../../services/api';
 import ConfirmDialog from '../common/ConfirmDialog';
 
 interface Category {

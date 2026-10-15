@@ -1,26 +1,26 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import {
-  getStudySessions,
-  getStudySession,
-  createStudySession,
-  updateStudySession,
-  deleteStudySession,
-  startStudySession,
-  pauseStudySession,
-  completeStudySession,
+completeStudySession,
+createStudySession,
+deleteStudySession,
+getStudySession,
+getStudySessions,
+pauseStudySession,
+startStudySession,
+updateStudySession,
 } from '../controllers/studySessionController';
 import { protect } from '../middleware/auth';
 import { validate } from '../middleware/validate';
-import { z } from 'zod';
 
 const router = Router();
 
 // Validation schemas
 const createStudySessionSchema = z.object({
   body: z.object({
-    planId: z.number().optional(),
-    topicId: z.number().optional(),
-    courseId: z.number().optional(),
+    planId: z.number().int().positive().optional(),
+    topicId: z.number().int().positive().optional(),
+    courseId: z.number().int().positive().optional(),
     title: z.string().min(1).max(200),
     description: z.string().optional(),
     startTime: z.string().refine((date) => !isNaN(Date.parse(date)), {

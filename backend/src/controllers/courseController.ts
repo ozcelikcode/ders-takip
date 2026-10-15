@@ -1,14 +1,13 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { Op } from 'sequelize';
-import { Course, Topic, Category } from '../models';
+import { Category, Course, Topic } from '../models';
+import { visibleCourseWhere } from '../policies/courseAccess';
 
 export const getCourses = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { categoryId, isActive = 'true', includeTopics = 'false' } = req.query;
 
-    const where: any = {};
-    const userId = (req as any).user?.id;
-    const userRole = (req as any).user?.role;
+    const where: any = { ...visibleCourseWhere(req.user!) };
 
     if (categoryId) {
       where.categoryId = categoryId;
@@ -16,14 +15,6 @@ export const getCourses = async (req: Request, res: Response, next: NextFunction
 
     if (isActive !== undefined) {
       where.isActive = isActive === 'true';
-    }
-
-    // Admins see all courses, students see their own + global ones
-    if (userRole !== 'admin') {
-      where[Op.or] = [
-        { userId: userId },
-        { isGlobal: true }
-      ];
     }
 
     const include: any[] = [
@@ -84,7 +75,7 @@ export const getCourse = async (req: Request, res: Response, next: NextFunction)
       });
     }
 
-    const course = await Course.findByPk(id, { include });
+    const course = await Course.findOne({ where: { id, ...visibleCourseWhere(req.user!) }, include });
 
     if (!course) {
       res.status(404).json({
@@ -93,9 +84,6 @@ export const getCourse = async (req: Request, res: Response, next: NextFunction)
       });
       return;
     }
-
-    console.log('🔍 Course found:', course.id, course.name);
-    console.log('🔍 Course data:', JSON.stringify(course, null, 2));
 
     res.json({
       success: true,
@@ -301,7 +289,7 @@ export const getCourseTopics = async (req: Request, res: Response, next: NextFun
     const { id } = req.params;
     const { isActive = 'true' } = req.query;
 
-    const course = await Course.findByPk(id);
+    const course = await Course.findOne({ where: { id, ...visibleCourseWhere(req.user!) } });
 
     if (!course) {
       res.status(404).json({

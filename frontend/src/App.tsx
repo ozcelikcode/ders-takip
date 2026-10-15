@@ -1,29 +1,31 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useUserPreferencesStore } from './store/userPreferencesStore';
-import { useEffect } from 'react';
-
-// Pages
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import DashboardPage from './pages/dashboard/DashboardPage';
-import CoursesPage from './pages/CoursesPage';
-import CourseDetailPage from './pages/CourseDetailPage';
-import PlannerPage from './pages/planner/PlannerPage';
-import PomodoroPage from './pages/pomodoro/PomodoroPage';
-import ProfilePage from './pages/profile/ProfilePage';
-import UserSettingsPage from './pages/settings/UserSettingsPage';
-import AdminUsersPage from './pages/admin/AdminUsersPage';
-import AdminCoursesPage from './pages/admin/AdminCoursesPage';
-import AdminSettingsPage from './pages/admin/AdminSettingsPage';
-import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 
 // Components
-import Layout from './components/common/Layout';
-import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import Layout from './components/common/Layout';
 import LoadingScreen from './components/common/LoadingScreen';
+
+
+// Pages
+const AdminCoursesPage = lazy(() => import('./pages/admin/AdminCoursesPage'));
+const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
+const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage'));
+const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const CourseDetailPage = lazy(() => import('./pages/CourseDetailPage'));
+const CoursesPage = lazy(() => import('./pages/CoursesPage'));
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
+const PlannerPage = lazy(() => import('./pages/planner/PlannerPage'));
+const PomodoroPage = lazy(() => import('./pages/pomodoro/PomodoroPage'));
+const ProfilePage = lazy(() => import('./pages/profile/ProfilePage'));
+const UserSettingsPage = lazy(() => import('./pages/settings/UserSettingsPage'));
+
 
 function App() {
   const { user, isLoading, initializeAuth } = useAuthStore();
@@ -31,7 +33,7 @@ function App() {
   const { applyTheme: applyUserTheme, syncWithServer } = useUserPreferencesStore();
 
   useEffect(() => {
-    initializeAuth();
+    void initializeAuth();
     fetchSettings();
   }, [initializeAuth, fetchSettings]);
 
@@ -53,7 +55,8 @@ function App() {
   }
 
   return (
-    <Routes>
+    <Suspense fallback={<LoadingScreen />}>
+      <Routes>
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
@@ -80,7 +83,8 @@ function App() {
 
       {/* Catch all */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }
 

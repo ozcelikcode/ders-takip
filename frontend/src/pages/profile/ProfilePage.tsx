@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { User as UserIcon, Camera, Save, Lock, Mail, Upload, X } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
-import { authAPI } from '../../services/api';
-import toast from 'react-hot-toast';
 import { useMutation } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import { Camera, Lock, Mail, Save, Upload, User as UserIcon, X } from 'lucide-react';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { authAPI } from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
 
 const ProfilePage = () => {
   const { user } = useAuthStore();
@@ -52,7 +52,11 @@ const ProfilePage = () => {
       return authAPI.updateProfile(updateData);
     },
     onSuccess: (response) => {
-      const updatedUser = response.data.data.user;
+      const updatedUser = response.data.data?.user;
+      if (!updatedUser) {
+        toast.error('Profil yanıtı alınamadı');
+        return;
+      }
       // Update user in store directly without calling updateProfile (which makes another API call)
       useAuthStore.setState({ user: updatedUser });
       toast.success('Profil başarıyla güncellendi');

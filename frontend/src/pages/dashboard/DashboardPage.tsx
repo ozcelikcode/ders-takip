@@ -1,146 +1,70 @@
-import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { BookOpen, Calendar, ArrowRight, Clock, GraduationCap, Layers, Target } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { coursesAPI, studySessionsAPI } from '../../services/api';
-import WeeklyProgressChart from '../../components/dashboard/WeeklyProgressChart';
+import { ArrowRight, BookOpen, Calendar, Clock, CheckCircle, Layers, Plus, Timer } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 import RecentActivities from '../../components/dashboard/RecentActivities';
+import WeeklyProgressChart from '../../components/dashboard/WeeklyProgressChart';
+import PageHeader from '../../components/common/PageHeader';
+import { coursesAPI, studySessionsAPI } from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
 
 const DashboardPage = () => {
-  // Fetch courses data
-  const { data: coursesData } = useQuery({
-    queryKey: ['courses'],
-    queryFn: async () => {
-      const response = await coursesAPI.getCourses();
-      return response.data.data?.courses || [];
-    },
+  const firstName = useAuthStore(state => state.user?.firstName);
+  const { data: courses, isLoading: coursesLoading, isError: coursesError } = useQuery({
+    queryKey: ['courses', { includeTopics: true }],
+    queryFn: () => coursesAPI.getCourses({ includeTopics: true }),
+    select: response => (response.data.data?.courses || []) as { topics?: unknown[] }[],
   });
-
-  // Fetch all completed sessions for total study time
-  const { data: sessionsData } = useQuery({
+  const { data: sessions, isLoading: sessionsLoading, isError: sessionsError } = useQuery({
     queryKey: ['all-completed-sessions'],
-    queryFn: async () => {
-      const response = await studySessionsAPI.getSessions({ status: 'completed' });
-      return response.data.data?.sessions || [];
-    },
+    queryFn: async () => (await studySessionsAPI.getSessions({ status: 'completed' })).data.data?.sessions || [],
   });
-
-  // Calculate stats
-  const totalTopics = coursesData?.reduce((sum: number, course: any) => sum + (course.topics?.length || 0), 0) || 0;
-  const tytCourses = coursesData?.filter((course: any) => course.category === 'TYT').length || 0;
-  const aytCourses = coursesData?.filter((course: any) => course.category === 'AYT').length || 0;
-  const totalStudyHours = Math.round((sessionsData?.reduce((sum: number, session: any) => sum + session.duration, 0) || 0) / 60);
 
   const stats = [
-    { title: 'Toplam Konu', value: totalTopics, icon: BookOpen, color: 'text-blue-600' },
-    { title: 'TYT Dersleri', value: tytCourses, icon: GraduationCap, color: 'text-green-600' },
-    { title: 'AYT Dersleri', value: aytCourses, icon: Layers, color: 'text-purple-600' },
-    { title: 'Toplam Çalışma', value: `${totalStudyHours}sa`, icon: Clock, color: 'text-orange-600' },
+    { label: 'Dersler', value: courses?.length || 0, detail: 'Çalışma alanındaki dersler', icon: BookOpen, loading: coursesLoading, error: coursesError },
+    { label: 'Konular', value: courses?.reduce((sum, course) => sum + (course.topics?.length || 0), 0) || 0, detail: 'Derslere bağlı konular', icon: Layers, loading: coursesLoading, error: coursesError },
+    { label: 'Tamamlanan seans', value: sessions?.length || 0, detail: 'Tüm zamanlar', icon: CheckCircle, loading: sessionsLoading, error: sessionsError },
+    { label: 'Kaydedilen süre', value: `${Math.round((sessions?.reduce((sum, session) => sum + (session.duration || 0), 0) || 0) / 60 * 10) / 10} sa`, detail: 'Tamamlanan seansların süresi', icon: Clock, loading: sessionsLoading, error: sessionsError },
+  ];
+  const shortcuts = [
+    { title: 'Haftanı planla', description: 'Çalışmalarına takvimde yer aç.', href: '/planner', icon: Calendar },
+    { title: 'Derslerine göz at', description: 'Konularını ve kaynaklarını düzenle.', href: '/courses', icon: BookOpen },
+    { title: 'Odağını topla', description: 'Pomodoro ile bir seansa başla.', href: '/pomodoro', icon: Timer },
   ];
 
   return (
-    <div className="h-[calc(100vh-130px)] flex flex-col gap-6 overflow-hidden pr-1">
-      {/* Stats cards - Fixed height */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
-        {stats.map((stat) => (
-          <div
-            key={stat.title}
-            className="group p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300"
-          >
-            <div className="flex items-center">
-              <div className={`p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 ${stat.color} transition-colors group-hover:bg-primary-50 dark:group-hover:bg-primary-900/10`}>
-                <stat.icon className="h-5 w-5" />
-              </div>
-              <div className="ml-3">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-tight">
-                  {stat.title}
-                </p>
-                <div className="flex items-baseline gap-1">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {stat.value}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+    <div className="space-y-7">
+      <PageHeader eyebrow={format(new Date(), 'd MMMM yyyy, EEEE', { locale: tr })}
+        title={`Merhaba${firstName ? `, ${firstName}` : ''}.`}
+        description="Çalışmalarına bir adım uzaktan bak. Sıradaki adımını planla."
+        actions={<Link to="/planner" className="btn btn-primary"><Plus className="h-4 w-4" />Seans planla</Link>} />
+
+      <section aria-label="Çalışma özeti" className="panel grid grid-cols-2 divide-x divide-[var(--line)] lg:grid-cols-4">
+        {stats.map((stat, index) => <div key={stat.label} className={`p-5 sm:p-6 ${index > 1 ? 'border-t lg:border-t-0' : ''}`}>
+          <div className="flex items-center justify-between gap-3 text-xs text-[var(--muted)]"><span>{stat.label}</span><stat.icon className="h-4 w-4" strokeWidth={1.6} /></div>
+          <p className="my-4 text-[30px] font-medium leading-none tracking-tight tabular-nums">{stat.loading ? '—' : stat.error ? '—' : stat.value}</p>
+          <p className={`text-[11px] leading-5 ${stat.error ? 'text-red-600 dark:text-red-400' : 'text-[var(--muted)]'}`}>{stat.error ? 'Veriler alınamadı' : stat.detail}</p>
+        </div>)}
+      </section>
+
+      <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
+        <section className="panel min-w-0">
+          <div className="panel-heading"><div><h2 className="text-sm font-medium">Haftalık ilerleme</h2><p className="mt-1 text-xs text-[var(--muted)]">Tamamlanan seansların kaydedilen süresi</p></div><span className="badge badge-gray">Bu hafta</span></div>
+          <div className="h-[300px] px-5 pb-5 pt-7"><WeeklyProgressChart /></div>
+        </section>
+        <section className="panel min-w-0">
+          <div className="panel-heading"><div><h2 className="text-sm font-medium">Son aktiviteler</h2><p className="mt-1 text-xs text-[var(--muted)]">Tamamladığın son çalışmalar</p></div><Link to="/planner" className="icon-button" aria-label="Planlayıcıya git"><ArrowRight className="h-4 w-4" /></Link></div>
+          <div className="min-h-[300px] p-4"><RecentActivities /></div>
+        </section>
       </div>
 
-      {/* Quick Actions - Fixed height */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
-        <Link
-          to="/courses"
-          className="flex items-center p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md transition-all group"
-        >
-          <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20 transition-colors">
-            <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400 group-hover:text-primary-600" />
-          </div>
-          <div className="ml-3 flex-1 min-w-0">
-            <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">Dersler</h4>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">TYT & AYT müfredat takibi</p>
-          </div>
-          <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-primary-500 group-hover:translate-x-1 transition-all" />
-        </Link>
-
-        <Link
-          to="/planner"
-          className="flex items-center p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md transition-all group"
-        >
-          <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20 transition-colors">
-            <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400 group-hover:text-primary-600" />
-          </div>
-          <div className="ml-3 flex-1 min-w-0">
-            <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">Planlayıcı</h4>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">Haftalık çalışma takvimi</p>
-          </div>
-          <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-primary-500 group-hover:translate-x-1 transition-all" />
-        </Link>
-
-        <Link
-          to="/profile"
-          className="flex items-center p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md transition-all group"
-        >
-          <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20 transition-colors">
-            <Target className="h-5 w-5 text-green-600 dark:text-green-400 group-hover:text-primary-600" />
-          </div>
-          <div className="ml-3 flex-1 min-w-0">
-            <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">Hedefler</h4>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">Net ve başarı hedefleri</p>
-          </div>
-          <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-primary-500 group-hover:translate-x-1 transition-all" />
-        </Link>
-      </div>
-
-      {/* Main content area - Flexible height */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-6 pb-2">
-        {/* Recent activity */}
-        <div className="flex flex-col bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary-500" />
-              Son Aktiviteler
-            </h3>
-            <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Geçmiş</span>
-          </div>
-          <div className="flex-1 overflow-hidden p-3 overflow-y-auto custom-scrollbar">
-            <RecentActivities />
-          </div>
-        </div>
-
-        {/* Weekly Progress Chart */}
-        <div className="flex flex-col bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Target className="w-4 h-4 text-primary-500" />
-              Haftalık İlerleme
-            </h3>
-            <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Saat</span>
-          </div>
-          <div className="flex-1 min-h-[0] p-4 pr-6">
-            <WeeklyProgressChart />
-          </div>
-        </div>
-      </div>
+      <section aria-label="Hızlı erişim" className="grid gap-3 md:grid-cols-3">
+        {shortcuts.map(item => <Link key={item.href} to={item.href} className="group flex items-center gap-4 rounded-lg border bg-[var(--surface)] p-5 transition-colors hover:border-gray-400 dark:hover:border-gray-500">
+          <item.icon className="h-5 w-5 shrink-0 text-[var(--muted)]" strokeWidth={1.5} />
+          <div className="min-w-0 flex-1"><h2 className="text-sm font-medium">{item.title}</h2><p className="mt-1 text-xs leading-5 text-[var(--muted)]">{item.description}</p></div><ArrowRight className="h-4 w-4 text-[var(--muted)]" />
+        </Link>)}
+      </section>
     </div>
   );
 };

@@ -6,8 +6,8 @@ yarn-error.log*
 
 # Environment variables
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
 
 # Build outputs
 backend/dist/
@@ -40,9 +40,9 @@ coverage/
 .tmp/
 .temp/
 
-# Lock files
-package-lock.json
+# Package manager artifacts
 yarn.lock
+pnpm-lock.yaml
 
 # Database
 *.db
@@ -51,3 +51,11 @@ yarn.lock
 # Uploads
 uploads/
 public/uploads/
+# SQLite journals and local tooling
+*.sqlite-*
+*.db-*
+*.tsbuildinfo
+
+# Private local account setup
+.local/
+backend/backups/

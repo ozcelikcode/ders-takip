@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, Users, Calendar, BarChart3, MoreVertical, Shield, User, Mail, Clock } from 'lucide-react';
-import CreateUserModal from '../../components/admin/CreateUserModal';
-import ConfirmDialog from '../../components/common/ConfirmDialog';
-import { usersAPI, studySessionsAPI } from '../../services/api';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Menu } from '@headlessui/react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { motion } from 'framer-motion';
+import { Calendar, Mail, MoreVertical, Plus, Search, Shield, Trash2, User, Users } from 'lucide-react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
+import CreateUserModal from '../../components/admin/CreateUserModal';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { studySessionsAPI, usersAPI } from '../../services/api';
 
 const AdminUsersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,7 +60,7 @@ const AdminUsersPage = () => {
               sessions.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt :
               null
           };
-        } catch (error) {
+        } catch {
           return {
             userId: user.id,
             totalSessions: 0,
@@ -249,7 +249,7 @@ const AdminUsersPage = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4 flex-1">
                       {/* Avatar */}
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                      <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white font-semibold">
                         {user.firstName[0]}{user.lastName[0]}
                       </div>
 

@@ -1,52 +1,24 @@
-import { Request, Response, NextFunction } from 'express';
+import { type ErrorRequestHandler } from 'express';
+import { ForeignKeyConstraintError, UniqueConstraintError, ValidationError } from 'sequelize';
 
-interface CustomError extends Error {
-  statusCode?: number;
-  status?: string;
-  isOperational?: boolean;
-}
+export const errorHandler: ErrorRequestHandler = (error: unknown, _request, response, _next) => {
+  let status = 500;
+  let message = 'Sunucu hatası';
 
-export const errorHandler = (
-  err: CustomError,
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  let error = { ...err };
-  error.message = err.message;
-
-  console.error('❌ Error:', err);
-
-  if (err.name === 'CastError') {
-    const message = 'Geçersiz kaynak ID\'si';
-    error = { name: 'CastError', message, statusCode: 400 } as CustomError;
+  if (error instanceof UniqueConstraintError) {
+    status = 409;
+    message = 'Bu veri zaten mevcut';
+  } else if (error instanceof ValidationError) {
+    status = 400;
+    message = 'Doğrulama hatası';
+  } else if (error instanceof ForeignKeyConstraintError) {
+    status = 409;
+    message = 'İlişkili kayıt nedeniyle işlem tamamlanamadı';
+  } else if (error instanceof Error && 'statusCode' in error && typeof error.statusCode === 'number' && error.statusCode >= 400 && error.statusCode < 500) {
+    status = error.statusCode;
+    message = error.message;
   }
 
-  if (err.name === 'ValidationError') {
-    const message = 'Doğrulama hatası';
-    error = { name: 'ValidationError', message, statusCode: 400 } as CustomError;
-  }
-
-  if ((err as any).code === 11000) {
-    const message = 'Bu veri zaten mevcut';
-    error = { name: 'DuplicateError', message, statusCode: 400 } as CustomError;
-  }
-
-  if (err.name === 'JsonWebTokenError') {
-    const message = 'Geçersiz token';
-    error = { name: 'JsonWebTokenError', message, statusCode: 401 } as CustomError;
-  }
-
-  if (err.name === 'TokenExpiredError') {
-    const message = 'Token süresi dolmuş';
-    error = { name: 'TokenExpiredError', message, statusCode: 401 } as CustomError;
-  }
-
-  res.status(error.statusCode || 500).json({
-    success: false,
-    error: {
-      message: error.message || 'Sunucu hatası',
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-    },
-  });
+  if (status >= 500) console.error('Request failed:', { name: error instanceof Error ? error.name : 'UnknownError', status });
+  response.status(status).json({ success: false, error: { message } });
 };

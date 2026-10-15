@@ -20,12 +20,13 @@ export const registerSchema = Joi.object({
       'any.required': 'E-posta zorunludur',
     }),
   password: Joi.string()
-    .min(6)
-    .max(128)
+    .min(12)
+    .max(72)
+    .custom((value: string, helpers) => Buffer.byteLength(value, 'utf8') <= 72 ? value : helpers.error('string.max'))
     .required()
     .messages({
-      'string.min': 'Şifre en az 6 karakter olmalıdır',
-      'string.max': 'Şifre en fazla 128 karakter olabilir',
+      'string.min': 'Şifre en az 12 karakter olmalıdır',
+      'string.max': 'Şifre en fazla 72 UTF-8 baytı olabilir',
       'any.required': 'Şifre zorunludur',
     }),
   firstName: Joi.string()
@@ -74,14 +75,6 @@ export const loginSchema = Joi.object({
     }),
 });
 
-export const refreshTokenSchema = Joi.object({
-  refreshToken: Joi.string()
-    .required()
-    .messages({
-      'any.required': 'Refresh token zorunludur',
-    }),
-});
-
 export const changePasswordSchema = Joi.object({
   currentPassword: Joi.string()
     .required()
@@ -89,12 +82,13 @@ export const changePasswordSchema = Joi.object({
       'any.required': 'Mevcut şifre zorunludur',
     }),
   newPassword: Joi.string()
-    .min(6)
-    .max(128)
+    .min(12)
+    .max(72)
+    .custom((value: string, helpers) => Buffer.byteLength(value, 'utf8') <= 72 ? value : helpers.error('string.max'))
     .required()
     .messages({
-      'string.min': 'Yeni şifre en az 6 karakter olmalıdır',
-      'string.max': 'Yeni şifre en fazla 128 karakter olabilir',
+      'string.min': 'Yeni şifre en az 12 karakter olmalıdır',
+      'string.max': 'Yeni şifre en fazla 72 UTF-8 baytı olabilir',
       'any.required': 'Yeni şifre zorunludur',
     }),
 });

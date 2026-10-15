@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import bcrypt from 'bcryptjs';
+import { getEnvironment } from '../config/environment';
 import { sequelize } from '../config/database';
 
 interface UserAttributes {
@@ -103,7 +104,8 @@ User.init(
       type: DataTypes.STRING,
       allowNull: false,
       validate: {
-        len: [6, 128],
+        len: [12, 128],
+        passwordByteLength(value: string) { if (Buffer.byteLength(value, 'utf8') > 72) throw new Error('Password exceeds 72 UTF-8 bytes'); },
       },
     },
     firstName: {
@@ -180,7 +182,7 @@ User.init(
     hooks: {
       beforeSave: async (user: User) => {
         if (user.changed('password')) {
-          const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12');
+          const saltRounds = getEnvironment().BCRYPT_SALT_ROUNDS;
           user.password = await bcrypt.hash(user.password, saltRounds);
         }
       },

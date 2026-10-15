@@ -1,11 +1,17 @@
-import { User } from './User';
-import { Course } from './Course';
-import { Category } from './Category';
-import { Topic } from './Topic';
-import { Plan } from './Plan';
-import { StudySession } from './StudySession';
-import { Settings } from './Settings';
+import { AuthSession, RefreshCredential } from './AuthSession';
 import { Backup } from './Backup';
+import { Category } from './Category';
+import { Course } from './Course';
+import { Plan } from './Plan';
+import { Settings } from './Settings';
+import { StudySession } from './StudySession';
+import { Topic } from './Topic';
+import { User } from './User';
+
+User.hasMany(AuthSession, { foreignKey: 'userId', onDelete: 'CASCADE' });
+AuthSession.belongsTo(User, { foreignKey: 'userId' });
+AuthSession.hasMany(RefreshCredential, { foreignKey: 'sessionId', onDelete: 'CASCADE' });
+RefreshCredential.belongsTo(AuthSession, { foreignKey: 'sessionId' });
 
 // Define associations
 // Category - Course associations
@@ -101,4 +107,4 @@ StudySession.belongsTo(Topic, {
   as: 'topic',
 });
 
-export { User, Course, Category, Topic, Plan, StudySession, Settings, Backup };
+export { AuthSession, RefreshCredential, Backup,Category,Course,Plan,Settings,StudySession,Topic,User };
