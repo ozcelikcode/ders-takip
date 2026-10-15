@@ -2,6 +2,8 @@
 
 Kaynak: Kullanıcının 15 Ekim 2026 tarihli açık talimatı. Modern, basit, sade ve özenli bir ürün arayüzü isteniyor; Vercel referans olarak belirtildi. Önceki iOS/pastel/glassmorphism tercihi geçersizdir.
 
+Doğrulama sayıları bu tasarım paketinin tarihsel kapanışına aittir. Güncel toplam ve sonraki mühendislik değişiklikleri progress.md / implementation/2026-10-15-security-and-recovery.md içindedir.
+
 ## Referans incelemesi
 
 15 Ekim 2026'da güncel resmî kaynaklar incelendi:

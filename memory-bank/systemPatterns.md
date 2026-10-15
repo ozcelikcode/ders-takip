@@ -1,6 +1,6 @@
 # Ders Takip Sistemi — Sistem Örüntüleri
 
-Kaynak kodla doğrulama: 15 Ekim 2026, ilk uygulama paketi. Bu belge mevcut davranışla hedef standardı ayrı tutar. Güncel uygulama kaydı implementation/2026-10-15-foundation.md içindedir.
+Kaynak kodla doğrulama: 15 Ekim 2026, oturum ve kurtarma paketi. Bu belge mevcut davranışla hedef standardı ayrı tutar. Güncel uygulama kaydı implementation/2026-10-15-security-and-recovery.md içindedir; foundation kaydı tarihseldir.
 
 ## Mevcut mimari
 
@@ -8,16 +8,16 @@ Kaynak kodla doğrulama: 15 Ekim 2026, ilk uygulama paketi. Bu belge mevcut davr
 React SPA
   ├─ Router → sayfa / planner / modal bileşenleri
   ├─ TanStack Query → services/api.ts → Axios
-  └─ Zustand → auth, global ayar, kişisel tercih + localStorage
-                         │ HTTP JSON / Bearer JWT
+  └─ Zustand → bellek auth; global ayar/kişisel tercih kalıcılığı ayrı
+                         │ HTTP JSON / bellek Bearer JWT + HttpOnly refresh cookie
 app.ts middleware → routes → controllers → Sequelize → SQLite
   └─ policies/courseAccess.ts → owner/global/admin scope
 index.ts → env/schema kontrolü → listen/cron/kapanış
                          │
-                         └─ Backup controller / açılış cron'u → dosya sistemi
+                         └─ Backup service / periyodik due kontrolü → native SQLite snapshot + manifest
 ```
 
-Controller'lar HTTP, yetki ve iş kurallarını ORM sorgularıyla birlikte yürütür. Ortak course erişim politikası ayrıldı; diğer iş kuralları henüz ayrı service/repository katmanına taşınmadı. Bu basit modüler tek uygulama ölçeğinde çalışmaya devam edilebilir; mevcut problemlerin çözümü mikroservis gerektirmiyor.
+Controller'lar HTTP, yetki ve iş kurallarını ORM sorgularıyla birlikte yürütür. Ortak course erişim politikası, auth session/admin kurtarma ve backup/bakım servisleri ayrıldı; planner/catalog kuralları henüz aynı service sınırına taşınmadı. Bu basit modüler tek uygulama ölçeğinde çalışmaya devam edilebilir; mevcut problemlerin çözümü mikroservis gerektirmiyor.
 
 ## Veri sınırları
 
@@ -28,21 +28,20 @@ Controller'lar HTTP, yetki ve iş kurallarını ORM sorgularıyla birlikte yür�
 - Plan/Course/Topic → StudySession; ilişkiler silinince ilgili FK SET NULL.
 - Category global; Course kişisel veya global; Topic üst Course erişimini miras almalı.
 - Settings global key/value; kişisel tercih User.preferences JSON alanıdır.
-- Backup metadata'sı aktif DB içinde; snapshot dosyasıyla katalog yaşam döngüsü güvence altında değil.
+- User → AuthSession → RefreshCredential cascade; refresh hash geçmişi aile ömrü boyunca tutulur.
+- Backup metadata'sı DB içinde, doğrulama manifesti snapshot yanında; katalog başlangıç/restore sonrası manifestlerden yeniden kurulur.
 
-İndeksler ve model validation'ları mevcut. Açık baseline migration ve schema_migrations kaydı eklendi; seed transaction kullanır. Oturum/silme/reset iş kurallarında transaction standardı henüz yok.
+İndeksler ve model validation'ları mevcut. Açık baseline migration ve schema_migrations kaydı eklendi; seed transaction kullanır. Auth rotasyonu/parola/admin kurtarma ve reset transaction içindedir; StudySession çakışma ve diğer çok adımlı silmelerde bütünlük işleri sürer.
 
 ## Mevcut auth ve veri akışı
 
-1. Login/register JSON response içinde user ve access/refresh JWT döndürür.
-2. authStore ikisini localStorage'a persist eder; Axios her istekte buradan access okur.
-3. protect token'ı doğrulayıp aktif User kaydını DB'den getirir; authorize DB rolünü kullanır.
-4. 401 interceptor refresh endpoint'ini çağırır ve localStorage'ı değiştirir; store belleğini eşitlemez.
-5. Auth kimliği değişince QueryClient cache ve eski sorgular temizlenir.
-6. Logout backend'de token iptal etmez. Refresh tekrar kullanımını engelleyen kalıcı oturum kaydı yok.
-7. Token anahtarları merkezi env şemasıyla zorunlu doğrulanır; sabit fallback yok.
-
-HttpOnly cookie, güvenli token rotasyonu ve merkezi session revocation önceki belgelerde hedefle gerçek karıştığı için uygulanmış gibi anlatılmıştı; mevcut durumda yoktur.
+1. Login/register user + kısa access JWT döndürür; refresh credential yalnız HttpOnly/SameSite Strict cookie'ye yazılır. Access bellek dışına persist edilmez.
+2. protect açık algoritma/issuer/audience doğrulamasından sonra session id/kullanıcı/aktiflik/son süre/iptal kontrolü yapar; authorize güncel DB rolünü kullanır.
+3. Refresh IMMEDIATE transaction içinde credential tüketimi ve yenisini üretir. Önceden tüketilmiş hash tekrar kullanılırsa bütün aile iptal edilir. Mutlak session süresi uzamaz.
+4. Axios paralel/geç 401'leri tek refresh ile çözer; epoch ve aynı-kullanıcı kontrolü geç yanıtın bitmiş/değişmiş kimliği geri getirmesini engeller. Web Locks cookie operasyonlarını sekmeler arasında sıraya koyar, BroadcastChannel peers cache/kimliğini temizler.
+5. Logout önce yerel kimliği/cache'i siler, geç refresh'i bekler ve sunucu session'ını iptal eder. Ağ hatasında gizli bilgi içermeyen pending intent, reload ile otomatik giriş yapılmasını engeller.
+6. Parola değişimi ve admin kurtarma bütün kullanıcı session'larını; rol/aktiflik değişimi ilgili eski session'ları iptal eder. Hash doğrulama/yazma yarışları transaction içinde denetlenir.
+7. Auth route'larında özel başlık/Origin/Sec-Fetch-Site kontrolü, credentials cookie transport, no-store ve production Secure/HTTPS uygulanır. Eski JWT_REFRESH_* ve JSON refresh sözleşmesi kaldırılmıştır; migration ve yeniden giriş gerekir.
 
 ## Mevcut state ve sorgu örüntüsü
 
@@ -67,7 +66,7 @@ Query key'i sorgu sonucunu belirleyen kimlik/filtrelere bağlamak gerekir. Inval
 - Plan süresi gerçek çalışma gibi toplanıyor; pause/resume aktif süre kaydı yok.
 - Günlük/haftalık planner ve iki Pomodoro motoru benzer kuralları tekrar ediyor.
 - Form Zod 3, backend Zod 4/Joi, model JSON ve frontend Preferences ortak şemadan türemiyor.
-- Refresh iptali, güvenilir snapshot/restore ve transaction'lı reset/silme eksik.
+- Diğer çok adımlı ders/kategori/konu silme/sıralama işlemleri transaction standardına taşınmadı; auth ve reset kapsamı tamamlandı.
 - Tarih/timezone/query key/invalidation ve kişisel tercih saklama sınırları tamamlanmadı.
 
 Bulguların güncel durumları progress.md içinde, tarihsel kaynakları A01–A22 audit raporunda kayıtlıdır.
@@ -94,9 +93,11 @@ Plan zamanı ile gerçekleşen çalışma aralıkları ayrılmalı. Durum geçi�
 
 Planner için mutation/drag/resize kuralları ortak katmanda, günlük/haftalık render ayrı. Timer deadline/birikmiş süre ve tek faz makinesiyle çalışmalı. Query key factory kullanıcı/tarih/filtre kapsamını taşımalı. Auth değişiminde cache, devam eden istekler ve kişisel kalıcılık sınırı kapatılmalı.
 
-### Veritabanı ve kurtarma — migration temeli uygulandı
+### Veritabanı ve kurtarma — tek süreç kapsamı uygulandı
 
-Açılışta şema onarma/silme yerine açık migration. Tek DB yolu. Tutarlı snapshot, checksum/integrity kontrolü, atomik restore, rollback ve doğrulanmış yeniden açılış. Çok adımlı reset/silme/sıralama transaction içinde olmalı. Backup işi son başarılı zaman ve açık timezone üzerinden planlanmalı.
+Açılışta şema onarma/silme yerine açık migration; tek DB yolu. Native Online Backup API ile tutarlı WAL snapshot ve atomik destination restore; dış manifest/SHA-256/integrity/FK/şema doğrulaması. Restore öncesi safety backup, son kontrol hatasında rollback; kurtarma da başarısızsa API bakımda kalır. HTTP bakım kapısı aktif yanıtları boşaltır, yeni istekler Retry-After/503 alır. Restore eski session'ları iptal eder.
+
+Reset safety backup + IMMEDIATE transaction içindedir; settings_only yalnız ayarlar, all öğrenci/ders/çalışma verisi (adminler korunur). Diğer silme/sıralamalar açık. Cron her 5 dakikada ayarı yeniden okuyup son başarılı otomatik manifestten geçen 1/5/7 tam güne bakar. Otomatik silme yok. Koordinasyon tek backend içindir; dış yazıcılar, offsite/kapasite/retention ve gerçek ortam kurtarma tatbikatı ayrıca gereklidir.
 
 ### Kalite ve gözlemlenebilirlik — yerel kontrol zinciri uygulandı
 
@@ -108,4 +109,4 @@ Kalıcı süreç için `workingPrinciples.md`; uygulanacak sıra için `activeCo
 
 `design-system.md` kaynak standarttır. CSS değişkenleri açık/koyu yüzey ve metin anlamını taşır; PageHeader ile ana sayfa hiyerarşisi, panel/btn/nav/segmented-control sınıfları ortaklaştırılır. İş verisinin rengi nötr metinden ayrılır. Eski pastel/cam/gradyan görünüm ikinci alternatif olarak tutulmaz. Mobil menü tek Dialog ile overlay/odak/Escape yönetir; Layout'ta ikinci overlay yoktur. Takvimlerde ortak initializeCalendarViewport kullanılır; iş kuralı motorları hâlâ ayrıdır.
 
-Dashboard ve CoursesPage aynı key için aynı ham API response biçimini cache'ler; dashboard select kullanır. Son aktiviteler/bildirimler getRecentSessions ile completion/end zamanında sıralanır; shared query dizisi yerinde mutate edilmez. Tasarım dönüşümü açık auth/backup/timer/süre/Preferences sorunlarını çözmüş sayılmaz.
+Dashboard ve CoursesPage aynı key için aynı ham API response biçimini cache'ler; dashboard select kullanır. Son aktiviteler/bildirimler getRecentSessions ile completion/end zamanında sıralanır; shared query dizisi yerinde mutate edilmez. Tasarım dönüşümü tek başına auth/backup sorunlarını kapatmamıştı; bunlar sonraki güvenlik/kurtarma paketinde ayrı doğrulandı. Timer/süre/Preferences hâlâ açıktır.

@@ -1,12 +1,18 @@
 # Ders Takip Sistemi — İlerleme
 
-Son güncelleme: 15 Ekim 2026, tasarım sistemi paketi.
+Son güncelleme: 15 Ekim 2026, oturum ve kurtarma paketi.
 
 ## Genel durum
 
 İnceleme sonrası geliştirme başladı. Derleme ve kalite tabanı çalışır hale getirildi; kritik erişim/veri okuma sorunları kapatıldı. Bütün audit bulguları çözülmüş veya üretime hazır kabul edilmez.
 
 Kurallar: `workingPrinciples.md`. Başlangıç incelemesi: `audits/2026-10-15-project-audit.md`. Uygulama kaydı: `implementation/2026-10-15-foundation.md`.
+
+## Oturum ve kurtarma paketi
+
+İptal edilebilir session/refresh rotasyonu, cookie/CSRF, frontend ortak refresh ve geç yanıt/çevrimdışı logout izolasyonu tamamlandı. Admin oluşturma/kurtarma CLI eklendi. Native SQLite snapshot/restore, manifest/checksum/şema kontrolü, güvenlik snapshot'ı/rollback ve transaction'lı reset uygulandı. Otomatik yedek aralığı her kontrolde okunur ve geçen tam güne göre işler.
+
+Kullanıcı ilk kurulum istedi: yeni ortam/DB ve admin@example.com hesabı oluşturuldu; özel parola dosyası `.local/admin-password.txt` (0600, Git dışında). Gerçek yerel DB'de giriş/reload/manual backup doğrulandı; reset/restore/seed yapılmadı. Tek dev süreci localhost:3000/API 5002'de bırakıldı. Uygulama ve geçiş sınırları `implementation/2026-10-15-security-and-recovery.md` içindedir.
 
 ## Tasarım paketi
 
@@ -22,12 +28,12 @@ Son aktivitelerin zaman sırası, dashboard konu verisi/sayıları, query respon
 | İngilizce/ASCII teknik adlandırma | Kural kaydedildi; otomatik ASCII kontrolü geçti, anlam incelemesi ayrı |
 | Backend/frontend typecheck | Başarılı, strict korunuyor |
 | Lint | ESLint 10 flat config, sıfır uyarı |
-| Backend test | 22 test; gerçek HTTP + geçici SQLite ve yapılandırma/hata katmanı |
-| Frontend test | 8 test; hata sınırı, hesap cache izolasyonu ve son seans sıralaması |
+| Backend test | 43 test; HTTP/geçici SQLite, oturum/CLI ve WAL snapshot/restore/reset/hata rollback regresyonları |
+| Frontend test | 14 test; auth/cache/çevrimdışı logout, gerçek HTTP transport ile eşzamanlı/geç 401, hata sınırı ve sıralama |
 | Backend/frontend production build | Başarılı, Vite 8 |
 | Production bundle tarayıcı smoke | Dolu geçici veride giriş/dashboard/dersler, planner/özet, arama, mobil özel seans oluşturma; açık/koyu görünüm |
 | GitHub CI | Workflow eklendi; uzak koşum yapılmadı |
-| Kullanıcı DB'sinde işlem | Yapılmadı |
+| Yerel ilk kurulum | Açık kullanıcı yetkisiyle configure/migration/admin oluşturma; giriş/reload/manual snapshot başarılı; reset/restore/seed yok |
 | Mobil manuel kontrol | 390×844; günlük görünüm, menü, Escape/odak, arama ve form; yatay sayfa taşması yok |
 | Otomatik tarayıcı E2E / tam WCAG / Lighthouse / yük | Henüz yok |
 
@@ -38,14 +44,17 @@ Son aktivitelerin zaman sırası, dashboard konu verisi/sayıları, query respon
 | A01 | Ders/konu/kullanıcı okuma kapsamı düzeltildi; owner/other/admin HTTP matrisi var. |
 | A02 | Sabit secret fallback kaldırıldı; env doğrulama ve güvenli development seed eklendi. Gerçek dağıtım anahtarı/oturum yenilemesi yapılmadı. |
 | A03 | Tek DB yolu uygulandı; snapshot'ın aynı geçici DB'deki kayıtları içerdiği doğrulandı. |
-| A04 | Açık. Snapshot/restore atomikliği, hata kurtarma ve gerçek aralık planı tamamlanmadı; timezone/noOverlap eklendi. |
+| A04 | Tek süreç kapsamında native WAL snapshot/atomik restore, manifest/checksum/şema kontrolü, safety/rollback, bakım kapısı ve geçen gün planı testli. Offsite/kapasite/retention ve gerçek ortam kurtarma tatbikatı açık. |
 | A05 | GET durum/not değiştirmiyor; tekrar okuma regresyonu var. Zaman aşımı ürün politikası ayrı iş. |
 | A06 | Yeni oturumların ders/konu yetkisi, eşleşmesi ve aktifliği doğrulanıyor. Tarihsel hatalı ilişkiler gerçek DB'de taranmadı. |
-| A07–A11 | Açık: atomik çakışma, durum makinesi, gerçek süre, transaction'lı silme/reset, Preferences. |
-| A12 | Yerel check zinciri çalışıyor; 30 test ve CI workflow var. Uzak CI ve kapsamlı E2E henüz yok. |
-| A13 | Açık: sunucuda refresh iptali, logout ve parola değişimi sonrası oturum iptali eksik. |
+| A07–A09 | Açık: atomik çakışma, ortak durum makinesi ve gerçek çalışma süresi. |
+| A10 | Kısmen: settings_only ve all reset safety backup + transaction + rollback testli; diğer ders/kategori/konu silme/sıralama işlemleri açık. |
+| A11 | Açık: Preferences sözleşmesi ve kalıcı senkron; sonraki paketin ilk işi. |
+| A12 | Yerel check zinciri çalışıyor; 57 test ve CI workflow var. Uzak CI ve kapsamlı E2E henüz yok. |
+| A13 | Uygulandı/testli: DB session, hash'li refresh rotasyonu/replay iptali, cookie/CSRF, logout/parola/rol iptali, ortak refresh ve geç yanıt izolasyonu. Production cookie dağıtımı ayrıca doğrulanmalı. |
 | A14 | Kısmen: hesap cache temizliği ve geç yanıt izolasyonu tamam. Tarih/query key/invalidation ve kişisel yerel saklama tamamlanmadı. |
-| A15–A16, A18 | Açık: tek timer, timezone ve gerçek ayar uygulaması. |
+| A15–A16 | Açık: tek timer motoru ve timezone. |
+| A18 | Kısmen: backup_interval 1/5/7 doğrulaması ve her koşumda uygulanması düzeltildi. Public/admin DTO, kayıt/bakım/sessionTimeout ayarlarının uygulanması açık. |
 | A17 | Kısmen: dashboard includeTopics ve yanlış TYT/AYT sayımı düzeltildi; gerçek süre ve admin agregasyonları hâlâ açık. |
 | A19 | Kısmen: MongoDB hata kalıntıları kaldırıldı, Sequelize 400/409 dönüşümü ve güvenli hata mesajları test edildi. Ortak doğrulama/DTO işi açık. |
 | A20 | Lock, modern dev araçları, güvenli setup ve açık baseline migration var. Legacy şema evrimleri için sonraki explicit migration'lar gerekiyor. |
@@ -60,9 +69,9 @@ Node 24.21.0, npm 11.19.0; Vite 8.3.4, plugin-react 6.1.2, ESLint 10.12.0, types
 
 ## Öncelik sırası
 
-1. Auth yaşam döngüsü ve güvenilir backup/restore/reset.
-2. Oturum çakışması/durum/gerçek süre/timezone.
-3. Preferences ve diğer API sözleşmeleri; kullanıcı/tarih cache kapsamı.
+1. Preferences/API sözleşmesi; kullanıcı/tarih cache kapsamı.
+2. StudySession çakışması/durum/gerçek süre/timezone.
+3. Diğer çok adımlı silme/sıralama transaction bütünlüğü ve kurtarma operasyonları.
 4. Timer/planner birleştirmesi, doğru özetler, ayarların uygulanması.
 5. Kalan güvenlik/bağımlılık güncellemeleri ve E2E/mobil/erişilebilirlik.
 

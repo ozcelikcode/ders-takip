@@ -1,12 +1,25 @@
 # Ders Takip Sistemi — Aktif Bağlam
 
-Son güncelleme: 15 Ekim 2026, tasarım sistemi paketi.
+Son güncelleme: 15 Ekim 2026, oturum ve kurtarma paketi.
 
 ## Kullanıcının kalıcı talimatları
 
 Proje vibe coding sonrasında disiplinli, derli toplu ve sürdürülebilir mühendislikle geliştirilecek. Gereksiz/eskimiş/tekrarlı kod tutulmayacak. Kod sembolleri, paketler, dosya ve klasör adları İngilizce olacak; Türkçe kullanıcı içeriği korunacak. AGENTS.md ve `workingPrinciples.md` bu kuralları içerir. ASCII kontrolü otomatik; isimlerin İngilizce anlamı kod incelemesinin sorumluluğudur.
 
-## Güncel tasarım kararı ve uygulama
+## Güncel paket ve yerel kurulum
+
+Kullanıcı “Henüz kurulum yapmadım; yerel admin oluşturulsun” diyerek ilk kurulumu açıkça yetkilendirdi. Yeni backend/.env ve database.sqlite oluşturuldu; migration'lar ve admin CLI çalıştırıldı. Admin e-postası admin@example.com, kullanıcı adı admin. Rastgele parola yalnız `.local/admin-password.txt` içinde 0600 izinlidir; değerini belgeye/sohbete/loga taşımayın. Dosya ve DB Git dışında. Gerçek yerel veride reset/restore/seed yapılmadı.
+
+İptal edilebilir AuthSession/RefreshCredential, `002-auth-sessions`, hash'li tek kullanımlık refresh, HttpOnly cookie/CSRF kontrolü ve kısa access JWT uygulandı. Logout/parola/rol/aktiflik değişimi ilgili oturumları iptal eder. Frontend access token'ı yalnız bellekte tutar; ortak refresh, epoch kontrolü, Web Locks/BroadcastChannel ve çevrimdışı logout niyeti geç yanıtla geri girişi engeller.
+
+SQLite native snapshot/atomik destination restore, dış manifest/checksum/şema doğrulaması, güvenlik yedeği/rollback, bakım kapısı, transaction'lı reset ve geçen süreye göre 1/5/7 günlük otomatik yedek uygulandı. Eski fs.copy/process.exit ve refresh JWT/localStorage yolları kaldırıldı. Manifesti olmayan eski yedekler korunur, restore devre dışıdır. Çoklu instance/offsite/retention operasyonları tamamlanmış değildir.
+
+Son `npm run check`: **43 backend + 14 frontend = 57 test**, atlama yok; strict typecheck, sıfır uyarılı lint, adlandırma ve iki production build başarılı. Tarayıcıda yeni admin girişi, reload ile oturum devamı ve manuel yedek oluşturma doğrulandı. Tek yerel dev süreci localhost:3000 / API 5002'de çalışır durumda bırakıldı; süreç sonradan durmuşsa `npm run dev` kullanılır. Commit/push/deployment yok.
+
+Detaylar ve kanıt sınırları: `implementation/2026-10-15-security-and-recovery.md`. A11 Preferences hâlâ açık; sıradaki pakette ortak tercih sözleşmesi ve kullanıcı/tarih cache kapsamı ele alınacak.
+
+## Tasarım paketinin kaydı
+
 
 Kullanıcı modern, basit, sade, Vercel benzeri bir ürün arayüzü istedi. Güncel resmî Geist/Linear referansları incelendi. Eski pastel/iOS/glass yönü kaldırıldı; `design-system.md` kalıcı görsel standarttır.
 
@@ -14,9 +27,9 @@ Ortak kabuk, navigasyon, başlık/panel/düğme token'ları; dashboard, dersler,
 
 Dashboard yanlış TYT/AYT sayımları yerine ders/konu/tamamlanan seans ve kaydedilen süreyi kullanır. Son aktivite/bildirimler ortak, cache'i değiştirmeyen zaman sıralamasından gelir; üç regresyon testi eklendi.
 
-Son npm run check: 22 backend + 8 frontend = 30 test, typecheck/lint/build başarılı. Dolu geçici veriyle masaüstü/açık-koyu tema ve 390×844 mobil kontrolü, arama, günlük özet, form ve özel seans oluşturma geçti. Tam E2E/WCAG/Lighthouse iddiası yok. A11 tercihler senkron hatası UI'da da doğrulandı; çözülmedi. Gerçek kullanıcı verisine dokunulmadı. Test oturumu/sekmesi/sunucusu kapatıldı ve geçici DB temizlendi.
+Tasarım paketi kapanışındaki tarihsel npm run check: 22 backend + 8 frontend = 30 test, typecheck/lint/build başarılı. Dolu geçici veriyle masaüstü/açık-koyu tema ve 390×844 mobil kontrolü, arama, günlük özet, form ve özel seans oluşturma geçti. Tam E2E/WCAG/Lighthouse iddiası yok. A11 tercihler senkron hatası UI'da da doğrulandı; çözülmedi. Gerçek kullanıcı verisine dokunulmadı. Test oturumu/sekmesi/sunucusu kapatıldı ve geçici DB temizlendi.
 
-## Tamamlanan ilk uygulama paketi
+## İlk uygulama paketinin tarihsel kaydı
 
 - İngilizce teknik adlandırma kuralı ve otomatik kontrol eklendi. Workspace adları study-tracker / @study-tracker/backend / @study-tracker/frontend. Saat/dakika grafik alanları hours/minutes oldu; kalıcı Türkçe veri değerleri değiştirilmedi.
 - Node 24.21.0 ve npm 11.19.0 tanımlandı; tek kök lock dosyası artık izlenebilir. Temiz `npm ci` doğrulandı. Native kurulum script izinleri paket sürümüne göre daraltıldı.
@@ -42,15 +55,14 @@ Son npm run check: 22 backend + 8 frontend = 30 test, typecheck/lint/build başa
 
 ## Sıradaki işler
 
-1. Auth refresh/logout/parola değişiminde iptal ve tekrar kullanım kontrolü; memory/localStorage eşitleme ve ortak refresh işlemi.
-2. Gerçek SQLite snapshot/atomik restore, rollback ve doğru backup aralık planlaması; transaction'lı reset/silme/sıralama.
-3. Oturum oluşturma/taşımada atomik çakışma ve ortak durum makinesi; planlanan/gerçek çalışma süresi ayrımı ve timezone.
-4. Ortak Preferences/API şeması; kullanıcıya bağlı tercih/bildirim saklama; tarih içeren query key ve tutarlı invalidation.
-5. Tek timer/planner motoru, doğru dashboard/admin agregasyonları ve uygulanmayan yönetim ayarları.
-6. Kalan bağımlılık açıkları ve React/Recharts/Router/Tailwind modernizasyonu; her geçiş ayrı uyumluluk doğrulamasıyla yapılmalı. TypeScript şu an 5.9.3'e sabit, bütün bağımlılıklar en yeni major'a geçirilmiş sayılmaz.
-7. Gerçek tarayıcı E2E, mobil/klavye ve performans doğrulaması.
+1. Ortak Preferences/API şeması, mevcut JSON için açık dönüşüm, hata/kaydetme durumu; kullanıcıya bağlı tercih/bildirim saklama ve tarih/query key/invalidation.
+2. StudySession oluşturma/taşımada atomik çakışma ve ortak durum makinesi; planlanan/gerçek süre ayrımı ve timezone.
+3. Diğer çok adımlı ders/kategori/konu silme/sıralama işlemlerinin transaction bütünlüğü.
+4. Tek timer/planner motoru, doğru dashboard/admin agregasyonları ve uygulanmayan yönetim ayarları.
+5. Kalan bağımlılık açıkları ve React/Recharts/Router/Tailwind modernizasyonu; her geçiş ayrı uyumluluk doğrulamasıyla yapılmalı. TypeScript 5.9.3; bütün paketler en yeni major'a geçirilmiş sayılmaz.
+6. Otomatik tarayıcı E2E, mobil/klavye, performans ve gerçek ortam kurtarma/kapasite/offsite doğrulaması.
 
-Başlangıç incelemesi tarihsel olarak `audits/2026-10-15-project-audit.md` içinde korunur. İlk paket kapsamı ve sınırlar: `implementation/2026-10-15-foundation.md`. Güncel kapanış durumu: `progress.md`.
+Başlangıç incelemesi `audits/2026-10-15-project-audit.md`, ilk paket `implementation/2026-10-15-foundation.md` içinde tarihsel kalır. Güncel kapanış durumu progress.md; son paket implementation/2026-10-15-security-and-recovery.md içindedir.
 
 ## Geçmiş tasarım yönü
 

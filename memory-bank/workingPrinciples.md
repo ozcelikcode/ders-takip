@@ -51,3 +51,7 @@ Proje vibe coding ile başlamıştır; bundan sonraki çalışma derli toplu, di
 ## Tasarım standardı (15 Ekim 2026 ek talimatı)
 
 Modern, basit, sade ve özenli tasarım zorunludur. Vercel/Geist ve Linear'ın güncel resmî örneklerinden yararlanılır; görsel kararlar `design-system.md` içinde tutulur. Eski iOS/pastel/glassmorphism yönü geçersizdir. Nötr yüzeyler, belirgin tipografi, ince sınırlar, ölçülü boşluk ve anlamlı renk esastır. Kod/dosya adları İngilizce, kullanıcı içeriği Türkçe kalır.
+
+## Yerel hesap ve gizli bilgiler (15 Ekim 2026)
+
+Kullanıcının açık ilk kurulum talimatı, yeni yerel ortam/veritabanı ve admin hesabı oluşturmayı yetkilendirdi. Bu izin gelecekte gerçek DB üzerinde doğrulama amaçlı reset/restore/seed izni değildir. Admin oluşturma/kurtarma admin:manage üzerinden yapılır; parola yalnız özel izinli, Git dışı dosyadan okunur. Secret/parola/token değerleri memory-bank, sohbet, komut argümanı veya loga kopyalanmaz. Kayıtlarda yalnız dosya yolu, yetki kapsamı ve doğrulanan sonuç tutulur.
