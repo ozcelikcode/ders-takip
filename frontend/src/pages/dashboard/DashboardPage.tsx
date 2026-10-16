@@ -1,3 +1,4 @@
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, BookOpen, Calendar, Clock, CheckCircle, Layers, Plus, Timer } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -10,14 +11,15 @@ import { coursesAPI, studySessionsAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 
 const DashboardPage = () => {
+  const accountKeys = useAccountQueryKeys();
   const firstName = useAuthStore(state => state.user?.firstName);
   const { data: courses, isLoading: coursesLoading, isError: coursesError } = useQuery({
-    queryKey: ['courses', { includeTopics: true }],
+    queryKey: accountKeys.catalog('courses', { includeTopics: true }),
     queryFn: () => coursesAPI.getCourses({ includeTopics: true }),
     select: response => (response.data.data?.courses || []) as { topics?: unknown[] }[],
   });
   const { data: sessions, isLoading: sessionsLoading, isError: sessionsError } = useQuery({
-    queryKey: ['all-completed-sessions'],
+    queryKey: accountKeys.sessions('all-completed-sessions'),
     queryFn: async () => (await studySessionsAPI.getSessions({ status: 'completed' })).data.data?.sessions || [],
   });
 

@@ -1,3 +1,4 @@
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -25,12 +26,13 @@ interface CreateTopicModalProps {
 }
 
 const CreateTopicModal: React.FC<CreateTopicModalProps> = ({ isOpen, onClose, courseId }) => {
+  const accountKeys = useAccountQueryKeys();
   const queryClient = useQueryClient();
   const courseIdNumber = Number.parseInt(courseId, 10);
 
   // Fetch course to get existing topics count
   const { data: courseData } = useQuery({
-    queryKey: ['course', courseId, { includeTopics: true }],
+    queryKey: accountKeys.catalog('course', courseId, { includeTopics: true }),
     queryFn: async () => {
       const response = await coursesAPI.getCourse(courseId, { includeTopics: true });
       return response.data.data?.course;
@@ -68,8 +70,7 @@ const CreateTopicModal: React.FC<CreateTopicModalProps> = ({ isOpen, onClose, co
     },
     onSuccess: () => {
       toast.success('Konu başarıyla oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['course', courseId, { includeTopics: true }] });
-      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.catalog() });
       handleClose();
     },
     onError: (error: any) => {

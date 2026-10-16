@@ -1,3 +1,4 @@
+import { applyAppearance } from './lib/appearance';
 import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
@@ -29,26 +30,28 @@ const UserSettingsPage = lazy(() => import('./pages/settings/UserSettingsPage'))
 
 function App() {
   const { user, isLoading, initializeAuth } = useAuthStore();
-  const { fetchSettings, applyTheme } = useSettingsStore();
-  const { applyTheme: applyUserTheme, syncWithServer } = useUserPreferencesStore();
+  const { settings, fetchSettings } = useSettingsStore();
+  const preferences = useUserPreferencesStore(state => state.preferences);
 
   useEffect(() => {
     void initializeAuth();
     fetchSettings();
   }, [initializeAuth, fetchSettings]);
 
-  // Apply theme on mount and when settings change
   useEffect(() => {
-    applyTheme();
-    applyUserTheme();
-  }, [applyTheme, applyUserTheme]);
+    const refresh = () => { if (document.visibilityState === 'visible') void fetchSettings(); };
+    const interval = window.setInterval(refresh, 60000);
+    window.addEventListener('focus', refresh);
+    return () => { window.clearInterval(interval); window.removeEventListener('focus', refresh); };
+  }, [fetchSettings]);
 
-  // Sync user preferences when user data is loaded
   useEffect(() => {
-    if (user?.preferences) {
-      syncWithServer(user.preferences);
-    }
-  }, [user?.id, syncWithServer]); // Only sync when user ID changes (login/init) or sync function changes
+    const apply = () => applyAppearance(preferences, settings);
+    apply();
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    media.addEventListener('change', apply);
+    return () => media.removeEventListener('change', apply);
+  }, [preferences, settings]);
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -62,7 +65,7 @@ function App() {
       <Route path="/register" element={<RegisterPage />} />
 
       {/* Protected routes */}
-      <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+      <Route path="/" element={<ProtectedRoute><Layout key={user?.id} /></ProtectedRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="courses" element={<CoursesPage />} />

@@ -1,10 +1,11 @@
+import { Brand } from '../../components/common/Brand';
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, BookOpen } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import { useAuthStore } from '../../store/authStore';
@@ -54,19 +55,12 @@ const LoginPage = () => {
         className="max-w-md w-full space-y-8"
       >
         <div className="text-center">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.15 }}
-            className="brand-mark mx-auto !h-10 !w-10"
-          >
-            <BookOpen className="h-5 w-5" />
-          </motion.div>
+          <div className="flex justify-center"><Brand /></div>
           <h2 className="mt-6 text-[28px] font-semibold tracking-tight text-gray-900 dark:text-white">
             Giriş Yap
           </h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Ders takip sistemine hoş geldiniz
+            Hesabınızla çalışma alanınıza giriş yapın
           </p>
         </div>
 

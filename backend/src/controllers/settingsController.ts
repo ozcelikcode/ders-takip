@@ -1,121 +1,36 @@
-import { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+import { Transaction } from 'sequelize';
+import { defaultSiteSettings, publicSettingsSchema, settingsPatchSchema, siteSettingsSchema, type SiteSettings } from '@study-tracker/contracts';
 import { Settings } from '../models';
+import { sequelize } from '../config/database';
 
-// Get all settings
-export const getSettings = async (req: Request, res: Response) => {
-  try {
-    const settings = await Settings.findAll();
-
-    // Convert to key-value object
-    const settingsObj = settings.reduce((acc, setting) => {
-      acc[setting.key] = setting.getTypedValue();
-      return acc;
-    }, {} as any);
-
-    res.json({
-      success: true,
-      data: settingsObj,
-    });
-  } catch {
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Ayarlar alınırken hata oluştu',
-      },
-    });
+const readSettings = async (): Promise<SiteSettings> => {
+  const result = { ...defaultSiteSettings };
+  for (const setting of await Settings.findAll()) {
+    if (!Object.prototype.hasOwnProperty.call(siteSettingsSchema.shape, setting.key)) continue;
+    const key = setting.key as keyof SiteSettings;
+    const parsed = siteSettingsSchema.shape[key].safeParse(setting.getTypedValue());
+    if (parsed.success) Object.assign(result, { [key]: parsed.data });
   }
+  return result;
 };
-
-// Update settings
-export const updateSettings = async (req: Request, res: Response) => {
-  try {
-    const updates = req.body;
-    if (updates.backup_interval !== undefined && !['1', '5', '7'].includes(String(updates.backup_interval))) {
-      res.status(400).json({ success: false, error: { message: 'Yedekleme aralığı 1, 5 veya 7 gün olmalıdır' } });
-      return;
-    }
-
-    for (const [key, value] of Object.entries(updates)) {
-      // Determine type
-      let type = 'string';
-      if (typeof value === 'boolean') type = 'boolean';
-      else if (typeof value === 'number') type = 'number';
-      else if (typeof value === 'object') type = 'json';
-
-      // Convert value to string for storage
-      let stringValue: string;
-      if (type === 'json') {
-        stringValue = JSON.stringify(value);
-      } else {
-        stringValue = String(value);
-      }
-
-      // Determine category based on key
-      let category: 'general' | 'security' | 'notifications' | 'appearance' = 'general';
-      if (key.includes('Color') || key.includes('Theme')) {
-        category = 'appearance';
-      } else if (key.includes('notification') || key.includes('email')) {
-        category = 'notifications';
-      } else if (key.includes('maintenance') || key.includes('registration') || key.includes('session')) {
-        category = 'security';
-      }
-
-      // Update or create setting
-      await Settings.upsert({
-        key,
-        value: String(stringValue),
-        type: type as any,
-        category,
-      });
-    }
-
-    // Get all settings after update
-    const settings = await Settings.findAll();
-    const settingsObj = settings.reduce((acc, setting) => {
-      acc[setting.key] = setting.getTypedValue();
-      return acc;
-    }, {} as any);
-
-    res.json({
-      success: true,
-      message: 'Ayarlar güncellendi',
-      data: settingsObj,
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Ayarlar güncellenirken hata oluştu',
-        details: error.message,
-      },
-    });
-  }
+export const getSettings = async (_req: Request, res: Response, next: NextFunction) => {
+  try { res.json({ success: true, data: publicSettingsSchema.parse(await readSettings()) }); } catch (error) { next(error); }
 };
-
-// Get settings by category
-export const getSettingsByCategory = async (req: Request, res: Response) => {
+export const getAdminSettings = async (_req: Request, res: Response, next: NextFunction) => {
+  try { res.setHeader('Cache-Control', 'no-store'); res.json({ success: true, data: await readSettings() }); } catch (error) { next(error); }
+};
+export const updateSettings = async (req: Request, res: Response, next: NextFunction) => {
+  const parsed = settingsPatchSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ success: false, error: { message: 'Ayarlar geçersiz', details: parsed.error.flatten() } }); return; }
   try {
-    const { category } = req.params;
-
-    const settings = await Settings.findAll({
-      where: { category },
+    await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
+      for (const [key, value] of Object.entries(parsed.data)) {
+        const type = typeof value === 'boolean' ? 'boolean' : typeof value === 'number' ? 'number' : 'string';
+        const category = key === 'backup_interval' ? 'backup' : key.includes('Color') || key === 'siteLogo' || key === 'siteIcon' ? 'appearance' : key.endsWith('Notifications') ? 'notifications' : ['maintenanceMode', 'allowRegistration', 'sessionTimeout'].includes(key) ? 'security' : 'general';
+        await Settings.upsert({ key, value: value === null ? '' : String(value), type, category }, { transaction });
+      }
     });
-
-    const settingsObj = settings.reduce((acc, setting) => {
-      acc[setting.key] = setting.getTypedValue();
-      return acc;
-    }, {} as any);
-
-    res.json({
-      success: true,
-      data: settingsObj,
-    });
-  } catch {
-    res.status(500).json({
-      success: false,
-      error: {
-        message: 'Ayarlar alınırken hata oluştu',
-      },
-    });
-  }
+    res.json({ success: true, message: 'Ayarlar güncellendi', data: await readSettings() });
+  } catch (error) { next(error); }
 };

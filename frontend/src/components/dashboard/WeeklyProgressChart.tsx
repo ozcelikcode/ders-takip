@@ -1,3 +1,5 @@
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
+import { useCurrentDateKey } from '../../hooks/useCurrentDateKey';
 import { useQuery } from '@tanstack/react-query';
 import { addDays, endOfDay, format, startOfDay, startOfWeek } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -9,6 +11,8 @@ import { studySessionsAPI } from '../../services/api';
 const DAY_NAMES = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cts', 'Paz'];
 
 const WeeklyProgressChart = () => {
+  const accountKeys = useAccountQueryKeys();
+  const today = useCurrentDateKey();
   // Detect dark mode reactively
   const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
 
@@ -26,11 +30,11 @@ const WeeklyProgressChart = () => {
   }, []);
 
   // Bu haftanın başlangıcını al (Pazartesi)
-  const weekStart = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 1 }), []);
+  const weekStart = useMemo(() => startOfWeek(new Date(`${today}T12:00:00`), { weekStartsOn: 1 }), [today]);
 
   // Bu haftanın verilerini çek
   const { data: sessionsData, isLoading } = useQuery({
-    queryKey: ['weekly-progress', format(weekStart, 'yyyy-MM-dd')],
+    queryKey: accountKeys.sessions('weekly-progress', format(weekStart, 'yyyy-MM-dd')),
     queryFn: async () => {
       const weekEnd = addDays(weekStart, 6);
 

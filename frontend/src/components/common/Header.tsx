@@ -1,3 +1,5 @@
+import { useReadNotifications } from '../../hooks/useReadNotifications';
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { getRecentSessions } from '../../utils/sessionHelpers';
 import { Menu, Search, Bell, User as UserIcon, Check, CheckCheck, Settings, LogOut, UserCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
@@ -14,6 +16,7 @@ interface HeaderProps {
 }
 
 const Header = ({ onMenuClick }: HeaderProps) => {
+  const accountKeys = useAccountQueryKeys();
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -21,26 +24,13 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [readNotifications, setReadNotifications] = useState<Set<number>>(new Set());
+  const { ids: readNotifications, markRead } = useReadNotifications(user ? String(user.id) : null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
 
-  // Load read notifications from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem('readNotifications');
-    if (stored) {
-      try {
-        const ids = JSON.parse(stored);
-        setReadNotifications(new Set(ids));
-      } catch (e) {
-        console.error('Failed to parse read notifications', e);
-      }
-    }
-  }, []);
-
   // Fetch recent completed sessions for notifications
   const { data: recentSessions } = useQuery({
-    queryKey: ['recent-notifications'],
+    queryKey: accountKeys.sessions('recent-notifications'),
     queryFn: async () => {
       const response = await studySessionsAPI.getSessions({
         status: 'completed',
@@ -73,20 +63,8 @@ const Header = ({ onMenuClick }: HeaderProps) => {
     };
   }, []);
 
-  const markAsRead = (sessionId: number) => {
-    const newReadSet = new Set(readNotifications);
-    newReadSet.add(sessionId);
-    setReadNotifications(newReadSet);
-    localStorage.setItem('readNotifications', JSON.stringify([...newReadSet]));
-  };
-
-  const markAllAsRead = () => {
-    if (!recentSessions) return;
-    const allIds = recentSessions.map((s) => s.id);
-    const newReadSet = new Set(allIds);
-    setReadNotifications(newReadSet);
-    localStorage.setItem('readNotifications', JSON.stringify([...newReadSet]));
-  };
+  const markAsRead = (sessionId: number) => markRead([sessionId]);
+  const markAllAsRead = () => { if (recentSessions) markRead(recentSessions.map(session => session.id)); };
 
   const unreadCount = recentSessions
     ? recentSessions.filter((s) => !readNotifications.has(s.id)).length

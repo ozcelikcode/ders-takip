@@ -49,16 +49,9 @@ const ProfilePage = () => {
         };
       }
 
-      return authAPI.updateProfile(updateData);
+      return useAuthStore.getState().updateProfile(updateData);
     },
-    onSuccess: (response) => {
-      const updatedUser = response.data.data?.user;
-      if (!updatedUser) {
-        toast.error('Profil yanıtı alınamadı');
-        return;
-      }
-      // Update user in store directly without calling updateProfile (which makes another API call)
-      useAuthStore.setState({ user: updatedUser });
+    onSuccess: () => {
       toast.success('Profil başarıyla güncellendi');
       setIsEditingProfile(false);
     },

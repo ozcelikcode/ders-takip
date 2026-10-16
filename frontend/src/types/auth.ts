@@ -1,3 +1,4 @@
+import type { PreferencesPatch, UserPreferences } from '@study-tracker/contracts';
 export interface User {
   id: string;
   username: string;
@@ -9,7 +10,7 @@ export interface User {
   userCategory?: 'student' | 'teacher' | 'employee' | 'developer' | 'freelancer' | 'other';
   isActive: boolean;
   profileImage?: string;
-  preferences: any;
+  preferences: UserPreferences;
   lastLogin?: string;
   createdAt: string;
   updatedAt?: string;
@@ -41,3 +42,4 @@ export interface AuthResponse {
     tokens: TokenResponse;
   };
 }
+export type ProfileUpdate = Partial<Pick<User, "firstName" | "lastName" | "username" | "profileImage">> & { preferences?: PreferencesPatch };

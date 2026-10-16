@@ -1,3 +1,6 @@
+import { defaultPreferences } from '@study-tracker/contracts';
+import type { PreferencesPatch } from '@study-tracker/contracts';
+import type { ProfileUpdate } from '../../types/auth';
 import PageHeader from '../../components/common/PageHeader';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
@@ -12,13 +15,13 @@ type TabType = 'profile' | 'appearance' | 'notifications' | 'study';
 
 const UserSettingsPage = () => {
   const [activeTab, setActiveTab] = useState<TabType>('profile');
-  const { user, setUser } = useAuthStore();
-  const { preferences, updatePreferences, resetPreferences } = useUserPreferencesStore();
+  const { user, updateProfile } = useAuthStore();
+  const { preferences, updatePreferences, resetPreferences, pending, error: preferencesError } = useUserPreferencesStore();
   const { settings: siteSettings } = useSettingsStore();
 
   // Profile Form State
   const [fullName, setFullName] = useState(user?.fullName || '');
-  const [email, setEmail] = useState(user?.email || '');
+  const email = user?.email || '';
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -39,12 +42,8 @@ const UserSettingsPage = () => {
 
   // Update Profile Mutation
   const updateProfileMutation = useMutation({
-    mutationFn: (data: { fullName: string; email: string }) => authAPI.updateProfile(data),
-    onSuccess: (response) => {
-      const updatedUser = response.data?.data?.user;
-      if (updatedUser) {
-        setUser(updatedUser);
-      }
+    mutationFn: (data: ProfileUpdate) => updateProfile(data),
+    onSuccess: () => {
       toast.success('Profil başarıyla güncellendi');
     },
     onError: () => {
@@ -70,7 +69,9 @@ const UserSettingsPage = () => {
 
   const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfileMutation.mutate({ fullName, email });
+    const [firstName, ...parts] = fullName.trim().split(/\s+/);
+    if (!firstName || parts.length === 0) { toast.error('Ad ve soyad girin'); return; }
+    updateProfileMutation.mutate({ firstName, lastName: parts.join(' ') });
   };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
@@ -89,18 +90,13 @@ const UserSettingsPage = () => {
     changePasswordMutation.mutate({ currentPassword, newPassword });
   };
 
-  const handleThemeChange = (theme: ThemeMode) => {
-    updatePreferences({ theme });
+  const savePreferences = async (patch: PreferencesPatch) => {
+    try { await updatePreferences(patch); toast.success('Tercihler kaydedildi'); }
+    catch { toast.error('Tercihler kaydedilemedi'); }
   };
-
-  const handleColorChange = (color: string) => {
-    updatePreferences({ customPrimaryColor: color });
-  };
-
-  const handlePreferenceChange = (key: string, value: any) => {
-    updatePreferences({ [key]: value });
-    toast.success('Tercih kaydedildi');
-  };
+  const handleThemeChange = (theme: ThemeMode) => { void savePreferences({ theme }); };
+  const handleColorChange = (color: string | null) => { void savePreferences({ customPrimaryColor: color || null }); };
+  const handlePreferenceChange = (key: string, value: boolean) => { void savePreferences({ [key]: value }); };
 
   // Calculate if a color is light or dark for contrast
   const isLightColor = (hexColor: string): boolean => {
@@ -133,6 +129,7 @@ const UserSettingsPage = () => {
   return (
     <div className="space-y-6">
       <PageHeader title="Ayarlar" description="Hesabını, görünümü ve çalışma tercihlerini yönet." />
+      <div role="status" aria-live="polite" className="text-sm text-[var(--muted)]">{pending ? 'Tercihler kaydediliyor…' : preferencesError || 'Tercihler hesabınızda saklanır'}</div>
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
@@ -179,7 +176,7 @@ const UserSettingsPage = () => {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    readOnly
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     required
                   />
@@ -309,6 +306,7 @@ const UserSettingsPage = () => {
                     <button
                       key={theme.value}
                       onClick={() => handleThemeChange(theme.value as ThemeMode)}
+                      aria-pressed={preferences.theme === theme.value}
                       className={`p-6 rounded-xl border-2 transition-all text-left ${preferences.theme === theme.value
                           ? 'border-gray-900 bg-gray-50 dark:border-gray-300 dark:bg-gray-800'
                           : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-500'
@@ -335,6 +333,7 @@ const UserSettingsPage = () => {
                     <button
                       key={color.value}
                       onClick={() => handleColorChange(color.value)}
+                      aria-pressed={isSelected}
                       className="group relative flex flex-col items-center"
                       title={color.name}
                     >
@@ -388,7 +387,7 @@ const UserSettingsPage = () => {
                   </div>
                   {preferences.customPrimaryColor && preferences.customPrimaryColor !== siteSettings.primaryColor && (
                     <button
-                      onClick={() => handleColorChange(siteSettings.primaryColor)}
+                      onClick={() => handleColorChange(null)}
                       className="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors whitespace-nowrap"
                     >
                       Varsayılana Dön
@@ -420,6 +419,7 @@ const UserSettingsPage = () => {
                       type="checkbox"
                       checked={preferences[item.key as keyof typeof preferences] as boolean}
                       onChange={(e) => handlePreferenceChange(item.key, e.target.checked)}
+                      aria-label={item.label}
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
@@ -442,7 +442,7 @@ const UserSettingsPage = () => {
                   value={studyPrefs.defaultPomodoroDuration}
                   onChange={(e) => setStudyPrefs({ ...studyPrefs, defaultPomodoroDuration: parseInt(e.target.value) || 25 })}
                   min="1"
-                  max="90"
+                  max="120"
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
@@ -474,7 +474,7 @@ const UserSettingsPage = () => {
                   type="number"
                   value={studyPrefs.pomodorosUntilLongBreak}
                   onChange={(e) => setStudyPrefs({ ...studyPrefs, pomodorosUntilLongBreak: parseInt(e.target.value) || 4 })}
-                  min="2"
+                  min="1"
                   max="10"
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
@@ -540,27 +540,21 @@ const UserSettingsPage = () => {
             <div className="pt-6 border-t border-gray-200 dark:border-gray-700 flex flex-wrap gap-3">
               <button
                 onClick={() => {
-                  updatePreferences(studyPrefs);
-                  toast.success('Çalışma tercihleri kaydedildi');
+                  void savePreferences(studyPrefs);
                 }}
                 className="btn btn-primary"
+                disabled={pending > 0}
               >
                 <Save className="w-4 h-4" />
                 Kaydet
               </button>
               <button
                 onClick={() => {
-                  resetPreferences();
-                  setStudyPrefs({
-                    defaultPomodoroDuration: 25,
-                    defaultShortBreak: 5,
-                    defaultLongBreak: 15,
-                    pomodorosUntilLongBreak: 4,
-                    weeklyStudyGoal: 20,
-                    dailyStudyGoal: 4,
-                    activeStudyDays: [1, 2, 3, 4, 5, 6, 0],
-                  });
-                  toast.success('Tercihler varsayılanlara sıfırlandı');
+                  void resetPreferences().then(() => {
+                    setStudyPrefs({ defaultPomodoroDuration: defaultPreferences.defaultPomodoroDuration, defaultShortBreak: defaultPreferences.defaultShortBreak, defaultLongBreak: defaultPreferences.defaultLongBreak, pomodorosUntilLongBreak: defaultPreferences.pomodorosUntilLongBreak, weeklyStudyGoal: defaultPreferences.weeklyStudyGoal, dailyStudyGoal: defaultPreferences.dailyStudyGoal, activeStudyDays: [...defaultPreferences.activeStudyDays] });
+                    toast.success('Tercihler varsayılanlara sıfırlandı');
+                  }).catch(() => toast.error('Tercihler sıfırlanamadı'));
+
                 }}
                 className="px-4 py-2 border border-red-300 dark:border-red-600 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
               >

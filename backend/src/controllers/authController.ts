@@ -1,3 +1,4 @@
+import { preferencesSchema, preferencesPatchSchema } from '@study-tracker/contracts';
 import { NextFunction, Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { User } from '../models/User';
@@ -53,7 +54,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       role: user.role,
       isActive: user.isActive,
       profileImage: user.profileImage,
-      preferences: user.preferences,
+      preferences: preferencesSchema.parse(user.preferences),
       createdAt: user.createdAt,
     };
 
@@ -122,7 +123,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
       role: user.role,
       isActive: user.isActive,
       profileImage: user.profileImage,
-      preferences: user.preferences,
+      preferences: preferencesSchema.parse(user.preferences),
       lastLogin: user.lastLogin,
       createdAt: user.createdAt,
     };
@@ -150,7 +151,7 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
     }
     setRefreshCookie(res, result.credential, result.session.expiresAt);
     const user = result.user;
-    res.json({ success: true, message: 'Oturum yenilendi', data: { tokens: result.tokens, user: { ...user.toJSON(), fullName: user.getFullName(), password: undefined } } });
+    res.json({ success: true, message: 'Oturum yenilendi', data: { tokens: result.tokens, user: { ...user.toJSON(), fullName: user.getFullName(), preferences: preferencesSchema.parse(user.preferences), password: undefined } } });
   } catch (error) { next(error); }
 };
 
@@ -176,7 +177,7 @@ export const getMe = async (req: Request, res: Response, next: NextFunction): Pr
       role: user.role,
       isActive: user.isActive,
       profileImage: user.profileImage,
-      preferences: user.preferences,
+      preferences: preferencesSchema.parse(user.preferences),
       lastLogin: user.lastLogin,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -193,64 +194,26 @@ export const getMe = async (req: Request, res: Response, next: NextFunction): Pr
 
 export const updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const userId = req.user.id;
     const { firstName, lastName, username, profileImage, preferences } = req.body;
-
-    const user = await User.findByPk(userId);
-    if (!user) {
-      res.status(404).json({
-        success: false,
-        error: { message: 'Kullanıcı bulunamadı' },
-      });
+    const parsed = preferencesPatchSchema.safeParse(preferences ?? {});
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: { message: 'Tercihler geçersiz', details: parsed.error.flatten() } });
       return;
     }
-
-    // Check if username is already taken (if trying to change)
-    if (username && username !== user.username) {
-      const existingUser = await User.findOne({
-        where: { username },
-      });
-
-      if (existingUser) {
-        res.status(400).json({
-          success: false,
-          error: { message: 'Bu kullanıcı adı zaten kullanılıyor' },
-        });
-        return;
-      }
-
-      user.username = username;
-    }
-
-    if (firstName) user.firstName = firstName;
-    if (lastName) user.lastName = lastName;
-    if (profileImage !== undefined) user.profileImage = profileImage;
-    if (preferences) user.preferences = { ...user.preferences, ...preferences };
-
-    await user.save();
-
-    const userResponse = {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      fullName: user.getFullName(),
-      role: user.role,
-      isActive: user.isActive,
-      profileImage: user.profileImage,
-      preferences: user.preferences,
-      updatedAt: user.updatedAt,
-    };
-
-    res.json({
-      success: true,
-      message: 'Profil başarıyla güncellendi',
-      data: { user: userResponse },
+    const user = await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
+      const current = await User.findByPk(req.user.id, { transaction });
+      if (!current?.isActive) throw Object.assign(new Error('Kullanıcı bulunamadı'), { statusCode: 404 });
+      if (firstName) current.firstName = firstName;
+      if (lastName) current.lastName = lastName;
+      if (username) current.username = username;
+      if (profileImage !== undefined) current.profileImage = profileImage;
+      if (preferences !== undefined) current.preferences = { ...current.preferences, ...preferencesSchema.parse({ ...current.preferences, ...parsed.data }) };
+      await current.save({ transaction });
+      return current;
     });
-  } catch (error) {
-    next(error);
-  }
+    const profile = user.toJSON();
+    res.json({ success: true, message: 'Profil başarıyla güncellendi', data: { user: { ...profile, password: undefined, fullName: user.getFullName(), preferences: preferencesSchema.parse(user.preferences) } } });
+  } catch (error) { next(error); }
 };
 
 export const changePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

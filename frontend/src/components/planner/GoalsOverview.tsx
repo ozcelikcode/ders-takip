@@ -1,5 +1,7 @@
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
+import { useCurrentDateKey } from '../../hooks/useCurrentDateKey';
 import { useQuery } from '@tanstack/react-query';
-import { format, isAfter, isBefore, parseISO } from 'date-fns';
+import { isAfter, isBefore, parseISO } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Activity, AlertCircle, Book, Calendar as CalendarIcon, Check, CheckCircle, ChevronDown, Clock, Edit, Pause, Play, Plus, RotateCcw, Timer } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
@@ -11,6 +13,8 @@ import ConfirmDialog from '../common/ConfirmDialog';
 import CreateSessionModal from './CreateSessionModal';
 
 const TodaysPlans: React.FC = () => {
+  const accountKeys = useAccountQueryKeys();
+  const today = useCurrentDateKey();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -29,9 +33,8 @@ const TodaysPlans: React.FC = () => {
   });
 
   const { data: sessionsData, isLoading: sessionsLoading, isError: sessionsError, refetch } = useQuery({
-    queryKey: ['todays-sessions'],
+    queryKey: accountKeys.sessions('todays-sessions', today),
     queryFn: async () => {
-      const today = format(new Date(), 'yyyy-MM-dd');
 
       const response = await studySessionsAPI.getSessions({ startDate: today, endDate: today });
       return response.data.data?.sessions || [];

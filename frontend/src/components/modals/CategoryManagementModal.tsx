@@ -1,3 +1,4 @@
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Dialog } from '@headlessui/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -37,6 +38,7 @@ interface CategoryManagementModalProps {
 }
 
 const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpen, onClose }) => {
+  const accountKeys = useAccountQueryKeys();
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -84,7 +86,7 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
   ];
 
   const { data: categoriesData, isLoading } = useQuery({
-    queryKey: ['categories'],
+    queryKey: accountKeys.catalog('categories'),
     queryFn: () => categoriesAPI.getCategories(),
     enabled: isOpen,
   });
@@ -114,8 +116,7 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
     mutationFn: (data: CategoryForm) => categoriesAPI.createCategory(data),
     onSuccess: () => {
       toast.success('Kategori başarıyla oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.catalog() });
       handleCloseCreateModal();
     },
     onError: () => {
@@ -128,8 +129,7 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
       categoriesAPI.updateCategory(id, data),
     onSuccess: () => {
       toast.success('Kategori başarıyla güncellendi');
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.catalog() });
       handleCloseCreateModal();
     },
     onError: () => {
@@ -141,8 +141,7 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
     mutationFn: (id: string) => categoriesAPI.deleteCategory(id),
     onSuccess: () => {
       toast.success('Kategori başarıyla silindi');
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.catalog() });
     },
     onError: () => {
       toast.error('Kategori silinirken hata oluştu');

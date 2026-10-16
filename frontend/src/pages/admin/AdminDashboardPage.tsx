@@ -1,3 +1,4 @@
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Activity, BookOpen, Calendar, Clock, Settings, Target, Users } from 'lucide-react';
@@ -5,8 +6,9 @@ import { Link } from 'react-router-dom';
 import { coursesAPI, studySessionsAPI, usersAPI } from '../../services/api';
 
 const AdminDashboardPage = () => {
+  const accountKeys = useAccountQueryKeys();
   const { data: usersData } = useQuery({
-    queryKey: ['admin-dashboard-users'],
+    queryKey: accountKeys.resource('admin-dashboard-users'),
     queryFn: async () => {
       const response = await usersAPI.getUsers();
       return response.data.data?.users || [];
@@ -14,7 +16,7 @@ const AdminDashboardPage = () => {
   });
 
   const { data: coursesData } = useQuery({
-    queryKey: ['admin-dashboard-courses'],
+    queryKey: accountKeys.catalog('admin-dashboard-courses'),
     queryFn: async () => {
       const response = await coursesAPI.getCourses();
       return response.data.data?.courses || [];
@@ -22,7 +24,7 @@ const AdminDashboardPage = () => {
   });
 
   const { data: sessionsData } = useQuery({
-    queryKey: ['admin-dashboard-sessions'],
+    queryKey: accountKeys.sessions('admin-dashboard-sessions'),
     queryFn: async () => {
       const response = await studySessionsAPI.getSessions();
       return response.data.data?.sessions || [];

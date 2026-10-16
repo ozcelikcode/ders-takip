@@ -1,3 +1,4 @@
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { initializeCalendarViewport } from './calendarViewport';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Calendar, CheckCircle, ChevronLeft, ChevronRight, Edit, MoveLeft, MoveRight, Pause, Play, Trash2 } from 'lucide-react';
@@ -40,6 +41,7 @@ const adjustColor = (color: string, amount: number): string => {
 };
 
 const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
+  const accountKeys = useAccountQueryKeys();
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [draggedSession, setDraggedSession] = useState<StudySession | null>(null);
@@ -87,7 +89,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
   }, []);
 
   const { data: sessionsData, refetch } = useQuery({
-    queryKey: ['daily-sessions', format(selectedDate, 'yyyy-MM-dd')],
+    queryKey: accountKeys.sessions('daily-sessions', format(selectedDate, 'yyyy-MM-dd')),
     queryFn: async () => {
       const dayStr = format(selectedDate, 'yyyy-MM-dd');
       const response = await studySessionsAPI.getSessions({
@@ -204,8 +206,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
 
       if (response.data.success) {
         toast.success('Oturum başarıyla taşındı', { id: 'moving-session' });
-        queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-        queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+        queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
         await refetch();
       } else {
         throw new Error(response.data.error?.message || 'Bilinmeyen hata');
@@ -257,8 +258,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
 
       if (response.data.success) {
         toast.success('Oturum başarıyla taşındı', { id: 'moving-session' });
-        queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-        queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+        queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
         await refetch();
         setMoveModalSession(null);
       }
@@ -277,8 +277,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
     try {
       await studySessionsAPI.startSession(session.id.toString());
       toast.success('Çalışma seansı başlatıldı');
-      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
       refetch();
     } catch {
       toast.error('Seans başlatılırken hata oluştu');
@@ -295,8 +294,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
         try {
           await studySessionsAPI.pauseSession(session.id.toString());
           toast.success('Çalışma seansı duraklatıldı');
-          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+          queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
           refetch();
         } catch {
           toast.error('Seans duraklatılırken hata oluştu');
@@ -315,8 +313,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
         try {
           await studySessionsAPI.completeSession(session.id.toString());
           toast.success('Çalışma seansı tamamlandı');
-          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+          queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
           refetch();
         } catch {
           toast.error('Seans tamamlanırken hata oluştu');
@@ -389,8 +386,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
             endTime: newEndTime.toISOString(),
           });
           toast.success('Süre güncellendi');
-          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+          queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
           refetch();
         } catch {
           toast.error('Süre güncellenirken hata oluştu');
@@ -708,7 +704,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
                   toast.loading('Önceki güne taşınıyor...', { id: 'move-day' });
                   await studySessionsAPI.updateSession(draggedSession.id.toString(), { startTime: newStart.toISOString(), endTime: newEnd.toISOString() });
                   toast.success('Önceki güne taşındı', { id: 'move-day' });
-                  queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+                  queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
                   refetch();
                 } catch { toast.error('Hata oluştu', { id: 'move-day' }); }
                 setDraggedSession(null);
@@ -730,7 +726,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
                   toast.loading('Sonraki güne taşınıyor...', { id: 'move-day' });
                   await studySessionsAPI.updateSession(draggedSession.id.toString(), { startTime: newStart.toISOString(), endTime: newEnd.toISOString() });
                   toast.success('Sonraki güne taşındı', { id: 'move-day' });
-                  queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+                  queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
                   refetch();
                 } catch { toast.error('Hata oluştu', { id: 'move-day' }); }
                 setDraggedSession(null);

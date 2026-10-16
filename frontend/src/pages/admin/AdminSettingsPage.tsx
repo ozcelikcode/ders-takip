@@ -1,5 +1,5 @@
+import { defaultSiteSettings, siteSettingsSchema, type SiteSettings } from '@study-tracker/contracts';
 import { useAuthStore } from '../../store/authStore';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { motion } from 'framer-motion';
@@ -29,33 +29,17 @@ Users
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { z } from 'zod';
 import { backupAPI } from '../../services/api';
 import { useSettingsStore } from '../../store/settingsStore';
 
-const siteSettingsSchema = z.object({
-  siteName: z.string().min(1, 'Site adı gereklidir'),
-  siteDescription: z.string().min(1, 'Site açıklaması gereklidir'),
-  siteUrl: z.string().url('Geçerli bir URL girin'),
-  adminEmail: z.string().email('Geçerli bir email girin'),
-  siteLogo: z.string().optional(),
-  siteIcon: z.string().optional(),
-  allowRegistration: z.boolean(),
-  maintenanceMode: z.boolean(),
-  emailNotifications: z.boolean(),
-  pushNotifications: z.boolean(),
-  primaryColor: z.string(),
-  backup_interval: z.enum(['1', '5', '7']),
-});
-
-type SiteSettingsForm = z.infer<typeof siteSettingsSchema>;
-const toBackupInterval = (value: unknown): '1' | '5' | '7' => value === '1' || value === '5' ? value : '7';
+type SiteSettingsForm = SiteSettings;
 
 const AdminSettingsPage = () => {
   const [activeTab, setActiveTab] = useState<'general' | 'security' | 'notifications' | 'appearance' | 'backup'>('general');
   const [backups, setBackups] = useState<any[]>([]);
   const [isBackingUp, setIsBackingUp] = useState(false);
-  const { settings, fetchSettings, updateSettings } = useSettingsStore();
+  const { adminSettings, fetchAdminSettings, updateSettings, isLoading, error: settingsError } = useSettingsStore();
+  const settings = adminSettings || defaultSiteSettings;
 
   const {
     register,
@@ -63,20 +47,23 @@ const AdminSettingsPage = () => {
     watch,
     setValue,
     reset,
-    formState: { errors, isDirty },
+    formState: { errors, isDirty, isSubmitting },
   } = useForm<SiteSettingsForm>({
-    resolver: zodResolver(siteSettingsSchema),
-    defaultValues: { ...settings, backup_interval: toBackupInterval(settings.backup_interval) },
+    resolver: async values => {
+      const result = siteSettingsSchema.safeParse(values);
+      return result.success ? { values: result.data, errors: {} } : { values: {}, errors: Object.fromEntries(result.error.issues.map(issue => [issue.path[0], { type: 'validate', message: 'Geçerli bir değer girin' }])) };
+    },
+    defaultValues: settings,
   });
 
   // Fetch settings on mount
   React.useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
+    void fetchAdminSettings();
+  }, [fetchAdminSettings]);
 
   // Update form when settings change
   React.useEffect(() => {
-    reset({ ...settings, backup_interval: toBackupInterval(settings.backup_interval) });
+    reset(settings);
   }, [settings, reset]);
 
   const loadBackups = async () => {
@@ -211,6 +198,7 @@ const AdminSettingsPage = () => {
         {/* Content */}
         <div className="lg:col-span-3">
           <form onSubmit={handleSubmit(onSubmit)}>
+            {settingsError && <p role="alert" className="mb-4 text-sm text-red-600">{settingsError}</p>}
             <div className="card">
               <div className="card-body space-y-6">
                 {/* General Settings */}
@@ -224,10 +212,11 @@ const AdminSettingsPage = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="siteName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Site Adı *
                         </label>
                         <input
+                          id="siteName"
                           {...register('siteName')}
                           type="text"
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
@@ -238,10 +227,11 @@ const AdminSettingsPage = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="siteUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Site URL *
                         </label>
                         <input
+                          id="siteUrl"
                           {...register('siteUrl')}
                           type="url"
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
@@ -253,11 +243,12 @@ const AdminSettingsPage = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label htmlFor="siteDescription" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Site Açıklaması *
                       </label>
                       <textarea
-                        {...register('siteDescription')}
+                        id="siteDescription"
+                          {...register('siteDescription')}
                         rows={3}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       />
@@ -268,10 +259,11 @@ const AdminSettingsPage = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="adminEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Admin Email *
                         </label>
                         <input
+                          id="adminEmail"
                           {...register('adminEmail')}
                           type="email"
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
@@ -282,10 +274,11 @@ const AdminSettingsPage = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="siteLogo" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Site Logosu (URL)
                         </label>
                         <input
+                          id="siteLogo"
                           {...register('siteLogo')}
                           type="text"
                           placeholder="https://example.com/logo.png"
@@ -306,6 +299,8 @@ const AdminSettingsPage = () => {
                             <button
                               key={item.id}
                               type="button"
+                              aria-label={`${item.id} site ikonu`}
+                              aria-pressed={isSelected}
                               onClick={() => setValue('siteIcon', item.id, { shouldDirty: true })}
                               className={`p-2 rounded-md border flex items-center justify-center transition-all ${isSelected
                                 ? 'bg-blue-50 border-blue-500 text-blue-600 dark:bg-blue-900/20 dark:border-blue-400 dark:text-blue-300'
@@ -569,7 +564,7 @@ const AdminSettingsPage = () => {
                 <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
                   <button
                     type="submit"
-                    disabled={!isDirty}
+                    disabled={!isDirty || !adminSettings || isLoading || isSubmitting}
                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
                   >
                     <Save className="w-4 h-4" />

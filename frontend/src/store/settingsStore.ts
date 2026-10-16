@@ -1,224 +1,61 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { defaultSiteSettings, publicSettingsSchema, siteSettingsSchema, settingsPatchSchema, type PublicSettings, type SiteSettings } from '@study-tracker/contracts';
 import { settingsAPI } from '../services/api';
-
-export interface SiteSettings {
-  siteName: string;
-  siteDescription: string;
-  siteUrl: string;
-  adminEmail: string;
-  allowRegistration: boolean;
-  maintenanceMode: boolean;
-  maxStudentsPerCourse: number;
-  sessionTimeout: number;
-  emailNotifications: boolean;
-  pushNotifications: boolean;
-  primaryColor: string;
-  secondaryColor: string;
-  backup_interval: string;
-}
+export type { SiteSettings } from '@study-tracker/contracts';
 
 interface SettingsState {
-  settings: SiteSettings;
+  settings: PublicSettings;
+  adminSettings: SiteSettings | null;
   isLoading: boolean;
-  lastFetched: number | null;
-
-  // Actions
+  error: string | null;
   fetchSettings: () => Promise<void>;
+  fetchAdminSettings: () => Promise<void>;
+  clearAdminSettings: () => void;
   updateSettings: (data: Partial<SiteSettings>) => Promise<void>;
-  applyTheme: () => void;
 }
-
-const defaultSettings: SiteSettings = {
-  siteName: 'Görev Takip Sistemi',
-  siteDescription: 'Herkes için modern görev takip ve zaman yönetimi platformu',
-  siteUrl: 'http://localhost:3000',
-  adminEmail: 'admin@test.com',
-  allowRegistration: true,
-  maintenanceMode: false,
-  maxStudentsPerCourse: 50,
-  sessionTimeout: 60,
-  emailNotifications: true,
-  pushNotifications: true,
-  primaryColor: '#3B82F6',
-  secondaryColor: '#10B981',
-  backup_interval: '7',
+localStorage.removeItem('settings-storage');
+const initial = () => {
+  try { return publicSettingsSchema.parse(JSON.parse(localStorage.getItem('site-branding') || 'null')); }
+  catch { return publicSettingsSchema.parse(defaultSiteSettings); }
 };
-
-export const useSettingsStore = create<SettingsState>()(
-  persist(
-    (set, get) => ({
-      settings: defaultSettings,
-      isLoading: false,
-      lastFetched: null,
-
-      fetchSettings: async () => {
-        const now = Date.now();
-        const lastFetched = get().lastFetched;
-
-        // Cache for 5 minutes
-        if (lastFetched && now - lastFetched < 5 * 60 * 1000) {
-          return;
-        }
-
-        set({ isLoading: true });
-
-        try {
-          const response = await settingsAPI.getSettings();
-          const settingsData = response.data.data || {};
-
-          const settings: SiteSettings = {
-            backup_interval: String(settingsData.backup_interval || '7'),
-            siteName: settingsData.siteName || defaultSettings.siteName,
-            siteDescription: settingsData.siteDescription || defaultSettings.siteDescription,
-            siteUrl: settingsData.siteUrl || defaultSettings.siteUrl,
-            adminEmail: settingsData.adminEmail || defaultSettings.adminEmail,
-            allowRegistration: settingsData.allowRegistration ?? defaultSettings.allowRegistration,
-            maintenanceMode: settingsData.maintenanceMode ?? defaultSettings.maintenanceMode,
-            maxStudentsPerCourse: settingsData.maxStudentsPerCourse || defaultSettings.maxStudentsPerCourse,
-            sessionTimeout: settingsData.sessionTimeout || defaultSettings.sessionTimeout,
-            emailNotifications: settingsData.emailNotifications ?? defaultSettings.emailNotifications,
-            pushNotifications: settingsData.pushNotifications ?? defaultSettings.pushNotifications,
-            primaryColor: settingsData.primaryColor || defaultSettings.primaryColor,
-            secondaryColor: settingsData.secondaryColor || defaultSettings.secondaryColor,
-          };
-
-          set({
-            settings,
-            isLoading: false,
-            lastFetched: now,
-          });
-
-          // Apply theme
-          get().applyTheme();
-        } catch (error) {
-          console.error('Failed to fetch settings:', error);
-          set({ isLoading: false });
-        }
-      },
-
-      updateSettings: async (data: Partial<SiteSettings>) => {
-        set({ isLoading: true });
-
-        try {
-          const response = await settingsAPI.updateSettings(data);
-          const settingsData = response.data.data || {};
-
-          const settings: SiteSettings = {
-            backup_interval: String(settingsData.backup_interval || '7'),
-            siteName: settingsData.siteName || defaultSettings.siteName,
-            siteDescription: settingsData.siteDescription || defaultSettings.siteDescription,
-            siteUrl: settingsData.siteUrl || defaultSettings.siteUrl,
-            adminEmail: settingsData.adminEmail || defaultSettings.adminEmail,
-            allowRegistration: settingsData.allowRegistration ?? defaultSettings.allowRegistration,
-            maintenanceMode: settingsData.maintenanceMode ?? defaultSettings.maintenanceMode,
-            maxStudentsPerCourse: settingsData.maxStudentsPerCourse || defaultSettings.maxStudentsPerCourse,
-            sessionTimeout: settingsData.sessionTimeout || defaultSettings.sessionTimeout,
-            emailNotifications: settingsData.emailNotifications ?? defaultSettings.emailNotifications,
-            pushNotifications: settingsData.pushNotifications ?? defaultSettings.pushNotifications,
-            primaryColor: settingsData.primaryColor || defaultSettings.primaryColor,
-            secondaryColor: settingsData.secondaryColor || defaultSettings.secondaryColor,
-          };
-
-          set({
-            settings,
-            isLoading: false,
-            lastFetched: Date.now(),
-          });
-
-          // Apply theme
-          get().applyTheme();
-        } catch (error) {
-          console.error('Failed to update settings:', error);
-          set({ isLoading: false });
-          throw error;
-        }
-      },
-
-      applyTheme: () => {
-        const { settings } = get();
-        const root = document.documentElement;
-
-        // Apply primary color
-        if (settings.primaryColor) {
-          // Convert hex to RGB for Tailwind CSS variables
-          const hexToRgb = (hex: string) => {
-            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result
-              ? {
-                r: parseInt(result[1], 16),
-                g: parseInt(result[2], 16),
-                b: parseInt(result[3], 16),
-              }
-              : null;
-          };
-
-          // SITE SETTINGS should not overwrite USER preferences if they exist
-          const userPrefsStr = localStorage.getItem('user-preferences-storage');
-          let hasUserCustomColor = false;
-          if (userPrefsStr) {
-            try {
-              const userPrefs = JSON.parse(userPrefsStr).state.preferences;
-              if (userPrefs.customPrimaryColor) hasUserCustomColor = true;
-            } catch {
-              // Ignore parse errors
-            }
-          }
-
-          if (hasUserCustomColor) {
-            console.log('SettingsStore: Skipping site primary color application as user has a custom color set.');
-          } else {
-            const primaryRgb = hexToRgb(settings.primaryColor);
-            if (primaryRgb) {
-              root.style.setProperty('--color-primary', `${primaryRgb.r} ${primaryRgb.g} ${primaryRgb.b}`);
-            }
-          }
-        }
-
-        // Apply secondary color
-        if (settings.secondaryColor) {
-          const hexToRgb = (hex: string) => {
-            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result
-              ? {
-                r: parseInt(result[1], 16),
-                g: parseInt(result[2], 16),
-                b: parseInt(result[3], 16),
-              }
-              : null;
-          };
-
-          const secondaryRgb = hexToRgb(settings.secondaryColor);
-          if (secondaryRgb) {
-            root.style.setProperty('--color-secondary', `${secondaryRgb.r} ${secondaryRgb.g} ${secondaryRgb.b}`);
-          }
-        }
-
-        // Update document title
-        if (settings.siteName) {
-          document.title = settings.siteName;
-        }
-
-        // Update meta description
-        if (settings.siteDescription) {
-          const metaDescription = document.querySelector('meta[name="description"]');
-          if (metaDescription) {
-            metaDescription.setAttribute('content', settings.siteDescription);
-          }
-        }
-      },
-    }),
-    {
-      name: 'settings-storage',
-      partialize: (state) => ({
-        settings: state.settings,
-        lastFetched: state.lastFetched,
-      }),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.applyTheme();
-        }
-      },
-    }
-  )
-);
+let adminGeneration = 0;
+let publicRevision = 0;
+const storePublic = (settings: PublicSettings) => { try { localStorage.setItem('site-branding', JSON.stringify(settings)); } catch { /* Storage is optional. */ } };
+export const useSettingsStore = create<SettingsState>()((set) => ({
+  settings: initial(), adminSettings: null, isLoading: false, error: null,
+  fetchSettings: async () => {
+    const revision = ++publicRevision;
+    try {
+      const response = await settingsAPI.getSettings();
+      const settings = publicSettingsSchema.parse(response.data.data);
+      if (revision !== publicRevision) return;
+      storePublic(settings); set({ settings });
+    } catch { set({ error: 'Site bilgileri yenilenemedi' }); }
+  },
+  fetchAdminSettings: async () => {
+    const generation = adminGeneration;
+    set({ isLoading: true, error: null });
+    try {
+      const response = await settingsAPI.getAdminSettings();
+      const adminSettings = siteSettingsSchema.parse(response.data.data);
+      if (generation !== adminGeneration) return;
+      const settings = publicSettingsSchema.parse(adminSettings);
+      publicRevision++;
+      storePublic(settings); set({ adminSettings, settings, isLoading: false });
+    } catch { if (generation === adminGeneration) set({ isLoading: false, error: 'Yönetim ayarları yüklenemedi' }); }
+  },
+  clearAdminSettings: () => { adminGeneration++; set({ adminSettings: null, isLoading: false, error: null }); },
+  updateSettings: async data => {
+    const parsed = settingsPatchSchema.parse(data);
+    const generation = adminGeneration;
+    set({ isLoading: true, error: null });
+    try {
+      const response = await settingsAPI.updateSettings(parsed);
+      if (generation !== adminGeneration) return;
+      const adminSettings = siteSettingsSchema.parse(response.data.data);
+      const settings = publicSettingsSchema.parse(adminSettings);
+      publicRevision++;
+      storePublic(settings); set({ adminSettings, settings, isLoading: false });
+    } catch (error) { if (generation === adminGeneration) set({ isLoading: false, error: 'Ayarlar kaydedilemedi' }); throw error; }
+  },
+}));

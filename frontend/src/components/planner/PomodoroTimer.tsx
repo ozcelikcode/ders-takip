@@ -1,3 +1,4 @@
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Coffee, Pause, Play, RotateCcw, Square, Target, Volume2, VolumeX } from 'lucide-react';
@@ -15,6 +16,7 @@ type TimerPhase = 'work' | 'shortBreak' | 'longBreak';
 type TimerStatus = 'idle' | 'running' | 'paused' | 'completed';
 
 const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete }) => {
+  const accountKeys = useAccountQueryKeys();
   const queryClient = useQueryClient();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -38,7 +40,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete }) =>
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
     },
   });
 
@@ -49,7 +51,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete }) =>
     },
     onSuccess: () => {
       toast.success('Çalışma seansı tamamlandı!');
-      queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
       onComplete?.();
     },
   });

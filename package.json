@@ -4,6 +4,7 @@
   "description": "TYT-AYT Ders Takip ve Planlama Sistemi - Full Stack Application",
   "private": true,
   "workspaces": [
+    "packages/contracts",
     "backend",
     "frontend"
   ],
@@ -26,7 +27,12 @@
     "check": "npm run check:naming && npm run typecheck && npm run lint && npm test && npm run build",
     "configure": "node scripts/configure-development.mjs",
     "db:migrate": "npm run db:migrate --workspace backend",
-    "admin:manage": "npm run admin:manage --workspace backend --"
+    "admin:manage": "npm run admin:manage --workspace backend --",
+    "pretypecheck": "npm run build --workspace @study-tracker/contracts",
+    "pretest": "npm run build --workspace @study-tracker/contracts",
+    "predev:all": "npm run build --workspace @study-tracker/contracts",
+    "predev:backend": "npm run build --workspace @study-tracker/contracts",
+    "predev:frontend": "npm run build --workspace @study-tracker/contracts"
   },
   "keywords": [
     "education",

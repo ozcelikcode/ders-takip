@@ -1,3 +1,4 @@
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Dialog } from '@headlessui/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -31,6 +32,7 @@ interface CreateUserModalProps {
 }
 
 const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose }) => {
+  const accountKeys = useAccountQueryKeys();
   const queryClient = useQueryClient();
 
   const {
@@ -56,7 +58,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose }) =>
     },
     onSuccess: () => {
       toast.success('Kullanıcı başarıyla oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.resource() });
       handleClose();
     },
     onError: (error: any) => {

@@ -1,3 +1,4 @@
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Menu } from '@headlessui/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
@@ -11,6 +12,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { studySessionsAPI, usersAPI } from '../../services/api';
 
 const AdminUsersPage = () => {
+  const accountKeys = useAccountQueryKeys();
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -29,7 +31,7 @@ const AdminUsersPage = () => {
   const queryClient = useQueryClient();
 
   const { data: usersData, isLoading } = useQuery({
-    queryKey: ['admin-users'],
+    queryKey: accountKeys.resource('admin-users'),
     queryFn: async () => {
       const response = await usersAPI.getUsers();
       return response.data.data?.users || [];
@@ -37,7 +39,7 @@ const AdminUsersPage = () => {
   });
 
   const { data: userStatsData } = useQuery({
-    queryKey: ['admin-user-stats'],
+    queryKey: accountKeys.resource('admin-user-stats'),
     queryFn: async () => {
       if (!usersData) return {};
 
@@ -86,7 +88,7 @@ const AdminUsersPage = () => {
     },
     onSuccess: () => {
       toast.success('Kullanıcı silindi');
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.resource() });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error?.message || 'Silme işlemi başarısız');
@@ -99,7 +101,7 @@ const AdminUsersPage = () => {
     },
     onSuccess: () => {
       toast.success('Kullanıcı güncellendi');
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.resource() });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error?.message || 'Güncelleme başarısız');

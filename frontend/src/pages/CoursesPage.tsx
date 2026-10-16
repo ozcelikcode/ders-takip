@@ -1,3 +1,4 @@
+import { useAccountQueryKeys } from '../hooks/useAccountQueryKeys';
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -40,13 +41,14 @@ interface Course {
 }
 
 const CoursesPage = () => {
+  const accountKeys = useAccountQueryKeys();
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showCourseModal, setShowCourseModal] = useState(false);
 
   const { data: coursesData, isLoading, error } = useQuery({
-    queryKey: ['courses', { includeTopics: true }],
+    queryKey: accountKeys.catalog('courses', { includeTopics: true }),
     queryFn: () => coursesAPI.getCourses({ includeTopics: true }),
   });
 

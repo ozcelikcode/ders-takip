@@ -1,3 +1,4 @@
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Dialog } from '@headlessui/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -28,6 +29,7 @@ interface CourseCreateModalProps {
 }
 
 const CourseCreateModal: React.FC<CourseCreateModalProps> = ({ isOpen, onClose }) => {
+  const accountKeys = useAccountQueryKeys();
   const [selectedIcon, setSelectedIcon] = useState('BookOpen');
   const queryClient = useQueryClient();
 
@@ -62,7 +64,7 @@ const CourseCreateModal: React.FC<CourseCreateModalProps> = ({ isOpen, onClose }
   ];
 
   const { data: categoriesData } = useQuery({
-    queryKey: ['categories'],
+    queryKey: accountKeys.catalog('categories'),
     queryFn: async () => {
       const response = await categoriesAPI.getCategories();
       return response.data.data?.categories || [];
@@ -99,7 +101,7 @@ const CourseCreateModal: React.FC<CourseCreateModalProps> = ({ isOpen, onClose }
     mutationFn: (data: CourseForm) => coursesAPI.createCourse(data),
     onSuccess: () => {
       toast.success('Ders başarıyla oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.catalog() });
       handleClose();
     },
     onError: () => {

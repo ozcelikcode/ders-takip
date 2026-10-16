@@ -1,3 +1,5 @@
+import { useCurrentDateKey } from '../../hooks/useCurrentDateKey';
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import PageHeader from '../../components/common/PageHeader';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
@@ -23,6 +25,8 @@ import { StudySession } from '../../types/planner';
 type PomodoroPhase = 'work' | 'shortBreak' | 'longBreak';
 
 const PomodoroPage = () => {
+  const accountKeys = useAccountQueryKeys();
+  const today = useCurrentDateKey();
   const queryClient = useQueryClient();
   const [selectedSession, setSelectedSession] = useState<StudySession | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -32,9 +36,8 @@ const PomodoroPage = () => {
 
   // Fetch today's pomodoro sessions
   const { data: sessions } = useQuery({
-    queryKey: ['pomodoro-sessions'],
+    queryKey: accountKeys.sessions('pomodoro-sessions', today),
     queryFn: async () => {
-      const today = format(new Date(), 'yyyy-MM-dd');
       const response = await studySessionsAPI.getSessions({
         startDate: today,
         endDate: today,
@@ -131,8 +134,7 @@ const PomodoroPage = () => {
         toast.success('Pomodoro seansı başlatıldı!');
         setSelectedSession(session);
         setIsRunning(true);
-        queryClient.invalidateQueries({ queryKey: ['pomodoro-sessions'] });
-        queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+        queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
       } catch {
         toast.error('Seans başlatılırken hata oluştu');
       }
@@ -141,8 +143,7 @@ const PomodoroPage = () => {
         await studySessionsAPI.startSession(session.id.toString());
         toast.success('Pomodoro seansı devam ediyor!');
         setIsRunning(true);
-        queryClient.invalidateQueries({ queryKey: ['pomodoro-sessions'] });
-        queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+        queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
       } catch {
         toast.error('Seans başlatılırken hata oluştu');
       }
@@ -156,8 +157,7 @@ const PomodoroPage = () => {
       await studySessionsAPI.pauseSession(session.id.toString());
       toast.success('Pomodoro seansı duraklatıldı');
       setIsRunning(false);
-      queryClient.invalidateQueries({ queryKey: ['pomodoro-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
     } catch {
       toast.error('Seans duraklatılırken hata oluştu');
     }
@@ -169,8 +169,7 @@ const PomodoroPage = () => {
       toast.success('Pomodoro seansı tamamlandı');
       setIsRunning(false);
       setSelectedSession(null);
-      queryClient.invalidateQueries({ queryKey: ['pomodoro-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
     } catch {
       toast.error('Seans tamamlanırken hata oluştu');
     }
@@ -182,8 +181,7 @@ const PomodoroPage = () => {
         status: 'planned',
       });
       toast.success('Pomodoro seansı yeniden başlatıldı');
-      queryClient.invalidateQueries({ queryKey: ['pomodoro-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
     } catch {
       toast.error('Seans yeniden başlatılırken hata oluştu');
     }

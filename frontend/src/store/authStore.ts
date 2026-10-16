@@ -1,3 +1,6 @@
+import { useUserPreferencesStore } from './userPreferencesStore';
+import { useSettingsStore } from './settingsStore';
+import type { ProfileUpdate } from '../types/auth';
 import toast from 'react-hot-toast';
 import { isAxiosError } from 'axios';
 import { create } from 'zustand';
@@ -14,11 +17,10 @@ interface AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
-  updateProfile: (data: Partial<User>) => Promise<void>;
+  updateProfile: (data: ProfileUpdate) => Promise<void>;
   initializeAuth: () => Promise<void>;
   refreshSession: () => Promise<string>;
   clearAuth: () => void;
-  setUser: (user: User | null) => void;
   isAdmin: () => boolean;
 }
 let refreshPromise: Promise<string> | null = null;
@@ -27,6 +29,14 @@ let initialized = false;
 const channel = typeof window.BroadcastChannel === 'function' ? new window.BroadcastChannel('study-tracker-auth') : null;
 const notifyPeers = () => channel?.postMessage('session-changed');
 const finishLogout = async () => { await authAPI.logout(); localStorage.removeItem('auth-logout-pending'); };
+
+const acceptUserSnapshot = (user: User, preferenceRevision: number): User => {
+  const preferences = useUserPreferencesStore.getState();
+  const current = useAuthStore.getState().user;
+  return current && String(current.id) === String(user.id) && preferences.revision !== preferenceRevision
+    ? { ...user, preferences: preferences.preferences }
+    : user;
+};
 
 // Access credentials live only in memory. The refresh cookie is HttpOnly.
 localStorage.removeItem('auth-storage');
@@ -66,13 +76,14 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   refreshSession: () => {
     if (refreshPromise) return refreshPromise;
     const epoch = get().epoch;
+    const preferenceRevision = useUserPreferencesStore.getState().revision;
     refreshPromise = (async () => {
       try {
         const response = await authAPI.refreshToken();
         if (get().epoch !== epoch) throw new Error('Session changed while refreshing');
         const { user, tokens } = response.data.data;
         if (get().user && String(get().user?.id) !== String(user.id)) { get().clearAuth(); throw new Error('Account changed during refresh'); }
-        set({ user, accessToken: tokens.accessToken, isAuthenticated: true, isLoading: false });
+        set({ user: acceptUserSnapshot(user, preferenceRevision), accessToken: tokens.accessToken, isAuthenticated: true, isLoading: false });
         return tokens.accessToken;
       } catch (error) {
         if (get().epoch === epoch) get().clearAuth();
@@ -92,14 +103,24 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   },
   updateProfile: async data => {
     const epoch = get().epoch;
+    const preferenceRevision = useUserPreferencesStore.getState().revision;
     const response = await authAPI.updateProfile(data);
-    if (get().epoch === epoch) set({ user: response.data.data?.user || null });
+    if (get().epoch !== epoch) throw new Error('Account changed while updating profile');
+    const user = response.data.data?.user;
+    // Profile writes are serialized; an acknowledged explicit preference patch is authoritative.
+    const hasPreferencePatch = Object.keys(data.preferences ?? {}).length > 0;
+    set({ user: user ? (hasPreferencePatch ? user : acceptUserSnapshot(user, preferenceRevision)) : null });
   },
-  setUser: user => set({ user }),
   isAdmin: () => get().user?.role === 'admin',
 }));
 useAuthStore.subscribe((state, previous) => {
-  if (state.user?.id !== previous.user?.id) queryClient.clear();
+  if (state.user?.id !== previous.user?.id) {
+    queryClient.clear();
+    useSettingsStore.getState().clearAdminSettings();
+    useUserPreferencesStore.getState().bindUser(state.user ? String(state.user.id) : null, state.user?.preferences);
+  } else if (state.user?.preferences !== previous.user?.preferences && useUserPreferencesStore.getState().pending === 0) {
+    useUserPreferencesStore.getState().bindUser(state.user ? String(state.user.id) : null, state.user?.preferences);
+  }
 });
 
 if (channel) channel.onmessage = () => useAuthStore.getState().clearAuth();

@@ -6,7 +6,7 @@ Ders, görev ve çalışma oturumlarını planlayan Türkçe web uygulaması. Te
 
 - Node.js 24.21.0 (`.nvmrc` / `.node-version`).
 - npm 11.19.0; tek paket yöneticisi ve kökteki `package-lock.json` kullanılır.
-- npm workspaces: `backend` ve `frontend`.
+- npm workspaces: `packages/contracts`, `backend` ve `frontend`.
 
 ```bash
 nvm use
@@ -27,7 +27,7 @@ npm run dev
 - API: [localhost:5002/api/health](http://localhost:5002/api/health).
 - Frontend `/api` çağrılarını Vite proxy üzerinden backend'e iletir.
 - Sunucu açılışı şema oluşturmaz, değiştirmez veya tablo silmez. Bekleyen migration ya da uyumsuz şema varsa başlangıç durur.
-- İlk migration mevcut uyumlu tabloları ve kayıtlarını koruyarak baseline oluşturur; `002-auth-sessions` iptal edilebilir oturum tablolarını ekler. Eksik kolon içeren eski şema otomatik onarılmaz; bunun için ayrı migration gerekir.
+- İlk migration mevcut uyumlu tabloları ve kayıtlarını koruyarak baseline oluşturur; `002-auth-sessions` iptal edilebilir oturum tablolarını, `003-user-preferences-v1` ortak tercih JSON sözleşmesini ekler. Eksik kolon içeren eski şema otomatik onarılmaz; bunun için ayrı migration gerekir.
 
 ## Yapılandırma
 
@@ -78,6 +78,28 @@ Otomatik yedek kontrolü her 5 dakikada çalışır. Son başarılı otomatik ye
 
 `settings_only` yalnız site ayarlarını sıfırlar. `all`, öğrenci hesapları ve ders/çalışma verilerini temizler; adminleri ve yedekleri korur. İki işlem de önce güvenlik yedeği alır ve silmeleri transaction içinde yürütür. Doğrulama testleri geçici veritabanlarında çalışır. Koordinasyon tek backend süreci içindir; çoklu instance ve harici SQLite yazıcıları bu kilide dahil değildir.
 
+## Site adını ve kimliğini değiştirme
+
+Admin hesabıyla [Site ayarları](http://localhost:3000/admin/settings) → Genel bölümünü açın. Site adı, açıklama, logo URL'si ve ikon seçimini kaydedin. Aynı ad giriş/kayıt, menü, yükleme ekranı ve tarayıcı başlığında; açıklama/ikon ilgili metadata ve favicon'da kullanılır. Türkçe veya başka bir marka adı seçilebilir. Kod/dosya adlarının İngilizce oluşu bu görünen adı sınırlamaz. Repo/paket adı ve hosting domain'i bu ayarla değişmez.
+
+Site kimliği kaydı mevcut ekranda hemen uygulanır; diğer açık ekranlar açılış/focus veya görünürken 60 saniyelik yenilemeyle alır. Gerçek siteye yeni bir ad atanmadı; ekran görüntülerindeki “Odak Atlası” geçici test verisidir.
+
+`GET /api/settings` yalnız public kimlik alanlarını döndürür. Private ayarlar `GET /api/settings/admin` ile admin yetkisi gerektirir; genel okuma ve kalıcı browser cache'inde admin e-postası/güvenlik ayarları bulunmaz. Güncellemeler izinli alan/tip şeması ve tek transaction kullanır. Eski public category ayar okuma yolu kaldırıldı. Kayıt izni/bakım/sessionTimeout gibi kalan ayarların sunucuda uygulanması hâlâ backlog'dadır.
+
+## Kişisel tercihler ve mevcut veriden geçiş
+
+Tema/system seçimi, renk, bildirim tercihleri, çalışma hedef/günleri, timezone ve Pomodoro varsayılanları ortak Preferences v1 sözleşmesiyle kaydedilir. Arayüz sunucu onayı bekler, hata ve devam eden kaydı gösterir. Tercihler sunucuda ve yalnız mevcut hesabın belleğinde tutulur; başka hesaba taşınmaz. Renk override'ı kaldırılınca site rengi kullanılır. Yeni seans formu kişisel Pomodoro varsayılanını alır; mevcut seans ayarı korunur. Bildirim/dil/timezone alanının kaydedilmesi gönderim/çeviri/backend zaman hesabının tamamlandığı anlamına gelmez.
+
+Mevcut kurulumda uygulamayı durdurup tutarlı yedek alın, sonra `npm run db:migrate` çalıştırın ve front/back'i birlikte güncelleyin. `003-user-preferences-v1`, eski workGoals/studyGoals/notifications biçimlerini dönüştürür; kaynak JSON'u DB'de arşivler, kimlik/parola/geçmişi korur. Arşiv API'ye çıkmaz. Gelecekteki bilinmeyen sürüm/bozuk JSON'da migration bütünüyle geri döner. Eski şemalı snapshot güncel restore tarafından reddedilir; uyumlu uygulama veya ayrı kopyada kontrollü migration gerekir.
+
+Kime ait olduğu bilinmeyen eski browser tercih/bildirim değerleri `unassigned-account-state` içinde manuel kurtarma için korunur; hiçbir hesaba otomatik atanmaz. Yeni okundu bildirimleri hesap anahtarlı tutulur. Sorgu cache'i account/resource/date/timezone kapsamındadır; seans yazmaları ilgili bütün özetleri birlikte yeniler.
+
+16 Ekim yerel geçişi private native snapshot sonrasında uygulandı; hesap/parola hash/oturum ve mevcut kayıt sayıları korundu, güncel şema yedeği oluşturuldu. Geçiş öncesi kopyanın yolu Git dışındaki `.local/preferences-upgrade-2026-10-16.json` içindedir.
+
+## Ortak sözleşme geliştirme
+
+`packages/contracts` tek TypeScript kaynaktan Node CJS ve tarayıcı ESM çıktısı üretir. Kök dev/typecheck/test ve workspace build akışları gerekli build'i yapar. Sözleşme export'u değiştiğinde geliştirme süreçlerini yeniden başlatın; Vite `--force` workspace dependency cache'ini yeniler. Backend/shared Zod 4 ile henüz taşınmamış Zod 3 formlarının geliştirme çözümlemesi ayrılmıştır. Birden fazla Vite test sunucusu aynı cache dizinini paylaşmamalıdır.
+
 ## Geliştirme verileri
 
 Varsayılan parolalı hesap otomatik oluşturulmaz. Geliştirme ortamında örnek kategorileri ve admin hesabını açıkça oluşturmak için `backend/.env` içine `ADMIN_EMAIL`, `ADMIN_USERNAME` ve en az 12 karakterli `ADMIN_PASSWORD` ekleyin:
@@ -103,13 +125,14 @@ npm test
 npm run build
 ```
 
-Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 43 backend + 14 frontend = 57 testtir. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
+Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 3 contracts + 52 backend + 31 frontend = 86 testtir. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
 
 Adlandırma kontrolü dosya/klasör ve kod sembollerinde ASCII dışı adları yakalar. İsimlerin anlam bakımından İngilizce oluşu kod incelemesinde doğrulanır; Türkçe arayüz metinleri bu kontrolün dışındadır.
 
 ## Teknik yapı
 
 ```text
+packages/contracts/  Ortak Preferences/site kimliği runtime şemaları ve türetilmiş tipler
 backend/src/
   app.ts             HTTP uygulaması; import edilmesi sunucu veya cron başlatmaz
   index.ts           Başlangıç, bağlantı kontrolü ve kapanış
@@ -134,6 +157,6 @@ memory-bank/         Kalıcı kararlar, mevcut durum ve teknik inceleme
 
 ## Mevcut kapsam ve açık işler
 
-Uygulamada kayıt/giriş, ders/konu yönetimi, haftalık/günlük planlayıcı, Pomodoro ve yönetim ekranları bulunur. Oturum iptali ve tek süreçli snapshot/restore/reset paketi uygulandı ve hata senaryolarıyla test edildi. Üretime hazır olma iddiası yoktur. Gerçek çalışma süresi, zaman dilimi, tercih sözleşmesi, planner durum/çakışma bütünlüğü, diğer çok adımlı silmeler ve dağıtım/kurtarma operasyonları açık işlerdir.
+Uygulamada kayıt/giriş, ders/konu yönetimi, haftalık/günlük planlayıcı, Pomodoro ve yönetim ekranları bulunur. Oturum iptali, tek süreçli snapshot/restore/reset, Preferences v1, kullanıcı/tarih cache ayrımı ve değiştirilebilir site kimliği uygulandı ve davranış testleriyle doğrulandı. Üretime hazır olma iddiası yoktur. Gerçek çalışma süresi, zaman dilimi, planner durum/çakışma bütünlüğü, diğer çok adımlı silmeler ve dağıtım/kurtarma operasyonları açık işlerdir.
 
 Güncel ilerleme [memory-bank/progress.md](memory-bank/progress.md), çalışma kuralları [memory-bank/workingPrinciples.md](memory-bank/workingPrinciples.md), başlangıç incelemesi [teknik audit](memory-bank/audits/2026-10-15-project-audit.md) içindedir.

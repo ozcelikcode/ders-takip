@@ -1,8 +1,9 @@
 import { Model, QueryTypes, type ModelStatic, type SyncOptions, type Transactionable } from 'sequelize';
 import { sequelize } from '../config/database';
+import { migrateStoredPreferences } from './preferenceMigration';
 import { AuthSession, RefreshCredential } from '../models';
 
-export const requiredMigrations = ['001-initial-schema', '002-auth-sessions'];
+export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1'];
 async function validateExistingTables() {
   const query = sequelize.getQueryInterface();
   const tables = await query.showAllTables();
@@ -32,6 +33,13 @@ export async function applyMigrations(): Promise<void> {
       const options: SyncOptions & Transactionable = { transaction };
       if (name === '001-initial-schema') await sequelize.sync(options);
       else if (name === '002-auth-sessions') { await AuthSession.sync(options); await RefreshCredential.sync(options); }
+      else if (name === '003-user-preferences-v1') {
+        const users = await sequelize.query<{ id: number; preferences: unknown }>('SELECT id, preferences FROM users', { type: QueryTypes.SELECT, transaction });
+        for (const user of users) {
+          const preferences = migrateStoredPreferences(user.preferences);
+          await sequelize.query('UPDATE users SET preferences = :preferences WHERE id = :id', { replacements: { id: user.id, preferences: JSON.stringify(preferences) }, transaction });
+        }
+      }
       await sequelize.query('INSERT INTO schema_migrations (name) VALUES (:name)', { replacements: { name }, transaction });
     }
   });

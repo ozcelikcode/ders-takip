@@ -1,10 +1,13 @@
+import { pomodoroDefaults } from '@study-tracker/contracts';
+import { useUserPreferencesStore } from '../../store/userPreferencesStore';
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Dialog } from '@headlessui/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { differenceInMinutes, format, parseISO } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, Calendar, Coffee, Target, Timer, Trash2, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { z } from 'zod';
@@ -50,10 +53,10 @@ const createSessionSchema = z.object({
   sessionType: z.enum(['study', 'break', 'pomodoro', 'review']),
   color: z.string().optional(),
   pomodoroSettings: z.object({
-    workDuration: z.number().min(5).max(90),
-    shortBreak: z.number().min(1).max(30),
-    longBreak: z.number().min(10).max(60),
-    cyclesBeforeLongBreak: z.number().min(2).max(8),
+    workDuration: z.number().int().min(1).max(120),
+    shortBreak: z.number().int().min(1).max(30),
+    longBreak: z.number().int().min(1).max(60),
+    cyclesBeforeLongBreak: z.number().int().min(1).max(10),
   }).optional(),
 }).superRefine((data, ctx) => {
   if (data.sessionCategory === 'course' && !data.courseId) {
@@ -81,6 +84,9 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
   selectedHour = 9,
   editSession,
 }) => {
+  const accountKeys = useAccountQueryKeys();
+  const preferences = useUserPreferencesStore(state => state.preferences);
+  const defaultPomodoro = useMemo(() => pomodoroDefaults(preferences), [preferences.defaultPomodoroDuration, preferences.defaultShortBreak, preferences.defaultLongBreak, preferences.pomodorosUntilLongBreak]);
   const [showPomodoroSettings, setShowPomodoroSettings] = useState(false);
   const [sessionCategory, setSessionCategory] = useState<'course' | 'break' | 'custom'>('course');
   const [durationMode, setDurationMode] = useState<'minutes' | 'timeRange'>('minutes');
@@ -89,7 +95,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
   const isEditMode = !!editSession;
 
   const { data: coursesData } = useQuery({
-    queryKey: ['courses'],
+    queryKey: accountKeys.catalog('courses'),
     queryFn: async () => {
       const response = await coursesAPI.getCourses();
       return response.data.data?.courses || [];
@@ -115,12 +121,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
       endTime: '',
       sessionType: 'study',
       color: '#60A5FA', // Default soft blue color
-      pomodoroSettings: {
-        workDuration: 25,
-        shortBreak: 5,
-        longBreak: 15,
-        cyclesBeforeLongBreak: 4,
-      },
+      pomodoroSettings: defaultPomodoro,
     },
   });
 
@@ -138,10 +139,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
     },
     onSuccess: () => {
       toast.success(isEditMode ? 'Çalışma seansı güncellendi' : 'Çalışma seansı oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['pomodoro-sessions'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
       onClose();
       reset();
       setSessionCategory('course');
@@ -159,10 +157,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
     },
     onSuccess: () => {
       toast.success('Çalışma seansı silindi');
-      queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['pomodoro-sessions'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
       onClose();
       reset();
       setSessionCategory('course');
@@ -291,12 +286,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
           endTime: '',
           sessionType: editSession.sessionType,
           color: editSession.color || '#3B82F6',
-          pomodoroSettings: editSession.pomodoroSettings || {
-            workDuration: 25,
-            shortBreak: 5,
-            longBreak: 15,
-            cyclesBeforeLongBreak: 4,
-          },
+          pomodoroSettings: editSession.pomodoroSettings || defaultPomodoro,
         });
       } else {
         // Creating new session - use selected date/hour
@@ -312,16 +302,11 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
           endTime: '',
           sessionType: 'study',
           color: '#3B82F6',
-          pomodoroSettings: {
-            workDuration: 25,
-            shortBreak: 5,
-            longBreak: 15,
-            cyclesBeforeLongBreak: 4,
-          },
+          pomodoroSettings: defaultPomodoro,
         });
       }
     }
-  }, [editSession, isOpen, selectedDate, selectedHour, reset]);
+  }, [editSession, isOpen, selectedDate, selectedHour, reset, defaultPomodoro]);
 
   React.useEffect(() => {
     if (sessionType === 'pomodoro') {

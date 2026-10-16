@@ -57,3 +57,7 @@ Bunlar bütün 2026 tasarımlarının sıralaması değildir. Ürüne uygun kara
 - Gerçek kullanıcı DB'sinde seed/migration/reset/restore yapılmadı; testler geçici dizinde çalıştı; test oturumundan çıkıldı, sekme/sunucu kapatıldı ve geçici DB temizlendi. Commit/push/deployment yapılmadı.
 
 Görsel kanıtlar repo dışında Codex görselleştirme dizininde planner-modern-light.jpg, planner-modern-dark.jpg, planner-modern-mobile.jpg, dashboard-modern.jpg ve pomodoro-modern.jpg adlarıyla tutulur. Bunlar kurmaca test verisi içerir.
+
+## Değiştirilebilir site kimliği (16 Ekim 2026)
+
+Görünen ad/açıklama/logo/ikon admin ayarıdır. Ortak Brand, login/register/sidebar/loading ve document title/meta/favicon aynı public DTO'yu kullanır. Uzun adlar düzende truncate edilir, tam ad title/erişilebilir link metninde korunur; sabit ürün adı yeni ekrana yazılmaz. Repo/paket adları İngilizce teknik kimliktir. Yeni ikon SVG'leri mevcut Lucide setinden, lisansı assets yanında korunarak gelir. Marka değişikliği sade nötr tasarım dilini değiştirmez.

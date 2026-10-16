@@ -1,3 +1,4 @@
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { initializeCalendarViewport } from './calendarViewport';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Calendar, CheckCircle, ChevronLeft, ChevronRight, Clock, Edit, MoveLeft, MoveRight, Pause, Play, Plus, Trash2 } from 'lucide-react';
@@ -32,6 +33,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i); // Full 24 hours: 0:00 to
 const DAYS = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
 const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
+  const accountKeys = useAccountQueryKeys();
   const queryClient = useQueryClient();
   const [currentWeek, setCurrentWeek] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [draggedSession, setDraggedSession] = useState<StudySession | null>(null);
@@ -101,7 +103,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
   }, [dragOverArrow, draggedSession]);
 
   const { data: sessionsData, isLoading, error, refetch } = useQuery({
-    queryKey: ['study-sessions', currentWeek],
+    queryKey: accountKeys.sessions('study-sessions', currentWeek),
     queryFn: async () => {
       const weekStart = format(currentWeek, 'yyyy-MM-dd');
       const weekEnd = format(addDays(currentWeek, 6), 'yyyy-MM-dd');
@@ -312,8 +314,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
 
       if (response.data.success) {
         toast.success('Oturum başarıyla taşındı', { id: 'moving-session' });
-        queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-        queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+        queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
         await refetch();
       } else {
         throw new Error(response.data.error?.message || 'Bilinmeyen hata');
@@ -399,9 +400,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
 
       if (response.data.success) {
         toast.success('Oturum başarıyla taşındı', { id: 'moving-session' });
-        queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-        queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-        queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
+        queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
         await refetch();
         setMoveModalSession(null);
       }
@@ -432,8 +431,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         try {
           await studySessionsAPI.pauseSession(session.id.toString());
           toast.success('Çalışma seansı duraklatıldı');
-          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+          queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
           refetch();
         } catch {
           toast.error('Seans duraklatılırken hata oluştu');
@@ -453,8 +451,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
           await studySessionsAPI.completeSession(session.id.toString());
           toast.success('Çalışma seansı tamamlandı');
 
-          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+          queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
           refetch();
         } catch {
           toast.error('Seans tamamlanırken hata oluştu');
@@ -475,8 +472,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     try {
       await studySessionsAPI.startSession(session.id.toString());
       toast.success('Çalışma seansı başlatıldı');
-      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
       refetch();
     } catch {
       toast.error('Seans başlatılırken hata oluştu');
@@ -560,8 +556,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
             endTime: newEndTime.toISOString(),
           });
           toast.success('Süre güncellendi');
-          queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-          queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
+          queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
           await refetch();
         } catch {
           toast.error('Süre güncellenirken hata oluştu');
@@ -1238,9 +1233,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                   try {
                     await studySessionsAPI.deleteSession(contextMenu.session.id.toString());
                     toast.success('Görev başarıyla silindi');
-                    queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-                    queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-                    queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
+                    queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
                     refetch();
                   } catch {
                     toast.error('Görev silinirken hata oluştu');
@@ -1310,9 +1303,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                     });
                     if (response.data.success) {
                       toast.success('Önceki haftaya başarıyla taşındı', { id: 'move-prev-week' });
-                      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-                      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-                      queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
+                      queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
                       await refetch();
                     } else {
                       throw new Error(response.data.error?.message || 'Hata oluştu');
@@ -1360,9 +1351,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                     });
                     if (response.data.success) {
                       toast.success('Gelecek haftaya başarıyla taşındı', { id: 'move-next-week' });
-                      queryClient.invalidateQueries({ queryKey: ['todays-sessions'] });
-                      queryClient.invalidateQueries({ queryKey: ['daily-sessions'] });
-                      queryClient.invalidateQueries({ queryKey: ['study-sessions'] });
+                      queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
                       await refetch();
                     } else {
                       throw new Error(response.data.error?.message || 'Hata oluştu');

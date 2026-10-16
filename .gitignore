@@ -59,3 +59,5 @@ public/uploads/
 # Private local account setup
 .local/
 backend/backups/
+
+packages/*/dist/

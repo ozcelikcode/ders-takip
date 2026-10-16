@@ -1,9 +1,9 @@
+import { Brand } from './Brand';
 import { Dialog } from '@headlessui/react';
 import { NavLink, Link } from 'react-router-dom';
-import { X, Home, BookOpen, Calendar, User, Users, Settings, LayoutDashboard, Timer, Sliders, GraduationCap, ArrowUpRight, type LucideIcon } from 'lucide-react';
+import { X, Home, BookOpen, Calendar, User, Users, Settings, LayoutDashboard, Timer, Sliders, ArrowUpRight, type LucideIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuthStore } from '../../store/authStore';
-import { useSettingsStore } from '../../store/settingsStore';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -35,7 +35,6 @@ const accountNavigation: NavigationItem[] = [
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const user = useAuthStore(state => state.user);
-  const siteName = useSettingsStore(state => state.settings.siteName);
 
   const renderLinks = (items: NavigationItem[]) => items.map(item => (
     <NavLink key={item.href} to={item.href} end={item.href === '/admin'} onClick={onClose}
@@ -49,8 +48,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     <div className="flex h-full flex-col bg-[var(--sidebar)]">
       <div className="flex h-16 shrink-0 items-center gap-2.5 border-b px-5">
         <Link to="/dashboard" onClick={onClose} className="flex min-w-0 items-center gap-2.5 text-sm font-semibold tracking-tight">
-          <span className="brand-mark"><GraduationCap className="h-4 w-4" strokeWidth={1.8} /></span>
-          <span className="truncate">{siteName}</span>
+          <Brand />
         </Link>
         <button onClick={onClose} aria-label="Menüyü kapat" className="icon-button ml-auto lg:hidden"><X className="h-4 w-4" /></button>
       </div>

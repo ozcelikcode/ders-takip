@@ -1,3 +1,4 @@
+import { useAccountQueryKeys } from '../hooks/useAccountQueryKeys';
 import { DragDropContext, Draggable, Droppable, DropResult } from '@hello-pangea/dnd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -66,6 +67,7 @@ type SortOption = 'order' | 'name' | 'difficulty' | 'time';
 type FilterOption = 'all' | 'not_started' | 'in_progress' | 'completed' | 'Kolay' | 'Orta' | 'Zor';
 
 const CourseDetailPage = () => {
+  const accountKeys = useAccountQueryKeys();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
@@ -84,7 +86,7 @@ const CourseDetailPage = () => {
       topicsAPI.reorderTopics(id!, topicOrders),
     onSuccess: () => {
       toast.success('Konu sıralaması güncellendi');
-      queryClient.invalidateQueries({ queryKey: ['course', id, { includeTopics: true }] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.catalog() });
     },
     onError: () => {
       toast.error('Sıralama güncellenirken hata oluştu');
@@ -111,7 +113,7 @@ const CourseDetailPage = () => {
   };
 
   const { data: courseData, isLoading, error } = useQuery({
-    queryKey: ['course', id, { includeTopics: true }],
+    queryKey: accountKeys.catalog('course', id, { includeTopics: true }),
     queryFn: () => coursesAPI.getCourse(id!, { includeTopics: true }),
     enabled: !!id,
   });
@@ -217,7 +219,7 @@ const CourseDetailPage = () => {
     }));
 
     // Optimistically update UI
-    queryClient.setQueryData(['course', id], (old: any) => {
+    queryClient.setQueryData(accountKeys.catalog('course', id, { includeTopics: true }), (old: any) => {
       if (!old?.data?.data?.course) return old;
       return {
         ...old,

@@ -11,7 +11,7 @@ Proje vibe coding ile başlamıştır; bundan sonraki çalışma derli toplu, di
 - Bütün kod sembolleri, değişken/fonksiyon/sınıf/tip adları, API alanları ve yeni dosya/klasör adları İngilizce olmalıdır. Açıklayıcı ve tutarlı adlandırma kullanılır.
 - Bu kural kullanıcıya görünen metinleri İngilizceye çevirmek anlamına gelmez. Türkçe arayüz, içerik ve yerelleştirilmiş veri değerleri korunur; mevcut kalıcı veri sözleşmeleri migration olmadan yeniden adlandırılmaz.
 - Yeni teknik yorumlar ve geliştirici logları İngilizce yazılır. Dokümantasyonun içeriği Türkçe olabilir; dosya adları İngilizce kalır.
-- Projenin Git deposu/çalışma dizini ve ürün markası yerinde korunur; uygulama içi teknik adlandırma İngilizceye taşınır. Gereksiz eski dosya yeni adla arşivlenmez, referans kontrolünden sonra kaldırılır.
+- Projenin Git deposu/çalışma dizini yerinde korunur; uygulama içi teknik adlandırma İngilizcedir. 16 Ekim ek talimatıyla görünen ürün adı/kimliği admin ayarından tamamen değişebilir; kod, repo/paket adı veya hosting domain'ine bağlanmaz. Gereksiz eski dosya yeni adla arşivlenmez, referans kontrolünden sonra kaldırılır.
 
 ## Güncellik ve kodun yaşam döngüsü
 
@@ -55,3 +55,7 @@ Modern, basit, sade ve özenli tasarım zorunludur. Vercel/Geist ve Linear'ın g
 ## Yerel hesap ve gizli bilgiler (15 Ekim 2026)
 
 Kullanıcının açık ilk kurulum talimatı, yeni yerel ortam/veritabanı ve admin hesabı oluşturmayı yetkilendirdi. Bu izin gelecekte gerçek DB üzerinde doğrulama amaçlı reset/restore/seed izni değildir. Admin oluşturma/kurtarma admin:manage üzerinden yapılır; parola yalnız özel izinli, Git dışı dosyadan okunur. Secret/parola/token değerleri memory-bank, sohbet, komut argümanı veya loga kopyalanmaz. Kayıtlarda yalnız dosya yolu, yetki kapsamı ve doğrulanan sonuç tutulur.
+
+## Değiştirilebilir site kimliği (16 Ekim 2026)
+
+Site adı, açıklama, logo/ikon bütün görünen yüzeylerde tek public branding kaynağından türetilir. Yeni ekranda sabit ürün adı yazılmaz. Admin paneli mevcuttur; önce mevcut yönetim akışı geliştirilir. Private yönetim ayarları anonim API veya kalıcı browser cache'ine çıkarılmaz. Kullanıcı yeni adı belirtmedikçe gerçek siteye test adı verilmez.

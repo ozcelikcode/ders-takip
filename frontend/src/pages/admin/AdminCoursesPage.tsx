@@ -1,3 +1,4 @@
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Dialog, Menu } from '@headlessui/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -45,6 +46,7 @@ const courseSchema = z.object({
 type CourseForm = z.infer<typeof courseSchema>;
 
 const AdminCoursesPage = () => {
+  const accountKeys = useAccountQueryKeys();
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -56,7 +58,7 @@ const AdminCoursesPage = () => {
   const queryClient = useQueryClient();
 
   const { data: categoriesData } = useQuery({
-    queryKey: ['admin-categories'],
+    queryKey: accountKeys.catalog('admin-categories'),
     queryFn: async () => {
       const response = await categoriesAPI.getCategories();
       return response.data.data?.categories || [];
@@ -64,7 +66,7 @@ const AdminCoursesPage = () => {
   });
 
   const { data: coursesData, isLoading } = useQuery({
-    queryKey: ['admin-courses'],
+    queryKey: accountKeys.catalog('admin-courses'),
     queryFn: async () => {
       const response = await coursesAPI.getCourses();
       return response.data.data?.courses || [];
@@ -77,7 +79,7 @@ const AdminCoursesPage = () => {
     },
     onSuccess: () => {
       toast.success('Ders silindi');
-      queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.catalog() });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error?.message || 'Silme işlemi başarısız');
@@ -323,6 +325,7 @@ interface CourseModalProps {
 }
 
 const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCourse, iconList, categories }) => {
+  const accountKeys = useAccountQueryKeys();
   const queryClient = useQueryClient();
   const isEditing = !!editingCourse;
   const [selectedIcon, setSelectedIcon] = useState(editingCourse?.icon || 'BookOpen');
@@ -400,8 +403,7 @@ const CourseModal: React.FC<CourseModalProps> = ({ isOpen, onClose, editingCours
     },
     onSuccess: () => {
       toast.success(isEditing ? 'Ders güncellendi' : 'Ders oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
-      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      queryClient.invalidateQueries({ queryKey: accountKeys.catalog() });
       onClose();
       reset();
     },

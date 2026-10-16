@@ -1,3 +1,4 @@
+import { preferencesSchema, preferencesPatchSchema } from '@study-tracker/contracts';
 import { Transaction } from 'sequelize';
 import { sequelize } from '../config/database';
 import { revokeUserSessions } from '../services/authSessions';
@@ -51,7 +52,7 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction):
     res.json({
       success: true,
       data: {
-        users,
+        users: users.map(user => ({ ...user.toJSON(), fullName: user.getFullName(), preferences: preferencesSchema.parse(user.preferences) })),
         pagination: {
           current: pageNum,
           pages: Math.ceil(count / limitNum),
@@ -88,7 +89,7 @@ export const getUser = async (req: Request, res: Response, next: NextFunction): 
 
     res.json({
       success: true,
-      data: { user },
+      data: { user: { ...user.toJSON(), fullName: user.getFullName(), preferences: preferencesSchema.parse(user.preferences) } },
     });
   } catch (error) {
     next(error);
@@ -135,7 +136,7 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
       fullName: user.getFullName(),
       role: user.role,
       isActive: user.isActive,
-      preferences: user.preferences,
+      preferences: preferencesSchema.parse(user.preferences),
       createdAt: user.createdAt,
     };
 
@@ -154,26 +155,20 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
     const { id } = req.params;
     const { firstName, lastName, role, isActive, preferences } = req.body;
 
-    const user = await User.findByPk(id);
-
-    if (!user) {
-      res.status(404).json({
-        success: false,
-        error: { message: 'Kullanıcı bulunamadı' },
-      });
-      return;
-    }
-
-    if (firstName) user.firstName = firstName;
-    if (lastName) user.lastName = lastName;
-    if (role) user.role = role;
-    if (isActive !== undefined) user.isActive = isActive;
-    if (preferences) user.preferences = { ...user.preferences, ...preferences };
-
-    const privilegesChanged = user.changed('role') || user.changed('isActive');
-    await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
-      await user.save({ transaction });
-      if (privilegesChanged) await revokeUserSessions(user.id, transaction);
+    const parsed = preferencesPatchSchema.safeParse(preferences ?? {});
+    if (!parsed.success) { res.status(400).json({ success: false, error: { message: 'Tercihler geçersiz' } }); return; }
+    const user = await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
+      const current = await User.findByPk(id, { transaction });
+      if (!current) throw Object.assign(new Error('Kullanıcı bulunamadı'), { statusCode: 404 });
+      if (firstName) current.firstName = firstName;
+      if (lastName) current.lastName = lastName;
+      if (role) current.role = role;
+      if (isActive !== undefined) current.isActive = isActive;
+      if (preferences !== undefined) current.preferences = { ...current.preferences, ...preferencesSchema.parse({ ...current.preferences, ...parsed.data }) };
+      const privilegesChanged = current.changed('role') || current.changed('isActive');
+      await current.save({ transaction });
+      if (privilegesChanged) await revokeUserSessions(current.id, transaction);
+      return current;
     });
 
     const userResponse = {
@@ -185,7 +180,7 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
       fullName: user.getFullName(),
       role: user.role,
       isActive: user.isActive,
-      preferences: user.preferences,
+      preferences: preferencesSchema.parse(user.preferences),
       updatedAt: user.updatedAt,
     };
 

@@ -1,3 +1,4 @@
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { getRecentSessions } from '../../utils/sessionHelpers';
 import { useQuery } from '@tanstack/react-query';
 import { studySessionsAPI } from '../../services/api';
@@ -6,9 +7,10 @@ import { tr } from 'date-fns/locale';
 import { CheckCircle, Clock, Book } from 'lucide-react';
 
 const RecentActivities = () => {
+  const accountKeys = useAccountQueryKeys();
   // Son tamamlanan oturumları çek
   const { data: recentSessions, isLoading } = useQuery({
-    queryKey: ['recent-activities'],
+    queryKey: accountKeys.sessions('recent-activities'),
     queryFn: async () => {
       const response = await studySessionsAPI.getSessions({ status: 'completed' });
       const sessions = response.data.data?.sessions || [];

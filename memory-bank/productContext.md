@@ -110,3 +110,7 @@ Aşağıdaki kullanıcı yolculukları ve gelecek vizyonu ürün hedefleridir; u
 ## Güncel görsel gereksinim — 15 Ekim 2026
 
 Kullanıcı modern, basit, sade ve özenli; Vercel benzeri tasarım istedi. Güncel Geist/Linear resmî kaynakları incelenerek nötr yüzey, belirgin tipografi, ince sınır ve anlamlı renk standardı uygulandı. Eski pastel/iOS/cam yönü geçersizdir. Kalıcı kurallar, uygulama kapsamı ve kanıt sınırları `design-system.md` içindedir. Türkçe kullanıcı içeriği korunur.
+
+## Değiştirilebilir marka ve yönetim (16 Ekim 2026)
+
+Görünen site adı tamamen admin ayarından değişebilir; logo/ikon/açıklama aynı kimlik kaynağını kullanır. Admin paneli mevcut ve /admin/settings genel ayarları bu akışın merkezidir. Yeni isim kullanıcı adına seçilmez; kod/dosya/paket adları İngilizce kalır. Uygulama ve doğrulama implementation/2026-10-16-preferences-and-site-identity.md içinde; tamamlanmamış diğer yönetim ayarları progress.md'de açıkça izlenir.

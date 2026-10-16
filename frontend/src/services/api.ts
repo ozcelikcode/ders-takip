@@ -1,3 +1,5 @@
+import type { SiteSettings, PublicSettings, SettingsPatch } from '@study-tracker/contracts';
+import type { ProfileUpdate } from '../types/auth';
 import { withAuthLock } from '../lib/authLock';
 import axios, { AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/authStore';
@@ -69,6 +71,17 @@ api.interceptors.response.use(
   }
 );
 
+let profileQueue: Promise<unknown> = Promise.resolve();
+const updateProfile = (data: ProfileUpdate): Promise<AxiosResponse<ApiResponse<{ user: User }>>> => {
+  const epoch = useAuthStore.getState().epoch;
+  const operation = profileQueue.catch(() => undefined).then(() => {
+    if (useAuthStore.getState().epoch !== epoch) throw new axios.CanceledError('Account changed before profile update');
+    return api.put<ApiResponse<{ user: User }>>('/auth/profile', data);
+  });
+  profileQueue = operation;
+  return operation;
+};
+
 // Auth API
 export const authAPI = {
   login: (credentials: LoginCredentials): Promise<AxiosResponse<AuthResponse>> =>
@@ -83,8 +96,7 @@ export const authAPI = {
   getMe: (): Promise<AxiosResponse<ApiResponse<{ user: User }>>> =>
     api.get('/auth/me'),
 
-  updateProfile: (data: Partial<User>): Promise<AxiosResponse<ApiResponse<{ user: User }>>> =>
-    api.put('/auth/profile', data),
+  updateProfile,
 
   changePassword: (data: { currentPassword: string; newPassword: string }): Promise<AxiosResponse<ApiResponse>> =>
     api.put('/auth/change-password', data).then(response => { useAuthStore.getState().logout(); return response; }),
@@ -223,14 +235,13 @@ export const topicsAPI = {
 
 // Settings API
 export const settingsAPI = {
-  getSettings: (): Promise<AxiosResponse<ApiResponse<any>>> =>
+  getSettings: (): Promise<AxiosResponse<ApiResponse<PublicSettings>>> =>
     api.get('/settings'),
 
-  updateSettings: (data: any): Promise<AxiosResponse<ApiResponse<any>>> =>
+  updateSettings: (data: SettingsPatch): Promise<AxiosResponse<ApiResponse<SiteSettings>>> =>
     api.put('/settings', data),
 
-  getSettingsByCategory: (category: string): Promise<AxiosResponse<ApiResponse<any>>> =>
-    api.get(`/settings/category/${category}`),
+  getAdminSettings: (): Promise<AxiosResponse<ApiResponse<SiteSettings>>> => api.get('/settings/admin'),
 };
 
 // Backup API

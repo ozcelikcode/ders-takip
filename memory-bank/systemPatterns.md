@@ -1,6 +1,6 @@
 # Ders Takip Sistemi — Sistem Örüntüleri
 
-Kaynak kodla doğrulama: 15 Ekim 2026, oturum ve kurtarma paketi. Bu belge mevcut davranışla hedef standardı ayrı tutar. Güncel uygulama kaydı implementation/2026-10-15-security-and-recovery.md içindedir; foundation kaydı tarihseldir.
+Kaynak kodla doğrulama: 16 Ekim 2026, tercihler ve site kimliği paketi. Bu belge mevcut davranışla hedef standardı ayrı tutar. Güncel uygulama kaydı implementation/2026-10-16-preferences-and-site-identity.md içindedir; foundation kaydı tarihseldir.
 
 ## Mevcut mimari
 
@@ -45,7 +45,7 @@ Controller'lar HTTP, yetki ve iş kurallarını ORM sorgularıyla birlikte yür�
 
 ## Mevcut state ve sorgu örüntüsü
 
-Sunucu verisi çoğunlukla Query'de; auth/ayarlar Zustand'da. Query key ve invalidation'lar bileşenlere dağılmış. Kullanıcıya özel key'lerde kullanıcı kimliği henüz yok; hesap değişiminde cache temizliği ve geç sorgu izolasyonu eklendi. Bazı günlük key'ler tarih içermiyor. Ortak query key factory uygulanmamış.
+Sunucu verisi çoğunlukla Query'de; auth/ayarlar Zustand'da. Query key ve invalidation'lar bileşenlere dağılmış. Bütün kaynaklar account key factory altında, session'lar timezone ve ilgili tarihi taşır. Güncel gün anahtarı 30 saniye/focus ile değişir; haftalık özet yeniden türetilir. Hesap değişiminde cache/sorgu temizliği, geç yanıt izolasyonu ve Layout yeniden kurulumu var. Session/catalog yazmaları ilgili bütün görünüm key'lerini ortak prefix ile yeniler.
 
 Query key'i sorgu sonucunu belirleyen kimlik/filtrelere bağlamak gerekir. Invalidation prefix ile yapılabilir; her invalidation'ın bütün parametreleri birebir içermesi zorunlu değildir. Önceki bankadaki ters ifade geçersizdir.
 
@@ -65,9 +65,9 @@ Query key'i sorgu sonucunu belirleyen kimlik/filtrelere bağlamak gerekir. Inval
 - Start/pause/complete ile genel PUT farklı durum kuralları yürütüyor.
 - Plan süresi gerçek çalışma gibi toplanıyor; pause/resume aktif süre kaydı yok.
 - Günlük/haftalık planner ve iki Pomodoro motoru benzer kuralları tekrar ediyor.
-- Form Zod 3, backend Zod 4/Joi, model JSON ve frontend Preferences ortak şemadan türemiyor.
+- Preferences/site settings ortak contracts Zod 4 şeması/tiplerinden gelir; diğer form/API sözleşmelerinde Zod 3/Joi/manual ayrışması sürer.
 - Diğer çok adımlı ders/kategori/konu silme/sıralama işlemleri transaction standardına taşınmadı; auth ve reset kapsamı tamamlandı.
-- Tarih/timezone/query key/invalidation ve kişisel tercih saklama sınırları tamamlanmadı.
+- Backend timezone aralıkları ve gerçek süre hâlâ açık. Query/cache ve kişisel tercih saklama sınırları 16 Ekim paketinde uygulandı.
 
 Bulguların güncel durumları progress.md içinde, tarihsel kaynakları A01–A22 audit raporunda kayıtlıdır.
 
@@ -109,4 +109,12 @@ Kalıcı süreç için `workingPrinciples.md`; uygulanacak sıra için `activeCo
 
 `design-system.md` kaynak standarttır. CSS değişkenleri açık/koyu yüzey ve metin anlamını taşır; PageHeader ile ana sayfa hiyerarşisi, panel/btn/nav/segmented-control sınıfları ortaklaştırılır. İş verisinin rengi nötr metinden ayrılır. Eski pastel/cam/gradyan görünüm ikinci alternatif olarak tutulmaz. Mobil menü tek Dialog ile overlay/odak/Escape yönetir; Layout'ta ikinci overlay yoktur. Takvimlerde ortak initializeCalendarViewport kullanılır; iş kuralı motorları hâlâ ayrıdır.
 
-Dashboard ve CoursesPage aynı key için aynı ham API response biçimini cache'ler; dashboard select kullanır. Son aktiviteler/bildirimler getRecentSessions ile completion/end zamanında sıralanır; shared query dizisi yerinde mutate edilmez. Tasarım dönüşümü tek başına auth/backup sorunlarını kapatmamıştı; bunlar sonraki güvenlik/kurtarma paketinde ayrı doğrulandı. Timer/süre/Preferences hâlâ açıktır.
+Dashboard ve CoursesPage aynı key için aynı ham API response biçimini cache'ler; dashboard select kullanır. Son aktiviteler/bildirimler getRecentSessions ile completion/end zamanında sıralanır; shared query dizisi yerinde mutate edilmez. Tasarım dönüşümü tek başına auth/backup sorunlarını kapatmamıştı; bunlar sonraki güvenlik/kurtarma paketinde ayrı doğrulandı. Tercih sözleşmesi 16 Ekim paketinde kapatıldı; timer/süre hâlâ açıktır.
+
+## Preferences ve site kimliği — 16 Ekim
+
+contracts v1 ortak runtime şeması/tipler; 003 explicit JSON dönüşümü ve kayıpsız kaynak arşivi. User/admin tercih patch'i güncel satırdan IMMEDIATE transaction içinde birleşir. İstemci sıraya alınmış, sunucu onaylı kayıt yapar; generation hesap değişiminde bekleyen/geç sonucu iptal eder. Profil ve private admin response'ları da kimlik sınırına tabidir. Profil/tercih HTTP yazmaları ortak kuyruktadır; monoton tercih revision'ı geç eski refresh/profil snapshot'ının aynı hesapta yeni onaylanan tercihi ezmesini engeller. Aynı alanda son yazma kazanır; cihazlar arası canlı conflict-resolution kurulmadı.
+
+Kişisel tercih belleği login/refresh profilinden doğar; anonim/başka hesaba geçince temizlenir. Sahipsiz eski browser değerleri manuel kurtarma arşivine alınır, aktif fallback yapılmaz. Bildirim id'leri account anahtarıyla ve boyut sınırıyla saklanır. Tema/renk tek appearance katmanı ve OS listener ile uygulanır; özel renk kaldırılınca public site rengi döner.
+
+Public branding DTO → site-branding cache → Brand/login/register/sidebar/loading/title/meta/favicon. Admin config yalnız yetkili ayrı API/bellek; transaction'lı şema doğrulaması. SiteName görünür markadır, repo adı veya domain değildir. Gerçek isim kullanıcı tarafından admin'den seçilir; fixture adı normal kuruluma taşınmaz.

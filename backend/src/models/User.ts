@@ -1,3 +1,4 @@
+import { defaultPreferences, type UserPreferences } from '@study-tracker/contracts';
 import { DataTypes, Model, Optional } from 'sequelize';
 import bcrypt from 'bcryptjs';
 import { getEnvironment } from '../config/environment';
@@ -15,18 +16,7 @@ interface UserAttributes {
   isActive: boolean;
   lastLogin?: Date;
   profileImage?: string;
-  preferences: {
-    theme: 'light' | 'dark';
-    notifications: {
-      email: boolean;
-      push: boolean;
-      reminders: boolean;
-    };
-    workGoals: {
-      dailyHours: number;
-      weeklyHours: number;
-    };
-  };
+  preferences: UserPreferences;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,18 +35,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public isActive!: boolean;
   public lastLogin?: Date;
   public profileImage?: string;
-  public preferences!: {
-    theme: 'light' | 'dark';
-    notifications: {
-      email: boolean;
-      push: boolean;
-      reminders: boolean;
-    };
-    workGoals: {
-      dailyHours: number;
-      weeklyHours: number;
-    };
-  };
+  public preferences!: UserPreferences;
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -147,18 +126,7 @@ User.init(
     preferences: {
       type: DataTypes.JSON,
       allowNull: false,
-      defaultValue: {
-        theme: 'light',
-        notifications: {
-          email: true,
-          push: true,
-          reminders: true,
-        },
-        workGoals: {
-          dailyHours: 4,
-          weeklyHours: 28,
-        },
-      },
+      defaultValue: defaultPreferences,
     },
     createdAt: {
       type: DataTypes.DATE,

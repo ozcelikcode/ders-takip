@@ -124,25 +124,7 @@ export const updateProfileSchema = Joi.object({
     .messages({
       'string.uri': 'Geçerli bir URL giriniz',
     }),
-  preferences: Joi.object({
-    theme: Joi.string().valid('light', 'dark').optional(),
-    notifications: Joi.object({
-      email: Joi.boolean().optional(),
-      push: Joi.boolean().optional(),
-      reminders: Joi.boolean().optional(),
-    }).optional(),
-    studyGoals: Joi.object({
-      dailyHours: Joi.number().min(1).max(12).optional(),
-      weeklyHours: Joi.number().min(7).max(84).optional(),
-    }).optional(),
-    studyField: Joi.string()
-      .valid('TYT', 'AYT', 'SAY', 'EA', 'SOZ', 'DIL')
-      .allow('', null)
-      .optional()
-      .messages({
-        'any.only': 'Geçerli bir alan seçiniz (TYT, AYT, SAY, EA, SOZ, DIL)',
-      }),
-  }).optional(),
+  preferences: Joi.object().optional(),
 });
 
 export const validateRequest = (schema: Joi.ObjectSchema) => {
