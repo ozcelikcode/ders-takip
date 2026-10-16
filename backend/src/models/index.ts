@@ -5,13 +5,26 @@ import { Course } from './Course';
 import { Plan } from './Plan';
 import { Settings } from './Settings';
 import { StudySession } from './StudySession';
+import { SessionInterval } from './SessionInterval';
 import { Topic } from './Topic';
 import { User } from './User';
+import { PomodoroClock } from './PomodoroClock';
+import { UserTopicProgress } from './UserTopicProgress';
+
+UserTopicProgress.belongsTo(Topic, { foreignKey: 'topicId', as: 'topic' });
+User.hasMany(UserTopicProgress, { foreignKey: 'userId', onDelete: 'CASCADE' });
+Topic.hasMany(UserTopicProgress, { foreignKey: 'topicId', onDelete: 'CASCADE' });
+
+StudySession.hasOne(PomodoroClock, { foreignKey: 'sessionId', as: 'pomodoroClock', onDelete: 'CASCADE' });
+PomodoroClock.belongsTo(StudySession, { foreignKey: 'sessionId' });
 
 User.hasMany(AuthSession, { foreignKey: 'userId', onDelete: 'CASCADE' });
 AuthSession.belongsTo(User, { foreignKey: 'userId' });
 AuthSession.hasMany(RefreshCredential, { foreignKey: 'sessionId', onDelete: 'CASCADE' });
 RefreshCredential.belongsTo(AuthSession, { foreignKey: 'sessionId' });
+
+StudySession.hasMany(SessionInterval, { foreignKey: 'sessionId', as: 'activityIntervals', onDelete: 'CASCADE' });
+SessionInterval.belongsTo(StudySession, { foreignKey: 'sessionId', as: 'session' });
 
 // Define associations
 // Category - Course associations
@@ -107,4 +120,4 @@ StudySession.belongsTo(Topic, {
   as: 'topic',
 });
 
-export { AuthSession, RefreshCredential, Backup,Category,Course,Plan,Settings,StudySession,Topic,User };
+export { AuthSession, RefreshCredential, Backup,Category,Course,Plan,Settings,StudySession,SessionInterval,Topic,User,PomodoroClock,UserTopicProgress };

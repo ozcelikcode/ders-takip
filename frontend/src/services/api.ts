@@ -1,5 +1,6 @@
-import type { SiteSettings, PublicSettings, SettingsPatch } from '@study-tracker/contracts';
+import type { SiteSettings, PublicSettings, SettingsPatch, SessionStats, AdminOverview, SessionQuery, ActivityKind, CreateCourseInput, UpdateCourseInput, CreateCategoryInput, UpdateCategoryInput, ReorderTopicsInput, TopicProgressEntry, TopicProgressStatus } from '@study-tracker/contracts';
 import type { ProfileUpdate } from '../types/auth';
+import type { PomodoroCommand } from '@study-tracker/contracts';
 import { withAuthLock } from '../lib/authLock';
 import axios, { AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/authStore';
@@ -9,6 +10,7 @@ import type { AuthResponse, LoginCredentials, RegisterData, User } from '../type
 import type { CreatePlanRequest, CreateStudySessionRequest, CreateTopicRequest, Plan, StudySession, Topic, UpdateStudySessionRequest, UpdateTopicRequest } from '../types/planner';
 import { queryClient } from '../lib/queryClient';
 import { accountQueryKeys } from '../lib/queryKeys';
+import { useUserPreferencesStore } from '../store/userPreferencesStore';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -16,6 +18,13 @@ interface AuthRequest extends InternalAxiosRequestConfig { _retry?: boolean; aut
 const configuration = { baseURL: API_BASE_URL, timeout: 30000, withCredentials: true, headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'StudyTracker' } };
 const api = axios.create(configuration);
 const authTransport = axios.create(configuration);
+const sessionChannel = typeof window !== 'undefined' && typeof window.BroadcastChannel === 'function' ? new window.BroadcastChannel('study-tracker-sessions') : null;
+sessionChannel?.addEventListener('message', event => {
+  const current = useAuthStore.getState();
+  if (event.data?.type === 'sessions-changed' && current.user && event.data.userId === String(current.user.id)) {
+    void queryClient.invalidateQueries({ queryKey: accountQueryKeys(current.user.id, '').sessions() });
+  }
+});
 api.interceptors.request.use(config => {
   const state = useAuthStore.getState();
   const request = config as AuthRequest;
@@ -27,10 +36,28 @@ api.interceptors.request.use(config => {
 
 // Toast debounce to prevent spam
 const toastShown = new Set<string>();
+const isCatalogRequest = (url?: string) => /^\/(courses|categories|topics)(\/|$)/.test(url ?? '');
+const invalidateCatalogViews = (request: AuthRequest) => {
+  const current = useAuthStore.getState();
+  if (request.authEpoch !== current.epoch) return;
+  const keys = accountQueryKeys(current.user?.id, '');
+  void queryClient.invalidateQueries({ queryKey: keys.catalog() });
+  void queryClient.invalidateQueries({ queryKey: keys.sessions() });
+};
 
 // Response interceptor to handle errors and token refresh
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const current = useAuthStore.getState();
+    if (response.config.url?.startsWith('/study-sessions') && ['post', 'put', 'patch', 'delete'].includes(response.config.method ?? '') && (response.config as AuthRequest).authEpoch === current.epoch) {
+      void queryClient.invalidateQueries({ queryKey: accountQueryKeys(current.user?.id, '').sessions() });
+      if (current.user) sessionChannel?.postMessage({ type: 'sessions-changed', userId: String(current.user.id) });
+    }
+    if (isCatalogRequest(response.config.url) && ['post', 'put', 'delete'].includes(response.config.method ?? '')) {
+      invalidateCatalogViews(response.config as AuthRequest);
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config as AuthRequest | undefined;
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
@@ -48,6 +75,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && originalRequest?.authEpoch === useAuthStore.getState().epoch) useAuthStore.getState().clearAuth();
 
     const current = useAuthStore.getState();
+    if (error.response?.status === 409 && originalRequest && isCatalogRequest(originalRequest.url)) invalidateCatalogViews(originalRequest);
     if (error.response?.status === 409 && originalRequest?.url?.startsWith('/study-sessions') && originalRequest.authEpoch === current.epoch) {
       void queryClient.invalidateQueries({ queryKey: accountQueryKeys(current.user?.id, '').sessions() });
     }
@@ -119,10 +147,10 @@ export const coursesAPI = {
   getCourse: (id: string, params?: any): Promise<AxiosResponse<ApiResponse>> =>
     api.get(`/courses/${id}`, { params }),
 
-  createCourse: (data: any): Promise<AxiosResponse<ApiResponse>> =>
+  createCourse: (data: CreateCourseInput): Promise<AxiosResponse<ApiResponse>> =>
     api.post('/courses', data),
 
-  updateCourse: (id: string, data: any): Promise<AxiosResponse<ApiResponse>> =>
+  updateCourse: (id: string, data: UpdateCourseInput): Promise<AxiosResponse<ApiResponse>> =>
     api.put(`/courses/${id}`, data),
 
   deleteCourse: (id: string): Promise<AxiosResponse<ApiResponse>> =>
@@ -140,10 +168,10 @@ export const categoriesAPI = {
   getCategory: (id: string): Promise<AxiosResponse<ApiResponse>> =>
     api.get(`/categories/${id}`),
 
-  createCategory: (data: any): Promise<AxiosResponse<ApiResponse>> =>
+  createCategory: (data: CreateCategoryInput): Promise<AxiosResponse<ApiResponse>> =>
     api.post('/categories', data),
 
-  updateCategory: (id: string, data: any): Promise<AxiosResponse<ApiResponse>> =>
+  updateCategory: (id: string, data: UpdateCategoryInput): Promise<AxiosResponse<ApiResponse>> =>
     api.put(`/categories/${id}`, data),
 
   deleteCategory: (id: string, migrateToCategoryId?: number): Promise<AxiosResponse<ApiResponse>> =>
@@ -152,6 +180,8 @@ export const categoriesAPI = {
 
 // Users API (Admin)
 export const usersAPI = {
+  getAdminOverview: (): Promise<AxiosResponse<ApiResponse<{ overview: AdminOverview }>>> => api.get('/users/admin-stats'),
+
   getUsers: (params?: any): Promise<AxiosResponse<ApiResponse>> =>
     api.get('/users', { params }),
 
@@ -167,8 +197,6 @@ export const usersAPI = {
   deleteUser: (id: string): Promise<AxiosResponse<ApiResponse>> =>
     api.delete(`/users/${id}`),
 
-  getUserStats: (id: string): Promise<AxiosResponse<ApiResponse>> =>
-    api.get(`/users/${id}/stats`),
 };
 
 // Plans API
@@ -194,8 +222,13 @@ export const plansAPI = {
 
 // Study Sessions API
 export const studySessionsAPI = {
-  getSessions: (params?: any): Promise<AxiosResponse<ApiResponse<{ sessions: StudySession[] }>>> =>
-    api.get('/study-sessions', { params }),
+  controlPomodoro: (session: Pick<StudySession, 'id' | 'updatedAt'>, input: Omit<PomodoroCommand, 'expectedUpdatedAt'>): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
+    api.post(`/study-sessions/${session.id}/pomodoro`, { ...input, expectedUpdatedAt: session.updatedAt }),
+  getSessions: (params?: SessionQuery): Promise<AxiosResponse<ApiResponse<{ sessions: StudySession[] }>>> =>
+    api.get('/study-sessions', { params: { ...params, timezone: useUserPreferencesStore.getState().preferences.timezone } }),
+
+  getStats: (params?: SessionQuery): Promise<AxiosResponse<ApiResponse<{ stats: SessionStats }>>> =>
+    api.get('/study-sessions/stats', { params: { ...params, timezone: useUserPreferencesStore.getState().preferences.timezone } }),
 
   getSession: (id: string): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
     api.get(`/study-sessions/${id}`),
@@ -209,8 +242,8 @@ export const studySessionsAPI = {
   deleteSession: (session: Pick<StudySession, 'id' | 'updatedAt'>): Promise<AxiosResponse<ApiResponse>> =>
     api.delete(`/study-sessions/${session.id}`, { data: { expectedUpdatedAt: session.updatedAt } }),
 
-  startSession: (session: Pick<StudySession, 'id' | 'updatedAt'>): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
-    api.patch(`/study-sessions/${session.id}/start`, { expectedUpdatedAt: session.updatedAt }),
+  startSession: (session: Pick<StudySession, 'id' | 'updatedAt'>, activityKind?: ActivityKind): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
+    api.patch(`/study-sessions/${session.id}/start`, { expectedUpdatedAt: session.updatedAt, ...(activityKind === undefined ? {} : { activityKind }) }),
 
   pauseSession: (session: Pick<StudySession, 'id' | 'updatedAt'>): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
     api.patch(`/study-sessions/${session.id}/pause`, { expectedUpdatedAt: session.updatedAt }),
@@ -236,8 +269,14 @@ export const topicsAPI = {
   deleteTopic: (id: string): Promise<AxiosResponse<ApiResponse>> =>
     api.delete(`/topics/${id}`),
 
-  reorderTopics: (courseId: string, topicOrders: { id: number; order: number }[]): Promise<AxiosResponse<ApiResponse<{ topics: Topic[] }>>> =>
-    api.put(`/topics/course/${courseId}/reorder`, { topicOrders }),
+  getTopicProgress: (): Promise<AxiosResponse<ApiResponse<{ progress: TopicProgressEntry[] }>>> =>
+    api.get('/topics/progress'),
+
+  setTopicProgress: (id: number, status: TopicProgressStatus): Promise<AxiosResponse<ApiResponse<{ progress: { topicId: number; courseId: number; status: TopicProgressStatus } }>>> =>
+    api.put(`/topics/${id}/progress`, { status }),
+
+  reorderTopics: (courseId: string, data: ReorderTopicsInput): Promise<AxiosResponse<ApiResponse<{ topics: Topic[] }>>> =>
+    api.put(`/topics/course/${courseId}/reorder`, data),
 };
 
 // Settings API

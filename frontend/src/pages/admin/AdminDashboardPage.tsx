@@ -3,42 +3,34 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Activity, BookOpen, Calendar, Clock, Settings, Target, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { coursesAPI, studySessionsAPI, usersAPI } from '../../services/api';
+import { usersAPI } from '../../services/api';
 
 const AdminDashboardPage = () => {
   const accountKeys = useAccountQueryKeys();
-  const { data: usersData } = useQuery({
+  const { data: overview } = useQuery({
+    queryKey: accountKeys.resource('admin-overview'),
+    queryFn: async () => {
+      const response = await usersAPI.getAdminOverview();
+      return response.data.data?.overview;
+    },
+  });
+  const { data: recentUsers } = useQuery({
     queryKey: accountKeys.resource('admin-dashboard-users'),
     queryFn: async () => {
-      const response = await usersAPI.getUsers();
+      const response = await usersAPI.getUsers({ limit: 5 });
       return response.data.data?.users || [];
     },
   });
 
-  const { data: coursesData } = useQuery({
-    queryKey: accountKeys.catalog('admin-dashboard-courses'),
-    queryFn: async () => {
-      const response = await coursesAPI.getCourses();
-      return response.data.data?.courses || [];
-    },
-  });
-
-  const { data: sessionsData } = useQuery({
-    queryKey: accountKeys.sessions('admin-dashboard-sessions'),
-    queryFn: async () => {
-      const response = await studySessionsAPI.getSessions();
-      return response.data.data?.sessions || [];
-    },
-  });
-
   const stats = {
-    totalUsers: usersData?.length || 0,
-    activeUsers: usersData?.filter((user: any) => user.isActive)?.length || 0,
-    totalCourses: coursesData?.length || 0,
-    activeCourses: coursesData?.filter((course: any) => course.isActive)?.length || 0,
-    totalSessions: sessionsData?.length || 0,
-    completedSessions: sessionsData?.filter((session: any) => session.status === 'completed')?.length || 0,
+    totalUsers: overview?.users.total ?? 0,
+    activeUsers: overview?.users.active ?? 0,
+    totalCourses: overview?.courses.total ?? 0,
+    activeCourses: overview?.courses.active ?? 0,
+    totalSessions: overview?.sessions.totalSessions ?? 0,
+    completedSessions: overview?.sessions.completedSessions ?? 0,
   };
+  const recentSessions = overview?.recentSessions ?? [];
 
   const quickActions = [
     {
@@ -92,7 +84,7 @@ const AdminDashboardPage = () => {
     {
       title: 'Tamamlanma Oranı',
       value: stats.totalSessions > 0 ? `${Math.round((stats.completedSessions / stats.totalSessions) * 100)}%` : '0%',
-      subtitle: 'Başarı oranı',
+      subtitle: `${Math.round((overview?.sessions.studySeconds ?? 0) / 3600 * 10) / 10} sa ölçülen çalışma`,
       icon: Target,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
@@ -192,7 +184,7 @@ const AdminDashboardPage = () => {
               <h3 className="font-semibold text-gray-900 dark:text-white">Son Kullanıcılar</h3>
             </div>
             <div className="space-y-3">
-              {usersData?.slice(0, 5).map((user: any) => (
+              {recentUsers?.map((user: any) => (
                 <div key={user.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
                   <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-white text-sm font-semibold">
                     {user.firstName[0]}{user.lastName[0]}
@@ -214,7 +206,7 @@ const AdminDashboardPage = () => {
                   </span>
                 </div>
               ))}
-              {(!usersData || usersData.length === 0) && (
+              {(!recentUsers || recentUsers.length === 0) && (
                 <p className="text-gray-500 dark:text-gray-400 text-center py-4">
                   Henüz kullanıcı yok
                 </p>
@@ -230,7 +222,7 @@ const AdminDashboardPage = () => {
               <h3 className="font-semibold text-gray-900 dark:text-white">Son Çalışma Seansları</h3>
             </div>
             <div className="space-y-3">
-              {sessionsData?.slice(0, 5).map((session: any) => (
+              {recentSessions.map(session => (
                 <div key={session.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
                   <div className={`w-3 h-3 rounded-full ${
                     session.status === 'completed' ? 'bg-green-500' :
@@ -242,7 +234,7 @@ const AdminDashboardPage = () => {
                       {session.title}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {session.duration} dakika • {session.sessionType}
+                      {session.userName} • Plan: {session.duration} dakika • {session.sessionType}
                     </p>
                   </div>
                   <span className={`px-2 py-1 text-xs rounded-full ${
@@ -256,7 +248,7 @@ const AdminDashboardPage = () => {
                   </span>
                 </div>
               ))}
-              {(!sessionsData || sessionsData.length === 0) && (
+              {recentSessions.length === 0 && (
                 <p className="text-gray-500 dark:text-gray-400 text-center py-4">
                   Henüz çalışma seansı yok
                 </p>

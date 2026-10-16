@@ -1,329 +1,231 @@
-import { useAccountQueryKeys } from '../hooks/useAccountQueryKeys';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { BookOpen, Calculator, Microscope, Globe, Triangle, Atom, FlaskConical, Dna, Landmark, Map, Brain, Heart, BookText, Search, X, Plus, Tag, TrendingUp } from 'lucide-react';
+import {
+  ArrowUpRight,
+  BookOpen,
+  Pencil,
+  Plus,
+  Search,
+  Tag,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { coursesAPI } from '../services/api';
+import { useAccountQueryKeys } from '../hooks/useAccountQueryKeys';
+import { useAuthStore } from '../store/authStore';
+import { canManageCourse } from '../lib/catalogAccess';
+import type { CatalogCourse } from '../types/catalog';
+import CourseEditorModal from '../components/modals/CourseEditorModal';
 import CategoryManagementModal from '../components/modals/CategoryManagementModal';
-import CourseCreateModal from '../components/modals/CourseCreateModal';
+import CatalogDeleteDialog, {
+  type CatalogDeleteTarget,
+} from '../components/catalog/CatalogDeleteDialog';
+import { catalogIcon } from '../components/catalog/catalogIcons';
 import PageHeader from '../components/common/PageHeader';
 
-interface Topic {
-  id: number;
-  name: string;
-  description: string;
-  estimatedTime: number;
-  difficulty: 'Kolay' | 'Orta' | 'Zor';
-  order: number;
-}
-
-interface Category {
-  id: number;
-  name: string;
-  color: string;
-  icon?: string;
-}
-
-interface Course {
-  id: number;
-  name: string;
-  categoryId: number;
-  category?: Category;
-  description: string;
-  color: string;
-  icon: string;
-  order: number;
-  isActive: boolean;
-  isGlobal: boolean;
-  userId?: number | null;
-  topics?: Topic[];
-}
-
-const CoursesPage = () => {
-  const accountKeys = useAccountQueryKeys();
+export default function CoursesPage() {
+  const keys = useAccountQueryKeys();
+  const { user } = useAuthStore();
   const [searchParams] = useSearchParams();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showCourseModal, setShowCourseModal] = useState(false);
-
-  const { data: coursesData, isLoading, error } = useQuery({
-    queryKey: accountKeys.catalog('courses', { includeTopics: true }),
+  const [search, setSearch] = useState(searchParams.get('search') ?? '');
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [editor, setEditor] = useState<{ course: CatalogCourse | null } | null>(
+    null,
+  );
+  const [deleting, setDeleting] = useState<CatalogDeleteTarget | null>(null);
+  useEffect(() => {
+    setSearch(searchParams.get('search') ?? '');
+  }, [searchParams]);
+  const query = useQuery({
+    queryKey: keys.catalog('courses', { includeTopics: true }),
     queryFn: () => coursesAPI.getCourses({ includeTopics: true }),
   });
-
-  const courses: Course[] = coursesData?.data?.data?.courses || [];
-
-  // Read search query from URL on mount
-  useEffect(() => {
-    const searchQuery = searchParams.get('search');
-    if (searchQuery) {
-      setSearchTerm(searchQuery);
-    }
-  }, [searchParams]);
-
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchTerm.trim()) {
-      // Scroll to results section
-      const resultsSection = document.querySelector('[class*="grid-cols"]');
-      if (resultsSection) {
-        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      // Blur the input to hide mobile keyboard
-      e.currentTarget.blur();
-    }
-  };
-
-  const getIconComponent = (iconName: string) => {
-    const icons: Record<string, any> = {
-      BookOpen,
-      Calculator,
-      Microscope,
-      Globe,
-      Triangle,
-      Atom,
-      FlaskConical,
-      Dna,
-      Landmark,
-      Map,
-      Brain,
-      Heart,
-      BookText,
-    };
-    return icons[iconName] || BookOpen;
-  };
-
-  const filteredCourses = courses
-    .filter(course => {
-      if (!searchTerm.trim()) return true;
-
-      const searchLower = searchTerm.toLowerCase().trim();
-
-      // Ders adında ara
-      if (course.name.toLowerCase().includes(searchLower)) return true;
-
-      // Ders açıklamasında ara
-      if (course.description?.toLowerCase().includes(searchLower)) return true;
-
-      // Kategori adında ara
-      if (course.category?.name.toLowerCase().includes(searchLower)) return true;
-
-      // Konu isimlerinde ara
-      if (course.topics?.some(topic => topic.name.toLowerCase().includes(searchLower))) return true;
-
-      // Konu açıklamalarında ara
-      if (course.topics?.some(topic => topic.description?.toLowerCase().includes(searchLower))) return true;
-
-      return false;
-    });
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Kolay': return 'text-green-600 bg-green-100';
-      case 'Orta': return 'text-yellow-600 bg-yellow-100';
-      case 'Zor': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
-
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="spinner w-8 h-8" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-red-600">Dersler yüklenirken bir hata oluştu.</p>
-      </div>
-    );
-  }
-
+  const courses: CatalogCourse[] = query.data?.data.data?.courses ?? [];
+  const term = search.trim().toLocaleLowerCase('tr');
+  const filtered = courses.filter((course) =>
+    [
+      course.name,
+      course.description,
+      course.category?.name,
+      ...(course.topics ?? []).flatMap((topic) => [
+        topic.name,
+        topic.description,
+      ]),
+    ].some((value) => value?.toLocaleLowerCase('tr').includes(term)),
+  );
   return (
-    <div className="space-y-8">
-      <PageHeader title="Dersler" description="Derslerini düzenle, konularını keşfet ve sıradaki çalışmana hazırlan."
-        actions={<>
-          <button onClick={() => setShowCategoryModal(true)} className="btn btn-secondary"><Tag className="h-4 w-4" />Kategoriler</button>
-          <button onClick={() => setShowCourseModal(true)} className="btn btn-primary"><Plus className="h-4 w-4" />Ders ekle</button>
-        </>} />
-
-      {/* Search Bar */}
-      <div className="max-w-lg">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            aria-label="Ders veya konu ara"
-            type="search"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="Ders veya konu ara..."
-            className="input pl-10 pr-10"
-          />
-          {searchTerm && (
+    <div className="space-y-6">
+      <PageHeader
+        title="Dersler"
+        description="Derslerinizi ve konularınızı tek yerde yönetin."
+        actions={
+          <>
+            {user?.role === 'admin' && (
+              <button
+                className="btn btn-secondary"
+                onClick={() => setCategoryOpen(true)}
+              >
+                <Tag className="h-4 w-4" />
+                Kategoriler
+              </button>
+            )}
             <button
-              onClick={() => setSearchTerm('')}
-              aria-label="Aramayı temizle"
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="btn btn-primary"
+              onClick={() => setEditor({ course: null })}
             >
-              <X className="h-5 w-5" />
+              <Plus className="h-4 w-4" />
+              Ders ekle
             </button>
-          )}
-        </div>
-        {searchTerm && (
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 text-center">
-            <span className="font-medium text-primary-600 dark:text-primary-400">{filteredCourses.length}</span> sonuç bulundu
-          </p>
+          </>
+        }
+      />
+      <div className="relative max-w-lg">
+        <label htmlFor="course-search" className="sr-only">
+          Ders ve konu ara
+        </label>
+        <Search
+          className="absolute left-3 top-3 h-4 w-4 text-[var(--muted)]"
+          aria-hidden="true"
+        />
+        <input
+          id="course-search"
+          className="input pl-9 pr-10"
+          placeholder="Ders, kategori veya konu ara…"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        {search && (
+          <button
+            className="absolute right-2 top-2 p-1 text-[var(--muted)]"
+            aria-label="Aramayı temizle"
+            onClick={() => setSearch('')}
+          >
+            <X className="h-4 w-4" />
+          </button>
         )}
       </div>
-
-
-      {/* Courses Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredCourses.map((course) => (
-          <motion.div
-            key={course.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.15 }}
+      {query.isPending ? (
+        <p role="status" className="text-sm text-[var(--muted)]">
+          Dersler yükleniyor…
+        </p>
+      ) : query.isError ? (
+        <div className="panel p-6" role="alert">
+          Dersler yüklenemedi.{' '}
+          <button
+            className="btn btn-secondary ml-2"
+            onClick={() => void query.refetch()}
           >
-            <Link
-              to={`/courses/${course.id}`}
-              className="panel block h-full transition-colors hover:border-gray-400 dark:hover:border-gray-500 group"
-            >
-              <div className="p-6">
-                {/* Course Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center">
-                    <div
-                      className="w-10 h-10 rounded-md flex items-center justify-center bg-[var(--subtle)]"
-                      style={{ color: course.color }}
-                    >
-                      {(() => {
-                        const IconComponent = getIconComponent(course.icon);
-                        return <IconComponent className="w-5 h-5" />;
-                      })()}
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-base font-medium text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                        {course.name}
-                      </h3>
-                      {course.category && (
-                        <span
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                          style={{
-                            backgroundColor: `${course.category.color}20`,
-                            color: course.category.color
-                          }}
-                        >
-                          {course.category.name}
-                        </span>
-                      )}
-                      {course.isGlobal && (
-                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800 uppercase tracking-wider">
-                          Zorunlu
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Course Description */}
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                  {course.description}
-                </p>
-
-                {/* Topics Summary */}
-                {course.topics && course.topics.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">
-                        {course.topics.length} konu
-                      </span>
-                      <span className="text-gray-600 dark:text-gray-400">
-                        ~{Math.round(course.topics.reduce((total, topic) => total + topic.estimatedTime, 0) / 60)}h
-                      </span>
-                    </div>
-
-                    {/* Difficulty Distribution */}
-                    <div className="flex space-x-2">
-                      {['Kolay', 'Orta', 'Zor'].map(difficulty => {
-                        const count = course.topics!.filter(topic => topic.difficulty === difficulty).length;
-                        return count > 0 ? (
-                          <span
-                            key={difficulty}
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(difficulty)}`}
-                          >
-                            {count} {difficulty}
-                          </span>
-                        ) : null;
-                      })}
-                    </div>
-
-                    {/* Preview Topics */}
-                    <div className="space-y-1">
-                      {course.topics.slice(0, 3).map(topic => (
-                        <div key={topic.id} className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                          <span className="truncate">{topic.name}</span>
-                          <span>{topic.estimatedTime}dk</span>
-                        </div>
-                      ))}
-                      {course.topics.length > 3 && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 text-center pt-1">
-                          +{course.topics.length - 3} konu daha...
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Action */}
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center text-primary-600 dark:text-primary-400 text-sm font-medium">
-                    Konuları Görüntüle
-                    <TrendingUp className="ml-1 h-4 w-4" />
-                  </div>
-                </div>
-              </div>
-            </Link>
-          </motion.div>
-        ))}
-      </div>
-
-      {filteredCourses.length === 0 && (
-        <div className="text-center py-12">
-          <Search className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="mt-2 text-base font-medium text-gray-900 dark:text-white">
-            {searchTerm ? 'Sonuç bulunamadı' : 'Ders bulunamadı'}
-          </h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {searchTerm
-              ? `"${searchTerm}" araması için sonuç bulunamadı. Farklı anahtar kelimeler deneyin.`
-              : 'Seçilen kategoride henüz ders bulunmuyor.'}
-          </p>
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              aria-label="Aramayı temizle"
-              className="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              Aramayı Temizle
-            </button>
-          )}
+            Tekrar dene
+          </button>
         </div>
+      ) : (
+        <>
+          <p className="text-sm text-[var(--muted)]">
+            {filtered.length} ders{term && ` / ${courses.length} toplam`}
+          </p>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((course) => {
+              const Icon = catalogIcon(course.icon);
+              return (
+                <article
+                  key={course.id}
+                  className="panel flex flex-col overflow-hidden"
+                >
+                  <Link
+                    to={`/courses/${course.id}`}
+                    className="flex flex-1 flex-col gap-4 p-5 transition-colors hover:bg-[var(--subtle)]"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div
+                        className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--line)]"
+                        style={{ color: course.color }}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      {course.isGlobal && (
+                        <span className="badge">Ortak ders</span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="mb-1 text-xs text-[var(--muted)]">
+                        {course.category?.name}
+                      </p>
+                      <h2 className="text-lg font-medium">{course.name}</h2>
+                      {course.description && (
+                        <p className="mt-2 line-clamp-2 text-sm text-[var(--muted)]">
+                          {course.description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-auto flex items-center justify-between text-sm text-[var(--muted)]">
+                      <span>{course.topics?.length ?? 0} konu</span>
+                      <span className="flex items-center gap-1">
+                        Konuları görüntüle
+                        <ArrowUpRight className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </Link>
+                  {canManageCourse(course, user) && (
+                    <div className="flex items-center justify-end gap-2 border-t border-[var(--line)] px-4 py-2">
+                      <button
+                        className="btn btn-secondary"
+                        aria-label={`${course.name} dersini düzenle`}
+                        onClick={() => setEditor({ course })}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Düzenle
+                      </button>
+                      <button
+                        className="btn btn-secondary text-red-600"
+                        aria-label={`${course.name} dersini sil`}
+                        onClick={() =>
+                          setDeleting({
+                            kind: 'course',
+                            id: course.id,
+                            name: course.name,
+                          })
+                        }
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Sil
+                      </button>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+          {filtered.length === 0 && (
+            <div className="panel py-12 text-center">
+              <BookOpen className="mx-auto mb-3 h-8 w-8 text-[var(--muted)]" />
+              <h2 className="font-medium">
+                {term
+                  ? 'Aramanıza uygun ders bulunamadı'
+                  : 'Henüz ders eklenmedi'}
+              </h2>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                {term
+                  ? 'Başka bir ders veya konu adı deneyin.'
+                  : 'İlk dersinizi ekleyerek konularınızı planlamaya başlayın.'}
+              </p>
+            </div>
+          )}
+        </>
       )}
-
-      {/* Modals */}
-      <CategoryManagementModal isOpen={showCategoryModal} onClose={() => setShowCategoryModal(false)} />
-      <CourseCreateModal isOpen={showCourseModal} onClose={() => setShowCourseModal(false)} />
+      <CourseEditorModal
+        isOpen={!!editor}
+        course={editor?.course ?? null}
+        onClose={() => setEditor(null)}
+      />
+      <CategoryManagementModal
+        isOpen={categoryOpen}
+        onClose={() => setCategoryOpen(false)}
+      />
+      <CatalogDeleteDialog
+        target={deleting}
+        onClose={() => setDeleting(null)}
+      />
     </div>
   );
-};
-
-export default CoursesPage;
+}

@@ -75,7 +75,7 @@ it('exposes complete branding publicly and keeps administrator configuration pri
  await auth('put','/api/settings',admin).send({...branding,adminEmail:'private@example.com'}).expect(200);
  const publicRead=await request(app).get('/api/settings').expect(200);
  for(const [key,value] of Object.entries(branding))assert.equal(publicRead.body.data[key],value);
- for(const key of ['adminEmail','internalKey','sessionTimeout','backup_interval','maintenanceMode'])assert.equal(publicRead.body.data[key],undefined);
+ for(const key of ['adminEmail','internalKey','sessionTimeout','backup_interval'])assert.equal(publicRead.body.data[key],undefined);
  await request(app).get('/api/settings/admin').expect(401);await auth('get','/api/settings/admin',owner).expect(403);
  const adminRead=await auth('get','/api/settings/admin',admin).expect(200);assert.equal(adminRead.body.data.adminEmail,'private@example.com');assert.equal(adminRead.body.data.internalKey,undefined);
  await request(app).get('/api/settings/category/security').expect(404);

@@ -1,11 +1,15 @@
 import { type ErrorRequestHandler } from 'express';
+import { CalendarTimeError } from '@study-tracker/contracts';
 import { ForeignKeyConstraintError, UniqueConstraintError, ValidationError } from 'sequelize';
 
 export const errorHandler: ErrorRequestHandler = (error: unknown, _request, response, _next) => {
   let status = 500;
   let message = 'Sunucu hatası';
 
-  if (error instanceof UniqueConstraintError) {
+  if (error instanceof CalendarTimeError) {
+    status = 400;
+    message = 'Geçersiz tarih veya saat dilimi';
+  } else if (error instanceof UniqueConstraintError) {
     status = 409;
     message = 'Bu veri zaten mevcut';
   } else if (error instanceof ValidationError) {

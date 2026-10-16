@@ -94,6 +94,12 @@ Topic.init(
     sequelize,
     modelName: 'Topic',
     tableName: 'topics',
+    hooks: {
+      beforeUpdate(topic) {
+        const previous = topic.previous('updatedAt');
+        topic.setDataValue('updatedAt', new Date(Math.max(Date.now(), (previous?.getTime() ?? 0) + 1)));
+      },
+    },
     indexes: [
       { fields: ['courseId'] },
       { fields: ['name'] },

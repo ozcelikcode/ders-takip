@@ -2,7 +2,7 @@ import { defaultPreferences } from '@study-tracker/contracts';
 import type { PreferencesPatch } from '@study-tracker/contracts';
 import type { ProfileUpdate } from '../../types/auth';
 import PageHeader from '../../components/common/PageHeader';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore, ThemeMode } from '../../store/userPreferencesStore';
@@ -40,6 +40,32 @@ const UserSettingsPage = () => {
     activeStudyDays: preferences.activeStudyDays || [1, 2, 3, 4, 5, 6, 0],
   });
 
+  useEffect(() => {
+    if (user?.fullName) {
+      setFullName(user.fullName);
+    }
+  }, [user?.fullName]);
+
+  useEffect(() => {
+    setStudyPrefs({
+      defaultPomodoroDuration: preferences.defaultPomodoroDuration,
+      defaultShortBreak: preferences.defaultShortBreak,
+      defaultLongBreak: preferences.defaultLongBreak,
+      pomodorosUntilLongBreak: preferences.pomodorosUntilLongBreak,
+      weeklyStudyGoal: preferences.weeklyStudyGoal,
+      dailyStudyGoal: preferences.dailyStudyGoal,
+      activeStudyDays: preferences.activeStudyDays || [1, 2, 3, 4, 5, 6, 0],
+    });
+  }, [
+    preferences.defaultPomodoroDuration,
+    preferences.defaultShortBreak,
+    preferences.defaultLongBreak,
+    preferences.pomodorosUntilLongBreak,
+    preferences.weeklyStudyGoal,
+    preferences.dailyStudyGoal,
+    preferences.activeStudyDays,
+  ]);
+
   // Update Profile Mutation
   const updateProfileMutation = useMutation({
     mutationFn: (data: ProfileUpdate) => updateProfile(data),
@@ -70,8 +96,10 @@ const UserSettingsPage = () => {
   const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const [firstName, ...parts] = fullName.trim().split(/\s+/);
-    if (!firstName || parts.length === 0) { toast.error('Ad ve soyad girin'); return; }
-    updateProfileMutation.mutate({ firstName, lastName: parts.join(' ') });
+    const lastName = parts.join(' ');
+    if (!firstName || !lastName) { toast.error('Ad ve soyad girin'); return; }
+    if (firstName.length < 2 || lastName.length < 2) { toast.error('Ad ve soyad en az 2 karakter olmalıdır'); return; }
+    updateProfileMutation.mutate({ firstName, lastName });
   };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
@@ -240,7 +268,7 @@ const UserSettingsPage = () => {
                         onChange={(e) => setNewPassword(e.target.value)}
                         className="w-full px-4 py-2 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         required
-                        minLength={6}
+                        minLength={12}
                       />
                       <button
                         type="button"
@@ -259,7 +287,7 @@ const UserSettingsPage = () => {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       required
-                      minLength={6}
+                      minLength={12}
                     />
                   </div>
                   <div className="flex gap-3">

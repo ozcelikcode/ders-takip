@@ -8,3 +8,12 @@ it('isolates accounts, timezones and dates while invalidating every derived sess
  for(const key of keys.slice(0,4))expect(client.getQueryState(key)?.isInvalidated).toBe(true);
  expect(client.getQueryState(keys[4]!)?.isInvalidated).toBe(false);expect(accountQueryKeys('A','UTC').sessions('daily','2026-10-15')).not.toEqual(keys[0]);client.clear();
 });
+it('normalizes numeric API user IDs and string view IDs to the same account boundary', async () => {
+ const client = new QueryClient();
+ const displayed = accountQueryKeys('1', 'Europe/Istanbul').sessions('pomodoro-clock', 10);
+ client.setQueryData(displayed, ['snapshot']);
+ await client.invalidateQueries({ queryKey: accountQueryKeys(1, '').sessions() });
+ expect(client.getQueryState(displayed)?.isInvalidated).toBe(true);
+ expect(accountQueryKeys(1, '').catalog()).toEqual(accountQueryKeys('1', '').catalog());
+ client.clear();
+});

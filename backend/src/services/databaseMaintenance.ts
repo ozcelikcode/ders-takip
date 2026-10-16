@@ -1,10 +1,19 @@
 import type { NextFunction, Request, Response } from 'express';
 
 const requests = new Set<Response>();
+const activities = new Set<Promise<unknown>>();
 let exclusive = false;
 let unavailable = false;
 export const isDatabaseUnavailable = () => exclusive || unavailable;
 export const keepDatabaseUnavailable = () => { unavailable = true; };
+
+export async function withDatabaseActivity<T>(operation: () => Promise<T>): Promise<T | undefined> {
+  if (isDatabaseUnavailable()) return;
+  const activity = operation();
+  activities.add(activity);
+  try { return await activity; }
+  finally { activities.delete(activity); }
+}
 
 export const trackDatabaseRequests = (_request: Request, response: Response, next: NextFunction): void => {
   if (isDatabaseUnavailable()) {
@@ -24,6 +33,13 @@ export const withDatabaseMaintenance = async <T>(operation: () => Promise<T>, cu
   if (isDatabaseUnavailable()) throw new MaintenanceConflict('Database maintenance is already active');
   exclusive = true;
   try {
+    let activityTimer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        Promise.allSettled([...activities]),
+        new Promise<never>((_resolve, reject) => { activityTimer = setTimeout(() => reject(new MaintenanceConflict('Background work did not finish')), 10000); }),
+      ]);
+    } finally { if (activityTimer) clearTimeout(activityTimer); }
     const pending = [...requests].filter(response => response !== currentResponse);
     await Promise.all(pending.map(response => new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => { cleanup(); reject(new MaintenanceConflict('Active requests did not finish')); }, 10000);

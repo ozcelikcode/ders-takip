@@ -1,34 +1,17 @@
-import express from 'express';
-import {
-  getCategories,
-  getCategory,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-} from '../controllers/categoryController';
+import { Router } from 'express';
+import { z } from 'zod';
+import { catalogPathIdSchema, createCategorySchema, updateCategorySchema, deleteCategorySchema } from '@study-tracker/contracts';
+import { getCategories, getCategory, createCategory, updateCategory, deleteCategory } from '../controllers/categoryController';
 import { protect, authorize } from '../middleware/auth';
+import { validate } from '../middleware/validate';
 
-const router = express.Router();
-
-// All routes require authentication
+const router = Router();
+const params = z.object({ id: catalogPathIdSchema });
 router.use(protect);
-
-// Get all categories
 router.get('/', getCategories);
-
-// Get single category
-router.get('/:id', getCategory);
-
-// Admin only routes
+router.get('/:id', validate(z.object({ params })), getCategory);
 router.use(authorize('admin'));
-
-// Create category
-router.post('/', createCategory);
-
-// Update category
-router.put('/:id', updateCategory);
-
-// Delete category
-router.delete('/:id', deleteCategory);
-
+router.post('/', validate(z.object({ body: createCategorySchema })), createCategory);
+router.put('/:id', validate(z.object({ params, body: updateCategorySchema })), updateCategory);
+router.delete('/:id', validate(z.object({ params, body: deleteCategorySchema.default({}) })), deleteCategory);
 export default router;

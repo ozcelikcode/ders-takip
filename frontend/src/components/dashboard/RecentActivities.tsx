@@ -1,3 +1,4 @@
+import { measuredSessionLabel } from '../../utils/sessionHelpers';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { getRecentSessions } from '../../utils/sessionHelpers';
 import { useQuery } from '@tanstack/react-query';
@@ -9,7 +10,7 @@ import { CheckCircle, Clock, Book } from 'lucide-react';
 const RecentActivities = () => {
   const accountKeys = useAccountQueryKeys();
   // Son tamamlanan oturumları çek
-  const { data: recentSessions, isLoading } = useQuery({
+  const { data: recentSessions, isLoading, isError } = useQuery({
     queryKey: accountKeys.sessions('recent-activities'),
     queryFn: async () => {
       const response = await studySessionsAPI.getSessions({ status: 'completed' });
@@ -27,6 +28,16 @@ const RecentActivities = () => {
             <div className="h-4 bg-gray-200 rounded w-3/4"></div>
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-sm text-red-600 dark:text-red-400">
+          Son aktiviteler yüklenirken bir hata oluştu
+        </p>
       </div>
     );
   }
@@ -58,7 +69,7 @@ const RecentActivities = () => {
             </div>
             <div className="flex items-center gap-2 mt-1">
               <p className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
-                {session.duration} dk
+                {measuredSessionLabel(session)}
               </p>
               <span className="text-gray-300 dark:text-gray-600">•</span>
               <p className="text-xs text-gray-400 truncate">

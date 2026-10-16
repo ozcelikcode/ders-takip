@@ -9,10 +9,12 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import CreateUserModal from '../../components/admin/CreateUserModal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
-import { studySessionsAPI, usersAPI } from '../../services/api';
+import { usersAPI } from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
 
 const AdminUsersPage = () => {
   const accountKeys = useAccountQueryKeys();
+  const currentUser = useAuthStore(state => state.user);
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -33,53 +35,9 @@ const AdminUsersPage = () => {
   const { data: usersData, isLoading } = useQuery({
     queryKey: accountKeys.resource('admin-users'),
     queryFn: async () => {
-      const response = await usersAPI.getUsers();
+      const response = await usersAPI.getUsers({ limit: 100, includeStats: true });
       return response.data.data?.users || [];
     },
-  });
-
-  const { data: userStatsData } = useQuery({
-    queryKey: accountKeys.resource('admin-user-stats'),
-    queryFn: async () => {
-      if (!usersData) return {};
-
-      const statsPromises = usersData.map(async (user: any) => {
-        try {
-          const sessionsResponse = await studySessionsAPI.getSessions({ userId: user.id });
-          const sessions = sessionsResponse.data.data?.sessions || [];
-
-          const completed = sessions.filter((s: any) => s.status === 'completed').length;
-          const totalHours = sessions
-            .filter((s: any) => s.status === 'completed')
-            .reduce((total: number, s: any) => total + (s.duration / 60), 0);
-
-          return {
-            userId: user.id,
-            totalSessions: sessions.length,
-            completedSessions: completed,
-            totalHours: Math.round(totalHours * 10) / 10,
-            lastActivity: sessions.length > 0 ?
-              sessions.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt :
-              null
-          };
-        } catch {
-          return {
-            userId: user.id,
-            totalSessions: 0,
-            completedSessions: 0,
-            totalHours: 0,
-            lastActivity: null
-          };
-        }
-      });
-
-      const stats = await Promise.all(statsPromises);
-      return stats.reduce((acc, stat) => {
-        acc[stat.userId] = stat;
-        return acc;
-      }, {} as any);
-    },
-    enabled: !!usersData && usersData.length > 0,
   });
 
   const deleteUserMutation = useMutation({
@@ -232,12 +190,9 @@ const AdminUsersPage = () => {
           </div>
         ) : (
           filteredUsers.map((user: any, index: number) => {
-            const userStats = userStatsData?.[user.id] || {
-              totalSessions: 0,
-              completedSessions: 0,
-              totalHours: 0,
-              lastActivity: null
-            };
+            const userStats = user.stats
+              ? { ...user.stats, totalHours: Math.round(user.stats.studySeconds / 3600 * 10) / 10, unavailable: false }
+              : { unavailable: true, totalSessions: 0, completedSessions: 0, totalHours: 0, lastActivity: null };
 
             return (
               <motion.div
@@ -252,7 +207,7 @@ const AdminUsersPage = () => {
                     <div className="flex items-start gap-4 flex-1">
                       {/* Avatar */}
                       <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white font-semibold">
-                        {user.firstName[0]}{user.lastName[0]}
+                        {user.firstName?.[0] || ''}{user.lastName?.[0] || ''}
                       </div>
 
                       {/* User Info */}
@@ -294,21 +249,21 @@ const AdminUsersPage = () => {
                         <div className="grid grid-cols-4 gap-4 text-sm">
                           <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
                             <div className="font-semibold text-blue-600 dark:text-blue-400">
-                              {userStats.totalSessions}
+                              {userStats.unavailable ? '—' : userStats.totalSessions}
                             </div>
                             <div className="text-xs text-gray-600 dark:text-gray-400">Toplam Seans</div>
                           </div>
                           <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded">
                             <div className="font-semibold text-green-600 dark:text-green-400">
-                              {userStats.completedSessions}
+                              {userStats.unavailable ? '—' : userStats.completedSessions}
                             </div>
                             <div className="text-xs text-gray-600 dark:text-gray-400">Tamamlanan</div>
                           </div>
                           <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
                             <div className="font-semibold text-purple-600 dark:text-purple-400">
-                              {userStats.totalHours}h
+                              {userStats.unavailable ? '—' : `${userStats.totalHours} sa`}
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">Toplam Saat</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400">Ölçülen Çalışma</div>
                           </div>
                           <div className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
                             <div className="font-semibold text-gray-600 dark:text-gray-400">
@@ -330,42 +285,45 @@ const AdminUsersPage = () => {
                       </Menu.Button>
                       <Menu.Items className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-10">
                         <div className="py-1">
-                          <Menu.Item>
-                            {({ active }) => (
+                          <Menu.Item disabled={String(user.id) === String(currentUser?.id) && user.isActive}>
+                            {({ active, disabled }) => (
                               <button
+                                disabled={disabled}
                                 onClick={() => handleToggleUserStatus(user.id.toString(), user.isActive)}
                                 className={`flex items-center gap-2 w-full px-4 py-2 text-sm text-left ${
                                   active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                } text-gray-700 dark:text-gray-300`}
+                                } ${disabled ? 'opacity-40 cursor-not-allowed' : ''} text-gray-700 dark:text-gray-300`}
                               >
                                 <Shield className="w-4 h-4" />
                                 {user.isActive ? 'Pasifleştir' : 'Aktifleştir'}
                               </button>
                             )}
                           </Menu.Item>
-                          <Menu.Item>
-                            {({ active }) => (
+                          <Menu.Item disabled={String(user.id) === String(currentUser?.id)}>
+                            {({ active, disabled }) => (
                               <button
+                                disabled={disabled}
                                 onClick={() => handleChangeUserRole(
                                   user.id.toString(),
                                   user.role === 'admin' ? 'student' : 'admin'
                                 )}
                                 className={`flex items-center gap-2 w-full px-4 py-2 text-sm text-left ${
                                   active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                } text-gray-700 dark:text-gray-300`}
+                                } ${disabled ? 'opacity-40 cursor-not-allowed' : ''} text-gray-700 dark:text-gray-300`}
                               >
                                 <User className="w-4 h-4" />
                                 {user.role === 'admin' ? 'Öğrenci Yap' : 'Admin Yap'}
                               </button>
                             )}
                           </Menu.Item>
-                          <Menu.Item>
-                            {({ active }) => (
+                          <Menu.Item disabled={String(user.id) === String(currentUser?.id)}>
+                            {({ active, disabled }) => (
                               <button
+                                disabled={disabled}
                                 onClick={() => handleDeleteUser(user.id.toString())}
                                 className={`flex items-center gap-2 w-full px-4 py-2 text-sm text-left ${
                                   active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                } text-red-600 dark:text-red-400`}
+                                } ${disabled ? 'opacity-40 cursor-not-allowed' : ''} text-red-600 dark:text-red-400`}
                               >
                                 <Trash2 className="w-4 h-4" />
                                 Sil

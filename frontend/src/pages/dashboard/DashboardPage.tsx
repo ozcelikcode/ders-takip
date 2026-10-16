@@ -2,32 +2,36 @@ import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, BookOpen, Calendar, Clock, CheckCircle, Layers, Plus, Timer } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format } from '../../utils/calendarDates';
 import { tr } from 'date-fns/locale';
 import RecentActivities from '../../components/dashboard/RecentActivities';
 import WeeklyProgressChart from '../../components/dashboard/WeeklyProgressChart';
 import PageHeader from '../../components/common/PageHeader';
 import { coursesAPI, studySessionsAPI } from '../../services/api';
+import { formatMeasuredTime } from '../../utils/sessionHelpers';
+import { useUserPreferencesStore } from '../../store/userPreferencesStore';
+import { calendarViewDate } from '@study-tracker/contracts';
 import { useAuthStore } from '../../store/authStore';
 
 const DashboardPage = () => {
   const accountKeys = useAccountQueryKeys();
+  const timezone = useUserPreferencesStore(state => state.preferences.timezone);
   const firstName = useAuthStore(state => state.user?.firstName);
   const { data: courses, isLoading: coursesLoading, isError: coursesError } = useQuery({
     queryKey: accountKeys.catalog('courses', { includeTopics: true }),
     queryFn: () => coursesAPI.getCourses({ includeTopics: true }),
     select: response => (response.data.data?.courses || []) as { topics?: unknown[] }[],
   });
-  const { data: sessions, isLoading: sessionsLoading, isError: sessionsError } = useQuery({
-    queryKey: accountKeys.sessions('all-completed-sessions'),
-    queryFn: async () => (await studySessionsAPI.getSessions({ status: 'completed' })).data.data?.sessions || [],
+  const { data: statsData, isLoading: sessionsLoading, isError: sessionsError } = useQuery({
+    queryKey: accountKeys.sessions('measured-stats'),
+    queryFn: async () => (await studySessionsAPI.getStats()).data.data?.stats,
   });
 
   const stats = [
     { label: 'Dersler', value: courses?.length || 0, detail: 'Çalışma alanındaki dersler', icon: BookOpen, loading: coursesLoading, error: coursesError },
     { label: 'Konular', value: courses?.reduce((sum, course) => sum + (course.topics?.length || 0), 0) || 0, detail: 'Derslere bağlı konular', icon: Layers, loading: coursesLoading, error: coursesError },
-    { label: 'Tamamlanan seans', value: sessions?.length || 0, detail: 'Tüm zamanlar', icon: CheckCircle, loading: sessionsLoading, error: sessionsError },
-    { label: 'Kaydedilen süre', value: `${Math.round((sessions?.reduce((sum, session) => sum + (session.duration || 0), 0) || 0) / 60 * 10) / 10} sa`, detail: 'Tamamlanan seansların süresi', icon: Clock, loading: sessionsLoading, error: sessionsError },
+    { label: 'Tamamlanan seans', value: statsData?.completedSessions || 0, detail: 'Tüm zamanlar', icon: CheckCircle, loading: sessionsLoading, error: sessionsError },
+    { label: 'Ölçülen çalışma', value: formatMeasuredTime(statsData?.studySeconds ?? 0), detail: statsData?.untrackedSessions || statsData?.partialSessions ? 'Ölçülmemiş eski süreler toplama dahil değil' : 'Mola ve duraklama hariç', icon: Clock, loading: sessionsLoading, error: sessionsError },
   ];
   const shortcuts = [
     { title: 'Haftanı planla', description: 'Çalışmalarına takvimde yer aç.', href: '/planner', icon: Calendar },
@@ -37,7 +41,7 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-7">
-      <PageHeader eyebrow={format(new Date(), 'd MMMM yyyy, EEEE', { locale: tr })}
+      <PageHeader eyebrow={format(calendarViewDate(new Date(), timezone), 'd MMMM yyyy, EEEE', { locale: tr })}
         title={`Merhaba${firstName ? `, ${firstName}` : ''}.`}
         description="Çalışmalarına bir adım uzaktan bak. Sıradaki adımını planla."
         actions={<Link to="/planner" className="btn btn-primary"><Plus className="h-4 w-4" />Seans planla</Link>} />
@@ -52,7 +56,7 @@ const DashboardPage = () => {
 
       <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
         <section className="panel min-w-0">
-          <div className="panel-heading"><div><h2 className="text-sm font-medium">Haftalık ilerleme</h2><p className="mt-1 text-xs text-[var(--muted)]">Tamamlanan seansların kaydedilen süresi</p></div><span className="badge badge-gray">Bu hafta</span></div>
+          <div className="panel-heading"><div><h2 className="text-sm font-medium">Haftalık ilerleme</h2><p className="mt-1 text-xs text-[var(--muted)]">Günlere bölünmüş ölçülen çalışma; molalar hariç</p></div><span className="badge badge-gray">Bu hafta</span></div>
           <div className="h-[300px] px-5 pb-5 pt-7"><WeeklyProgressChart /></div>
         </section>
         <section className="panel min-w-0">

@@ -1,10 +1,12 @@
+import { calendarViewDate, wallTimeToInstant, formatZonedTime } from '@study-tracker/contracts';
+import { format } from '../../utils/calendarDates';
 import { pomodoroDefaults } from '@study-tracker/contracts';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Dialog } from '@headlessui/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { differenceInMinutes, format, parseISO } from 'date-fns';
+import { differenceInMinutes } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, Calendar, Coffee, Target, Timer, Trash2, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -12,7 +14,7 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { z } from 'zod';
 import { coursesAPI, studySessionsAPI } from '../../services/api';
-import { CreateStudySessionRequest, StudySession } from '../../types/planner';
+import { CreateStudySessionRequest, StudySession, UpdateStudySessionRequest } from '../../types/planner';
 import ConfirmDialog from '../common/ConfirmDialog';
 
 // Color palette for sessions - Soft/Pastel iOS style colors
@@ -108,13 +110,14 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
     watch,
     reset,
     setValue,
+    setError,
     formState: { errors, isValid },
   } = useForm<CreateSessionForm>({
     resolver: zodResolver(createSessionSchema),
     mode: 'onChange',
     defaultValues: {
       sessionCategory: 'course',
-      startDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      startDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(calendarViewDate(new Date(), preferences.timezone), 'yyyy-MM-dd'),
       startTime: `${selectedHour.toString().padStart(2, '0')}:00`,
       durationMode: 'minutes',
       duration: 60,
@@ -128,12 +131,12 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
   const sessionType = watch('sessionType');
 
   const sessionMutation = useMutation({
-    mutationFn: async (data: CreateStudySessionRequest) => {
+    mutationFn: async (data: CreateStudySessionRequest | UpdateStudySessionRequest) => {
       if (isEditMode && editSession) {
-        const response = await studySessionsAPI.updateSession(editSession, data);
+        const response = await studySessionsAPI.updateSession(editSession, data as UpdateStudySessionRequest);
         return response.data;
       } else {
-        const response = await studySessionsAPI.createSession(data);
+        const response = await studySessionsAPI.createSession(data as CreateStudySessionRequest);
         return response.data;
       }
     },
@@ -175,14 +178,18 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
       sessionCategory: sessionCategory
     };
 
-    // Parse start date and time from form
-    const [startHours, startMinutes] = correctedData.startTime.split(':').map(Number);
-    const startTime = new Date(correctedData.startDate);
-    startTime.setHours(startHours, startMinutes, 0, 0);
-
-    // Calculate end time based on duration
-    const endTime = new Date(startTime);
-    endTime.setMinutes(endTime.getMinutes() + correctedData.duration);
+    let startTime: Date;
+    let endTime: Date;
+    try {
+      startTime = wallTimeToInstant(correctedData.startDate, correctedData.startTime, preferences.timezone);
+      endTime = durationMode === 'timeRange' && correctedData.endTime
+        ? wallTimeToInstant(correctedData.startDate, correctedData.endTime, preferences.timezone)
+        : new Date(startTime.getTime() + correctedData.duration * 60000);
+      if (endTime <= startTime || endTime.getTime() - startTime.getTime() > 480 * 60000) throw new Error('Invalid session duration');
+    } catch {
+      setError('startTime', { type: 'validate', message: 'Saat aralığını kontrol edin. Saat diliminde bulunmayan veya iki kez yaşanan saatler seçilemez.' });
+      return;
+    }
 
     // Determine title based on session category
     let finalTitle: string;
@@ -205,15 +212,21 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
       finalTitle = 'Çalışma Seansı'; // fallback
     }
 
-    const sessionData: CreateStudySessionRequest = {
+    const effectiveSessionType = correctedData.sessionCategory === 'break'
+      ? 'break'
+      : (correctedData.sessionType === 'break' ? 'study' : correctedData.sessionType);
+
+    const sessionData: CreateStudySessionRequest | UpdateStudySessionRequest = {
       title: finalTitle,
       description: correctedData.description || undefined,
-      ...(correctedData.courseId && { courseId: parseInt(correctedData.courseId) }),
+      ...(correctedData.sessionCategory === 'course' && correctedData.courseId
+        ? { courseId: parseInt(correctedData.courseId, 10) }
+        : (isEditMode ? { courseId: null, topicId: null } : {})),
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
-      sessionType: correctedData.sessionType,
+      sessionType: effectiveSessionType,
       color: correctedData.color || '#3B82F6',
-      ...(correctedData.sessionType === 'pomodoro' && correctedData.pomodoroSettings && {
+      ...(effectiveSessionType === 'pomodoro' && correctedData.pomodoroSettings && {
         pomodoroSettings: {
           workDuration: correctedData.pomodoroSettings.workDuration || 25,
           shortBreak: correctedData.pomodoroSettings.shortBreak || 5,
@@ -269,7 +282,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
 
         setSessionCategory(category);
 
-        const sessionStartTime = parseISO(editSession.startTime);
+        const sessionStartTime = calendarViewDate(editSession.startTime, preferences.timezone);
 
         reset({
           sessionCategory: category,
@@ -292,7 +305,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
 
         reset({
           sessionCategory: 'course',
-          startDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+          startDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(calendarViewDate(new Date(), preferences.timezone), 'yyyy-MM-dd'),
           startTime: `${(selectedHour ?? 9).toString().padStart(2, '0')}:00`,
           durationMode: 'minutes',
           duration: 60,
@@ -303,7 +316,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
         });
       }
     }
-  }, [editSession, isOpen, selectedDate, selectedHour, reset, defaultPomodoro]);
+  }, [editSession, isOpen, selectedDate, selectedHour, reset, defaultPomodoro, preferences.timezone]);
 
   React.useEffect(() => {
     if (sessionType === 'pomodoro') {
@@ -314,15 +327,16 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
   }, [sessionType]);
 
   React.useEffect(() => {
-    setValue('sessionCategory', sessionCategory);
-    // Mola seçildiğinde sessionType'ı break yap
     if (sessionCategory === 'break') {
-      setValue('sessionType', 'break');
+      setValue('sessionType', 'break', { shouldValidate: true });
+    } else if (sessionType === 'break') {
+      setValue('sessionType', 'study', { shouldValidate: true });
     }
-  }, [sessionCategory, setValue]);
+    setValue('sessionCategory', sessionCategory, { shouldValidate: true });
+  }, [sessionCategory, sessionType, setValue]);
 
   React.useEffect(() => {
-    setValue('durationMode', durationMode);
+    setValue('durationMode', durationMode, { shouldValidate: true });
   }, [durationMode, setValue]);
 
   // Saat aralığı modunda bitiş saatinden süreyi hesapla
@@ -332,23 +346,14 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
 
   React.useEffect(() => {
     if (durationMode === 'timeRange' && watchedEndTime && watchedStartDate && watchedStartTime) {
-      // Parse start time from form
-      const [startHours, startMinutes] = watchedStartTime.split(':').map(Number);
-      const startTime = new Date(watchedStartDate);
-      startTime.setHours(startHours, startMinutes, 0, 0);
-
-      // Parse end time
-      const [endHours, endMinutes] = watchedEndTime.split(':').map(Number);
-      const endTime = new Date(watchedStartDate);
-      endTime.setHours(endHours, endMinutes, 0, 0);
-
-      const durationInMinutes = differenceInMinutes(endTime, startTime);
-
-      if (durationInMinutes > 0 && durationInMinutes <= 480) {
-        setValue('duration', durationInMinutes, { shouldValidate: true });
-      }
+      try {
+        const start = wallTimeToInstant(watchedStartDate, watchedStartTime, preferences.timezone);
+        const end = wallTimeToInstant(watchedStartDate, watchedEndTime, preferences.timezone);
+        const minutes = differenceInMinutes(end, start);
+        if (minutes > 0 && minutes <= 480) setValue('duration', minutes, { shouldValidate: true });
+      } catch { /* Submission reports ambiguous or missing wall times. */ }
     }
-  }, [watchedEndTime, watchedStartDate, watchedStartTime, durationMode, setValue]);
+  }, [watchedEndTime, watchedStartDate, watchedStartTime, durationMode, setValue, preferences.timezone]);
 
   return (
     <AnimatePresence>
@@ -387,6 +392,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
               </div>
 
               <form id="create-session-form" onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-5 overflow-y-auto flex-1">
+                <p className="text-xs text-[var(--muted)]">Takvim saat dilimi: {preferences.timezone}</p>
                 {/* Study Category Selection */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
@@ -622,17 +628,12 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
 
                             if (!startDateValue || !startTimeValue || !endTimeValue) return '0 dakika';
 
-                            const [startHours, startMinutes] = startTimeValue.split(':').map(Number);
-                            const startTime = new Date(startDateValue);
-                            startTime.setHours(startHours, startMinutes, 0, 0);
-
-                            const [endHours, endMinutes] = endTimeValue.split(':').map(Number);
-                            const endTime = new Date(startDateValue);
-                            endTime.setHours(endHours, endMinutes, 0, 0);
-
-                            const duration = differenceInMinutes(endTime, startTime);
-
-                            return duration > 0 ? `${duration} dakika` : '0 dakika';
+                            try {
+                              const start = wallTimeToInstant(startDateValue, startTimeValue, preferences.timezone);
+                              const end = wallTimeToInstant(startDateValue, endTimeValue, preferences.timezone);
+                              const duration = differenceInMinutes(end, start);
+                              return duration > 0 ? `${duration} dakika` : '0 dakika';
+                            } catch { return 'Geçersiz saat'; }
                           })()}
                         </span>
                       </div>
@@ -676,14 +677,10 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
 
                           if (!startDateValue || !startTimeValue) return '--:--';
 
-                          const [startHours, startMinutes] = startTimeValue.split(':').map(Number);
-                          const startTime = new Date(startDateValue);
-                          startTime.setHours(startHours, startMinutes, 0, 0);
-
-                          const endTime = new Date(startTime);
-                          endTime.setMinutes(endTime.getMinutes() + duration);
-
-                          return format(endTime, 'HH:mm');
+                          try {
+                            const start = wallTimeToInstant(startDateValue, startTimeValue, preferences.timezone);
+                            return formatZonedTime(new Date(start.getTime() + duration * 60000), preferences.timezone);
+                          } catch { return 'Geçersiz saat'; }
                         })()}
                       </span>
                     </div>

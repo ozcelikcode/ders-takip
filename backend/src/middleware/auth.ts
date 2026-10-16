@@ -4,6 +4,7 @@ import { NextFunction, Request, Response } from 'express';
 import { User } from '../models/User';
 import { AuthSession } from '../models/AuthSession';
 import { verifyAccessToken } from '../utils/jwt';
+import { readSiteSettings, sendMaintenance } from '../services/siteSettings';
 
 declare global {
   namespace Express {
@@ -57,6 +58,8 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
       });
       return;
     }
+
+    if (user.role !== 'admin' && (await readSiteSettings()).maintenanceMode) { sendMaintenance(res); return; }
 
     req.user = user;
     next();

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { activityKindSchema } from './studyTracking.js';
 
 export const sessionStatusSchema = z.enum(['planned', 'in_progress', 'paused', 'completed', 'cancelled']);
 export type SessionStatus = z.infer<typeof sessionStatusSchema>;
@@ -30,9 +31,14 @@ export const createSessionSchema = z.object({
   pomodoroSettings: pomodoroSettings.optional(),
 }).strict();
 export const sessionVersionSchema = z.object({ expectedUpdatedAt: instant }).strict();
+export const startSessionSchema = sessionVersionSchema.extend({ activityKind: activityKindSchema.optional() });
 export const updateSessionSchema = createSessionSchema.partial().extend({
   expectedUpdatedAt: instant,
+  planId: relationId.nullable().optional(),
+  topicId: relationId.nullable().optional(),
+  courseId: relationId.nullable().optional(),
   status: sessionStatusSchema.optional(), notes: z.string().optional(),
+  activityKind: activityKindSchema.optional(),
   productivity: z.number().int().min(1).max(5).optional(),
   pomodoroSettings: pomodoroSettings.partial().optional(),
 }).strict();

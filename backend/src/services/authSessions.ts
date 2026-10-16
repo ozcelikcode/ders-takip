@@ -1,9 +1,10 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { Op, Transaction, type Transaction as DatabaseTransaction } from 'sequelize';
 import { sequelize } from '../config/database';
-import { getEnvironment } from '../config/environment';
+import { durationInSeconds, getEnvironment } from '../config/environment';
 import { AuthSession, RefreshCredential } from '../models/AuthSession';
 import { User } from '../models/User';
+import { readSiteSettings } from './siteSettings';
 import { generateAccessToken } from '../utils/jwt';
 
 const hashCredential = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -31,6 +32,13 @@ export const rotateAuthSession = async (credential: string) => {
     if (!session || session.revokedAt || session.expiresAt.getTime() <= Date.now()) return null;
     if (previous.consumedAt) {
       // Commit the family revocation even though the refresh request is rejected.
+      session.revokedAt = new Date();
+      await session.save({ transaction });
+      return null;
+    }
+    // Idle timeout: refresh is lazy, so the effective limit never drops below the access token lifetime.
+    const idleLimitMs = Math.max((await readSiteSettings()).sessionTimeout * 60000, durationInSeconds(getEnvironment().JWT_EXPIRE) * 1000);
+    if (Date.now() - previous.createdAt.getTime() > idleLimitMs) {
       session.revokedAt = new Date();
       await session.save({ transaction });
       return null;

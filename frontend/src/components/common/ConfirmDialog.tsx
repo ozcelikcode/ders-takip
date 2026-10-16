@@ -1,19 +1,20 @@
-import { Dialog, Transition } from '@headlessui/react';
+import { Dialog } from '@headlessui/react';
 import { AlertTriangle, X } from 'lucide-react';
-import React, { Fragment } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | boolean | Promise<void | boolean>;
   title: string;
   message: string;
   confirmText?: string;
   cancelText?: string;
   type?: 'danger' | 'warning' | 'info';
+  children?: ReactNode;
 }
 
-const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
+export default function ConfirmDialog({
   isOpen,
   onClose,
   onConfirm,
@@ -22,117 +23,91 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   confirmText = 'Onayla',
   cancelText = 'İptal',
   type = 'warning',
-}) => {
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
+  children,
+}: ConfirmDialogProps) {
+  const inFlight = useRef(false);
+  const [pending, setPending] = useState(false);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    if (isOpen) setFailed(false);
+  }, [isOpen]);
+  const close = () => {
+    if (!pending) onClose();
   };
-
-  const getTypeColors = () => {
-    switch (type) {
-      case 'danger':
-        return {
-          icon: 'text-red-600 bg-red-100 dark:bg-red-900/20',
-          button: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
-        };
-      case 'warning':
-        return {
-          icon: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20',
-          button: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
-        };
-      case 'info':
-        return {
-          icon: 'text-blue-600 bg-blue-100 dark:bg-blue-900/20',
-          button: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500',
-        };
-      default:
-        return {
-          icon: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20',
-          button: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
-        };
+  const confirm = async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setPending(true);
+    setFailed(false);
+    try {
+      const result = await onConfirm();
+      if (result !== false) onClose();
+    } catch {
+      setFailed(true);
+    } finally {
+      inFlight.current = false;
+      setPending(false);
     }
   };
-
-  const colors = getTypeColors();
-
   return (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black bg-opacity-25 dark:bg-opacity-50" />
-        </Transition.Child>
-
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 text-left align-middle shadow-xl transition-all">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-start gap-3">
-                    <div className={`flex-shrink-0 p-2 rounded-full ${colors.icon}`}>
-                      <AlertTriangle className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <Dialog.Title
-                        as="h3"
-                        className="text-lg font-semibold text-gray-900 dark:text-white"
-                      >
-                        {title}
-                      </Dialog.Title>
-                    </div>
-                  </div>
-                  <button
-                    onClick={onClose}
-                    className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="mt-2 ml-11">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {message}
-                  </p>
-                </div>
-
-                <div className="mt-6 flex gap-3 justify-end">
-                  <button
-                    type="button"
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                    onClick={onClose}
-                  >
-                    {cancelText}
-                  </button>
-                  <button
-                    type="button"
-                    className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.button}`}
-                    onClick={handleConfirm}
-                  >
-                    {confirmText}
-                  </button>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
+    <Dialog open={isOpen} onClose={close} className="relative z-[60]">
+      <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
+      <div className="fixed inset-0 overflow-y-auto">
+        <div className="flex min-h-full items-center justify-center p-4">
+          <Dialog.Panel
+            className="panel w-full max-w-md p-6 shadow-xl"
+            aria-busy={pending}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <AlertTriangle
+                  className={`mt-0.5 h-5 w-5 shrink-0 ${type === 'danger' ? 'text-red-600' : 'text-[var(--muted)]'}`}
+                />
+                <Dialog.Title className="text-base font-medium">
+                  {title}
+                </Dialog.Title>
+              </div>
+              <button
+                disabled={pending}
+                aria-label="Onay penceresini kapat"
+                onClick={close}
+                className="rounded p-1 text-[var(--muted)] hover:bg-[var(--subtle)] disabled:opacity-50"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <Dialog.Description className="mt-4 text-sm text-[var(--muted)]">
+              {message}
+            </Dialog.Description>
+            {children && <div className="mt-4">{children}</div>}
+            {failed && (
+              <p role="alert" className="mt-3 text-sm text-red-600">
+                İşlem tamamlanamadı. Lütfen tekrar deneyin.
+              </p>
+            )}
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                disabled={pending}
+                className="btn btn-secondary"
+                onClick={close}
+              >
+                {cancelText}
+              </button>
+              <button
+                disabled={pending}
+                className={
+                  type === 'danger'
+                    ? 'btn bg-red-600 text-white hover:bg-red-700 disabled:opacity-50'
+                    : 'btn btn-primary'
+                }
+                onClick={() => void confirm()}
+              >
+                {pending ? 'İşleniyor…' : confirmText}
+              </button>
+            </div>
+          </Dialog.Panel>
         </div>
-      </Dialog>
-    </Transition>
+      </div>
+    </Dialog>
   );
-};
-
-export default ConfirmDialog;
+}

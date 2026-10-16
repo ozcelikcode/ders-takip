@@ -95,13 +95,20 @@ describe('revocable browser sessions', () => {
     const user = await account(); const first = await login(user);
     for(const newPassword of ['short', 'ü'.repeat(40)]) await request(app).put('/api/auth/change-password').set('X-Requested-With','StudyTracker').auth(first.body.data.tokens.accessToken,{type:'bearer'}).send({currentPassword:'original-password',newPassword}).expect(400);
   });
-  it('does not revive old sessions when a disabled account is reactivated', async () => {
+  it('does not revive old sessions when a disabled account is reactivated, blocks admin self-demotion/deactivation, and supports profileImage data URIs and clearing', async () => {
     const admin = await account('admin'); const subject = await account();
     const actor = await login(admin); const original = await login(subject);
-    for (const isActive of [false, true]) await request(app).put(`/api/users/${subject.id}`).auth(actor.body.data.tokens.accessToken,{type:'bearer'}).send({isActive}).expect(200);
+    await request(app).put(`/api/users/${admin.id}`).set('X-Requested-With','StudyTracker').auth(actor.body.data.tokens.accessToken,{type:'bearer'}).send({isActive:false}).expect(400);
+    await request(app).put(`/api/users/${admin.id}`).set('X-Requested-With','StudyTracker').auth(actor.body.data.tokens.accessToken,{type:'bearer'}).send({role:'student'}).expect(400);
+    await request(app).delete(`/api/users/${admin.id}`).set('X-Requested-With','StudyTracker').auth(actor.body.data.tokens.accessToken,{type:'bearer'}).expect(400);
+    for (const isActive of [false, true]) await request(app).put(`/api/users/${subject.id}`).set('X-Requested-With','StudyTracker').auth(actor.body.data.tokens.accessToken,{type:'bearer'}).send({isActive}).expect(200);
     await me(original.body.data.tokens.accessToken).expect(401);
     await write('/api/auth/refresh-token',cookieOf(original)).expect(401);
-    await login(subject).expect(200);
+    const relogged = await login(subject).expect(200);
+    const updatedProfile = await request(app).put('/api/auth/profile').set('X-Requested-With','StudyTracker').auth(relogged.body.data.tokens.accessToken,{type:'bearer'}).send({profileImage:'data:image/png;base64,iVBORw0KGgo='}).expect(200);
+    assert.equal(updatedProfile.body.data.user.profileImage, 'data:image/png;base64,iVBORw0KGgo=');
+    const clearedProfile = await request(app).put('/api/auth/profile').set('X-Requested-With','StudyTracker').auth(relogged.body.data.tokens.accessToken,{type:'bearer'}).send({profileImage:null}).expect(200);
+    assert.equal(clearedProfile.body.data.user.profileImage, null);
   });
   it('rejects an old credential check that raced with a password update', async () => {
     const user = await account();

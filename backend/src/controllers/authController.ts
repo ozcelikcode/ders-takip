@@ -5,11 +5,19 @@ import { User } from '../models/User';
 import { Transaction } from 'sequelize';
 import { sequelize } from '../config/database';
 import { createAuthSession, rotateAuthSession, revokeCredential, revokeUserSessions } from '../services/authSessions';
+import { readSiteSettings, sendMaintenance } from '../services/siteSettings';
 import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from '../middleware/authCookies';
 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { username, email, password, firstName, lastName } = req.body;
+
+    const site = await readSiteSettings();
+    if (site.maintenanceMode) { sendMaintenance(res); return; }
+    if (!site.allowRegistration) {
+      res.status(403).json({ success: false, error: { message: 'Yeni kayıtlar şu anda kapalı' } });
+      return;
+    }
 
     const existingUser = await User.findOne({
       where: {
@@ -105,6 +113,8 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
       });
       return;
     }
+
+    if (user.role !== 'admin' && (await readSiteSettings()).maintenanceMode) { sendMaintenance(res); return; }
 
     const session = await createAuthSession(user);
     setRefreshCookie(res, session.credential, session.session.expiresAt);
@@ -206,7 +216,7 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
       if (firstName) current.firstName = firstName;
       if (lastName) current.lastName = lastName;
       if (username) current.username = username;
-      if (profileImage !== undefined) current.profileImage = profileImage;
+      if (profileImage !== undefined) current.profileImage = profileImage || null;
       if (preferences !== undefined) current.preferences = { ...current.preferences, ...preferencesSchema.parse({ ...current.preferences, ...parsed.data }) };
       await current.save({ transaction });
       return current;

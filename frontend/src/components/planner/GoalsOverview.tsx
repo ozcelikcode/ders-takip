@@ -1,3 +1,5 @@
+import { calendarViewDate, formatZonedTime } from '@study-tracker/contracts';
+import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useCurrentDateKey } from '../../hooks/useCurrentDateKey';
 import { useQuery } from '@tanstack/react-query';
@@ -8,11 +10,13 @@ import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { studySessionsAPI } from '../../services/api';
 import { StudySession } from '../../types/planner';
-import { canStartSession, formatTime, getSessionTextStyle, isSessionMissed } from '../../utils/sessionHelpers';
+import { canStartSession, getSessionTextStyle, isSessionMissed } from '../../utils/sessionHelpers';
 import ConfirmDialog from '../common/ConfirmDialog';
 import CreateSessionModal from './CreateSessionModal';
 
 const TodaysPlans: React.FC = () => {
+  const timezone = useUserPreferencesStore(state => state.preferences.timezone);
+  const viewNow = () => calendarViewDate(new Date(), timezone);
   const accountKeys = useAccountQueryKeys();
   const today = useCurrentDateKey();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -215,7 +219,7 @@ const TodaysPlans: React.FC = () => {
                       {/* Time and type indicator */}
                       <div className="flex flex-col items-center min-w-[56px]">
                         <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                          {formatTime(sessionStart)}
+                          {formatZonedTime(sessionStart, timezone)}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           {session.duration}dk
@@ -252,7 +256,7 @@ const TodaysPlans: React.FC = () => {
                                   session.status === 'cancelled' ? 'İptal Edildi' : 'Planlandı'}
                           </span>
                           <span className="text-xs text-gray-500">
-                            {formatTime(sessionStart)} - {formatTime(sessionEnd)}
+                            {formatZonedTime(sessionStart, timezone)} - {formatZonedTime(sessionEnd, timezone)}
                           </span>
                         </div>
                       </div>
@@ -312,7 +316,7 @@ const TodaysPlans: React.FC = () => {
                           </button>
                         </>
                       )}
-                      {session.status === 'paused' && (
+                      {session.status === 'paused' && canStartSession(session) && (
                         <>
                           <button
                             onClick={() => handleStartSession(session)}
@@ -360,8 +364,8 @@ const TodaysPlans: React.FC = () => {
           setIsCreateModalOpen(false);
           refetch(); // Force refetch when modal closes
         }}
-        selectedDate={new Date()}
-        selectedHour={new Date().getHours()}
+        selectedDate={viewNow()}
+        selectedHour={viewNow().getHours()}
       />
 
       {/* Edit Session Modal */}

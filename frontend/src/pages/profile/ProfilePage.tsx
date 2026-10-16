@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Camera, Lock, Mail, Save, Upload, User as UserIcon, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { authAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
@@ -28,28 +28,30 @@ const ProfilePage = () => {
     confirmPassword: '',
   });
 
+  useEffect(() => {
+    if (!isEditingProfile && user) {
+      setProfileForm({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        username: user.username || '',
+        profileImage: user.profileImage || '',
+        studyField: user.preferences?.studyField || '',
+      });
+    }
+  }, [user, isEditingProfile]);
+
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const updateData: any = {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        username: data.username,
-      };
-
-      // Only include profileImage if it has a value
-      if (data.profileImage) {
-        updateData.profileImage = data.profileImage;
-      }
-
-      // Only include studyField if it has a value
-      if (data.studyField) {
-        updateData.preferences = {
-          studyField: data.studyField,
-        };
-      }
-
-      return useAuthStore.getState().updateProfile(updateData);
+    mutationFn: async (data: typeof profileForm) => {
+      return useAuthStore.getState().updateProfile({
+        firstName: data.firstName.trim(),
+        lastName: data.lastName.trim(),
+        username: data.username.trim(),
+        profileImage: data.profileImage || null,
+        preferences: {
+          studyField: (data.studyField || null) as any,
+        },
+      });
     },
     onSuccess: () => {
       toast.success('Profil başarıyla güncellendi');
@@ -79,8 +81,13 @@ const ProfilePage = () => {
     e.preventDefault();
 
     // Validation
-    if (!profileForm.firstName || !profileForm.lastName || !profileForm.username) {
+    if (!profileForm.firstName.trim() || !profileForm.lastName.trim() || !profileForm.username.trim()) {
       toast.error('Lütfen tüm zorunlu alanları doldurun');
+      return;
+    }
+
+    if (profileForm.firstName.trim().length < 2 || profileForm.lastName.trim().length < 2) {
+      toast.error('Ad ve soyad en az 2 karakter olmalıdır');
       return;
     }
 
@@ -101,8 +108,8 @@ const ProfilePage = () => {
       return;
     }
 
-    if (passwordForm.newPassword.length < 6) {
-      toast.error('Yeni şifre en az 6 karakter olmalıdır');
+    if (passwordForm.newPassword.length < 12 || new TextEncoder().encode(passwordForm.newPassword).length > 72) {
+      toast.error('Yeni şifre en az 12 karakter ve en fazla 72 UTF-8 baytı olmalıdır');
       return;
     }
 
@@ -501,11 +508,11 @@ const ProfilePage = () => {
                       value={passwordForm.newPassword}
                       onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                       required
-                      minLength={6}
+                      minLength={12}
                       className="input"
                     />
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      En az 6 karakter olmalıdır
+                      En az 12 karakter olmalıdır
                     </p>
                   </div>
                   <div>

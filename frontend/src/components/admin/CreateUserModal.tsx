@@ -40,6 +40,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose }) =>
     handleSubmit,
     watch,
     reset,
+    setValue,
     formState: { errors, isValid },
   } = useForm<CreateUserForm>({
     resolver: zodResolver(createUserSchema),
@@ -120,7 +121,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose }) =>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
-                      onClick={() => reset({ ...watch(), role: 'student' })}
+                      onClick={() => setValue('role', 'student', { shouldValidate: true })}
                       className={`p-3 rounded-lg border-2 transition-all duration-200 ${
                         role === 'student'
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
@@ -132,7 +133,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose }) =>
                     </button>
                     <button
                       type="button"
-                      onClick={() => reset({ ...watch(), role: 'admin' })}
+                      onClick={() => setValue('role', 'admin', { shouldValidate: true })}
                       className={`p-3 rounded-lg border-2 transition-all duration-200 ${
                         role === 'admin'
                           ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'

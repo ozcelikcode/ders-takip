@@ -147,7 +147,7 @@ it('keeps updatedAt monotonic when the previous timestamp is ahead of the server
   assert.equal(new Date(updated.updatedAt).getTime(), new Date(ahead).getTime() + 1);
   await auth('delete', `/api/study-sessions/${session.id}`).send(version(updated)).expect(200);
 });
-it('validates changed relations in the same transaction and rejects private or mismatched topics', async () => {
+it('validates changed relations in the same transaction, allows clearing relations, and preserves historical deactivated links', async () => {
   const category = await Category.create({ name: 'Session relations', color: '#123456', order: 1 });
   const ownCourse = await Course.create({ name: 'Owned', categoryId: category.id, userId: owner.id, isActive: true, color: '#123456', order: 1 });
   const foreignCourse = await Course.create({ name: 'Foreign', categoryId: category.id, userId: other.id, isActive: true, color: '#123456', order: 1 });
@@ -159,6 +159,18 @@ it('validates changed relations in the same transaction and rejects private or m
   session = await put(session, { topicId: topic.id }); assert.equal(session.courseId, ownCourse.id);
   await put(session, { courseId: foreignCourse.id }, 400);
   assert.equal((await StudySession.findByPk(session.id)).courseId, ownCourse.id);
+
+  await ownCourse.update({ isActive: false });
+  await topic.update({ isActive: false });
+  session = await put(session, { title: 'Updated with archived links', courseId: ownCourse.id, topicId: topic.id });
+  assert.equal(session.title, 'Updated with archived links');
+  assert.equal(session.courseId, ownCourse.id);
+  assert.equal(session.topicId, topic.id);
+
+  session = await put(session, { courseId: null, topicId: null, sessionType: 'break' });
+  assert.equal(session.courseId, null);
+  assert.equal(session.topicId, null);
+  assert.equal(session.sessionType, 'break');
 });
 it('rolls back status, metadata and version when a write fails after the SQL update', async () => {
   const session = await create();

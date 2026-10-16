@@ -4,6 +4,7 @@ import { connectDB, sequelize } from './config/database';
 import { getEnvironment } from './config/environment';
 import { reconcileBackupCatalog, runScheduledBackup } from './services/backups';
 import { assertDatabaseReady } from './database/migrations';
+import { runDuePomodoros, startPomodoroScheduler } from './services/pomodoroClocks';
 
 
 const startServer = async () => {
@@ -12,6 +13,8 @@ const startServer = async () => {
   await assertDatabaseReady();
 
   await reconcileBackupCatalog();
+  await runDuePomodoros();
+  const pomodoroScheduler = startPomodoroScheduler();
   const backupJob = cron.schedule('*/5 * * * *', async () => {
     try { await runScheduledBackup(); }
     catch (error) { console.error('Scheduled maintenance failed:', error); }
@@ -22,7 +25,7 @@ const startServer = async () => {
   });
   const shutdown = () => {
     backupJob.stop();
-    server.close(() => { void sequelize.close().then(() => process.exit(0)); });
+    server.close(() => { void pomodoroScheduler.stop().then(() => sequelize.close()).then(() => process.exit(0)); });
     setTimeout(() => process.exit(1), 10000).unref();
   };
   process.once('SIGTERM', shutdown);

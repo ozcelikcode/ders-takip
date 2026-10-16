@@ -1,368 +1,53 @@
-import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Coffee, Pause, Play, RotateCcw, Square, Target, Volume2, VolumeX } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
-import { studySessionsAPI } from '../../services/api';
-import { StudySession } from '../../types/planner';
+import { Coffee, Pause, Play, RotateCcw, Square, Target } from 'lucide-react';
+import { defaultPomodoroSettings } from '@study-tracker/contracts';
+import { usePomodoro } from '../../hooks/usePomodoro';
+import type { StudySession } from '../../types/planner';
 
-interface PomodoroTimerProps {
-  session: StudySession;
-  onComplete?: () => void;
-}
+interface PomodoroTimerProps { session: StudySession; onComplete?: (() => void) | undefined }
+const labels = { work: 'Çalışma zamanı', short_break: 'Kısa mola', long_break: 'Uzun mola' };
+const formatTime = (seconds: number) => `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
 
-type TimerPhase = 'work' | 'shortBreak' | 'longBreak';
-type TimerStatus = 'idle' | 'running' | 'paused' | 'completed';
-
-const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session: initialSession, onComplete }) => {
-  const [session, setSession] = useState(initialSession);
-  const accountKeys = useAccountQueryKeys();
-  const queryClient = useQueryClient();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [currentPhase, setCurrentPhase] = useState<TimerPhase>('work');
-  const [currentCycle, setCurrentCycle] = useState(1);
-  const [timerStatus, setTimerStatus] = useState<TimerStatus>('idle');
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [autoStartBreaks, setAutoStartBreaks] = useState(false);
-
-  const pomodoroSettings = session.pomodoroSettings || {
-    workDuration: 25,
-    shortBreak: 5,
-    longBreak: 15,
-    cyclesBeforeLongBreak: 4,
-  };
-
-  const updateSessionMutation = useMutation({
-    mutationFn: async (data: { status?: 'planned' | 'in_progress' | 'completed' | 'cancelled' | 'paused'; notes?: string; productivity?: number }) => {
-      const response = await studySessionsAPI.updateSession(session, data);
-      return response.data;
-    },
-    onSuccess: (response) => {
-      if (response.data?.session) setSession(response.data.session);
-      queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
-    },
-  });
-
-  const completeSessionMutation = useMutation({
-    mutationFn: async (data: { notes?: string; productivity?: number }) => {
-      const response = await studySessionsAPI.completeSession(session, data);
-      return response.data;
-    },
-    onSuccess: () => {
-      toast.success('Çalışma seansı tamamlandı!');
-      queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
-      onComplete?.();
-    },
-  });
-
-  useEffect(() => {
-    setSession(current => initialSession.id !== current.id || new Date(initialSession.updatedAt) > new Date(current.updatedAt) ? initialSession : current);
-  }, [initialSession]);
-
-  // Initialize a new timer without resetting it after a server acknowledgement.
-  useEffect(() => {
-    if (session.status === 'in_progress') {
-      setTimerStatus('running');
-    }
-    resetToCurrentPhase();
-  }, [session.id]);
-
-  // Timer countdown effect
-  useEffect(() => {
-    let interval: number;
-
-    if (timerStatus === 'running' && timeLeft > 0) {
-      interval = window.setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            handlePhaseComplete();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-
-    return () => clearInterval(interval);
-  }, [timerStatus, timeLeft]);
-
-  const resetToCurrentPhase = () => {
-    let duration = pomodoroSettings.workDuration;
-
-    if (currentPhase === 'shortBreak') {
-      duration = pomodoroSettings.shortBreak;
-    } else if (currentPhase === 'longBreak') {
-      duration = pomodoroSettings.longBreak;
-    }
-
-    setTimeLeft(duration * 60);
-  };
-
-  const playNotificationSound = () => {
-    if (soundEnabled && audioRef.current) {
-      audioRef.current.play().catch(console.error);
-    }
-  };
-
-  const handlePhaseComplete = () => {
-    playNotificationSound();
-
-    if (currentPhase === 'work') {
-      // Work phase completed, move to break
-      const isLongBreakTime = currentCycle % pomodoroSettings.cyclesBeforeLongBreak === 0;
-      const nextPhase: TimerPhase = isLongBreakTime ? 'longBreak' : 'shortBreak';
-
-      setCurrentPhase(nextPhase);
-      setCurrentCycle(prev => prev + 1);
-
-      toast.success(`Çalışma tamamlandı! ${isLongBreakTime ? 'Uzun' : 'Kısa'} mola zamanı.`);
-
-      if (autoStartBreaks) {
-        startBreakPhase(nextPhase);
-      } else {
-        setTimerStatus('idle');
-      }
-    } else {
-      // Break completed, back to work
-      setCurrentPhase('work');
-      setTimerStatus('idle');
-      toast.success('Mola tamamlandı! Çalışma zamanı.');
-    }
-  };
-
-  const startBreakPhase = (phase: TimerPhase) => {
-    const duration = phase === 'longBreak' ? pomodoroSettings.longBreak : pomodoroSettings.shortBreak;
-    setTimeLeft(duration * 60);
-    setTimerStatus('running');
-  };
-
-  const handleStart = async () => {
-    try {
-      if (session.status !== 'in_progress') await updateSessionMutation.mutateAsync({ status: 'in_progress' });
-      if (timerStatus === 'idle') resetToCurrentPhase();
-      setTimerStatus('running');
-    } catch { setTimerStatus('paused'); }
-  };
-
-  const handlePause = async () => {
-    try {
-      await updateSessionMutation.mutateAsync({ status: 'paused' });
-      setTimerStatus('paused');
-    } catch { /* The transport displays the server conflict. */ }
-  };
-
-  const handleReset = async () => {
-    try {
-      await updateSessionMutation.mutateAsync({ status: 'planned' });
-      setTimerStatus('idle');
-      setCurrentPhase('work');
-      setCurrentCycle(1);
-      setTimeLeft(pomodoroSettings.workDuration * 60);
-    } catch { /* Keep the acknowledged timer state. */ }
-  };
-
-  const handleStop = () => {
-    const completedCycles = Math.max(0, currentCycle - 1);
-    const productivity = completedCycles >= pomodoroSettings.cyclesBeforeLongBreak ? 5 :
-                        completedCycles >= 2 ? 4 :
-                        completedCycles >= 1 ? 3 : 1;
-
-    completeSessionMutation.mutate({
-      notes: `${completedCycles} Pomodoro döngüsü tamamlandı`,
-      productivity,
-    });
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getPhaseColor = () => {
-    switch (currentPhase) {
-      case 'work': return 'text-red-600 dark:text-red-400';
-      case 'shortBreak': return 'text-green-600 dark:text-green-400';
-      case 'longBreak': return 'text-primary-600 dark:text-primary-400';
-    }
-  };
-
-  const getPhaseIcon = () => {
-    switch (currentPhase) {
-      case 'work': return <Target className="w-5 h-5" />;
-      case 'shortBreak': return <Coffee className="w-5 h-5" />;
-      case 'longBreak': return <Coffee className="w-5 h-5" />;
-    }
-  };
-
-  const getPhaseText = () => {
-    switch (currentPhase) {
-      case 'work': return 'Çalışma Zamanı';
-      case 'shortBreak': return 'Kısa Mola';
-      case 'longBreak': return 'Uzun Mola';
-    }
-  };
-
-  const progress = timeLeft > 0 ?
-    (1 - (timeLeft / ((currentPhase === 'work' ? pomodoroSettings.workDuration :
-                       currentPhase === 'shortBreak' ? pomodoroSettings.shortBreak :
-                       pomodoroSettings.longBreak) * 60))) * 100 : 100;
-
+export default function PomodoroTimer({ session: initialSession, onComplete }: PomodoroTimerProps) {
+  const timer = usePomodoro(initialSession, onComplete);
+  const { session } = timer;
+  const settings = session.pomodoroSettings ?? defaultPomodoroSettings;
+  const terminal = session.status === 'completed' || session.status === 'cancelled';
   return (
-    <div className="space-y-6">
-      {/* Hidden audio element for notifications */}
-      <audio ref={audioRef} preload="auto">
-        <source src="/notification.mp3" type="audio/mpeg" />
-        <source src="/notification.wav" type="audio/wav" />
-      </audio>
-
-      {/* Timer Display */}
+    <section className="space-y-7" aria-label="Pomodoro sayacı">
       <div className="text-center">
-        <div className={`flex items-center justify-center gap-2 mb-2 ${getPhaseColor()}`}>
-          {getPhaseIcon()}
-          <span className="text-lg font-semibold">{getPhaseText()}</span>
+        <h2 className="text-lg font-medium">{session.title}</h2>
+        <div className="mt-3 flex items-center justify-center gap-2 text-sm text-[var(--muted)]">
+          {timer.phase === 'work' ? <Target className="h-4 w-4" /> : <Coffee className="h-4 w-4" />}
+          <span role="status">{terminal ? session.status === 'completed' ? 'Seans tamamlandı' : 'Seans iptal edildi' : labels[timer.phase]}</span>
         </div>
-
-        <motion.div
-          key={`${currentPhase}-${currentCycle}`}
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="text-6xl font-mono font-bold text-gray-900 dark:text-white mb-4"
-        >
-          {formatTime(timeLeft)}
-        </motion.div>
-
-        {/* Progress Ring */}
-        <div className="relative inline-flex items-center justify-center">
-          <svg className="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
-            <circle
-              cx="60"
-              cy="60"
-              r="54"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="4"
-              className="text-gray-200 dark:text-gray-700"
-            />
-            <motion.circle
-              cx="60"
-              cy="60"
-              r="54"
-              fill="none"
-              strokeWidth="4"
-              strokeLinecap="round"
-              className={currentPhase === 'work' ? 'text-red-500' :
-                        currentPhase === 'shortBreak' ? 'text-green-500' : 'text-primary-500'}
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: progress / 100 }}
-              style={{
-                strokeDasharray: '339.292',
-                strokeDashoffset: `${339.292 * (1 - progress / 100)}`,
-              }}
-              transition={{ duration: 0.5, ease: 'easeInOut' }}
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              {currentCycle}/{pomodoroSettings.cyclesBeforeLongBreak}
-            </span>
-          </div>
+        <div className="mt-8 text-[64px] font-medium leading-none tracking-[-0.07em] tabular-nums sm:text-[80px]" role="timer" aria-label="Kalan süre">{formatTime(terminal ? 0 : timer.timeLeft)}</div>
+        <p className="mt-4 text-xs text-[var(--muted)]">{timer.cycle}. döngü / {settings.cyclesBeforeLongBreak}</p>
+        <div className="mx-auto mt-6 h-1 max-w-60 overflow-hidden rounded-full bg-[var(--subtle)]" role="progressbar" aria-label="Seans ilerlemesi" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(timer.progress)}>
+          <div className="h-full bg-[var(--solid)]" style={{ width: `${timer.progress}%` }} />
         </div>
       </div>
-
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-4">
-        <AnimatePresence mode="wait">
-          {timerStatus === 'idle' || timerStatus === 'paused' ? (
-            <motion.button
-              key="play"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              onClick={handleStart}
-              aria-label="Sayacı başlat"
-              disabled={updateSessionMutation.isPending || completeSessionMutation.isPending}
-              className="flex items-center justify-center w-12 h-12 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors"
-            >
-              <Play className="w-6 h-6 ml-1" />
-            </motion.button>
-          ) : (
-            <motion.button
-              key="pause"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              onClick={handlePause}
-              aria-label="Sayacı duraklat"
-              disabled={updateSessionMutation.isPending || completeSessionMutation.isPending}
-              className="flex items-center justify-center w-12 h-12 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full transition-colors"
-            >
-              <Pause className="w-6 h-6" />
-            </motion.button>
-          )}
-        </AnimatePresence>
-
-        <button
-          onClick={handleReset}
-          aria-label="Sayacı sıfırla"
-          disabled={updateSessionMutation.isPending || completeSessionMutation.isPending}
-          className="flex items-center justify-center w-10 h-10 bg-gray-500 hover:bg-gray-600 text-white rounded-full transition-colors"
-        >
-          <RotateCcw className="w-5 h-5" />
-        </button>
-
-        <button
-          onClick={handleStop}
-          aria-label="Seansı tamamla"
-          disabled={updateSessionMutation.isPending || completeSessionMutation.isPending}
-          className="flex items-center justify-center w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
-        >
-          <Square className="w-5 h-5" />
-        </button>
+      <div className="flex flex-wrap justify-center gap-3">
+        {!terminal && (timer.isRunning ? (
+          <button className="btn btn-primary" aria-label="Sayacı duraklat" disabled={timer.isPending} onClick={() => timer.run({ command: 'pause' })}><Pause className="h-4 w-4" />Duraklat</button>
+        ) : (
+          <button className="btn btn-primary" aria-label="Sayacı başlat" disabled={timer.isPending} onClick={() => timer.run({ command: 'resume' })}><Play className="h-4 w-4" />{session.status === 'in_progress' ? 'Sayacı etkinleştir' : session.status === 'paused' ? 'Devam et' : 'Başlat'}</button>
+        ))}
+        <button className="btn btn-secondary" aria-label="Sayacı sıfırla" disabled={timer.isPending} onClick={() => timer.run({ command: 'reset' })}><RotateCcw className="h-4 w-4" />Sıfırla</button>
+        {!terminal && <button className="btn btn-secondary" aria-label="Seansı tamamla" disabled={timer.isPending} onClick={() => timer.run({ command: 'complete' })}><Square className="h-4 w-4" />Tamamla</button>}
       </div>
-
-      {/* Settings */}
-      <div className="flex items-center justify-center gap-4 text-sm">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={soundEnabled}
-            onChange={(e) => setSoundEnabled(e.target.checked)}
-            className="rounded"
-          />
-          <span className="text-gray-600 dark:text-gray-400">Ses bildirimleri</span>
-          {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+      {timer.error && <div className="text-center text-sm" role="alert">Sayaç durumu doğrulanamadı. Sunucudaki kayıt korunuyor. <button className="underline" onClick={() => void timer.refresh()}>Yenile</button></div>}
+      <div className="space-y-3 border-t border-[var(--line)] pt-5 text-sm">
+        <label className="flex items-center justify-center gap-2">
+          <input type="checkbox" checked={session.pomodoroClock?.autoStartBreaks ?? false} disabled={terminal || timer.isPending} onChange={event => timer.run({ command: 'configure', autoStartBreaks: event.target.checked })} />
+          Otomatik mola başlat
         </label>
-
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={autoStartBreaks}
-            onChange={(e) => setAutoStartBreaks(e.target.checked)}
-            className="rounded"
-          />
-          <span className="text-gray-600 dark:text-gray-400">Otomatik mola başlat</span>
-        </label>
+        <p className="text-center text-xs leading-5 text-[var(--muted)]">Sayaç sunucuda sürer. Ekranı kapatmak duraklatmaz. Mola bitince çalışma kendiliğinden başlamaz.</p>
       </div>
-
-      {/* Session Info */}
-      <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-2">{session.title}</h3>
-        {session.description && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{session.description}</p>
-        )}
-        <div className="text-xs text-gray-500 dark:text-gray-500">
-          Döngü: {currentCycle}/{pomodoroSettings.cyclesBeforeLongBreak} |
-          Çalışma: {pomodoroSettings.workDuration}dk |
-          Kısa Mola: {pomodoroSettings.shortBreak}dk |
-          Uzun Mola: {pomodoroSettings.longBreak}dk
-        </div>
-      </div>
-    </div>
+      <dl className="grid grid-cols-3 gap-3 text-center text-xs text-[var(--muted)]">
+        <div className="rounded-md bg-[var(--subtle)] p-3"><dt>Çalışma</dt><dd className="mt-1 text-base text-[var(--text)]">{settings.workDuration} dk</dd></div>
+        <div className="rounded-md bg-[var(--subtle)] p-3"><dt>Kısa mola</dt><dd className="mt-1 text-base text-[var(--text)]">{settings.shortBreak} dk</dd></div>
+        <div className="rounded-md bg-[var(--subtle)] p-3"><dt>Uzun mola</dt><dd className="mt-1 text-base text-[var(--text)]">{settings.longBreak} dk</dd></div>
+      </dl>
+    </section>
   );
-};
-
-export default PomodoroTimer;
+}

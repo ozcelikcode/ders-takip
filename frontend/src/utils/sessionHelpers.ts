@@ -54,22 +54,16 @@ export const getSessionTextStyle = (session: StudySession): string => {
   return '';
 };
 
-/**
- * Tarihi HH:mm formatında gösterir, 24:00'ı 00:00'a çevirir
- */
-export const formatTime = (date: Date | string): string => {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  const hours = dateObj.getHours();
-  const minutes = dateObj.getMinutes();
-
-  // 24:00 yerine 00:00 göster (gece yarısı)
-  const displayHours = hours === 24 ? 0 : hours;
-
-  return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-};
-
 export const getRecentSessions = <T extends { endTime: string; completedAt?: string | null }>(sessions: readonly T[], limit = 5): T[] => (
   [...sessions]
     .sort((first, second) => new Date(second.completedAt || second.endTime).getTime() - new Date(first.completedAt || first.endTime).getTime())
     .slice(0, limit)
 );
+
+export const formatMeasuredTime = (seconds: number): string => {
+  const value = Math.max(0, Math.floor(seconds));
+  if (value < 60) return `${value} sn`;
+  if (value < 3600) return `${Math.floor(value / 60)} dk ${value % 60} sn`;
+  return `${Math.floor(value / 3600)} sa ${Math.floor(value % 3600 / 60)} dk`;
+};
+export const measuredSessionLabel = (session: Pick<StudySession, 'trackingCoverage' | 'studySeconds'>) => session.trackingCoverage === undefined || session.trackingCoverage === 'untracked' ? 'Süre ölçülmedi' : `${formatMeasuredTime(session.studySeconds ?? 0)} çalışma${session.trackingCoverage === 'partial' ? ' (kısmi)' : ''}`;

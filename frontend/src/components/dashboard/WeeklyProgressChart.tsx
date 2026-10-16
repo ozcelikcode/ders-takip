@@ -1,7 +1,7 @@
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useCurrentDateKey } from '../../hooks/useCurrentDateKey';
 import { useQuery } from '@tanstack/react-query';
-import { addDays, endOfDay, format, startOfDay, startOfWeek } from 'date-fns';
+import { addDays, format, startOfWeek } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useEffect, useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -33,17 +33,16 @@ const WeeklyProgressChart = () => {
   const weekStart = useMemo(() => startOfWeek(new Date(`${today}T12:00:00`), { weekStartsOn: 1 }), [today]);
 
   // Bu haftanın verilerini çek
-  const { data: sessionsData, isLoading } = useQuery({
+  const { data: statsData, isLoading, isError } = useQuery({
     queryKey: accountKeys.sessions('weekly-progress', format(weekStart, 'yyyy-MM-dd')),
     queryFn: async () => {
       const weekEnd = addDays(weekStart, 6);
 
-      const response = await studySessionsAPI.getSessions({
+      const response = await studySessionsAPI.getStats({
         startDate: format(weekStart, 'yyyy-MM-dd'),
         endDate: format(weekEnd, 'yyyy-MM-dd'),
-        status: 'completed',
       });
-      return response.data.data?.sessions || [];
+      return response.data.data?.stats;
     },
     refetchInterval: 30000, // Her 30 saniyede bir yenile
   });
@@ -53,30 +52,18 @@ const WeeklyProgressChart = () => {
     const data = [];
     for (let i = 0; i < 7; i++) {
       const date = addDays(weekStart, i);
-      const dayStart = startOfDay(date);
-      const dayEnd = endOfDay(date);
-
-      const daySessions = sessionsData?.filter((session: any) => {
-        const sessionDate = new Date(session.startTime);
-        return sessionDate >= dayStart && sessionDate <= dayEnd;
-      }) || [];
-
-      // Duration hesabını doğru yap - null/undefined kontrolü
-      const totalMinutes = daySessions.reduce((sum: number, session: any) => {
-        const duration = session.duration || 0;
-        return sum + duration;
-      }, 0);
+      const totalMinutes = (statsData?.days.find(day => day.date === format(date, 'yyyy-MM-dd'))?.studySeconds ?? 0) / 60;
 
       data.push({
         name: DAY_NAMES[i],
         fullName: format(date, 'EEEE', { locale: tr }),
         date: format(date, 'dd MMM', { locale: tr }),
-        hours: Math.round(totalMinutes / 60 * 10) / 10, // Rounded decimal hours
+        hours: totalMinutes / 60, // Rounded decimal hours
         minutes: totalMinutes,
       });
     }
     return data;
-  }, [sessionsData, weekStart]);
+  }, [statsData, weekStart]);
 
   if (isLoading) {
     return (
@@ -86,13 +73,15 @@ const WeeklyProgressChart = () => {
     );
   }
 
-  // Veri yoksa mesaj göster
+  if (isError) return <p className="p-5 text-sm text-red-600">Çalışma ölçümleri alınamadı. Lütfen yeniden deneyin.</p>;
+
+  // Show measured activity without converting historical plans into actual work.
   const totalMinutes = chartData.reduce((sum, day) => sum + day.minutes, 0);
   if (totalMinutes === 0) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400">
-        <p className="text-sm font-medium mb-2">Henüz tamamlanmış çalışma yok</p>
-        <p className="text-sm">Bu hafta tamamladığınız çalışmalar burada görünecek</p>
+        <p className="text-sm font-medium mb-2">Henüz ölçülmüş çalışma yok</p>
+        <p className="text-sm">Çalışmayı başlattığınızda ölçülen süre burada görünecek</p>
       </div>
     );
   }
@@ -131,7 +120,7 @@ const WeeklyProgressChart = () => {
           itemStyle={{ padding: 0 }}
           labelStyle={{ color: isDarkMode ? '#f3f4f6' : '#171717', fontWeight: 600, marginBottom: '4px' }}
           formatter={(value: number, name: string) => {
-            if (name === 'hours') return [`${value} saat`, 'Çalışma Süresi'];
+            if (name === 'hours') return [`${Math.round(value * 60 * 10) / 10} dakika`, 'Çalışma Süresi'];
             return value;
           }}
           labelFormatter={(label: string, payload: any[]) => {
@@ -152,7 +141,7 @@ const WeeklyProgressChart = () => {
             position="top"
             style={{ fill: isDarkMode ? '#d1d5db' : '#4b5563', fontSize: 10, fontWeight: 600 }}
             offset={10}
-            formatter={(val: number) => val > 0 ? `${val} sa` : ''}
+            formatter={(val: number) => val > 0 ? `${Math.round(val * 60)} dk` : ''}
           />
         </Bar>
       </BarChart>

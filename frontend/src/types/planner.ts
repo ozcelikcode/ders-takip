@@ -1,4 +1,4 @@
-import type { CreateSessionInput, UpdateSessionInput, SessionStatus } from '@study-tracker/contracts';
+import type { CreateSessionInput, UpdateSessionInput, SessionStatus, ActivityInterval, TrackingCoverage, CreateTopicInput, UpdateTopicInput, PomodoroClockState } from '@study-tracker/contracts';
 
 export interface Plan {
   id: number;
@@ -22,13 +22,21 @@ export interface StudySession {
   id: number;
   userId: number;
   planId?: number;
-  topicId?: number;
-  courseId?: number;
+  topicId?: number | null;
+  courseId?: number | null;
   title: string;
   description?: string;
   startTime: string;
   endTime: string;
   duration: number;
+  studySeconds?: number;
+  breakSeconds?: number;
+  pauseSeconds?: number;
+  trackingCoverage?: TrackingCoverage;
+  activityIntervals?: ActivityInterval[];
+  asOf?: string;
+  serverNow?: string;
+  pomodoroClock?: PomodoroClockState | null;
   status: SessionStatus;
   sessionType: 'study' | 'break' | 'pomodoro' | 'review';
   color?: string;
@@ -56,21 +64,6 @@ export interface StudySession {
     id: number;
     title: string;
   };
-}
-
-export interface WeeklySchedule {
-  [key: string]: StudySession[];
-}
-
-export interface DragItem {
-  id: string;
-  type: 'session';
-  data: StudySession;
-}
-
-export interface DropTarget {
-  day: string;
-  hour: number;
 }
 
 export interface CreatePlanRequest {
@@ -109,20 +102,5 @@ export interface Topic {
   };
 }
 
-export interface CreateTopicRequest {
-  name: string;
-  courseId: number;
-  description?: string;
-  estimatedTime: number;
-  difficulty: 'Kolay' | 'Orta' | 'Zor';
-  order: number;
-}
-
-export interface UpdateTopicRequest {
-  name?: string;
-  description?: string;
-  estimatedTime?: number;
-  difficulty?: 'Kolay' | 'Orta' | 'Zor';
-  order?: number;
-  isActive?: boolean;
-}
+export type CreateTopicRequest = CreateTopicInput;
+export type UpdateTopicRequest = UpdateTopicInput;

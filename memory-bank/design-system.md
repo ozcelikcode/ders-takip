@@ -35,7 +35,7 @@ Bunlar bütün 2026 tasarımlarının sıralaması değildir. Ürüne uygun kara
 - Ders sayfası: sola hizalı başlık, ortak eylemler, sade kartlar ve arama. Giriş/kayıt, loading, Pomodoro ve kullanıcı ayarları aynı yüzey/tipografi yönüne uyarlandı. Admin avatar gradyanları kaldırıldı.
 - Planlayıcı: kompakt açılır günlük özet, günlük/haftalık kontrolü, sabah 08:00'e ilk kaydırma, içeride kaydırılan 24 saatlik takvim, haftalık görünümde sabit gün başlıkları. 639 px ve altında ilk açılış günlük görünüm; kullanıcı iki görünüm arasında geçebilir.
 - Seans formu: nötr dialog/yüzey/seçim alanları, ortak birincil düğme ve isimli kapatma düğmesi. İş kuralları/timer motoru yeniden yazılmadı.
-- Pomodoro: renkli dairesel SVG/gradyan gösterimi yerine büyük tipografik sayaç, ince erişilebilir progressbar ve isimli ortak kontroller kullanılır. Seans seçimi klavyeyle erişilebilir düğmedir; timer motorunun doğruluk backlog'u korunur.
+- Pomodoro: renkli dairesel SVG/gradyan gösterimi yerine büyük tipografik sayaç, ince erişilebilir progressbar ve isimli ortak kontroller kullanılır. Seans seçimi klavyeyle erişilebilir düğmedir; A15 ile sayfa/modal aynı timer bileşenini kullanır. Faz değişimi aria-live durum alanında duyurulur; başlat/duraklat/sıfırla/tamamla isimlidir. Pencereyi kapatmanın duraklatmadığı açıkça yazılır.
 - Konfeti uygulamaları ve canvas-confetti/@types bağımlılıkları kaldırıldı. Planner'daki iki eski @ts-ignore kaldırıldı; strict kontrol geçiyor.
 
 ## Küçük doğruluk düzeltmeleri
@@ -61,3 +61,18 @@ Görsel kanıtlar repo dışında Codex görselleştirme dizininde planner-moder
 ## Değiştirilebilir site kimliği (16 Ekim 2026)
 
 Görünen ad/açıklama/logo/ikon admin ayarıdır. Ortak Brand, login/register/sidebar/loading ve document title/meta/favicon aynı public DTO'yu kullanır. Uzun adlar düzende truncate edilir, tam ad title/erişilebilir link metninde korunur; sabit ürün adı yeni ekrana yazılmaz. Repo/paket adları İngilizce teknik kimliktir. Yeni ikon SVG'leri mevcut Lucide setinden, lisansı assets yanında korunarak gelir. Marka değişikliği sade nötr tasarım dilini değiştirmez.
+
+## Süre ve saat dilimi metinleri — 16 Ekim
+
+Dashboard “Ölçülen çalışma” gösterir; çalışma/mola/duraklama ayrı, ölçülmemiş eski süreler açıkça hariçtir. Planner süreleri plan dakikasıdır. Takvim ve form seçili timezone'u gösterir; stored instant UTC kalır. Bu metin/doğruluk güncellemesi önceki görsel sistemini değiştirmez. Güncel davranış/kanıt implementation/2026-10-16-study-time-and-timezones.md içindedir; yukarıdaki eski süre/A09 ve test sayıları tasarım paketinin tarihsel kapanışıdır.
+
+## Ortak takvim ve dialog — 16 Ekim
+
+A21 planner alt paketinde günlük/haftalık kartlar tek CalendarSessionCard ve nötr panel/grid token kullanır; kategori/seans rengi ince sol şeritle sınırlıdır. Başlat/duraklat/tamamla/sayaç/işlemler isimlidir; küçük kartta title ve işlemler korunur. ConfirmDialog nötrdür; yıkıcı eylem kırmızı, async bekleme/hata açık, pending kapama kilitlidir. MoveSessionModal Headless UI odak/Escape ve isimli gün seçimi kullanır. Tam WCAG/mobil/touch iddiası yoktur; komşu çok kısa kartların minimum hit alanı ve grid klavye odağı A22 kapsamındadır. Kalan diğer modal/admin dönüşümü A21'de açıktır. Kanıt/sınırlar: implementation/2026-10-16-shared-planner.md.
+
+
+## Katalog ve admin ders yüzeyleri — 16 Ekim
+
+CoursesPage, CourseDetailPage ve AdminCoursesPage nötr panel/yüzey/typography/btn sınıflarını kullanır. Ders rengi küçük simgeyle sınırlıdır; konu durumları renkli büyük kart yüzeyi yerine erişilebilir pressed state taşıyan kompakt düğmelerle gösterilir. Kartın detay linki ve düzenle/sil düğmeleri ayrı etkileşim alanıdır. Mobilde kontroller/satırlar wrap eder; bu pakette yeni manuel mobil/touch doğrulaması yapılmadı.
+
+CourseEditorModal / TopicEditorModal tek CatalogEditorDialog kullanır; etiketli native input/select, doğrulama açıklaması, server error, pending ve Headless UI focus/Escape vardır. Admin için ikinci bir ders formu tutulmaz. Arşiv/sil onayları farklı veri etkilerini açıklar. Kalan kategori/kullanıcı/ayar modal ve admin yüzeyleri A21'de açıktır; tam WCAG iddiası yoktur. Kanıt ve 223 testlik güncel kalite tabanı: implementation/2026-10-16-catalog-editing.md.

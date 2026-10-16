@@ -91,7 +91,9 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
     enabled: isOpen,
   });
 
-  const categories: Category[] = categoriesData?.data?.data?.categories || [];
+  const categories: Category[] = Array.isArray(categoriesData)
+    ? categoriesData
+    : categoriesData?.data?.data?.categories || [];
 
   const {
     register,
@@ -138,13 +140,14 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => categoriesAPI.deleteCategory(id),
+    mutationFn: ({ id, migrateToCategoryId }: { id: string; migrateToCategoryId?: number }) =>
+      categoriesAPI.deleteCategory(id, migrateToCategoryId),
     onSuccess: () => {
       toast.success('Kategori başarıyla silindi');
       queryClient.invalidateQueries({ queryKey: accountKeys.catalog() });
     },
-    onError: () => {
-      toast.error('Kategori silinirken hata oluştu');
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error?.message || 'Kategori silinirken hata oluştu');
     },
   });
 
@@ -191,16 +194,21 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
   };
 
   const handleDelete = (category: Category) => {
+    const fallbackTarget = categories.find((c) => c.id !== category.id);
     setDeleteConfirm({
       isOpen: true,
       categoryId: category.id.toString(),
       categoryName: category.name,
+      ...(fallbackTarget ? { migrateToCategoryId: fallbackTarget.id } : {}),
     });
   };
 
   const confirmDelete = () => {
     if (deleteConfirm.categoryId) {
-      deleteMutation.mutate(deleteConfirm.categoryId);
+      deleteMutation.mutate({
+        id: deleteConfirm.categoryId,
+        ...(deleteConfirm.migrateToCategoryId !== undefined ? { migrateToCategoryId: deleteConfirm.migrateToCategoryId } : {}),
+      });
       setDeleteConfirm({
         isOpen: false,
         categoryId: '',
@@ -529,7 +537,37 @@ const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpe
         title="Kategoriyi Sil"
         message={`"${deleteConfirm.categoryName}" kategorisini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
         type="danger"
-      />
+      >
+        {categories.filter((c) => c.id.toString() !== deleteConfirm.categoryId).length > 0 && (
+          <div className="space-y-1.5">
+            <label htmlFor="migrateToCategoryId" className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+              Varsa derslerin taşınacağı hedef kategori
+            </label>
+            <select
+              id="migrateToCategoryId"
+              value={deleteConfirm.migrateToCategoryId ?? ''}
+              onChange={(e) => {
+                const val = e.target.value ? Number(e.target.value) : undefined;
+                setDeleteConfirm((prev) => ({
+                  isOpen: prev.isOpen,
+                  categoryId: prev.categoryId,
+                  categoryName: prev.categoryName,
+                  ...(val !== undefined ? { migrateToCategoryId: val } : {}),
+                }));
+              }}
+              className="input text-sm"
+            >
+              {categories
+                .filter((c) => c.id.toString() !== deleteConfirm.categoryId)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
+      </ConfirmDialog>
     </>
   );
 };

@@ -1,11 +1,15 @@
 import { Op, Transaction, type Includeable } from 'sequelize';
-import { canTransitionSession, reservesSessionTime, type CreateSessionInput, type UpdateSessionInput } from '@study-tracker/contracts';
+import { canTransitionSession, reservesSessionTime, type CreateSessionInput, type UpdateSessionInput, type PomodoroCommand } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
-import { Category, Course, Plan, StudySession, Topic } from '../models';
+import { Category, Course, Plan, StudySession, Topic, SessionInterval, PomodoroClock } from '../models';
+import { createPomodoroClock, settlePomodoroClock, updatePomodoroClock, savePomodoroClock } from './pomodoroClocks';
+import { recordActivity } from './studyTracking';
 import { visibleCourseWhere } from '../policies/courseAccess';
 
 interface Actor { id: number; role: string }
 export const sessionIncludes: Includeable[] = [
+  { model: PomodoroClock, as: 'pomodoroClock' },
+  { model: SessionInterval, as: 'activityIntervals' },
   { model: Plan, as: 'plan', attributes: ['id', 'title'] },
   { model: Course, as: 'course', attributes: ['id', 'name', 'color', 'icon'], include: [
     { model: Category, as: 'category', attributes: ['id', 'name', 'color', 'icon'] },
@@ -25,20 +29,34 @@ function scheduledDuration(start: Date, end: Date): number {
   return Math.round(milliseconds / 60_000);
 }
 
-async function validateRelations(actor: Actor, values: { planId?: number | undefined; courseId?: number | undefined; topicId?: number | undefined }, transaction: Transaction) {
+async function validateRelations(
+  actor: Actor,
+  values: { planId?: number | undefined; courseId?: number | undefined; topicId?: number | undefined },
+  transaction: Transaction,
+  existing?: { courseId?: number | null | undefined; topicId?: number | null | undefined },
+) {
   if (values.planId !== undefined && !await Plan.findOne({ where: { id: values.planId, userId: actor.id }, transaction })) {
     fail(400, 'Geçersiz plan ID');
   }
   let courseId = values.courseId;
   if (values.topicId !== undefined) {
-    const topic = await Topic.findOne({ where: { id: values.topicId, isActive: true }, include: [
-      { model: Course, as: 'course', required: true, where: { ...visibleCourseWhere(actor), isActive: true } },
-    ], transaction });
+    const requireActiveTopic = existing?.topicId !== values.topicId;
+    const requireActiveCourse = requireActiveTopic || (courseId !== undefined && existing?.courseId !== courseId);
+    const topic = await Topic.findOne({
+      where: { id: values.topicId, ...(requireActiveTopic ? { isActive: true } : {}) },
+      include: [
+        { model: Course, as: 'course', required: true, where: { ...visibleCourseWhere(actor), ...(requireActiveCourse ? { isActive: true } : {}) } },
+      ],
+      transaction,
+    });
     if (!topic || (courseId !== undefined && courseId !== topic.courseId)) fail(400, 'Geçersiz ders veya konu seçimi');
     courseId = topic.courseId;
   }
-  if (courseId !== undefined && !await Course.findOne({ where: { ...visibleCourseWhere(actor), id: courseId, isActive: true }, transaction })) {
-    fail(400, 'Geçersiz ders veya konu seçimi');
+  if (courseId !== undefined) {
+    const requireActiveCourse = existing?.courseId !== courseId;
+    if (!await Course.findOne({ where: { ...visibleCourseWhere(actor), id: courseId, ...(requireActiveCourse ? { isActive: true } : {}) }, transaction })) {
+      fail(400, 'Geçersiz ders veya konu seçimi');
+    }
   }
   return courseId;
 }
@@ -78,10 +96,19 @@ export async function createSession(actor: Actor, input: CreateSessionInput) {
   });
 }
 
-export async function updateSession(actor: Actor, id: number, input: UpdateSessionInput) {
+export async function updateSession(actor: Actor, id: number, input: UpdateSessionInput, timerCommand?: PomodoroCommand) {
   return sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
     const session = await loadOwned(actor, id, input.expectedUpdatedAt, transaction);
+    let clock = await PomodoroClock.findByPk(id, { transaction });
+    if (timerCommand && session.sessionType !== 'pomodoro') fail(409, 'Bu seans Pomodoro türünde değil');
+    if (clock) await settlePomodoroClock(session, clock, transaction);
+    if (input.sessionType && input.sessionType !== session.sessionType && clock) {
+      if ((input.status ?? session.status) !== 'planned') fail(409, 'Sayaç türünü değiştirmeden önce seansı sıfırlayın');
+      await clock.destroy({ transaction }); clock = null;
+    }
     const nextStatus = input.status ?? session.status;
+    if (timerCommand?.command === 'configure' && (session.status === 'completed' || session.status === 'cancelled')) fail(409, 'Tamamlanan veya iptal edilen sayaç değiştirilemez');
+    if (clock && input.pomodoroSettings && (session.status !== 'planned' || nextStatus !== 'planned')) fail(409, 'Süreleri değiştirmeden önce sayacı sıfırlayın');
     if (!canTransitionSession(session.status, nextStatus)) fail(409, 'Bu seans durum geçişine izin verilmiyor');
     const startTime = input.startTime === undefined ? session.startTime : new Date(input.startTime);
     const endTime = input.endTime === undefined ? session.endTime : new Date(input.endTime);
@@ -97,11 +124,21 @@ export async function updateSession(actor: Actor, id: number, input: UpdateSessi
       if (active) fail(409, 'Önce devam eden seansı duraklatın veya tamamlayın');
     }
     if (input.planId !== undefined || input.courseId !== undefined || input.topicId !== undefined) {
-      const values = { planId: input.planId ?? session.planId ?? undefined, courseId: input.courseId ?? session.courseId ?? undefined, topicId: input.topicId ?? session.topicId ?? undefined };
-      const courseId = await validateRelations(actor, values, transaction);
-      if (values.planId !== undefined) session.planId = values.planId;
-      if (values.topicId !== undefined) session.topicId = values.topicId;
-      if (courseId !== undefined) session.courseId = courseId;
+      const nextPlanId = input.planId === undefined ? (session.planId ?? undefined) : (input.planId ?? undefined);
+      const nextCourseId = input.courseId === undefined ? (session.courseId ?? undefined) : (input.courseId ?? undefined);
+      const courseChanged = input.courseId !== undefined && input.courseId !== session.courseId;
+      const nextTopicId = input.topicId === undefined
+        ? (courseChanged ? undefined : (session.topicId ?? undefined))
+        : (input.topicId ?? undefined);
+      const resolvedCourseId = await validateRelations(
+        actor,
+        { planId: nextPlanId, courseId: nextCourseId, topicId: nextTopicId },
+        transaction,
+        { courseId: session.courseId, topicId: session.topicId },
+      );
+      session.planId = nextPlanId ?? null;
+      session.topicId = nextTopicId ?? null;
+      session.courseId = resolvedCourseId ?? null;
     }
     if (scheduleChanged) session.set({ startTime, endTime, duration });
     for (const field of ['title', 'description', 'notes', 'productivity', 'color', 'sessionType'] as const) {
@@ -116,8 +153,19 @@ export async function updateSession(actor: Actor, id: number, input: UpdateSessi
         currentCycle: input.pomodoroSettings.currentCycle ?? session.pomodoroSettings?.currentCycle ?? 0,
       });
     }
+    if (!clock && session.sessionType === 'pomodoro' && (timerCommand || nextStatus === 'in_progress')) {
+      clock = await createPomodoroClock(session, transaction);
+      session.changed('trackingCoverage', true);
+    }
+    if (clock && input.activityKind !== undefined && input.activityKind !== (clock.phase === 'work' ? 'study' : 'break')) fail(409, 'Pomodoro fazını sayaç yönetir');
+    const activityTime = await recordActivity(session, nextStatus, nextStatus === 'in_progress' && clock ? clock.phase === 'work' ? 'study' : 'break' : input.activityKind, transaction);
+    if (clock) {
+      if (timerCommand?.autoStartBreaks !== undefined) clock.autoStartBreaks = timerCommand.autoStartBreaks;
+      updatePomodoroClock(session, clock, nextStatus, activityTime ?? new Date(Date.now()), timerCommand?.command === 'reset');
+      await savePomodoroClock(session, clock, transaction);
+    }
     if (nextStatus !== session.status) {
-      session.completedAt = nextStatus === 'completed' ? new Date() : null;
+      session.completedAt = nextStatus === 'completed' ? activityTime ?? new Date(Date.now()) : null;
       session.status = nextStatus;
     }
     if (session.changed()) await session.save({ transaction });

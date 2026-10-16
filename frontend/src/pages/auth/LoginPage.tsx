@@ -9,6 +9,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
 
 const loginSchema = z.object({
   email: z.string().email('Geçerli bir e-posta adresi giriniz'),
@@ -21,6 +22,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated } = useAuthStore();
+  const allowRegistration = useSettingsStore(state => state.settings.allowRegistration);
 
   const {
     register,
@@ -133,17 +135,19 @@ const LoginPage = () => {
               </button>
             </div>
 
-            <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Hesabınız yok mu?{' '}
-                <Link
-                  to="/register"
-                  className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
-                >
-                  Kayıt ol
-                </Link>
-              </p>
-            </div>
+            {allowRegistration && (
+              <div className="text-center">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Hesabınız yok mu?{' '}
+                  <Link
+                    to="/register"
+                    className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
+                  >
+                    Kayıt ol
+                  </Link>
+                </p>
+              </div>
+            )}
           </form>
 
 

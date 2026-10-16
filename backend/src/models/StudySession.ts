@@ -1,18 +1,22 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
-import type { SessionStatus } from '@study-tracker/contracts';
+import type { SessionStatus, TrackingCoverage } from '@study-tracker/contracts';
+import type { SessionInterval } from './SessionInterval';
+import type { PomodoroClock } from './PomodoroClock';
+import type { User } from './User';
 
 interface StudySessionAttributes {
   id: number;
   userId: number;
-  planId?: number;
-  topicId?: number;
-  courseId?: number;
+  planId?: number | null;
+  topicId?: number | null;
+  courseId?: number | null;
   title: string;
   description?: string;
   startTime: Date;
   endTime: Date;
   duration: number; // in minutes
+  trackingCoverage: TrackingCoverage;
   status: SessionStatus;
   sessionType: 'study' | 'break' | 'pomodoro' | 'review';
   color?: string; // hex color code
@@ -30,19 +34,23 @@ interface StudySessionAttributes {
   updatedAt: Date;
 }
 
-interface StudySessionCreationAttributes extends Optional<StudySessionAttributes, 'id' | 'planId' | 'topicId' | 'courseId' | 'description' | 'status' | 'color' | 'pomodoroSettings' | 'notes' | 'productivity' | 'completedAt' | 'createdAt' | 'updatedAt'> {}
+interface StudySessionCreationAttributes extends Optional<StudySessionAttributes, 'id' | 'planId' | 'topicId' | 'courseId' | 'description' | 'status' | 'color' | 'pomodoroSettings' | 'notes' | 'productivity' | 'completedAt' | 'createdAt' | 'updatedAt' | 'trackingCoverage'> {}
 
 export class StudySession extends Model<StudySessionAttributes, StudySessionCreationAttributes> implements StudySessionAttributes {
   public id!: number;
   public userId!: number;
-  public planId?: number;
-  public topicId?: number;
-  public courseId?: number;
+  public planId?: number | null;
+  public topicId?: number | null;
+  public courseId?: number | null;
   public title!: string;
   public description?: string;
   public startTime!: Date;
   public endTime!: Date;
   public duration!: number;
+  declare trackingCoverage: TrackingCoverage;
+  declare activityIntervals?: SessionInterval[];
+  declare pomodoroClock?: PomodoroClock | null;
+  declare user?: User;
   public status!: SessionStatus;
   public sessionType!: 'study' | 'break' | 'pomodoro' | 'review';
   public color?: string;
@@ -137,6 +145,7 @@ StudySession.init(
         max: 1440, // 24 hours in minutes
       },
     },
+    trackingCoverage: { type: DataTypes.ENUM('complete', 'partial', 'untracked'), allowNull: false, defaultValue: 'complete' },
     status: {
       type: DataTypes.ENUM('planned', 'in_progress', 'completed', 'cancelled', 'paused'),
       allowNull: false,

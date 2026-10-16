@@ -1,161 +1,142 @@
 import { useAccountQueryKeys } from '../hooks/useAccountQueryKeys';
-import { DragDropContext, Draggable, Droppable, DropResult } from '@hello-pangea/dnd';
+import type {
+  ReorderTopicsInput,
+  TopicProgressStatus,
+} from '@study-tracker/contracts';
+import {
+  DragDropContext,
+  Draggable,
+  Droppable,
+  DropResult,
+} from '@hello-pangea/dnd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-ArrowLeft,
-Atom,
-BookOpen,
-BookText,
-Brain,
-Calculator,
-CheckCircle2,
-Circle,
-Clock,
-Dna,
-Filter,
-FlaskConical,
-Globe,
-Heart,
-Landmark,
-Map,
-Microscope,
-Plus,
-RotateCcw,
-SortAsc,
-SortDesc,
-Target,
-Triangle
+  ArrowLeft,
+  Archive,
+  CheckCircle2,
+  Circle,
+  Clock,
+  Pencil,
+  Plus,
+  RotateCcw,
+  SortAsc,
+  SortDesc,
+  Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { Link, useParams } from 'react-router-dom';
-import CreateTopicModal from '../components/modals/CreateTopicModal';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import TopicEditorModal from '../components/modals/TopicEditorModal';
+import CourseEditorModal from '../components/modals/CourseEditorModal';
+import CatalogDeleteDialog, {
+  type CatalogDeleteTarget,
+} from '../components/catalog/CatalogDeleteDialog';
+import { catalogIcon } from '../components/catalog/catalogIcons';
+import { canManageCourse } from '../lib/catalogAccess';
+import { useCatalogMutation } from '../hooks/useCatalogMutation';
+import type { CatalogCourse, CatalogTopic as Topic } from '../types/catalog';
 import { coursesAPI, topicsAPI } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 
-interface Topic {
-  id: number;
-  name: string;
-  description: string;
-  estimatedTime: number;
-  difficulty: 'Kolay' | 'Orta' | 'Zor';
-  order: number;
-}
-
-interface Category {
-  id: number;
-  name: string;
-  color: string;
-  icon?: string;
-}
-
-interface Course {
-  id: number;
-  name: string;
-  category?: Category;
-  description: string;
-  color: string;
-  icon: string;
-  isActive: boolean;
-  isGlobal: boolean;
-  userId?: number | null;
-  topics?: Topic[];
-}
-
-type TopicStatus = 'not_started' | 'in_progress' | 'completed';
+type TopicStatus = TopicProgressStatus;
 type SortOption = 'order' | 'name' | 'difficulty' | 'time';
-type FilterOption = 'all' | 'not_started' | 'in_progress' | 'completed' | 'Kolay' | 'Orta' | 'Zor';
+type FilterOption =
+  | 'all'
+  | 'not_started'
+  | 'in_progress'
+  | 'completed'
+  | 'Kolay'
+  | 'Orta'
+  | 'Zor';
 
 const CourseDetailPage = () => {
   const accountKeys = useAccountQueryKeys();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
-  const isAdmin = user?.role === 'admin';
+  const navigate = useNavigate();
+  const [courseEditorOpen, setCourseEditorOpen] = useState(false);
+  const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
+  const [deleting, setDeleting] = useState<CatalogDeleteTarget | null>(null);
+  const [archived, setArchived] = useState(false);
+  const restore = useCatalogMutation();
 
-  const [topicStatuses, setTopicStatuses] = useState<Record<number, TopicStatus>>({});
   const [sortBy, setSortBy] = useState<SortOption>('order');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
-  const [isCreateTopicModalOpen, setIsCreateTopicModalOpen] = useState(false);
+  const [topicEditorOpen, setTopicEditorOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
   // Reorder topics mutation
   const reorderMutation = useMutation({
-    mutationFn: (topicOrders: { id: number; order: number }[]) =>
-      topicsAPI.reorderTopics(id!, topicOrders),
+    mutationFn: (input: ReorderTopicsInput) =>
+      topicsAPI.reorderTopics(id!, input),
     onSuccess: () => {
       toast.success('Konu sıralaması güncellendi');
-      queryClient.invalidateQueries({ queryKey: accountKeys.catalog() });
     },
     onError: () => {
       toast.error('Sıralama güncellenirken hata oluştu');
     },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: accountKeys.catalog() }),
   });
 
-  const getIconComponent = (iconName: string) => {
-    const icons: Record<string, any> = {
-      BookOpen,
-      Calculator,
-      Microscope,
-      Globe,
-      Triangle,
-      Atom,
-      FlaskConical,
-      Dna,
-      Landmark,
-      Map,
-      Brain,
-      Heart,
-      BookText,
-    };
-    return icons[iconName] || BookOpen;
-  };
+  const progressKey = accountKeys.resource('topic-progress');
+  const { data: progressData } = useQuery({
+    queryKey: progressKey,
+    queryFn: async () =>
+      (await topicsAPI.getTopicProgress()).data.data?.progress ?? [],
+  });
+  const topicStatuses: Record<number, TopicStatus> = Object.fromEntries(
+    (progressData ?? []).map((entry) => [entry.topicId, entry.status]),
+  );
 
-  const { data: courseData, isLoading, error } = useQuery({
+  const statusLabels: Record<TopicStatus, string> = {
+    not_started: 'Başlanmadı',
+    in_progress: 'Devam Ediyor',
+    completed: 'Tamamlandı',
+  };
+  const progressMutation = useMutation({
+    mutationFn: ({
+      topicId,
+      status,
+    }: {
+      topicId: number;
+      status: TopicStatus;
+    }) => topicsAPI.setTopicProgress(topicId, status),
+    onSuccess: (_response, { status }) =>
+      toast.success(`Konu durumu: ${statusLabels[status]}`),
+    onError: () => toast.error('Konu durumu kaydedilemedi'),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: progressKey }),
+  });
+
+  const {
+    data: courseData,
+    isLoading,
+    isFetching,
+    error,
+  } = useQuery({
     queryKey: accountKeys.catalog('course', id, { includeTopics: true }),
     queryFn: () => coursesAPI.getCourse(id!, { includeTopics: true }),
     enabled: !!id,
   });
 
-  const course: Course | undefined = courseData?.data?.data?.course;
+  const course: CatalogCourse | undefined = courseData?.data?.data?.course;
 
-  const updateTopicStatus = (topicId: number, status: TopicStatus) => {
-    setTopicStatuses(prev => ({
-      ...prev,
-      [topicId]: status
-    }));
+  const canEdit = !!course && canManageCourse(course, user);
+  const archiveQuery = useQuery({
+    queryKey: accountKeys.catalog('course-topics', id, { isActive: false }),
+    queryFn: async () =>
+      (await coursesAPI.getCourseTopics(id!, { isActive: false })).data.data
+        ?.topics as Topic[] | undefined,
+    enabled: !!id && archived && canEdit,
+  });
 
-    const statusLabels = {
-      not_started: 'Başlanmadı',
-      in_progress: 'Devam Ediyor',
-      completed: 'Tamamlandı'
-    };
+  const updateTopicStatus = (topicId: number, status: TopicStatus) =>
+    progressMutation.mutate({ topicId, status });
 
-    toast.success(`Konu durumu: ${statusLabels[status]}`);
-  };
-
-  const getTopicStatus = (topicId: number): TopicStatus => {
-    return topicStatuses[topicId] || 'not_started';
-  };
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Kolay': return 'text-green-600 bg-green-100 dark:bg-green-900/20 dark:text-green-400';
-      case 'Orta': return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400';
-      case 'Zor': return 'text-red-600 bg-red-100 dark:bg-red-900/20 dark:text-red-400';
-      default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20 dark:text-gray-400';
-    }
-  };
-
-
-  const getStatusColor = (status: TopicStatus) => {
-    switch (status) {
-      case 'completed': return 'border-green-200 bg-green-50 dark:border-green-700 dark:bg-green-900/10';
-      case 'in_progress': return 'border-yellow-200 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900/10';
-      default: return 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800';
-    }
-  };
+  const getTopicStatus = (topicId: number): TopicStatus =>
+    topicStatuses[topicId] ?? 'not_started';
 
   const sortTopics = (topics: Topic[]) => {
     const sorted = [...topics].sort((a, b) => {
@@ -169,8 +150,9 @@ const CourseDetailPage = () => {
           comparison = a.name.localeCompare(b.name, 'tr');
           break;
         case 'difficulty': {
-          const difficultyOrder = { 'Kolay': 1, 'Orta': 2, 'Zor': 3 };
-          comparison = difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+          const difficultyOrder = { Kolay: 1, Orta: 2, Zor: 3 };
+          comparison =
+            difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
           break;
         }
         case 'time':
@@ -188,25 +170,36 @@ const CourseDetailPage = () => {
     if (filterBy === 'all') return topics;
 
     if (['Kolay', 'Orta', 'Zor'].includes(filterBy)) {
-      return topics.filter(topic => topic.difficulty === filterBy);
+      return topics.filter((topic) => topic.difficulty === filterBy);
     }
 
-    return topics.filter(topic => getTopicStatus(topic.id) === filterBy);
+    return topics.filter((topic) => getTopicStatus(topic.id) === filterBy);
   };
 
   const getStats = () => {
-    if (!course?.topics) return { total: 0, completed: 0, inProgress: 0, notStarted: 0 };
+    if (!course?.topics)
+      return { total: 0, completed: 0, inProgress: 0, notStarted: 0 };
 
     const total = course.topics.length;
-    const completed = course.topics.filter(topic => getTopicStatus(topic.id) === 'completed').length;
-    const inProgress = course.topics.filter(topic => getTopicStatus(topic.id) === 'in_progress').length;
+    const completed = course.topics.filter(
+      (topic) => getTopicStatus(topic.id) === 'completed',
+    ).length;
+    const inProgress = course.topics.filter(
+      (topic) => getTopicStatus(topic.id) === 'in_progress',
+    ).length;
     const notStarted = total - completed - inProgress;
 
     return { total, completed, inProgress, notStarted };
   };
 
   const handleDragEnd = (result: DropResult) => {
-    if (!result.destination || !course?.topics) return;
+    if (
+      !result.destination ||
+      !course?.topics ||
+      !canReorder ||
+      result.destination.index === result.source.index
+    )
+      return;
 
     const items = Array.from(filteredAndSortedTopics);
     const [reorderedItem] = items.splice(result.source.index, 1);
@@ -218,29 +211,13 @@ const CourseDetailPage = () => {
       order: index + 1,
     }));
 
-    // Optimistically update UI
-    queryClient.setQueryData(accountKeys.catalog('course', id, { includeTopics: true }), (old: any) => {
-      if (!old?.data?.data?.course) return old;
-      return {
-        ...old,
-        data: {
-          ...old.data,
-          data: {
-            ...old.data.data,
-            course: {
-              ...old.data.data.course,
-              topics: items.map((topic, index) => ({
-                ...topic,
-                order: index + 1,
-              })),
-            },
-          },
-        },
-      };
+    reorderMutation.mutate({
+      topicOrders,
+      expectedTopics: course.topics.map((topic) => ({
+        id: topic.id,
+        updatedAt: topic.updatedAt,
+      })),
     });
-
-    // Send to backend
-    reorderMutation.mutate(topicOrders);
   };
 
   if (isLoading) {
@@ -255,7 +232,10 @@ const CourseDetailPage = () => {
     return (
       <div className="text-center py-12">
         <p className="text-red-600">Ders yüklenirken bir hata oluştu.</p>
-        <Link to="/courses" className="text-primary-600 hover:text-primary-500 mt-2 inline-block">
+        <Link
+          to="/courses"
+          className="text-primary-600 hover:text-primary-500 mt-2 inline-block"
+        >
           Derslere geri dön
         </Link>
       </div>
@@ -263,136 +243,178 @@ const CourseDetailPage = () => {
   }
 
   const stats = getStats();
-  const progressPercentage = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
-  const filteredAndSortedTopics = sortTopics(filterTopics(course.topics || []));
+  const progressPercentage =
+    stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+  const visibleTopics = archived
+    ? (archiveQuery.data ?? [])
+    : (course.topics ?? []);
+  const filteredAndSortedTopics = sortTopics(filterTopics(visibleTopics));
+  const Icon = catalogIcon(course.icon);
 
-  const canEdit = isAdmin || (!course.isGlobal && course.userId === user?.id);
+  const canReorder =
+    canEdit &&
+    !archived &&
+    sortBy === 'order' &&
+    sortOrder === 'asc' &&
+    filterBy === 'all' &&
+    !reorderMutation.isPending &&
+    !isFetching &&
+    !restore.isPending;
 
   return (
-    <div className="space-y-8">
-      {/* Back Button */}
+    <div className="space-y-6">
       <Link
         to="/courses"
-        className="inline-flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+        className="inline-flex items-center gap-2 text-sm text-[var(--muted)]"
       >
-        <ArrowLeft className="h-4 w-4 mr-2" />
+        <ArrowLeft className="h-4 w-4" />
         Derslere geri dön
       </Link>
-
-      {/* Course Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center">
+      <section className="panel p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 items-start gap-3">
             <div
-              className="w-16 h-16 rounded-lg flex items-center justify-center text-white"
-              style={{ backgroundColor: course.color }}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border"
+              style={{ color: course.color }}
             >
-              {(() => {
-                const IconComponent = getIconComponent(course.icon);
-                return <IconComponent className="w-8 h-8" />;
-              })()}
+              <Icon className="h-5 w-5" />
             </div>
-            <div className="ml-4">
-              <div className="flex items-center space-x-3">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {course.name}
-                </h1>
-                {course.category && (
-                  <span
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white"
-                    style={{ backgroundColor: course.category.color }}
-                  >
-                    {course.category.name}
-                  </span>
-                )}
-              </div>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                {course.description}
+            <div className="min-w-0">
+              <p className="text-xs text-[var(--muted)]">
+                {course.category?.name}
+                {course.isGlobal ? ' · Ortak ders' : ''}
               </p>
+              <h1 className="mt-1 break-words text-2xl font-medium tracking-tight">
+                {course.name}
+              </h1>
+              {course.description && (
+                <p className="mt-2 text-sm text-[var(--muted)]">
+                  {course.description}
+                </p>
+              )}
             </div>
           </div>
+          {canEdit && (
+            <div className="flex gap-2">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setCourseEditorOpen(true)}
+              >
+                <Pencil className="h-4 w-4" />
+                Dersi düzenle
+              </button>
+              <button
+                className="btn btn-secondary text-red-600"
+                onClick={() =>
+                  setDeleting({
+                    kind: 'course',
+                    id: course.id,
+                    name: course.name,
+                  })
+                }
+              >
+                <Trash2 className="h-4 w-4" />
+                Dersi sil
+              </button>
+            </div>
+          )}
         </div>
-
-        {/* Progress Stats */}
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Toplam Konu</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Tamamlandı</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-600">{stats.inProgress}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Devam Ediyor</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">{stats.notStarted}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Başlanmadı</div>
-          </div>
+        <div className="mt-6 grid grid-cols-2 gap-4 border-t pt-5 sm:grid-cols-4">
+          {[
+            [stats.total, 'Toplam Konu'],
+            [stats.completed, 'Tamamlandı'],
+            [stats.inProgress, 'Devam Ediyor'],
+            [stats.notStarted, 'Başlanmadı'],
+          ].map(([count, label]) => (
+            <div key={label}>
+              <div className="text-2xl font-medium tabular-nums">{count}</div>
+              <div className="mt-1 text-xs text-[var(--muted)]">{label}</div>
+            </div>
+          ))}
         </div>
-
-        {/* Progress Bar */}
-        <div className="mt-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">İlerleme</span>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{progressPercentage}%</span>
+        <div className="mt-5">
+          <div className="mb-2 flex justify-between text-xs text-[var(--muted)]">
+            <span>Aktif konularda ilerleme</span>
+            <span>{progressPercentage}%</span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div
+            role="progressbar"
+            aria-label="Konu ilerlemesi"
+            aria-valuenow={progressPercentage}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            className="h-1.5 overflow-hidden rounded bg-[var(--subtle)]"
+          >
             <div
-              className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+              className="h-full bg-[var(--solid)]"
               style={{ width: `${progressPercentage}%` }}
             />
           </div>
         </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <div className="flex items-center gap-3">
-          {/* Add Topic Button */}
+      </section>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {canEdit && (
-            <button
-              onClick={() => setIsCreateTopicModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Konu Ekle
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  setEditingTopic(null);
+                  setTopicEditorOpen(true);
+                }}
+                className="btn btn-primary"
+              >
+                <Plus className="h-4 w-4" />
+                Konu ekle
+              </button>
+              <button
+                className="btn btn-secondary"
+                aria-pressed={archived}
+                onClick={() => {
+                  setArchived(!archived);
+                  setFilterBy('all');
+                }}
+              >
+                <Archive className="h-4 w-4" />
+                {archived ? 'Aktif konular' : 'Arşivdekiler'}
+              </button>
+            </>
           )}
-
-          {/* Filter */}
-          <div className="flex items-center space-x-2">
-            <Filter className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-            <select
-              value={filterBy}
-              onChange={(e) => setFilterBy(e.target.value as FilterOption)}
-              className="input text-sm"
-            >
-              <option value="all">Tüm Konular</option>
-              <option value="not_started">Başlanmadı</option>
-              <option value="in_progress">Devam Ediyor</option>
-              <option value="completed">Tamamlandı</option>
-              <option value="Kolay">Kolay</option>
-              <option value="Orta">Orta</option>
-              <option value="Zor">Zor</option>
-            </select>
-          </div>
+          <select
+            aria-label="Konuları filtrele"
+            value={filterBy}
+            onChange={(e) => setFilterBy(e.target.value as FilterOption)}
+            className="input w-auto text-sm"
+          >
+            <option value="all">Tüm Konular</option>
+            {!archived && (
+              <>
+                <option value="not_started">Başlanmadı</option>
+                <option value="in_progress">Devam Ediyor</option>
+                <option value="completed">Tamamlandı</option>
+              </>
+            )}
+            <option value="Kolay">Kolay</option>
+            <option value="Orta">Orta</option>
+            <option value="Zor">Zor</option>
+          </select>
         </div>
-
-        {/* Sort */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+            aria-label="Sıralama yönünü değiştir"
+            className="icon-button"
           >
-            {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+            {sortOrder === 'asc' ? (
+              <SortAsc className="h-4 w-4" />
+            ) : (
+              <SortDesc className="h-4 w-4" />
+            )}
           </button>
           <select
+            aria-label="Konuları sırala"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="input text-sm"
+            className="input w-auto text-sm"
           >
             <option value="order">Sıra</option>
             <option value="name">İsim</option>
@@ -401,102 +423,182 @@ const CourseDetailPage = () => {
           </select>
         </div>
       </div>
-
-      {/* Topics List */}
+      {canEdit && (
+        <p className="text-sm text-[var(--muted)]" role="status">
+          {archived
+            ? 'Arşivdeki konuların çalışma geçmişi ve ilerlemesi korunur. Geri alınan konular aktif listede görünür.'
+            : reorderMutation.isPending
+              ? 'Sıralama kaydediliyor…'
+              : 'Sıralamak için tüm konuları artan sıra görünümünde açın.'}
+        </p>
+      )}
+      {restore.errorMessage && (
+        <p role="alert" className="text-sm text-red-600">
+          {restore.errorMessage}
+        </p>
+      )}
+      {archived && archiveQuery.isPending && (
+        <p role="status" className="text-sm text-[var(--muted)]">
+          Arşiv yükleniyor…
+        </p>
+      )}
+      {archived && archiveQuery.isError && (
+        <div role="alert" className="panel p-4">
+          Arşiv yüklenemedi.{' '}
+          <button
+            className="btn btn-secondary ml-2"
+            onClick={() => void archiveQuery.refetch()}
+          >
+            Tekrar dene
+          </button>
+        </div>
+      )}
       <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="topics" isDropDisabled={!canEdit || sortBy !== 'order'}>
+        <Droppable droppableId="topics" isDropDisabled={!canReorder}>
           {(provided) => (
             <div
               {...provided.droppableProps}
               ref={provided.innerRef}
-              className="space-y-4"
+              className="space-y-3"
             >
               {filteredAndSortedTopics.map((topic, index) => (
                 <Draggable
                   key={topic.id}
-                  draggableId={topic.id.toString()}
+                  draggableId={String(topic.id)}
                   index={index}
-                  isDragDisabled={!canEdit || sortBy !== 'order'}
+                  isDragDisabled={!canReorder}
                 >
                   {(provided, snapshot) => (
-                    <div
+                    <article
                       ref={provided.innerRef}
                       {...provided.draggableProps}
-                      className={`border rounded-lg p-4 transition-all duration-200 ${getStatusColor(getTopicStatus(topic.id))} ${snapshot.isDragging ? 'shadow-lg ring-2 ring-primary-500' : ''
-                        }`}
+                      className={`panel flex flex-wrap items-center gap-3 p-4 ${snapshot.isDragging ? 'shadow-lg' : ''}`}
                     >
-                      <div className="flex items-center justify-between">
-                        {/* Drag Handle */}
-                        {canEdit && sortBy === 'order' && (
-                          <div
-                            {...provided.dragHandleProps}
-                            className="mr-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      {canReorder && (
+                        <div
+                          {...provided.dragHandleProps}
+                          aria-label={`${topic.name} konusunu sırala`}
+                          className="cursor-grab text-[var(--muted)]"
+                        >
+                          <svg
+                            className="h-5 w-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-                            </svg>
-                          </div>
+                            <path
+                              strokeLinecap="round"
+                              strokeWidth={2}
+                              d="M4 8h16M4 16h16"
+                            />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1 basis-40">
+                        <h2 className="break-words text-sm font-medium">
+                          {topic.name}
+                        </h2>
+                        {topic.description && (
+                          <p className="mt-1 text-sm text-[var(--muted)]">
+                            {topic.description}
+                          </p>
                         )}
-
-                        <div className="flex items-center space-x-4 flex-1">
-                          {/* Status Button */}
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => updateTopicStatus(topic.id, 'not_started')}
-                              className={`p-1 rounded transition-colors ${getTopicStatus(topic.id) === 'not_started'
-                                ? 'bg-gray-100 dark:bg-gray-700'
-                                : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                                }`}
-                              title="Başlanmadı"
-                            >
-                              <Circle className="h-4 w-4 text-gray-400" />
-                            </button>
-                            <button
-                              onClick={() => updateTopicStatus(topic.id, 'in_progress')}
-                              className={`p-1 rounded transition-colors ${getTopicStatus(topic.id) === 'in_progress'
-                                ? 'bg-yellow-100 dark:bg-yellow-900/20'
-                                : 'hover:bg-yellow-100 dark:hover:bg-yellow-900/20'
-                                }`}
-                              title="Devam Ediyor"
-                            >
-                              <RotateCcw className="h-4 w-4 text-yellow-600" />
-                            </button>
-                            <button
-                              onClick={() => updateTopicStatus(topic.id, 'completed')}
-                              className={`p-1 rounded transition-colors ${getTopicStatus(topic.id) === 'completed'
-                                ? 'bg-green-100 dark:bg-green-900/20'
-                                : 'hover:bg-green-100 dark:hover:bg-green-900/20'
-                                }`}
-                              title="Tamamlandı"
-                            >
-                              <CheckCircle2 className="h-4 w-4 text-green-600" />
-                            </button>
-                          </div>
-
-                          {/* Topic Info */}
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3">
-                              <h3 className="font-medium text-gray-900 dark:text-white">
-                                {topic.name}
-                              </h3>
-                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(topic.difficulty)}`}>
-                                {topic.difficulty}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                              {topic.description}
-                            </p>
-                          </div>
-
-                          {/* Time */}
-                          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                            <Clock className="h-4 w-4 mr-1" />
-                            {topic.estimatedTime}dk
-                          </div>
-
+                        <div className="mt-2 flex items-center gap-3 text-xs text-[var(--muted)]">
+                          <span>{topic.difficulty}</span>
+                          <span className="inline-flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5" />
+                            {topic.estimatedTime} dk
+                          </span>
+                          {archived && <span>Arşivde</span>}
                         </div>
                       </div>
-                    </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {!archived && (
+                          <div
+                            className="flex rounded-md border p-0.5"
+                            role="group"
+                            aria-label={`${topic.name} ilerleme durumu`}
+                          >
+                            {(
+                              [
+                                'not_started',
+                                'in_progress',
+                                'completed',
+                              ] as const
+                            ).map((status) => {
+                              const StatusIcon =
+                                status === 'completed'
+                                  ? CheckCircle2
+                                  : status === 'in_progress'
+                                    ? RotateCcw
+                                    : Circle;
+                              return (
+                                <button
+                                  key={status}
+                                  onClick={() =>
+                                    updateTopicStatus(topic.id, status)
+                                  }
+                                  className={`icon-button ${getTopicStatus(topic.id) === status ? 'bg-[var(--subtle)] text-[var(--text)]' : ''}`}
+                                  title={statusLabels[status]}
+                                  aria-pressed={
+                                    getTopicStatus(topic.id) === status
+                                  }
+                                  disabled={progressMutation.isPending}
+                                >
+                                  <StatusIcon className="h-4 w-4" />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {canEdit && (
+                          <>
+                            <button
+                              className="icon-button"
+                              aria-label={`${topic.name} konusunu düzenle`}
+                              onClick={() => {
+                                setEditingTopic(topic);
+                                setTopicEditorOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            {archived ? (
+                              <button
+                                className="btn btn-secondary"
+                                disabled={restore.isPending}
+                                onClick={() =>
+                                  void restore.save(
+                                    () =>
+                                      topicsAPI.updateTopic(String(topic.id), {
+                                        isActive: true,
+                                      }),
+                                    'Konu aktif listeye alındı.',
+                                  )
+                                }
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                                Geri al
+                              </button>
+                            ) : (
+                              <button
+                                className="icon-button"
+                                aria-label={`${topic.name} konusunu arşivle`}
+                                onClick={() =>
+                                  setDeleting({
+                                    kind: 'topic',
+                                    id: topic.id,
+                                    name: topic.name,
+                                  })
+                                }
+                              >
+                                <Archive className="h-4 w-4" />
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </article>
                   )}
                 </Draggable>
               ))}
@@ -505,27 +607,39 @@ const CourseDetailPage = () => {
           )}
         </Droppable>
       </DragDropContext>
-
-      {filteredAndSortedTopics.length === 0 && (
-        <div className="text-center py-12">
-          <Target className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-            Konu bulunamadı
-          </h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Seçilen filtreye uygun konu bulunmuyor.
-          </p>
-        </div>
-      )}
-
-      {/* Create Topic Modal */}
-      {id && (
-        <CreateTopicModal
-          isOpen={isCreateTopicModalOpen}
-          onClose={() => setIsCreateTopicModalOpen(false)}
-          courseId={id}
-        />
-      )}
+      {filteredAndSortedTopics.length === 0 &&
+        (!archived || archiveQuery.isSuccess) && (
+          <div className="panel p-10 text-center">
+            <h2 className="text-sm font-medium">
+              {archived ? 'Arşivde konu bulunamadı' : 'Konu bulunamadı'}
+            </h2>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              {filterBy !== 'all'
+                ? 'Seçilen filtreye uygun konu bulunmuyor.'
+                : archived
+                  ? 'Arşivlediğiniz konular burada görünür.'
+                  : 'Bu derse henüz konu eklenmedi.'}
+            </p>
+          </div>
+        )}
+      <TopicEditorModal
+        isOpen={topicEditorOpen}
+        onClose={() => setTopicEditorOpen(false)}
+        course={course}
+        topic={editingTopic}
+      />
+      <CourseEditorModal
+        isOpen={courseEditorOpen}
+        onClose={() => setCourseEditorOpen(false)}
+        course={course}
+      />
+      <CatalogDeleteDialog
+        target={deleting}
+        onClose={() => setDeleting(null)}
+        onDeleted={() => {
+          if (deleting?.kind === 'course') navigate('/courses');
+        }}
+      />
     </div>
   );
 };

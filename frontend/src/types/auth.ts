@@ -9,7 +9,7 @@ export interface User {
   role: 'student' | 'admin';
   userCategory?: 'student' | 'teacher' | 'employee' | 'developer' | 'freelancer' | 'other';
   isActive: boolean;
-  profileImage?: string;
+  profileImage?: string | null;
   preferences: UserPreferences;
   lastLogin?: string;
   createdAt: string;

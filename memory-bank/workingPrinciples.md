@@ -59,3 +59,7 @@ Kullanıcının açık ilk kurulum talimatı, yeni yerel ortam/veritabanı ve ad
 ## Değiştirilebilir site kimliği (16 Ekim 2026)
 
 Site adı, açıklama, logo/ikon bütün görünen yüzeylerde tek public branding kaynağından türetilir. Yeni ekranda sabit ürün adı yazılmaz. Admin paneli mevcuttur; önce mevcut yönetim akışı geliştirilir. Private yönetim ayarları anonim API veya kalıcı browser cache'ine çıkarılmaz. Kullanıcı yeni adı belirtmedikçe gerçek siteye test adı verilmez.
+
+## Birden fazla araçla devam etme — 16 Ekim 2026
+
+Kullanıcı limit nedeniyle diğer yapay zekâlarla da geliştirme yapabilir. Devam ederken progress.md ve mevcut kod birlikte esas alınır; tamamlanmış işler eski sohbet listesinden yeniden açılmaz veya önceki uygulamayla ezilmez. Yarım kalan kapsam tamamlanır; yeni değişikliklerden etkilenen entegrasyon ve çalışma ortamı ayrıca doğrulanır. Tarihsel test sonuçlarıyla güncel toplam ayrılır.

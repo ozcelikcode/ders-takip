@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { createSessionSchema, updateSessionSchema, sessionVersionSchema, completeSessionSchema } from '@study-tracker/contracts';
+import { createSessionSchema, updateSessionSchema, sessionVersionSchema, completeSessionSchema, startSessionSchema, sessionQuerySchema, pomodoroCommandSchema } from '@study-tracker/contracts';
 import {
 completeStudySession,
 createStudySession,
 deleteStudySession,
 getStudySession,
 getStudySessions,
+getSessionStats,
+controlPomodoro,
 pauseStudySession,
 startStudySession,
 updateStudySession,
@@ -27,8 +29,10 @@ const completeStudySessionSchema = z.object({ params, body: completeSessionSchem
 router.use(protect);
 
 // Routes
+router.get('/stats', validate(z.object({ query: sessionQuerySchema })), getSessionStats);
+
 router.route('/')
-  .get(getStudySessions)
+  .get(validate(z.object({ query: sessionQuerySchema })), getStudySessions)
   .post(validate(createStudySessionSchema), createStudySession);
 
 router.route('/:id')
@@ -37,12 +41,14 @@ router.route('/:id')
   .delete(validate(versionedSessionSchema), deleteStudySession);
 
 router.route('/:id/start')
-  .patch(validate(versionedSessionSchema), startStudySession);
+  .patch(validate(z.object({ params, body: startSessionSchema })), startStudySession);
 
 router.route('/:id/pause')
   .patch(validate(versionedSessionSchema), pauseStudySession);
 
 router.route('/:id/complete')
   .patch(validate(completeStudySessionSchema), completeStudySession);
+
+router.post('/:id/pomodoro', validate(z.object({ params, body: pomodoroCommandSchema })), controlPomodoro);
 
 export default router;

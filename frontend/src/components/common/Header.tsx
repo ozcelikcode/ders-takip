@@ -1,3 +1,4 @@
+import { measuredSessionLabel } from '../../utils/sessionHelpers';
 import { useReadNotifications } from '../../hooks/useReadNotifications';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { getRecentSessions } from '../../utils/sessionHelpers';
@@ -194,7 +195,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                                     <span className="truncate font-medium">{session.title}</span>
                                   </p>
                                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
-                                    {session.duration} dk • {formatDistanceToNow(new Date(session.completedAt || session.endTime), {
+                                    {measuredSessionLabel(session)} • {formatDistanceToNow(new Date(session.completedAt || session.endTime), {
                                       addSuffix: true,
                                       locale: tr,
                                     })}

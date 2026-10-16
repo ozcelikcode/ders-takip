@@ -118,7 +118,7 @@ export const updateProfileSchema = Joi.object({
       'string.max': 'Kullanıcı adı en fazla 20 karakter olabilir',
     }),
   profileImage: Joi.string()
-    .uri()
+    .uri({ scheme: ['http', 'https', 'data'] })
     .allow('', null)
     .optional()
     .messages({

@@ -125,20 +125,44 @@ npm test
 npm run build
 ```
 
-Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 5 contracts + 67 backend + 36 frontend = 108 testtir. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
+Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 8 contracts + 123 backend + 74 frontend = 205 testtir. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
 
 Adlandırma kontrolü dosya/klasör ve kod sembollerinde ASCII dışı adları yakalar. İsimlerin anlam bakımından İngilizce oluşu kod incelemesinde doğrulanır; Türkçe arayüz metinleri bu kontrolün dışındadır.
 
+## Ölçülen çalışma ve saat dilimi
+
+`duration` planlanan dakikadır. Sunucudaki `SessionInterval` kayıtları çalışma, mola ve duraklamayı ayrı ölçer; dashboard/grafik/plan toplamları gerçek ölçümleri kullanır. Hiç başlatmadan tamamlamak çalışma süresi üretmez. Yeniden açma/iptal önceki ölçümü silmez. Eski seanslar `untracked`, kısmi ölçüm başlayanlar `partial` olarak görünür; geçmiş planlardan çalışma uydurulmaz.
+
+Mevcut kurulumda uygulamayı durdurun, tutarlı özel yedek alın, `npm run db:migrate` ile `004-session-activity-intervals`, `005-pomodoro-clocks` ve `006-user-topic-progress` dahil bekleyen migration’ları uygulayın ve frontend/backend'i birlikte başlatın. Migration eski kolonları/veriyi korur; normal startup şema değiştirmez. Yeni şemayla ayrıca yedek alın; eski şema yedeği current restore kontrolünden geçmez ve ayrı kopyada kontrollü migration gerektirir.
+
+Takvim/form kullanıcı timezone'unda, API instant'ları UTC/offset ISO biçimindedir. Gün sorguları strict `yyyy-MM-dd`; sınırlar yerel günün başlangıcı ve sonraki günün başlangıcıdır. Eksik/iki kez yaşanan DST saatleri formda reddedilir. `CalendarDate` yalnız görünüm alanıdır, doğrudan `toISOString()` ile kaydedilmez; `calendarViewInstant`/`wallTimeToInstant` gerekir. [Uygulama ve sınırlar](memory-bank/implementation/2026-10-16-study-time-and-timezones.md).
+
+## Ortak planlayıcı
+
+Günlük ve haftalık takvim aynı grid/kart ve işlem katmanını kullanır. Sürükleme 15 dakikaya, süre değiştirme 5 dakikaya hizalanır. Tarih taşımada gerçek plan süresi korunur; geceyi aşan seans günlere bölünür. Yazmalar sunucu onayı/sürüm kontrolüyle yürür; çakışma otomatik yeniden yazılmaz. Tarih/onay pencereleri işlem bitmesini bekler ve hata durumunda açık kalır. [Uygulama ve kanıt sınırları](memory-bank/implementation/2026-10-16-shared-planner.md).
+
+## Kalıcı Pomodoro
+
+Sayfa ve planlayıcı penceresi aynı sayacı kullanır. Sunucu fazı, döngüyü, milisaniye kalan süreyi ve mutlak bitişi saklar. Pencereyi kapatmak veya tarayıcıyı yenilemek duraklatmaz; uygulama yeniden açıldığında sunucu durumu okunur. Çalışma bitince mola bekler; otomatik mola açıkça seçilebilir. Mola sonunda çalışma kendiliğinden başlamaz. Eski seansın bilinmeyen fazı tahmin edilmez; sayacı açıkça etkinleştirmek gerekir. Canlı süre ayarı değiştirmek için seans planlanana alınarak sıfırlanır; notlar ve ölçülen geçmiş korunur.
+
+`POST /api/study-sessions/:id/pomodoro` strict `{expectedUpdatedAt, command, autoStartBreaks?}` alır; command `resume/pause/reset/complete/configure` olabilir. Yalnız configure boolean autoStartBreaks ister. Faz/kalan süre/deadline istemci tarafından yazılamaz. Genel start/pause/complete eylemleri de aynı kuralları uygular. Gecikmiş scheduler öncesi GET/stats çalışma ve mola ölçümünü deadline'da keser. Scheduler bakım ve kapanışla koordine edilir. Sunucunun saati doğru olmalıdır; çok süreç/yük/offline çalışma ayrıca doğrulanmış değildir. [Uygulama ve kanıt sınırları](memory-bank/implementation/2026-10-16-pomodoro-continuity.md).
+
 ## Seans yazma sözleşmesi
 
-Seans PUT, start/pause/complete ve DELETE istekleri okunan kaydın `updatedAt` değerini `expectedUpdatedAt` alanında gönderir. Eski sürüm 409 alır; güncel kayıt yeniden okunmalı, değişiklik kullanıcı kararıyla tekrar denenmelidir. Frontend bu alanı taşır ve çakışmada ilgili görünümleri yeniler. Eski açık sekmeler güncellemeden sonra yeniden yüklenmelidir; bu paket DB migration gerektirmez.
+Seans PUT, start/pause/complete ve DELETE istekleri okunan kaydın `updatedAt` değerini `expectedUpdatedAt` alanında gönderir. Eski sürüm 409 alır; güncel kayıt yeniden okunmalı, değişiklik kullanıcı kararıyla tekrar denenmelidir. Frontend bu alanı taşır ve çakışmada ilgili görünümleri yeniler. Eski açık sekmeler güncellemeden sonra yeniden yüklenmelidir; A07/A08 paketi DB migration gerektirmiyordu; gerçek süre ve kalıcı timer için explicit 004/005/006 yükseltmeleri gerekir.
 
-Oluşturma/taşıma/boyutlandırma ve iptalden yeniden etkinleştirme atomik transaction içindedir. Çakışmalar 409'dur; bitişe eşit başlangıç geçerlidir. Duraklatılmış/tamamlanmış seanslar aralığını korur, iptal edilmişler boşaltır. Kullanıcı başına tek aktif seans vardır. Tamamlanmış/iptal edilmiş seans açıkça planlanana alınarak yeniden açılır; tekrar tamamlama zaman damgasını değiştirmez. `duration` sunucuda türetilen **plan süresidir**; gerçek çalışma ölçümü ve timezone düzeltmesi sonraki iştir. Ayrıntı: [seans bütünlüğü kaydı](memory-bank/implementation/2026-10-16-session-integrity.md).
+Oluşturma/taşıma/boyutlandırma ve iptalden yeniden etkinleştirme atomik transaction içindedir. Çakışmalar 409'dur; bitişe eşit başlangıç geçerlidir. Duraklatılmış/tamamlanmış seanslar aralığını korur, iptal edilmişler boşaltır. Kullanıcı başına tek aktif seans vardır. Tamamlanmış/iptal edilmiş seans açıkça planlanana alınarak yeniden açılır; tekrar tamamlama zaman damgasını değiştirmez. `duration` sunucuda türetilen **plan süresidir**; gerçek çalışma ölçümü ayrı aralıklarla aşağıdaki sözleşmede sağlanır. Ayrıntı: [seans bütünlüğü kaydı](memory-bank/implementation/2026-10-16-session-integrity.md).
+
+## Katalog yazma ve silme sözleşmesi
+
+Kategori/ders/konu yazmaları ortak servis içinde IMMEDIATE transaction kullanır. Ders silindiğinde konuları silinir; seanslar, notlar ve ölçülen çalışma aralıkları korunur. İlgili seans bağlantıları temizlenir ve sürümleri ilerler. Dolu kategori silmede farklı ve mevcut bir hedef kategori gerekir; bütün dersler atomik taşınır. Konu silme arşivleme (`isActive=false`) olarak kalır.
+
+Konu sıralaması bütün aktif konuların tekil `1..N` sırasını `topicOrders` içinde, görülen `{id,updatedAt}` listesini `expectedTopics` içinde gönderir. Değişmiş liste 409, hatalı payload 400 alır; otomatik mutation retry yapılmaz. Sıralamak için tüm konular ve artan sıra görünümü gerekir. Bu güncellemede yeni migration yoktur; eski sekmeler yeni sözleşme için yeniden yüklenmelidir. Genel katalog metadata edit/delete işlemleri last-writer-wins davranışındadır. [Uygulama ve sınırlar](memory-bank/implementation/2026-10-16-catalog-integrity.md).
 
 ## Teknik yapı
 
 ```text
-packages/contracts/  Ortak Preferences/site kimliği runtime şemaları ve türetilmiş tipler
+packages/contracts/  Ortak tercih/kimlik/seans/katalog/zaman şemaları ve tipleri
 backend/src/
   app.ts             HTTP uygulaması; import edilmesi sunucu veya cron başlatmaz
   index.ts           Başlangıç, bağlantı kontrolü ve kapanış
@@ -148,7 +172,7 @@ backend/src/
   controllers/       API işlemleri
   middleware/        Auth, doğrulama ve hata katmanı
   models/            Sequelize modelleri ve ilişkileri
-  services/          Oturum yaşam döngüsü, admin kurtarma, bakım ve snapshot
+  services/          Auth, katalog, seans/ölçüm, admin kurtarma ve snapshot
   scripts/           Migration, admin yönetimi ve geliştirme seed girişleri
 backend/tests/       İzole HTTP/veritabanı ve yapılandırma regresyonları
 frontend/src/
@@ -163,6 +187,6 @@ memory-bank/         Kalıcı kararlar, mevcut durum ve teknik inceleme
 
 ## Mevcut kapsam ve açık işler
 
-Uygulamada kayıt/giriş, ders/konu yönetimi, haftalık/günlük planlayıcı, Pomodoro ve yönetim ekranları bulunur. Oturum iptali, tek süreçli snapshot/restore/reset, Preferences v1, kullanıcı/tarih cache ayrımı değiştirilebilir site kimliği ve atomik seans/durum bütünlüğü uygulandı ve davranış testleriyle doğrulandı. Üretime hazır olma iddiası yoktur. Gerçek çalışma süresi, zaman dilimi, diğer çok adımlı silmeler ve dağıtım/kurtarma operasyonları açık işlerdir.
+Uygulamada kayıt/giriş, ders/konu yönetimi, haftalık/günlük planlayıcı, Pomodoro ve yönetim ekranları bulunur. Oturum iptali, tek süreçli snapshot/restore/reset, Preferences v1, kullanıcı/tarih cache ayrımı değiştirilebilir site kimliği ve atomik seans/durum bütünlüğü uygulandı ve davranış testleriyle doğrulandı. Üretime hazır olma iddiası yoktur. Katalog silme/taşıma/sıralama transaction bütünlüğü tamamlandı. Kalıcı sunucu deadline/faz/döngüsü ve ortak Pomodoro motoru tamamlandı. Global admin agregasyonları, kayıt/bakım/boşta oturum ayarları ve kalıcı kullanıcı-konu ilerlemesi de uygulandı. Günlük/haftalık planner tek işlem ve görünüm motoruna taşındı. Kalan sözleşmeler/öğrenci katalog UI/tasarım, bildirim teslimatı ve dağıtım/kurtarma operasyonları açık işlerdir.
 
 Güncel ilerleme [memory-bank/progress.md](memory-bank/progress.md), çalışma kuralları [memory-bank/workingPrinciples.md](memory-bank/workingPrinciples.md), başlangıç incelemesi [teknik audit](memory-bank/audits/2026-10-15-project-audit.md) içindedir.

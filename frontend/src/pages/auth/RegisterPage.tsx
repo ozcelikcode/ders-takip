@@ -9,6 +9,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
 
 const registerSchema = z.object({
   firstName: z.string().min(2, 'Ad en az 2 karakter olmalıdır'),
@@ -24,6 +25,7 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { register: registerUser, isAuthenticated } = useAuthStore();
+  const allowRegistration = useSettingsStore(state => state.settings.allowRegistration);
 
   const {
     register,
@@ -48,6 +50,19 @@ const RegisterPage = () => {
       setIsLoading(false);
     }
   };
+
+  if (!allowRegistration) {
+    return (
+      <div className="min-h-screen bg-[var(--canvas)] flex items-center justify-center py-12 px-4">
+        <div className="panel w-full max-w-md space-y-4 p-8 text-center" role="status">
+          <div className="flex justify-center"><Brand /></div>
+          <h2 className="text-2xl font-semibold tracking-tight">Kayıtlar kapalı</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Yeni hesap oluşturma şu anda kapalı. Mevcut hesabınızla giriş yapabilirsiniz.</p>
+          <Link to="/login" className="btn btn-secondary">Giriş yap</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--canvas)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

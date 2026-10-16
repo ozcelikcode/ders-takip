@@ -12,4 +12,5 @@ it('requires explicit instants and versioned writes and rejects client-owned der
   for (const patch of [{ duration: 60 }, { status: 'completed' }, { completedAt: input.endTime }, { startTime: '2099-01-01T09:00:00' }]) assert.equal(createSessionSchema.safeParse({ ...input, ...patch }).success, false);
   assert.equal(updateSessionSchema.safeParse({ status: 'paused' }).success, false);
   assert.equal(updateSessionSchema.safeParse({ expectedUpdatedAt: input.startTime, status: 'paused' }).success, true);
+  assert.equal(updateSessionSchema.safeParse({ expectedUpdatedAt: input.startTime, courseId: null, topicId: null, planId: null }).success, true);
 });

@@ -1,17 +1,17 @@
-import { Model, QueryTypes, type ModelStatic, type SyncOptions, type Transactionable } from 'sequelize';
+import { DataTypes, Model, QueryTypes, type ModelStatic, type SyncOptions, type Transactionable } from 'sequelize';
 import { sequelize } from '../config/database';
 import { migrateStoredPreferences } from './preferenceMigration';
-import { AuthSession, RefreshCredential } from '../models';
+import { AuthSession, RefreshCredential, SessionInterval, PomodoroClock, UserTopicProgress } from '../models';
 
-export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1'];
-async function validateExistingTables() {
+export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1', '004-session-activity-intervals', '005-pomodoro-clocks', '006-user-topic-progress'];
+async function validateExistingTables(pendingTracking = false) {
   const query = sequelize.getQueryInterface();
   const tables = await query.showAllTables();
   for (const model of Object.values(sequelize.models) as ModelStatic<Model>[]) {
     const table = model.getTableName();
     if (typeof table !== 'string' || !tables.includes(table)) continue;
     const columns = await query.describeTable(table);
-    const missing = Object.entries(model.getAttributes()).filter(([name, attribute]) => !columns[attribute.field ?? name]).map(([name]) => name);
+    const missing = Object.entries(model.getAttributes()).filter(([name, attribute]) => !columns[attribute.field ?? name] && !(pendingTracking && table === 'study_sessions' && name === 'trackingCoverage')).map(([name]) => name);
     if (missing.length) throw new Error(`Existing table ${table} requires a dedicated migration for: ${missing.join(', ')}`);
   }
 }
@@ -24,10 +24,10 @@ export async function assertDatabaseReady(): Promise<void> {
   for (const model of Object.values(sequelize.models)) if (!tables.includes(String(model.getTableName()))) throw new Error('Database tables are missing. Restore or repair the database before startup.');
 }
 export async function applyMigrations(): Promise<void> {
-  await validateExistingTables();
   await sequelize.transaction(async transaction => {
     await sequelize.query('CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY NOT NULL)', { transaction });
     const completed = await sequelize.query<{ name: string }>('SELECT name FROM schema_migrations', { type: QueryTypes.SELECT, transaction });
+    await validateExistingTables(!completed.some(row => row.name === '004-session-activity-intervals'));
     for (const name of requiredMigrations) {
       if (completed.some(row => row.name === name)) continue;
       const options: SyncOptions & Transactionable = { transaction };
@@ -40,6 +40,15 @@ export async function applyMigrations(): Promise<void> {
           await sequelize.query('UPDATE users SET preferences = :preferences WHERE id = :id', { replacements: { id: user.id, preferences: JSON.stringify(preferences) }, transaction });
         }
       }
+      else if (name === '004-session-activity-intervals') {
+        const query = sequelize.getQueryInterface();
+        const inspectionOptions: { transaction: typeof transaction; logging: false } = { transaction, logging: false };
+        const columns = await query.describeTable('study_sessions', inspectionOptions);
+        if (!columns.trackingCoverage) await query.addColumn('study_sessions', 'trackingCoverage', { type: DataTypes.STRING, allowNull: false, defaultValue: 'untracked' }, { transaction });
+        await SessionInterval.sync(options);
+      }
+      else if (name === '005-pomodoro-clocks') await PomodoroClock.sync(options);
+      else if (name === '006-user-topic-progress') await UserTopicProgress.sync(options);
       await sequelize.query('INSERT INTO schema_migrations (name) VALUES (:name)', { replacements: { name }, transaction });
     }
   });

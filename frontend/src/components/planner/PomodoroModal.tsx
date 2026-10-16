@@ -31,7 +31,7 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           open={isOpen}
-          onClose={() => {}} // Prevent closing by clicking backdrop during active session
+          onClose={onClose}
           className="relative z-50"
         >
           <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
@@ -51,12 +51,13 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                 <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {isMinimized ? 'Pomodoro' : 'Pomodoro Timer'}
+                  Pomodoro
                 </Dialog.Title>
                 <div className="flex items-center gap-2">
                   {onToggleMinimize && (
                     <button
                       onClick={onToggleMinimize}
+                      aria-label={isMinimized ? 'Sayacı büyüt' : 'Sayacı küçült'}
                       className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                     >
                       {isMinimized ? (
@@ -68,6 +69,7 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
                   )}
                   <button
                     onClick={onClose}
+                    aria-label="Sayacı kapat"
                     className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                   >
                     <X className="w-5 h-5" />

@@ -1,0 +1,29 @@
+import { z } from 'zod';
+import type { SessionStatus } from './studySessions.js';
+import { calendarDateSchema, timezoneSchema } from './time.js';
+
+export const activityKindSchema = z.enum(['study', 'break']);
+export type ActivityKind = z.infer<typeof activityKindSchema>;
+export type IntervalKind = ActivityKind | 'pause';
+export type TrackingCoverage = 'complete' | 'partial' | 'untracked';
+export interface ActivityInterval { id: number; kind: IntervalKind; startedAt: string; endedAt: string | null }
+export interface StudyTotals { studySeconds: number; breakSeconds: number; pauseSeconds: number }
+export interface SessionStats extends StudyTotals {
+  asOf: string; timezone: string; totalSessions: number; lastActivity: string | null; completedSessions: number; untrackedSessions: number; partialSessions: number;
+  days: (StudyTotals & { date: string })[];
+}
+export interface UserStudySummary { totalSessions: number; completedSessions: number; studySeconds: number; lastActivity: string | null }
+export interface AdminOverview {
+  users: { total: number; active: number };
+  courses: { total: number; active: number };
+  sessions: UserStudySummary;
+  recentSessions: { id: number; title: string; status: SessionStatus; sessionType: string; duration: number; userName: string }[];
+}
+export const sessionQuerySchema = z.object({
+  planId: z.coerce.number().int().positive().optional(),
+  startDate: calendarDateSchema.optional(), endDate: calendarDateSchema.optional(),
+  timezone: timezoneSchema.optional(),
+  status: z.enum(['planned', 'in_progress', 'paused', 'completed', 'cancelled']).optional(),
+  sessionType: z.enum(['study', 'break', 'pomodoro', 'review']).optional(),
+}).strict().refine(value => !value.startDate || !value.endDate || value.startDate <= value.endDate, { message: 'Invalid date range' });
+export type SessionQuery = z.infer<typeof sessionQuerySchema>;

@@ -1,3 +1,4 @@
+import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useState } from 'react';
 import WeeklyPlanner from '../../components/planner/WeeklyPlanner';
 import DailyCalendar from '../../components/planner/DailyCalendar';
@@ -7,6 +8,7 @@ import PlannerNavigation from '../../components/planner/PlannerNavigation';
 import PageHeader from '../../components/common/PageHeader';
 
 const PlannerPage = () => {
+  const timezone = useUserPreferencesStore(state => state.preferences.timezone);
   const [activeView, setActiveView] = useState<'weekly' | 'daily'>(() => window.matchMedia('(max-width: 639px)').matches ? 'daily' : 'weekly');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -20,11 +22,11 @@ const PlannerPage = () => {
 
   return (
     <div className="space-y-7">
-      <PageHeader title="Planlayıcı" description="Zamanına yer aç. Çalışmalarını tek bir takvimde düzenle."
+      <PageHeader title="Planlayıcı" description={`Zamanına yer aç. Takvim saat dilimi: ${timezone}.`}
         actions={<PlannerNavigation activeView={activeView} onViewChange={setActiveView} />} />
       <TodaysPlans />
       <section aria-label={activeView === 'weekly' ? 'Haftalık takvim' : 'Günlük takvim'}>
-        {activeView === 'weekly' ? <WeeklyPlanner onCreateSession={handleCreateSession} /> : <DailyCalendar onCreateSession={handleCreateSession} />}
+        {activeView === 'weekly' ? <WeeklyPlanner key={timezone} onCreateSession={handleCreateSession} /> : <DailyCalendar key={timezone} onCreateSession={handleCreateSession} />}
       </section>
       <CreateSessionModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} selectedDate={selectedDate} selectedHour={selectedHour} />
     </div>

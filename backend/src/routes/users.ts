@@ -2,7 +2,9 @@ import express from 'express';
 import {
 createUser,
 deleteUser,
+getAdminOverview,
 getUser,
+getUserStudyStats,
 getUsers,
 updateUser,
 } from '../controllers/userController';
@@ -15,6 +17,8 @@ router.use(protect);
 
 router.get('/', authorize('admin'), getUsers);
 
+router.get('/admin-stats', authorize('admin'), getAdminOverview);
+router.get('/:id/stats', getUserStudyStats);
 router.get('/:id', getUser);
 
 router.post('/', authorize('admin'), validateRequest(registerSchema), createUser);

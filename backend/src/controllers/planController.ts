@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { Plan, StudySession, Course, Topic, Category } from '../models';
 import { Op } from 'sequelize';
+import { getStudyStats } from '../services/studyTracking';
+import { dateKeyInZone } from '@study-tracker/contracts';
 
 export const getPlans = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -276,17 +278,20 @@ export const getPlanStats = async (req: Request, res: Response, next: NextFuncti
 
     const sessions = plan.studySessions || [];
 
+    const timezone = req.user.preferences.timezone;
+    const measured = await getStudyStats(userId, timezone, { planId: plan.id });
+    const planDays = Math.max(1, Math.round((Date.parse(dateKeyInZone(plan.endDate, timezone)) - Date.parse(dateKeyInZone(plan.startDate, timezone))) / 86400000) + 1);
     const stats = {
+      ...measured,
       totalSessions: sessions.length,
       completedSessions: sessions.filter(s => s.status === 'completed').length,
-      totalStudyHours: sessions.reduce((acc, s) => acc + (s.duration / 60), 0),
+      totalStudyHours: measured.studySeconds / 3600,
       averageProductivity: sessions.filter(s => s.productivity).length > 0
         ? sessions.reduce((acc, s) => acc + (s.productivity || 0), 0) / sessions.filter(s => s.productivity).length
         : 0,
       coursesStudied: [...new Set(sessions.filter(s => s.course).map(s => s.course!.name))],
       dailyProgress: plan.goals.dailyHours > 0
-        ? Math.min((sessions.reduce((acc, s) => acc + (s.duration / 60), 0) /
-            (Math.ceil((plan.endDate.getTime() - plan.startDate.getTime()) / (1000 * 60 * 60 * 24)) * plan.goals.dailyHours)) * 100, 100)
+        ? Math.min((measured.studySeconds / 3600 / (planDays * plan.goals.dailyHours)) * 100, 100)
         : 0,
     };
 

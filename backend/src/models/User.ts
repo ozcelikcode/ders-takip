@@ -15,7 +15,7 @@ interface UserAttributes {
   userCategory?: 'student' | 'teacher' | 'employee' | 'developer' | 'freelancer' | 'other';
   isActive: boolean;
   lastLogin?: Date;
-  profileImage?: string;
+  profileImage?: string | null;
   preferences: UserPreferences;
   createdAt: Date;
   updatedAt: Date;
@@ -34,7 +34,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public userCategory?: 'student' | 'teacher' | 'employee' | 'developer' | 'freelancer' | 'other';
   public isActive!: boolean;
   public lastLogin?: Date;
-  public profileImage?: string;
+  public profileImage?: string | null;
   public preferences!: UserPreferences;
 
   public readonly createdAt!: Date;
@@ -105,6 +105,9 @@ User.init(
       type: DataTypes.ENUM('student', 'admin'),
       allowNull: false,
       defaultValue: 'student',
+      validate: {
+        isIn: [['student', 'admin']],
+      },
     },
     userCategory: {
       type: DataTypes.ENUM('student', 'teacher', 'employee', 'developer', 'freelancer', 'other'),

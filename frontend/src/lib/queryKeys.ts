@@ -1,5 +1,5 @@
-export const accountQueryKeys = (userId: string | null | undefined, timezone: string) => {
-  const root = ['account', userId ?? 'anonymous'] as const;
+export const accountQueryKeys = (userId: string | number | null | undefined, timezone: string) => {
+  const root = ['account', userId == null ? 'anonymous' : String(userId)] as const;
   return {
     catalog: (...filters: unknown[]) => [...root, 'catalog', ...filters] as const,
     sessions: (...filters: unknown[]) => filters.length === 0
