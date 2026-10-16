@@ -125,9 +125,15 @@ npm test
 npm run build
 ```
 
-Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 3 contracts + 52 backend + 31 frontend = 86 testtir. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
+Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 5 contracts + 67 backend + 36 frontend = 108 testtir. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
 
 Adlandırma kontrolü dosya/klasör ve kod sembollerinde ASCII dışı adları yakalar. İsimlerin anlam bakımından İngilizce oluşu kod incelemesinde doğrulanır; Türkçe arayüz metinleri bu kontrolün dışındadır.
+
+## Seans yazma sözleşmesi
+
+Seans PUT, start/pause/complete ve DELETE istekleri okunan kaydın `updatedAt` değerini `expectedUpdatedAt` alanında gönderir. Eski sürüm 409 alır; güncel kayıt yeniden okunmalı, değişiklik kullanıcı kararıyla tekrar denenmelidir. Frontend bu alanı taşır ve çakışmada ilgili görünümleri yeniler. Eski açık sekmeler güncellemeden sonra yeniden yüklenmelidir; bu paket DB migration gerektirmez.
+
+Oluşturma/taşıma/boyutlandırma ve iptalden yeniden etkinleştirme atomik transaction içindedir. Çakışmalar 409'dur; bitişe eşit başlangıç geçerlidir. Duraklatılmış/tamamlanmış seanslar aralığını korur, iptal edilmişler boşaltır. Kullanıcı başına tek aktif seans vardır. Tamamlanmış/iptal edilmiş seans açıkça planlanana alınarak yeniden açılır; tekrar tamamlama zaman damgasını değiştirmez. `duration` sunucuda türetilen **plan süresidir**; gerçek çalışma ölçümü ve timezone düzeltmesi sonraki iştir. Ayrıntı: [seans bütünlüğü kaydı](memory-bank/implementation/2026-10-16-session-integrity.md).
 
 ## Teknik yapı
 
@@ -157,6 +163,6 @@ memory-bank/         Kalıcı kararlar, mevcut durum ve teknik inceleme
 
 ## Mevcut kapsam ve açık işler
 
-Uygulamada kayıt/giriş, ders/konu yönetimi, haftalık/günlük planlayıcı, Pomodoro ve yönetim ekranları bulunur. Oturum iptali, tek süreçli snapshot/restore/reset, Preferences v1, kullanıcı/tarih cache ayrımı ve değiştirilebilir site kimliği uygulandı ve davranış testleriyle doğrulandı. Üretime hazır olma iddiası yoktur. Gerçek çalışma süresi, zaman dilimi, planner durum/çakışma bütünlüğü, diğer çok adımlı silmeler ve dağıtım/kurtarma operasyonları açık işlerdir.
+Uygulamada kayıt/giriş, ders/konu yönetimi, haftalık/günlük planlayıcı, Pomodoro ve yönetim ekranları bulunur. Oturum iptali, tek süreçli snapshot/restore/reset, Preferences v1, kullanıcı/tarih cache ayrımı değiştirilebilir site kimliği ve atomik seans/durum bütünlüğü uygulandı ve davranış testleriyle doğrulandı. Üretime hazır olma iddiası yoktur. Gerçek çalışma süresi, zaman dilimi, diğer çok adımlı silmeler ve dağıtım/kurtarma operasyonları açık işlerdir.
 
 Güncel ilerleme [memory-bank/progress.md](memory-bank/progress.md), çalışma kuralları [memory-bank/workingPrinciples.md](memory-bank/workingPrinciples.md), başlangıç incelemesi [teknik audit](memory-bank/audits/2026-10-15-project-audit.md) içindedir.

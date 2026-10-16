@@ -1,3 +1,5 @@
+import type { CreateSessionInput, UpdateSessionInput, SessionStatus } from '@study-tracker/contracts';
+
 export interface Plan {
   id: number;
   userId: number;
@@ -27,7 +29,7 @@ export interface StudySession {
   startTime: string;
   endTime: string;
   duration: number;
-  status: 'planned' | 'in_progress' | 'completed' | 'cancelled' | 'paused';
+  status: SessionStatus;
   sessionType: 'study' | 'break' | 'pomodoro' | 'review';
   color?: string;
   pomodoroSettings?: {
@@ -39,7 +41,7 @@ export interface StudySession {
   };
   notes?: string;
   productivity?: number;
-  completedAt?: string;
+  completedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   plan?: {
@@ -84,48 +86,8 @@ export interface CreatePlanRequest {
   } | undefined;
 }
 
-export interface CreateStudySessionRequest {
-  planId?: number | undefined;
-  topicId?: number | undefined;
-  courseId?: number | undefined;
-  title: string;
-  description?: string | undefined;
-  startTime: string;
-  endTime: string;
-  duration: number;
-  sessionType: 'study' | 'break' | 'pomodoro' | 'review';
-  color?: string | undefined;
-  pomodoroSettings?: {
-    workDuration: number;
-    shortBreak: number;
-    longBreak: number;
-    cyclesBeforeLongBreak: number;
-    currentCycle: number;
-  } | undefined;
-}
-
-export interface UpdateStudySessionRequest {
-  planId?: number | undefined;
-  topicId?: number | undefined;
-  courseId?: number | undefined;
-  title?: string | undefined;
-  description?: string | undefined;
-  startTime?: string | undefined;
-  endTime?: string | undefined;
-  duration?: number | undefined;
-  status?: 'planned' | 'in_progress' | 'completed' | 'cancelled' | 'paused' | undefined;
-  sessionType?: 'study' | 'break' | 'pomodoro' | 'review' | undefined;
-  color?: string | undefined;
-  pomodoroSettings?: {
-    workDuration: number;
-    shortBreak: number;
-    longBreak: number;
-    cyclesBeforeLongBreak: number;
-    currentCycle: number;
-  } | undefined;
-  notes?: string | undefined;
-  productivity?: number | undefined;
-}
+export type CreateStudySessionRequest = CreateSessionInput;
+export type UpdateStudySessionRequest = Omit<UpdateSessionInput, 'expectedUpdatedAt'>;
 
 export interface Topic {
   id: number;

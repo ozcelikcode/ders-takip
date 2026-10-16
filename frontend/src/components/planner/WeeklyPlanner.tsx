@@ -138,36 +138,6 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
 
   const weeklySchedule = organizeSessionsByWeek(sessionsData ?? []);
 
-  // Kaçırılan görevler için uyarı - Sadece bugünün planları için göster
-  // (Haftalık planlayıcı ayrı uyarı göstermesin)
-
-  // Vakti geçmiş in_progress oturumları kontrol et ve otomatik yenile
-  useEffect(() => {
-    const checkOverdueSessions = () => {
-      if (!sessionsData || sessionsData.length === 0) return;
-
-      const now = new Date();
-      const overdueSessions = sessionsData.filter(
-        (session) =>
-          session.status === 'in_progress' &&
-          parseDate(session.endTime) < now
-      );
-
-      if (overdueSessions.length > 0) {
-        console.log('⏰ Vakti geçmiş oturumlar bulundu, yenileniyor...', overdueSessions.length);
-        refetch(); // Backend otomatik cancel edecek
-      }
-    };
-
-    // İlk kontrolü yap
-    checkOverdueSessions();
-
-    // Her 30 saniyede bir kontrol et
-    const interval = setInterval(checkOverdueSessions, 30000);
-
-    return () => clearInterval(interval);
-  }, [sessionsData, refetch]);
-
   const getSessionsForTimeSlot = (dayIndex: number, hour: number): StudySession[] => {
     const dayKey = `day-${dayIndex}`;
     const daySessions = weeklySchedule[dayKey] || [];
@@ -297,20 +267,13 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         throw new Error('Geçersiz oturum ID');
       }
 
-      console.log('Frontend: Taşıma işlemi başlıyor');
-      console.log('Frontend: Session ID:', draggedSession.id);
-      console.log('Frontend: New start time:', newStartTime.toISOString());
-      console.log('Frontend: New end time:', newEndTime.toISOString());
-
       // Show loading state
       toast.loading('Oturum taşınıyor...', { id: 'moving-session' });
 
-      const response = await studySessionsAPI.updateSession(draggedSession.id.toString(), {
+      const response = await studySessionsAPI.updateSession(draggedSession, {
         startTime: newStartTime.toISOString(),
         endTime: newEndTime.toISOString(),
       });
-
-      console.log('Frontend: API Response:', response.data);
 
       if (response.data.success) {
         toast.success('Oturum başarıyla taşındı', { id: 'moving-session' });
@@ -393,7 +356,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         return;
       }
 
-      const response = await studySessionsAPI.updateSession(moveModalSession.id.toString(), {
+      const response = await studySessionsAPI.updateSession(moveModalSession, {
         startTime: newStartTime.toISOString(),
         endTime: newEndTime.toISOString(),
       });
@@ -420,7 +383,6 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     setCurrentWeek(prev => direction === 'next' ? addWeeks(prev, 1) : subWeeks(prev, 1));
   };
 
-
   const handlePauseSession = (session: StudySession) => {
     setConfirmDialog({
       isOpen: true,
@@ -429,7 +391,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       type: 'warning',
       onConfirm: async () => {
         try {
-          await studySessionsAPI.pauseSession(session.id.toString());
+          await studySessionsAPI.pauseSession(session);
           toast.success('Çalışma seansı duraklatıldı');
           queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
           refetch();
@@ -448,7 +410,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
       type: 'info',
       onConfirm: async () => {
         try {
-          await studySessionsAPI.completeSession(session.id.toString());
+          await studySessionsAPI.completeSession(session);
           toast.success('Çalışma seansı tamamlandı');
 
           queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
@@ -470,7 +432,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
     }
 
     try {
-      await studySessionsAPI.startSession(session.id.toString());
+      await studySessionsAPI.startSession(session);
       toast.success('Çalışma seansı başlatıldı');
       queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
       refetch();
@@ -552,7 +514,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
         setTimeout(() => setJustFinishedAction(false), 100);
 
         try {
-          await studySessionsAPI.updateSession(resizingSession.session.id.toString(), {
+          await studySessionsAPI.updateSession(resizingSession.session, {
             endTime: newEndTime.toISOString(),
           });
           toast.success('Süre güncellendi');
@@ -1186,7 +1148,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
           setActiveSession(null);
           setIsTimerMinimized(false);
         }}
-        session={activeSession}
+        session={sessionsData?.find(session => session.id === activeSession?.id) ?? activeSession}
         isMinimized={isTimerMinimized}
         onToggleMinimize={() => setIsTimerMinimized(!isTimerMinimized)}
       />
@@ -1231,7 +1193,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                 type: 'danger',
                 onConfirm: async () => {
                   try {
-                    await studySessionsAPI.deleteSession(contextMenu.session.id.toString());
+                    await studySessionsAPI.deleteSession(contextMenu.session);
                     toast.success('Görev başarıyla silindi');
                     queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
                     refetch();
@@ -1297,7 +1259,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                   const newEndTime = subWeeks(sessionEnd, 1);
                   try {
                     toast.loading('Önceki haftaya taşınıyor...', { id: 'move-prev-week' });
-                    const response = await studySessionsAPI.updateSession(draggedSession.id.toString(), {
+                    const response = await studySessionsAPI.updateSession(draggedSession, {
                       startTime: newStartTime.toISOString(),
                       endTime: newEndTime.toISOString(),
                     });
@@ -1345,7 +1307,7 @@ const WeeklyPlanner: React.FC<WeeklyPlannerProps> = ({ onCreateSession }) => {
                   const newEndTime = addWeeks(sessionEnd, 1);
                   try {
                     toast.loading('Sonraki haftaya taşınıyor...', { id: 'move-next-week' });
-                    const response = await studySessionsAPI.updateSession(draggedSession.id.toString(), {
+                    const response = await studySessionsAPI.updateSession(draggedSession, {
                       startTime: newStartTime.toISOString(),
                       endTime: newEndTime.toISOString(),
                     });

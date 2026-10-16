@@ -7,6 +7,8 @@ import toast from 'react-hot-toast';
 import type { ApiResponse } from '../types/api';
 import type { AuthResponse, LoginCredentials, RegisterData, User } from '../types/auth';
 import type { CreatePlanRequest, CreateStudySessionRequest, CreateTopicRequest, Plan, StudySession, Topic, UpdateStudySessionRequest, UpdateTopicRequest } from '../types/planner';
+import { queryClient } from '../lib/queryClient';
+import { accountQueryKeys } from '../lib/queryKeys';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -44,6 +46,11 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && originalRequest?.authEpoch === useAuthStore.getState().epoch) useAuthStore.getState().clearAuth();
+
+    const current = useAuthStore.getState();
+    if (error.response?.status === 409 && originalRequest?.url?.startsWith('/study-sessions') && originalRequest.authEpoch === current.epoch) {
+      void queryClient.invalidateQueries({ queryKey: accountQueryKeys(current.user?.id, '').sessions() });
+    }
 
     // Handle common errors with debouncing
     let errorMessage: string;
@@ -196,20 +203,20 @@ export const studySessionsAPI = {
   createSession: (data: CreateStudySessionRequest): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
     api.post('/study-sessions', data),
 
-  updateSession: (id: string, data: UpdateStudySessionRequest): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
-    api.put(`/study-sessions/${id}`, data),
+  updateSession: (session: Pick<StudySession, 'id' | 'updatedAt'>, data: UpdateStudySessionRequest): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
+    api.put(`/study-sessions/${session.id}`, { ...data, expectedUpdatedAt: session.updatedAt }),
 
-  deleteSession: (id: string): Promise<AxiosResponse<ApiResponse>> =>
-    api.delete(`/study-sessions/${id}`),
+  deleteSession: (session: Pick<StudySession, 'id' | 'updatedAt'>): Promise<AxiosResponse<ApiResponse>> =>
+    api.delete(`/study-sessions/${session.id}`, { data: { expectedUpdatedAt: session.updatedAt } }),
 
-  startSession: (id: string): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
-    api.patch(`/study-sessions/${id}/start`),
+  startSession: (session: Pick<StudySession, 'id' | 'updatedAt'>): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
+    api.patch(`/study-sessions/${session.id}/start`, { expectedUpdatedAt: session.updatedAt }),
 
-  pauseSession: (id: string): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
-    api.patch(`/study-sessions/${id}/pause`),
+  pauseSession: (session: Pick<StudySession, 'id' | 'updatedAt'>): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
+    api.patch(`/study-sessions/${session.id}/pause`, { expectedUpdatedAt: session.updatedAt }),
 
-  completeSession: (id: string, data?: { notes?: string; productivity?: number }): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
-    api.patch(`/study-sessions/${id}/complete`, data),
+  completeSession: (session: Pick<StudySession, 'id' | 'updatedAt'>, data?: { notes?: string; productivity?: number }): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
+    api.patch(`/study-sessions/${session.id}/complete`, { ...data, expectedUpdatedAt: session.updatedAt }),
 };
 
 // Topics API

@@ -1,6 +1,6 @@
 # Ders Takip Sistemi — Sistem Örüntüleri
 
-Kaynak kodla doğrulama: 16 Ekim 2026, tercihler ve site kimliği paketi. Bu belge mevcut davranışla hedef standardı ayrı tutar. Güncel uygulama kaydı implementation/2026-10-16-preferences-and-site-identity.md içindedir; foundation kaydı tarihseldir.
+Kaynak kodla doğrulama: 16 Ekim 2026, seans bütünlüğü paketi. Bu belge mevcut davranışla hedef standardı ayrı tutar. Güncel uygulama kaydı implementation/2026-10-16-preferences-and-site-identity.md içindedir; foundation kaydı tarihseldir.
 
 ## Mevcut mimari
 
@@ -17,7 +17,7 @@ index.ts → env/schema kontrolü → listen/cron/kapanış
                          └─ Backup service / periyodik due kontrolü → native SQLite snapshot + manifest
 ```
 
-Controller'lar HTTP, yetki ve iş kurallarını ORM sorgularıyla birlikte yürütür. Ortak course erişim politikası, auth session/admin kurtarma ve backup/bakım servisleri ayrıldı; planner/catalog kuralları henüz aynı service sınırına taşınmadı. Bu basit modüler tek uygulama ölçeğinde çalışmaya devam edilebilir; mevcut problemlerin çözümü mikroservis gerektirmiyor.
+Controller'lar HTTP, yetki ve iş kurallarını ORM sorgularıyla birlikte yürütür. Ortak course erişim politikası, auth session/admin kurtarma ve backup/bakım servisleri ayrıldı; StudySession HTTP yazmaları ortak service sınırına taşındı; catalog kuralları hâlâ controller içindedir. Bu basit modüler tek uygulama ölçeğinde çalışmaya devam edilebilir; mevcut problemlerin çözümü mikroservis gerektirmiyor.
 
 ## Veri sınırları
 
@@ -31,7 +31,7 @@ Controller'lar HTTP, yetki ve iş kurallarını ORM sorgularıyla birlikte yür�
 - User → AuthSession → RefreshCredential cascade; refresh hash geçmişi aile ömrü boyunca tutulur.
 - Backup metadata'sı DB içinde, doğrulama manifesti snapshot yanında; katalog başlangıç/restore sonrası manifestlerden yeniden kurulur.
 
-İndeksler ve model validation'ları mevcut. Açık baseline migration ve schema_migrations kaydı eklendi; seed transaction kullanır. Auth rotasyonu/parola/admin kurtarma ve reset transaction içindedir; StudySession çakışma ve diğer çok adımlı silmelerde bütünlük işleri sürer.
+İndeksler ve model validation'ları mevcut. Açık baseline migration ve schema_migrations kaydı eklendi; seed transaction kullanır. Auth rotasyonu/parola/admin kurtarma ve reset transaction içindedir; StudySession yazmaları IMMEDIATE transaction içindedir; diğer çok adımlı silmelerde bütünlük işleri sürer.
 
 ## Mevcut auth ve veri akışı
 
@@ -61,8 +61,6 @@ Query key'i sorgu sonucunu belirleyen kimlik/filtrelere bağlamak gerekir. Inval
 
 ## Hâlâ açık iş kuralı sorunları
 
-- Session create çakışması atomik değil; update çakışma kontrolü yapmıyor.
-- Start/pause/complete ile genel PUT farklı durum kuralları yürütüyor.
 - Plan süresi gerçek çalışma gibi toplanıyor; pause/resume aktif süre kaydı yok.
 - Günlük/haftalık planner ve iki Pomodoro motoru benzer kuralları tekrar ediyor.
 - Preferences/site settings ortak contracts Zod 4 şeması/tiplerinden gelir; diğer form/API sözleşmelerinde Zod 3/Joi/manual ayrışması sürer.
@@ -118,3 +116,9 @@ contracts v1 ortak runtime şeması/tipler; 003 explicit JSON dönüşümü ve k
 Kişisel tercih belleği login/refresh profilinden doğar; anonim/başka hesaba geçince temizlenir. Sahipsiz eski browser değerleri manuel kurtarma arşivine alınır, aktif fallback yapılmaz. Bildirim id'leri account anahtarıyla ve boyut sınırıyla saklanır. Tema/renk tek appearance katmanı ve OS listener ile uygulanır; özel renk kaldırılınca public site rengi döner.
 
 Public branding DTO → site-branding cache → Brand/login/register/sidebar/loading/title/meta/favicon. Admin config yalnız yetkili ayrı API/bellek; transaction'lı şema doğrulaması. SiteName görünür markadır, repo adı veya domain değildir. Gerçek isim kullanıcı tarafından admin'den seçilir; fixture adı normal kuruluma taşınmaz.
+
+## Seans yazma politikası — 16 Ekim
+
+services/studySessions.ts bütün create/update/action/delete HTTP yollarının transaction/yetki/durum/aralık sınırıdır. SQLite IMMEDIATE check+write'ı serileştirir. [start,end) örtüşmesi kullanıcı kapsamında, current id dışlanarak denetlenir; cancelled hariç bütün durumlar takvim aralığını korur. İptalden yeniden etkinleştirme de kontrol edilir. Tek in_progress seans, terminal durumdan planned ile yeniden açma, değişmeyen tamamlamada no-op/completedAt koruması ve yeniden açmada completedAt=null vardır. Bekleyen süre aşımında GET yazmaz, pause hata verip gizlice durum değiştirmez.
+
+Bütün edit/action/delete yolları expectedUpdatedAt ister; eski sürüm 409'dur. beforeUpdate önceki timestamp'ten en az +1 ms üretir. İstemci gördüğü snapshot'ı taşır, mutation yanıtını saklar; 409 sonrası session query prefix yenilenir ve otomatik mutation retry yapılmaz. Bu bir HTTP service sözleşmesidir; harici SQL/bulk FK yazmaları aynı alan politikasına dahil değildir. Yeni şema/migration eklenmedi. Ortak Zod seans şeması/SessionStatus/geçiş tablosu contracts içindedir; diğer DTO borcu devam eder. Süre/timezone ve tek motor açık kalır. Kanıt ve geçiş tablosu: implementation/2026-10-16-session-integrity.md.

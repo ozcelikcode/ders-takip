@@ -1,6 +1,6 @@
 # Ders Takip Sistemi — Teknik Bağlam
 
-Kaynak ve doğrulama: 16 Ekim 2026, tercihler ve site kimliği paketi. Başlangıç incelemesi tarihsel raporda tutulur; aşağıdaki mevcut durum onun yerini alır.
+Kaynak ve doğrulama: 16 Ekim 2026, seans bütünlüğü paketi. Başlangıç incelemesi tarihsel raporda tutulur; aşağıdaki mevcut durum onun yerini alır.
 
 ## Araç zinciri
 
@@ -41,7 +41,7 @@ On model: User, Category, Course, Topic, Plan, StudySession, Settings, Backup, A
 - Course görünürlüğü `policies/courseAccess.ts`: sahibi veya global veya admin. Liste, tek ders, dersin konuları ve topic parent join'leri bu scope'u kullanır. User detail kendisi/admin ile sınırlı.
 - Yeni StudySession ilişkisinde plan sahibi, ders/konu görünürlüğü, aktiflik ve topic-course eşleşmesi doğrulanır. Yalnız topic verilirse erişilebilir parent course çözülür.
 - GET StudySession yan etkisizdir; not veya durum güncellemez. Zaman aşımı politikası henüz ayrı service olarak uygulanmadı.
-- Create çakışma kontrolü atomik değil; update çakışma/durum ve gerçek süre konuları açık. Eski hatalı ilişkiler bu oturumda gerçek DB'de taranmadı.
+- Create/update/action/delete services/studySessions.ts içinde IMMEDIATE transaction kullanır. Zorunlu expectedUpdatedAt ve monotonic timestamp ile stale 409, ortak durum politikası ve tek aktif seans uygulanır. Paused/completed zamanı rezerve eder; cancelled serbesttir. Ortak seans Zod şemaları contracts içindedir. Gerçek süre ve timezone açıktır; eski hatalı ilişkiler/çakışmalar gerçek DB üzerinde taranıp değiştirilmedi.
 - GET /settings yalnız public branding DTO; /settings/admin ve PUT admin/no-store. İzinli anahtar/tip şeması ve transaction'lı yazma var. allowRegistration/maintenanceMode/sessionTimeout gibi ayarların uygulanması açık. Backup route'ları admin; native SQLite backup API, dosya dışı manifest/SHA-256/integrity/FK/şema kontrolü, güvenlik yedeği/atomik destination restore/rollback ve bakım kapısı uygulanmıştır. settings_only/all reset transaction'lıdır. Her 5 dakikadaki job ayarı yeniden okuyarak 1/5/7 tam gün hesabı yapar. Tek backend süreci sınırı, offsite/kapasite/retention işleri açık; otomatik yedek silme yoktur.
 - Merkezi hata handler Sequelize ValidationError→400, Unique/FK→409; beklenmeyen hata mesajı istemciye verilmez. Eski MongoDB hata eşlemeleri kaldırıldı. Joi/Zod/manual validation birleştirilmedi.
 
@@ -66,7 +66,7 @@ Tasarım paketi kapanışında: 22 backend + 8 frontend = 30 test (tarihsel), st
 - `npm run setup`: npm ci → configure → build; DB'ye yazmaz.
 - `npm run check`: ASCII teknik adlandırma → iki workspace typecheck → sıfır uyarılı lint → testler → build.
 - TypeScript strict/optional/no-unused ayarları gevşetilmedi. ESLint temel JS/TS doğruluk ve unused kurallarını, hooks rules-of-hooks kuralını uygular. Mevcut any borcu veya bütün hooks/exhaustive-deps sorunları kapatılmış değildir; disable yorumuyla bastırma eklenmedi.
-- Güncel check: **3 contracts + 52 backend + 31 frontend = 86 test**, atlanan yok; strict typecheck, sıfır uyarılı lint ve iki production build başarılı. Backend WAL/restore/rollback ve oturum yarışları, frontend gerçek HTTP transport ile eşzamanlı/geç 401 dahil.
+- Güncel check: **5 contracts + 67 backend + 36 frontend = 108 test**, atlanan yok; strict typecheck, sıfır uyarılı lint ve iki production build başarılı. Backend WAL/restore/rollback ve oturum yarışları, frontend gerçek HTTP transport ile eşzamanlı/geç 401 dahil.
 - Yerel yeni admin ile giriş, reload/cookie bootstrap ve manuel snapshot tarayıcıda doğrulandı; gerçek DB'de reset/restore/seed yapılmadı.
 - İlk paket tarihsel doğrulaması — Backend Node test runner + Supertest: 22 test; gerçek HTTP/geçici SQLite, env, hata response'ları ve migration/snapshot yolu. Frontend Vitest/Testing Library/jsdom: 5 test; ErrorBoundary ve hesap cache sınırı.
 - GitHub Actions checkout/setup-node v7 + npm ci + check tanımlı; GitHub'da koşum yapılmadı.
@@ -83,3 +83,7 @@ Görünen ad/açıklama/logo/ikon public DTO'dan ortak Brand ve appearance katma
 contracts tek kaynaktan CJS+ESM build üretir. Root dev başlangıçları önce contracts build; Vite --force + optimizeDeps include linked workspace'in Zod 4'ünü frontend Zod 3'ünden ayırır. Export değişince dev yeniden başlatılmalı; bağımsız fixture Vite cache'i kullanılmalı. Yeni Pomodoro seans formu kişisel varsayılanları kullanır; iki timer motoru aynı kalır.
 
 Yerel 003 geçişinden önce native private snapshot oluşturuldu (yol .local/preferences-upgrade-2026-10-16.json içinde). Kimlik/hash/oturum ve kayıt sayıları korundu; güncel şema yedeği id 3 oluşturuldu. Eski şema yedeği güncel restore şema kontrolünden geçmez; ayrı kopyada migration veya uyumlu uygulama sürümü gerekir. Gerçek veride reset/restore/seed yapılmadı. Son temiz npm ci başarılı; audit 12 (5 high/7 moderate), üretim güvenlik/dağıtım onayı değildir.
+
+## 16 Ekim seans bütünlüğü
+
+Yeni kolon/migration gerekmedi. API/frontend birlikte kullanılmalı; eski sekme expectedUpdatedAt taşımadığında 400 alır ve reload gerekir. Her seans yazması service transaction'ından dönen güncel snapshot'ı kullanır. Gerçek kullanıcı DB'sinde migration/seed/reset/restore yok. Son root check 108 test/typecheck/lint/build başarılı; fixture production tarayıcı pause/resume/complete kontrolü yapıldı. Detay: implementation/2026-10-16-session-integrity.md. Eski ajan dev kopyası kapatıldı; kullanıcının backend watch'ı korundu, frontend --force ile yeniden başlatıldı. Localhost:3000/API 5002'de tek listener vardır.

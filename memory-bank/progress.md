@@ -1,12 +1,20 @@
 # Ders Takip Sistemi — İlerleme
 
-Son güncelleme: 16 Ekim 2026, tercihler/hesap sınırları/site kimliği paketi.
+Son güncelleme: 16 Ekim 2026, atomik seans ve durum bütünlüğü paketi.
 
 ## Genel durum
 
 İnceleme sonrası geliştirme başladı. Derleme ve kalite tabanı çalışır hale getirildi; kritik erişim/veri okuma sorunları kapatıldı. Bütün audit bulguları çözülmüş veya üretime hazır kabul edilmez.
 
 Kurallar: `workingPrinciples.md`. Başlangıç incelemesi: `audits/2026-10-15-project-audit.md`. Uygulama kaydı: `implementation/2026-10-15-foundation.md`.
+
+## Atomik seans ve durum bütünlüğü
+
+A07/A08 uygulandı: create/move/resize/yeniden etkinleştirme aynı IMMEDIATE transaction ve [start,end) kontrolünde; çakışma 409. Bütün HTTP yazmaları ortak service içindedir. Ortak durum tablosu, tek aktif seans, completedAt/idempotent no-op ve zorunlu expectedUpdatedAt eski yazma koruması var. Paused/completed aralığı korur, cancelled serbest bırakır. Tarihsel hatalı kayıtlar topluca değiştirilmedi; şema değişmedi.
+
+Frontend bütün mutation'larda görülen snapshot sürümünü taşır; 409 ilgili session cache'lerini yeniler. Pomodoro yanıtları güncel snapshot olur, ana pause düğmesi sunucuda da duraklatır. Süre bittiğinde GET'in otomatik iptal edeceğini varsayan polling kaldırıldı. **A09/A15/A16 açık**: duration hâlâ plan süresi, deadline/tek motor ve timezone çözülmedi.
+
+Son npm run check: **108 test (5 contracts / 67 backend / 36 frontend)**, strict typecheck, sıfır uyarılı lint, adlandırma ve production build'ler başarılı. Gerçek HTTP/SQLite yarışları, rollback, sürüm/durum/ilişki matrisi ve UI transport/component regresyonları var. Atılabilir production tarayıcı fixture'ında ikinci aktif seans reddi, gerçek pause/resume/complete doğrulandı. Ayrıntı: implementation/2026-10-16-session-integrity.md. Gerçek DB'de migration/seed/reset/restore yok.
 
 ## Tercihler, hesap sınırları ve site kimliği
 
@@ -36,9 +44,9 @@ Son aktivitelerin zaman sırası, dashboard konu verisi/sayıları, query respon
 | İngilizce/ASCII teknik adlandırma | Kural kaydedildi; otomatik ASCII kontrolü geçti, anlam incelemesi ayrı |
 | Backend/frontend typecheck | Başarılı, strict korunuyor |
 | Lint | ESLint 10 flat config, sıfır uyarı |
-| Ortak sözleşme test | 3 test; Preferences ve public/strict ayar şemaları |
-| Backend test | 52 test; HTTP/geçici SQLite, oturum/CLI, migration/tercih/ayar transaction ve WAL snapshot/restore/reset regresyonları |
-| Frontend test | 31 test; auth/cache/çevrimdışı logout, tercih/kayıt/kullanıcı/tarih/bildirim/branding, gerçek HTTP refresh, hata sınırı ve sıralama |
+| Ortak sözleşme test | 5 test; Preferences, ayar şemaları ve seans geçiş/yazma sözleşmeleri |
+| Backend test | 67 test; atomik seans çakışma/durum/sürüm/rollback ve HTTP/geçici SQLite, oturum/CLI, migration/tercih/ayar transaction ve WAL snapshot/restore/reset regresyonları |
+| Frontend test | 36 test; sürümlü seans transport ve iki Pomodoro yüzeyinin sunucu onayı, auth/cache/çevrimdışı logout, tercih/kayıt/kullanıcı/tarih/bildirim/branding, gerçek HTTP refresh, hata sınırı ve sıralama |
 | Backend/frontend production build | Başarılı, Vite 8 |
 | Production bundle tarayıcı smoke | Dolu geçici veride giriş/dashboard/dersler, planner/özet, arama, mobil özel seans oluşturma; açık/koyu görünüm |
 | GitHub CI | Workflow eklendi; uzak koşum yapılmadı |
@@ -56,10 +64,11 @@ Son aktivitelerin zaman sırası, dashboard konu verisi/sayıları, query respon
 | A04 | Tek süreç kapsamında native WAL snapshot/atomik restore, manifest/checksum/şema kontrolü, safety/rollback, bakım kapısı ve geçen gün planı testli. Offsite/kapasite/retention ve gerçek ortam kurtarma tatbikatı açık. |
 | A05 | GET durum/not değiştirmiyor; tekrar okuma regresyonu var. Zaman aşımı ürün politikası ayrı iş. |
 | A06 | Yeni oturumların ders/konu yetkisi, eşleşmesi ve aktifliği doğrulanıyor. Tarihsel hatalı ilişkiler gerçek DB'de taranmadı. |
-| A07–A09 | Açık: atomik çakışma, ortak durum makinesi ve gerçek çalışma süresi. |
+| A07/A08 | Uygulandı/testli: IMMEDIATE create/move/resize/yeniden etkinleştirme; ortak durum politikası, tek aktif seans, stabil completedAt, zorunlu optimistic sürüm ve stale 409. Tarihsel çakışmalar/harici SQL ayrı kapsamdır. |
+| A09 | Açık: planlanan/gerçek süre ayrımı ve pause/resume aktif süre kaydı. |
 | A10 | Kısmen: settings_only ve all reset safety backup + transaction + rollback testli; diğer ders/kategori/konu silme/sıralama işlemleri açık. |
 | A11 | Uygulandı/testli: ortak v1 sözleşme, explicit legacy JSON migration/arşiv, tam round-trip, sıralı ve sunucu onaylı kayıt, hata ve hesap sınırı. Dil/bildirim/süre tercihi saklamak ilgili ürün altyapısının tamamlandığı anlamına gelmez. |
-| A12 | Yerel check zinciri çalışıyor; 86 test ve CI workflow var. Uzak CI ve kapsamlı E2E henüz yok. |
+| A12 | Yerel check zinciri çalışıyor; 108 test ve CI workflow var. Uzak CI ve kapsamlı E2E henüz yok. |
 | A13 | Uygulandı/testli: DB session, hash'li refresh rotasyonu/replay iptali, cookie/CSRF, logout/parola/rol iptali, ortak refresh ve geç yanıt izolasyonu. Production cookie dağıtımı ayrıca doğrulanmalı. |
 | A14 | Tanımlı kapsam uygulandı/testli: ortak account/resource/date/timezone key factory, ilgili özetlere invalidation, gün anahtarı yenileme, memory-only tercihler, hesaplı bildirim geçmişi, profil/admin geç yanıt sınırı. Backend timezone doğruluğu A16 altında açık. |
 | A15–A16 | Açık: tek timer motoru ve timezone. |
@@ -81,10 +90,9 @@ Node 24.21.0, npm 11.19.0; Vite 8.3.4, plugin-react 6.1.2, ESLint 10.12.0, types
 
 ## Öncelik sırası
 
-1. Atomik StudySession çakışma/durum geçişleri.
-2. Gerçek çalışma süresi, pause/resume ve timezone aralıkları.
-3. Diğer çok adımlı silme/sıralama transaction bütünlüğü ve kurtarma operasyonları.
-4. Timer/planner birleştirmesi, doğru özetler, ayarların uygulanması.
-5. Kalan güvenlik/bağımlılık güncellemeleri ve E2E/mobil/erişilebilirlik.
+1. Gerçek çalışma süresi, pause/resume ve timezone aralıkları.
+2. Diğer çok adımlı silme/sıralama transaction bütünlüğü ve kurtarma operasyonları.
+3. Timer/planner birleştirmesi, doğru özetler, ayarların uygulanması.
+4. Kalan güvenlik/bağımlılık güncellemeleri ve E2E/mobil/erişilebilirlik.
 
 Her iş ilgili davranış testi, gerekli kontroller ve memory-bank güncellemesiyle kapanır. İnceleme raporu tarihsel kalır; güncel durum bu dosyadan izlenir.

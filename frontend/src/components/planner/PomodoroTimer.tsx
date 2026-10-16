@@ -15,7 +15,8 @@ interface PomodoroTimerProps {
 type TimerPhase = 'work' | 'shortBreak' | 'longBreak';
 type TimerStatus = 'idle' | 'running' | 'paused' | 'completed';
 
-const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete }) => {
+const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session: initialSession, onComplete }) => {
+  const [session, setSession] = useState(initialSession);
   const accountKeys = useAccountQueryKeys();
   const queryClient = useQueryClient();
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -36,17 +37,18 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete }) =>
 
   const updateSessionMutation = useMutation({
     mutationFn: async (data: { status?: 'planned' | 'in_progress' | 'completed' | 'cancelled' | 'paused'; notes?: string; productivity?: number }) => {
-      const response = await studySessionsAPI.updateSession(session.id.toString(), data);
+      const response = await studySessionsAPI.updateSession(session, data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (response.data?.session) setSession(response.data.session);
       queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
     },
   });
 
   const completeSessionMutation = useMutation({
     mutationFn: async (data: { notes?: string; productivity?: number }) => {
-      const response = await studySessionsAPI.completeSession(session.id.toString(), data);
+      const response = await studySessionsAPI.completeSession(session, data);
       return response.data;
     },
     onSuccess: () => {
@@ -56,13 +58,17 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete }) =>
     },
   });
 
-  // Initialize timer
+  useEffect(() => {
+    setSession(current => initialSession.id !== current.id || new Date(initialSession.updatedAt) > new Date(current.updatedAt) ? initialSession : current);
+  }, [initialSession]);
+
+  // Initialize a new timer without resetting it after a server acknowledgement.
   useEffect(() => {
     if (session.status === 'in_progress') {
       setTimerStatus('running');
     }
     resetToCurrentPhase();
-  }, [session]);
+  }, [session.id]);
 
   // Timer countdown effect
   useEffect(() => {
@@ -133,26 +139,29 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete }) =>
     setTimerStatus('running');
   };
 
-  const handleStart = () => {
-    if (timerStatus === 'idle') {
-      resetToCurrentPhase();
-    }
-    setTimerStatus('running');
-
-    if (session.status !== 'in_progress') {
-      updateSessionMutation.mutate({ status: 'in_progress' });
-    }
+  const handleStart = async () => {
+    try {
+      if (session.status !== 'in_progress') await updateSessionMutation.mutateAsync({ status: 'in_progress' });
+      if (timerStatus === 'idle') resetToCurrentPhase();
+      setTimerStatus('running');
+    } catch { setTimerStatus('paused'); }
   };
 
-  const handlePause = () => {
-    setTimerStatus('paused');
+  const handlePause = async () => {
+    try {
+      await updateSessionMutation.mutateAsync({ status: 'paused' });
+      setTimerStatus('paused');
+    } catch { /* The transport displays the server conflict. */ }
   };
 
-  const handleReset = () => {
-    setTimerStatus('idle');
-    setCurrentPhase('work');
-    setCurrentCycle(1);
-    resetToCurrentPhase();
+  const handleReset = async () => {
+    try {
+      await updateSessionMutation.mutateAsync({ status: 'planned' });
+      setTimerStatus('idle');
+      setCurrentPhase('work');
+      setCurrentCycle(1);
+      setTimeLeft(pomodoroSettings.workDuration * 60);
+    } catch { /* Keep the acknowledged timer state. */ }
   };
 
   const handleStop = () => {
@@ -274,6 +283,8 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete }) =>
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               onClick={handleStart}
+              aria-label="Sayacı başlat"
+              disabled={updateSessionMutation.isPending || completeSessionMutation.isPending}
               className="flex items-center justify-center w-12 h-12 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors"
             >
               <Play className="w-6 h-6 ml-1" />
@@ -285,6 +296,8 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete }) =>
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               onClick={handlePause}
+              aria-label="Sayacı duraklat"
+              disabled={updateSessionMutation.isPending || completeSessionMutation.isPending}
               className="flex items-center justify-center w-12 h-12 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full transition-colors"
             >
               <Pause className="w-6 h-6" />
@@ -294,6 +307,8 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete }) =>
 
         <button
           onClick={handleReset}
+          aria-label="Sayacı sıfırla"
+          disabled={updateSessionMutation.isPending || completeSessionMutation.isPending}
           className="flex items-center justify-center w-10 h-10 bg-gray-500 hover:bg-gray-600 text-white rounded-full transition-colors"
         >
           <RotateCcw className="w-5 h-5" />
@@ -301,6 +316,8 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ session, onComplete }) =>
 
         <button
           onClick={handleStop}
+          aria-label="Seansı tamamla"
+          disabled={updateSessionMutation.isPending || completeSessionMutation.isPending}
           className="flex items-center justify-center w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
         >
           <Square className="w-5 h-5" />

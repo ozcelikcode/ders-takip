@@ -1,4 +1,5 @@
 import { parseISO } from 'date-fns';
+import { canTransitionSession } from '@study-tracker/contracts';
 import { StudySession } from '../types/planner';
 
 /**
@@ -33,17 +34,7 @@ export const canStartSession = (session: StudySession): boolean => {
     return false;
   }
 
-  // Zaten başlatılmışsa tekrar başlatılamaz
-  if (session.status === 'in_progress') {
-    return false;
-  }
-
-  // Tamamlanmışsa başlatılamaz
-  if (session.status === 'completed') {
-    return false;
-  }
-
-  return true;
+  return session.status !== 'in_progress' && canTransitionSession(session.status, 'in_progress');
 };
 
 /**
@@ -77,7 +68,7 @@ export const formatTime = (date: Date | string): string => {
   return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
-export const getRecentSessions = <T extends { endTime: string; completedAt?: string }>(sessions: readonly T[], limit = 5): T[] => (
+export const getRecentSessions = <T extends { endTime: string; completedAt?: string | null }>(sessions: readonly T[], limit = 5): T[] => (
   [...sessions]
     .sort((first, second) => new Date(second.completedAt || second.endTime).getTime() - new Date(first.completedAt || first.endTime).getTime())
     .slice(0, limit)

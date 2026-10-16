@@ -130,7 +130,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
   const sessionMutation = useMutation({
     mutationFn: async (data: CreateStudySessionRequest) => {
       if (isEditMode && editSession) {
-        const response = await studySessionsAPI.updateSession(editSession.id.toString(), data);
+        const response = await studySessionsAPI.updateSession(editSession, data);
         return response.data;
       } else {
         const response = await studySessionsAPI.createSession(data);
@@ -151,8 +151,8 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (sessionId: string) => {
-      const response = await studySessionsAPI.deleteSession(sessionId);
+    mutationFn: async (session: StudySession) => {
+      const response = await studySessionsAPI.deleteSession(session);
       return response.data;
     },
     onSuccess: () => {
@@ -211,7 +211,6 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
       ...(correctedData.courseId && { courseId: parseInt(correctedData.courseId) }),
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
-      duration: correctedData.duration,
       sessionType: correctedData.sessionType,
       color: correctedData.color || '#3B82F6',
       ...(correctedData.sessionType === 'pomodoro' && correctedData.pomodoroSettings && {
@@ -239,9 +238,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
   const handleDelete = (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
-    console.log('Delete button clicked!', editSession);
     if (!editSession) {
-      console.log('No editSession found!');
       return;
     }
     setShowDeleteConfirm(true);
@@ -249,7 +246,7 @@ const CreateSessionModal: React.FC<CreateSessionModalProps> = ({
 
   const confirmDelete = () => {
     if (!editSession) return;
-    deleteMutation.mutate(editSession.id.toString());
+    deleteMutation.mutate(editSession);
     setShowDeleteConfirm(false);
   };
 

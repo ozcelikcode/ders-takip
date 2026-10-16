@@ -74,7 +74,7 @@ const TodaysPlans: React.FC = () => {
     }
 
     try {
-      await studySessionsAPI.startSession(session.id.toString());
+      await studySessionsAPI.startSession(session);
       toast.success('Çalışma seansı başlatıldı');
       refetch();
     } catch {
@@ -90,7 +90,7 @@ const TodaysPlans: React.FC = () => {
       type: 'warning',
       onConfirm: async () => {
         try {
-          await studySessionsAPI.updateSession(session.id.toString(), {
+          await studySessionsAPI.updateSession(session, {
             status: 'paused',
           });
           toast.success('Çalışma seansı duraklatıldı');
@@ -110,7 +110,7 @@ const TodaysPlans: React.FC = () => {
       type: 'info',
       onConfirm: async () => {
         try {
-          await studySessionsAPI.updateSession(session.id.toString(), {
+          await studySessionsAPI.updateSession(session, {
             status: 'planned',
           });
           toast.success('Oturum tekrar planlanmış duruma getirildi');
@@ -295,7 +295,7 @@ const TodaysPlans: React.FC = () => {
                                 type: 'info',
                                 onConfirm: async () => {
                                   try {
-                                    await studySessionsAPI.completeSession(session.id.toString());
+                                    await studySessionsAPI.completeSession(session);
                                     toast.success('Çalışma seansı tamamlandı');
 
                                     refetch();

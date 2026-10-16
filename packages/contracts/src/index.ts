@@ -1,4 +1,5 @@
 import { z } from 'zod';
+export * from './studySessions.js';
 
 export const colorSchema = z.string().regex(/^#[0-9a-f]{6}$/i);
 export const preferencesSchema = z.object({

@@ -33,6 +33,7 @@ const PomodoroPage = () => {
   const [currentPhase, setCurrentPhase] = useState<PomodoroPhase>('work');
   const [currentCycle, setCurrentCycle] = useState(1);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch today's pomodoro sessions
   const { data: sessions } = useQuery({
@@ -49,18 +50,24 @@ const PomodoroPage = () => {
     refetchInterval: 5000,
   });
 
-  // Auto-select first in-progress session, or first planned session
+  // Refresh the selected snapshot without restarting the current timer phase.
   useEffect(() => {
-    if (sessions && sessions.length > 0) {
-      const inProgressSession = sessions.find(s => s.status === 'in_progress');
-      const pausedSession = sessions.find(s => s.status === 'paused');
-      const plannedSession = sessions.find(s => s.status === 'planned');
-
-      if (!selectedSession) {
-        setSelectedSession(inProgressSession || pausedSession || plannedSession || sessions[0]);
+    if (!sessions) return;
+    setSelectedSession(current => {
+      if (current) {
+        const latest = sessions.find(session => session.id === current.id);
+        if (!latest) return null;
+        return new Date(latest.updatedAt) >= new Date(current.updatedAt) ? latest : current;
       }
-    }
+      return sessions.find(session => session.status === 'in_progress')
+        || sessions.find(session => session.status === 'paused')
+        || sessions.find(session => session.status === 'planned') || sessions[0] || null;
+    });
   }, [sessions]);
+
+  useEffect(() => {
+    setIsRunning(selectedSession?.status === 'in_progress');
+  }, [selectedSession?.status]);
 
   // Initialize timer when session is selected
   useEffect(() => {
@@ -128,63 +135,59 @@ const PomodoroPage = () => {
   };
 
   const handleStart = async (session: StudySession) => {
-    if (session.status === 'planned') {
-      try {
-        await studySessionsAPI.startSession(session.id.toString());
-        toast.success('Pomodoro seansı başlatıldı!');
-        setSelectedSession(session);
-        setIsRunning(true);
-        queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
-      } catch {
-        toast.error('Seans başlatılırken hata oluştu');
-      }
-    } else if (session.status === 'paused') {
-      try {
-        await studySessionsAPI.startSession(session.id.toString());
-        toast.success('Pomodoro seansı devam ediyor!');
-        setIsRunning(true);
-        queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
-      } catch {
-        toast.error('Seans başlatılırken hata oluştu');
-      }
-    } else if (session.status === 'in_progress') {
+    if (isSaving || (session.status !== 'planned' && session.status !== 'paused')) return;
+    setIsSaving(true);
+    try {
+      const response = await studySessionsAPI.startSession(session);
+      setSelectedSession(response.data.data?.session || null);
+      toast.success(session.status === 'paused' ? 'Pomodoro seansı devam ediyor!' : 'Pomodoro seansı başlatıldı!');
       setIsRunning(true);
-    }
+      queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
+    } catch {
+      toast.error('Seans başlatılırken hata oluştu');
+    } finally { setIsSaving(false); }
   };
 
   const handlePause = async (session: StudySession) => {
+    if (isSaving) return;
+    setIsSaving(true);
     try {
-      await studySessionsAPI.pauseSession(session.id.toString());
+      const response = await studySessionsAPI.pauseSession(session);
+      setSelectedSession(response.data.data?.session || null);
       toast.success('Pomodoro seansı duraklatıldı');
       setIsRunning(false);
       queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
     } catch {
       toast.error('Seans duraklatılırken hata oluştu');
-    }
+    } finally { setIsSaving(false); }
   };
 
   const handleComplete = async (session: StudySession) => {
+    if (isSaving) return;
+    setIsSaving(true);
     try {
-      await studySessionsAPI.completeSession(session.id.toString());
+      await studySessionsAPI.completeSession(session);
       toast.success('Pomodoro seansı tamamlandı');
       setIsRunning(false);
       setSelectedSession(null);
       queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
     } catch {
       toast.error('Seans tamamlanırken hata oluştu');
-    }
+    } finally { setIsSaving(false); }
   };
 
   const handleRestart = async (session: StudySession) => {
+    if (isSaving) return;
+    setIsSaving(true);
     try {
-      await studySessionsAPI.updateSession(session.id.toString(), {
-        status: 'planned',
-      });
+      const response = await studySessionsAPI.updateSession(session, { status: 'planned' });
+      setSelectedSession(response.data.data?.session || null);
+      setIsRunning(false);
       toast.success('Pomodoro seansı yeniden başlatıldı');
       queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
     } catch {
       toast.error('Seans yeniden başlatılırken hata oluştu');
-    }
+    } finally { setIsSaving(false); }
   };
 
   const formatTime = (seconds: number) => {
@@ -354,6 +357,7 @@ const PomodoroPage = () => {
                             e.stopPropagation();
                             handleStart(session);
                           }}
+                          disabled={isSaving}
                           className="btn btn-secondary flex-1 text-xs"
                         >
                           <Play className="w-3 h-3 fill-current" />
@@ -368,7 +372,8 @@ const PomodoroPage = () => {
                               e.stopPropagation();
                               handlePause(session);
                             }}
-                            className="btn btn-secondary flex-1 text-xs"
+                            disabled={isSaving}
+                          className="btn btn-secondary flex-1 text-xs"
                           >
                             <Pause className="w-3 h-3 fill-current" />
                             Durdur
@@ -378,7 +383,8 @@ const PomodoroPage = () => {
                               e.stopPropagation();
                               handleComplete(session);
                             }}
-                            className="btn btn-secondary flex-1 text-xs"
+                            disabled={isSaving}
+                          className="btn btn-secondary flex-1 text-xs"
                           >
                             <CheckCircle className="w-3 h-3" />
                             Bitir
@@ -393,7 +399,8 @@ const PomodoroPage = () => {
                               e.stopPropagation();
                               handleStart(session);
                             }}
-                            className="btn btn-secondary flex-1 text-xs"
+                            disabled={isSaving}
+                          className="btn btn-secondary flex-1 text-xs"
                           >
                             <Play className="w-3 h-3 fill-current" />
                             Devam
@@ -403,7 +410,8 @@ const PomodoroPage = () => {
                               e.stopPropagation();
                               handleComplete(session);
                             }}
-                            className="btn btn-secondary flex-1 text-xs"
+                            disabled={isSaving}
+                          className="btn btn-secondary flex-1 text-xs"
                           >
                             <CheckCircle className="w-3 h-3" />
                             Bitir
@@ -417,6 +425,7 @@ const PomodoroPage = () => {
                             e.stopPropagation();
                             handleRestart(session);
                           }}
+                          disabled={isSaving}
                           className="btn btn-secondary flex-1 text-xs"
                         >
                           <RotateCcw className="w-3 h-3" />
@@ -456,25 +465,28 @@ const PomodoroPage = () => {
                   <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                     {selectedSession.status === 'in_progress' && (
                       <button
-                        onClick={() => setIsRunning(!isRunning)}
+                        onClick={() => handlePause(selectedSession)}
+                        disabled={isSaving}
                         className="btn btn-primary"
                       >
-                        {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}{isRunning ? 'Duraklat' : 'Devam et'}
+                        <Pause className="h-4 w-4" />Duraklat
                       </button>
                     )}
 
                     {(selectedSession.status === 'planned' || selectedSession.status === 'paused') && (
                       <button
                         onClick={() => handleStart(selectedSession)}
+                        disabled={isSaving}
                         className="btn btn-primary"
                       >
-                        <Play className="h-4 w-4" />Başlat
+                        <Play className="h-4 w-4" />{selectedSession.status === 'paused' ? 'Devam et' : 'Başlat'}
                       </button>
                     )}
 
                     {selectedSession.status !== 'completed' && (
                       <button
                         onClick={() => handleComplete(selectedSession)}
+                        disabled={isSaving}
                         className="btn btn-secondary"
                         title="Tamamla"
                       >

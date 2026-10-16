@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
+import type { SessionStatus } from '@study-tracker/contracts';
 
 interface StudySessionAttributes {
   id: number;
@@ -12,7 +13,7 @@ interface StudySessionAttributes {
   startTime: Date;
   endTime: Date;
   duration: number; // in minutes
-  status: 'planned' | 'in_progress' | 'completed' | 'cancelled' | 'paused';
+  status: SessionStatus;
   sessionType: 'study' | 'break' | 'pomodoro' | 'review';
   color?: string; // hex color code
   pomodoroSettings?: {
@@ -24,7 +25,7 @@ interface StudySessionAttributes {
   };
   notes?: string;
   productivity?: number; // 1-5 rating
-  completedAt?: Date;
+  completedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,7 +43,7 @@ export class StudySession extends Model<StudySessionAttributes, StudySessionCrea
   public startTime!: Date;
   public endTime!: Date;
   public duration!: number;
-  public status!: 'planned' | 'in_progress' | 'completed' | 'cancelled' | 'paused';
+  public status!: SessionStatus;
   public sessionType!: 'study' | 'break' | 'pomodoro' | 'review';
   public color?: string;
   public pomodoroSettings?: {
@@ -54,7 +55,7 @@ export class StudySession extends Model<StudySessionAttributes, StudySessionCrea
   };
   public notes?: string;
   public productivity?: number;
-  public completedAt?: Date;
+  public completedAt?: Date | null;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -206,6 +207,13 @@ StudySession.init(
     sequelize,
     tableName: 'study_sessions',
     timestamps: true,
+    hooks: {
+      beforeUpdate(session) {
+        // Keep the optimistic version distinct even for writes in the same millisecond.
+        const previous = session.previous('updatedAt');
+        session.setDataValue('updatedAt', new Date(Math.max(Date.now(), (previous?.getTime() ?? 0) + 1)));
+      },
+    },
     indexes: [
       {
         fields: ['userId'],

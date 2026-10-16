@@ -100,28 +100,6 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
     },
   });
 
-  // Vakti geçmiş in_progress oturumları kontrol et ve otomatik yenile
-  useEffect(() => {
-    const checkOverdueSessions = () => {
-      if (!sessionsData || sessionsData.length === 0) return;
-
-      const now = new Date();
-      const overdueSessions = sessionsData.filter(
-        (session) =>
-          session.status === 'in_progress' &&
-          parseDate(session.endTime) < now
-      );
-
-      if (overdueSessions.length > 0) {
-        console.log('⏰ Vakti geçmiş oturumlar bulundu, yenileniyor...', overdueSessions.length);
-        refetch(); // Backend otomatik cancel edecek
-      }
-    };
-
-    checkOverdueSessions();
-    const interval = setInterval(checkOverdueSessions, 30000);
-    return () => clearInterval(interval);
-  }, [sessionsData, refetch]);
 
   const getSessionsForTimeSlot = (hour: number): StudySession[] => {
     if (!sessionsData) return [];
@@ -199,7 +177,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
       }
 
       toast.loading('Oturum taşınıyor...', { id: 'moving-session' });
-      const response = await studySessionsAPI.updateSession(draggedSession.id.toString(), {
+      const response = await studySessionsAPI.updateSession(draggedSession, {
         startTime: newStartTime.toISOString(),
         endTime: newEndTime.toISOString(),
       });
@@ -251,7 +229,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
       const newEndTime = new Date(newStartTime);
       newEndTime.setMinutes(newEndTime.getMinutes() + moveModalSession.duration);
 
-      const response = await studySessionsAPI.updateSession(moveModalSession.id.toString(), {
+      const response = await studySessionsAPI.updateSession(moveModalSession, {
         startTime: newStartTime.toISOString(),
         endTime: newEndTime.toISOString(),
       });
@@ -275,7 +253,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
       return;
     }
     try {
-      await studySessionsAPI.startSession(session.id.toString());
+      await studySessionsAPI.startSession(session);
       toast.success('Çalışma seansı başlatıldı');
       queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
       refetch();
@@ -292,7 +270,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
       type: 'warning',
       onConfirm: async () => {
         try {
-          await studySessionsAPI.pauseSession(session.id.toString());
+          await studySessionsAPI.pauseSession(session);
           toast.success('Çalışma seansı duraklatıldı');
           queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
           refetch();
@@ -311,7 +289,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
       type: 'info',
       onConfirm: async () => {
         try {
-          await studySessionsAPI.completeSession(session.id.toString());
+          await studySessionsAPI.completeSession(session);
           toast.success('Çalışma seansı tamamlandı');
           queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
           refetch();
@@ -382,7 +360,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
         setTimeout(() => setJustFinishedAction(false), 100);
 
         try {
-          await studySessionsAPI.updateSession(resizingSession.session.id.toString(), {
+          await studySessionsAPI.updateSession(resizingSession.session, {
             endTime: newEndTime.toISOString(),
           });
           toast.success('Süre güncellendi');
@@ -702,7 +680,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
                 const newEnd = subDays(parseDate(draggedSession.endTime), 1);
                 try {
                   toast.loading('Önceki güne taşınıyor...', { id: 'move-day' });
-                  await studySessionsAPI.updateSession(draggedSession.id.toString(), { startTime: newStart.toISOString(), endTime: newEnd.toISOString() });
+                  await studySessionsAPI.updateSession(draggedSession, { startTime: newStart.toISOString(), endTime: newEnd.toISOString() });
                   toast.success('Önceki güne taşındı', { id: 'move-day' });
                   queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
                   refetch();
@@ -724,7 +702,7 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
                 const newEnd = addDays(parseDate(draggedSession.endTime), 1);
                 try {
                   toast.loading('Sonraki güne taşınıyor...', { id: 'move-day' });
-                  await studySessionsAPI.updateSession(draggedSession.id.toString(), { startTime: newStart.toISOString(), endTime: newEnd.toISOString() });
+                  await studySessionsAPI.updateSession(draggedSession, { startTime: newStart.toISOString(), endTime: newEnd.toISOString() });
                   toast.success('Sonraki güne taşındı', { id: 'move-day' });
                   queryClient.invalidateQueries({ queryKey: accountKeys.sessions() });
                   refetch();
@@ -745,12 +723,12 @@ const DailyCalendar: React.FC<DailyCalendarProps> = ({ onCreateSession }) => {
           <button onClick={() => { handleEditSession(contextMenu.session); setContextMenu(null); }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"><Edit className="w-4 h-4" /> Düzenle</button>
           <button onClick={() => { setMoveModalSession(contextMenu.session); setContextMenu(null); }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"><MoveRight className="w-4 h-4" /> Tarihe Taşı</button>
           <div className="border-t my-1" />
-          <button onClick={() => { setConfirmDialog({ isOpen: true, title: 'Görevi Sil', message: `"${contextMenu.session.title}" görevini silmek istiyor musunuz?`, type: 'danger', onConfirm: async () => { try { await studySessionsAPI.deleteSession(contextMenu.session.id.toString()); toast.success('Silindi'); refetch(); } catch { toast.error('Hata'); } } }); setContextMenu(null); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><Trash2 className="w-4 h-4" /> Sil</button>
+          <button onClick={() => { setConfirmDialog({ isOpen: true, title: 'Görevi Sil', message: `"${contextMenu.session.title}" görevini silmek istiyor musunuz?`, type: 'danger', onConfirm: async () => { try { await studySessionsAPI.deleteSession(contextMenu.session); toast.success('Silindi'); refetch(); } catch { toast.error('Hata'); } } }); setContextMenu(null); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><Trash2 className="w-4 h-4" /> Sil</button>
         </div>
       )}
 
       {/* Modals */}
-      <PomodoroModal isOpen={isPomodoroModalOpen} onClose={() => { setIsPomodoroModalOpen(false); setActiveSession(null); }} session={activeSession} isMinimized={isTimerMinimized} onToggleMinimize={() => setIsTimerMinimized(!isTimerMinimized)} />
+      <PomodoroModal isOpen={isPomodoroModalOpen} onClose={() => { setIsPomodoroModalOpen(false); setActiveSession(null); }} session={sessionsData?.find(session => session.id === activeSession?.id) ?? activeSession} isMinimized={isTimerMinimized} onToggleMinimize={() => setIsTimerMinimized(!isTimerMinimized)} />
       <ConfirmDialog isOpen={confirmDialog.isOpen} onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} onConfirm={confirmDialog.onConfirm} title={confirmDialog.title} message={confirmDialog.message} type={confirmDialog.type || 'info'} />
       <CreateSessionModal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); setEditingSession(null); refetch(); }} editSession={editingSession} />
       <MoveSessionModal isOpen={!!moveModalSession} onClose={() => setMoveModalSession(null)} onSelectDate={handleMoveToDate} sessionTitle={moveModalSession?.title || ''} currentDate={moveModalSession ? parseDate(moveModalSession.startTime) : new Date()} />

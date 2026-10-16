@@ -1,6 +1,6 @@
 # Ders Takip Sistemi — Aktif Bağlam
 
-Son güncelleme: 16 Ekim 2026, tercihler/hesap sınırları/site kimliği paketi.
+Son güncelleme: 16 Ekim 2026, atomik seans ve durum bütünlüğü paketi.
 
 ## Kalıcı kullanıcı talimatları
 
@@ -8,7 +8,15 @@ Disiplinli, derli toplu, sürdürülebilir mühendislik; gereksiz/eskimiş/tekra
 
 Modern sade nötr Vercel/Geist benzeri dil uygulandı; eski pastel/iOS/glass yönü geçersiz. Yeni sayfalar ortak token, PageHeader ve kontrolleri kullanır.
 
-## Son kullanıcı isteği ve sonuç
+## Güncel paket — A07/A08
+
+Kullanıcı açık listeden devam edilmesini istedi. Bütün seans HTTP yazmaları aynı service/IMMEDIATE transaction sınırına taşındı. Create/move/resize ve iptalden yeniden etkinleştirmede [start,end) çakışması 409; paused/completed aralığı korur, cancelled boşaltır. Ortak contracts geçiş tablosu, kullanıcı başına tek in_progress seans, tekrar complete için stabil completedAt ve yeniden açmada null uygulanır. expectedUpdatedAt bütün edit/action/delete yollarında zorunlu; eski snapshot 409, hızlı yazmalarda timestamp en az +1 ms. Mevcut kayıtlar topluca değiştirilmedi, migration gerekmedi.
+
+İki Pomodoro yüzeyi yanıtın güncel sürümünü tutar; ayrı sayfanın yalnız yerel sayacı durduran ana düğmesi gerçek pause action'a bağlandı. Başlatma reddedilince timer çalışmaz. Eski otomatik iptal varsayımlı refetch effect'leri ve taşıma debug çıktıları kaldırıldı. Timer motoru/süre/timezone hâlâ ayrı açık işlerdir.
+
+Son npm run check: **5 contracts + 67 backend + 36 frontend = 108 test**, atlanan yok; strict typecheck, sıfır uyarılı lint, naming ve production build'ler başarılı. Geçici production tarayıcı fixture'ında tek aktif seans reddi ve pause/resume/complete doğrulandı. Ayrıntı: implementation/2026-10-16-session-integrity.md. Gerçek DB'de migration/seed/reset/restore yok; commit/push/deployment yok.
+
+## Önceki kullanıcı isteği ve sonuç
 
 Site adı bütünüyle admin'den değişebilir olmalı. Admin paneli mevcut: /admin, /admin/users, /admin/courses, /admin/settings; yeni panel kopyası yok. Genel ayarlardaki ad/açıklama/logo/ikon bütün Brand/login/register/sidebar/loading/title/meta/favicon yüzeylerine bağlandı. Gerçek siteye kullanıcı adına yeni ad verilmedi; “Odak Atlası” yalnız atılabilir fixture'dır. Teknik repo/paket adları ve hosting domain'i görünen addan bağımsızdır.
 
@@ -16,7 +24,7 @@ Sıradaki Preferences/cache paketi uygulandı. packages/contracts ortak Zod 4/ti
 
 Bütün Query anahtarları account factory altında; session'larda timezone/tarih, günlük sorgularda gün değişimi ve ilgili bütün özetleri kapsayan invalidation var. Layout hesap değişince yeniden kurulur. Public branding ve private admin ayar API'si ayrıldı; ayar yazmaları şemalı/transaction'lı. Kişisel tema override kaldırılınca site rengi döner.
 
-Son kontrol: temiz npm ci ve npm run check; 3 contracts + 52 backend + 31 frontend = 86 test, atlanan yok; adlandırma, strict typecheck, sıfır uyarılı lint ve production build'ler başarılı. İki hesap/geçici DB ile site kimliği, reload teması, hesap ayrımı ve 35 dakikalık yeni Pomodoro varsayılanı tarayıcıda doğrulandı. Tam otomatik E2E/WCAG/Lighthouse değildir. Detay: implementation/2026-10-16-preferences-and-site-identity.md.
+Önceki paket kontrolü: temiz npm ci ve npm run check; 3 contracts + 52 backend + 31 frontend = 86 test, atlanan yok; adlandırma, strict typecheck, sıfır uyarılı lint ve production build'ler başarılı. İki hesap/geçici DB ile site kimliği, reload teması, hesap ayrımı ve 35 dakikalık yeni Pomodoro varsayılanı tarayıcıda doğrulandı. Tam otomatik E2E/WCAG/Lighthouse değildir. Detay: implementation/2026-10-16-preferences-and-site-identity.md.
 
 ## Yerel ortam ve verinin korunması
 
@@ -24,7 +32,7 @@ Son kontrol: temiz npm ci ve npm run check; 3 contracts + 52 backend + 31 fronte
 
 16 Ekim'de schema 003 normal yerel yükseltme olarak uygulandı. Önce private native snapshot alındı; yolu .local/preferences-upgrade-2026-10-16.json içinde. Hesap/parola hash/oturum ve mevcut kayıt sayıları korundu; ardından güncel şema yedeği id 3 oluşturuldu. Gerçek DB'de reset/restore/seed yapılmadı. Eski şemalı yedekler korunur fakat güncel restore şema kapısını geçmez; ayrı kopyada kontrollü dönüşüm/uyumlu sürüm gerekir.
 
-Uygulama localhost:3000, API 5002. Root npm run dev sözleşmeleri önce derler, Vite --force cache'i temizler. Sözleşme export'u değişirse dev süreci yeniden başlatılır. Çift Vite fixture aynı dependency cache'ini paylaşmamalı. Test sunucuları/DB/sekme temizlendi; asıl yerel dev süreci iş sonunda çalışır bırakılır. Commit/push/deployment yapılmadı.
+Uygulama localhost:3000, API 5002. Bu pakette eski ajan root dev kopyası kapatıldı; kullanıcının backend watch süreci korundu, frontend temiz --force ile ayrı başlatıldı. Her portta tek listener var. Root npm run dev sözleşmeleri önce derler, Vite --force cache'i temizler. Sözleşme export'u değişirse dev süreci yeniden başlatılır. Çift Vite fixture aynı dependency cache'ini paylaşmamalı. Test sunucuları/DB/sekme temizlendi; asıl yerel dev süreci iş sonunda çalışır bırakılır. Commit/push/deployment yapılmadı.
 
 ## Korunan önceki kazanımlar
 
@@ -34,11 +42,10 @@ Foundation/design/security tarihsel kanıtları implementation/2026-10-15-founda
 
 ## Sıradaki işler
 
-1. StudySession create/move için atomik çakışma ve ortak durum makinesi (A07/A08).
-2. Planlanan/gerçek süre ayrımı, pause/resume ve timezone aralıkları (A09/A16). Tercihin kaydedilmesi backend timezone hesabının düzeldiği anlamına gelmez.
-3. Diğer ders/kategori/konu silme/sıralama transaction bütünlüğü (A10).
-4. Tek timer/planner motoru, doğru admin agregasyonları ve kalan ayar uygulaması (A15/A17/A18). allowRegistration/maintenanceMode/sessionTimeout henüz sunucuda uygulanmıyor; bildirim tercihleri delivery altyapısı değildir.
-5. Kalan güvenlik/bağımlılık major geçişleri; 12 paket düğümü (5 high/7 moderate) hâlâ audit backlog'u. Bütün kütüphaneler en yeni major'a taşınmış değil.
-6. Otomatik tarayıcı E2E, erişilebilirlik/mobil, performans ve gerçek ortam kurtarma/kapasite/offsite doğrulaması.
+1. Planlanan/gerçek süre ayrımı, pause/resume ve timezone aralıkları (A09/A16). Tercihin kaydedilmesi backend timezone hesabının düzeldiği anlamına gelmez.
+2. Diğer ders/kategori/konu silme/sıralama transaction bütünlüğü (A10).
+3. Tek timer/planner motoru, doğru admin agregasyonları ve kalan ayar uygulaması (A15/A17/A18). allowRegistration/maintenanceMode/sessionTimeout henüz sunucuda uygulanmıyor; bildirim tercihleri delivery altyapısı değildir.
+4. Kalan güvenlik/bağımlılık major geçişleri; 12 paket düğümü (5 high/7 moderate) hâlâ audit backlog'u. Bütün kütüphaneler en yeni major'a taşınmış değil.
+5. Otomatik tarayıcı E2E, erişilebilirlik/mobil, performans ve gerçek ortam kurtarma/kapasite/offsite doğrulaması.
 
 Ürün eğitim/TYT-AYT ve genel görev takibi arasında farklı anlatımlar taşıyor; yeni özellik öncesi yön netleştirilmeli. AI/sosyal/offline aktif öncelik değil.
