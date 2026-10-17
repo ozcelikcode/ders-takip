@@ -1,3 +1,5 @@
+import type { BackupRecord, ResetMode } from '../types/backup';
+import type { CreateManagedUserInput, ManagedUserList, ManagedUserListParams, ManagedUserPatch } from '@study-tracker/contracts';
 import type { SiteSettings, PublicSettings, SettingsPatch, SessionStats, AdminOverview, SessionQuery, ActivityKind, CreateCourseInput, UpdateCourseInput, CreateCategoryInput, UpdateCategoryInput, ReorderTopicsInput, TopicProgressEntry, TopicProgressStatus } from '@study-tracker/contracts';
 import type { ProfileUpdate } from '../types/auth';
 import type { PomodoroCommand } from '@study-tracker/contracts';
@@ -182,16 +184,16 @@ export const categoriesAPI = {
 export const usersAPI = {
   getAdminOverview: (): Promise<AxiosResponse<ApiResponse<{ overview: AdminOverview }>>> => api.get('/users/admin-stats'),
 
-  getUsers: (params?: any): Promise<AxiosResponse<ApiResponse>> =>
+  getUsers: (params?: ManagedUserListParams): Promise<AxiosResponse<ApiResponse<ManagedUserList>>> =>
     api.get('/users', { params }),
 
   getUser: (id: string): Promise<AxiosResponse<ApiResponse>> =>
     api.get(`/users/${id}`),
 
-  createUser: (data: any): Promise<AxiosResponse<ApiResponse>> =>
+  createUser: (data: CreateManagedUserInput): Promise<AxiosResponse<ApiResponse>> =>
     api.post('/users', data),
 
-  updateUser: (id: string, data: any): Promise<AxiosResponse<ApiResponse>> =>
+  updateUser: (id: string, data: ManagedUserPatch): Promise<AxiosResponse<ApiResponse>> =>
     api.put(`/users/${id}`, data),
 
   deleteUser: (id: string): Promise<AxiosResponse<ApiResponse>> =>
@@ -292,16 +294,16 @@ export const settingsAPI = {
 
 // Backup API
 export const backupAPI = {
-  getBackups: (): Promise<AxiosResponse<ApiResponse<any>>> =>
+  getBackups: (): Promise<AxiosResponse<ApiResponse<BackupRecord[]>>> =>
     api.get('/backup'),
 
-  createBackup: (): Promise<AxiosResponse<ApiResponse<any>>> =>
+  createBackup: (): Promise<AxiosResponse<ApiResponse<unknown>>> =>
     api.post('/backup/create'),
 
-  restoreBackup: (id: number): Promise<AxiosResponse<ApiResponse<any>>> =>
+  restoreBackup: (id: number): Promise<AxiosResponse<ApiResponse<unknown>>> =>
     api.post(`/backup/restore/${id}`),
 
-  resetData: (mode: 'settings_only' | 'all'): Promise<AxiosResponse<ApiResponse<any>>> =>
+  resetData: (mode: ResetMode): Promise<AxiosResponse<ApiResponse<{ safetyBackupId: number }>>> =>
     api.post('/backup/reset', { mode }),
 };
 

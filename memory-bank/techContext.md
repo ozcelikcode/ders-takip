@@ -1,6 +1,6 @@
 # Ders Takip Sistemi — Teknik Bağlam
 
-Kaynak ve doğrulama: 16 Ekim 2026, ortak planlayıcı paketi. Başlangıç incelemesi tarihsel raporda tutulur; aşağıdaki mevcut durum onun yerini alır.
+Kaynak ve doğrulama: 17 Ekim 2026, kategori yönetimi paketi. Başlangıç incelemesi tarihsel raporda tutulur; aşağıdaki mevcut durum onun yerini alır.
 
 ## Araç zinciri
 
@@ -43,7 +43,7 @@ On üç model: User, Category, Course, Topic, Plan, StudySession, SessionInterva
 - GET StudySession yan etkisizdir; not veya durum güncellemez. Zaman aşımı politikası henüz ayrı service olarak uygulanmadı.
 - Create/update/action/delete services/studySessions.ts içinde IMMEDIATE transaction kullanır. Zorunlu expectedUpdatedAt ve monotonic timestamp ile stale 409, ortak durum politikası ve tek aktif seans uygulanır. Paused/completed zamanı rezerve eder; cancelled serbesttir. Ortak seans Zod şemaları contracts içindedir. Gerçek süre study/break/pause aralıkları ve IANA gün sınırlarıyla uygulanmıştır; eski hatalı ilişkiler/çakışmalar gerçek DB üzerinde taranıp değiştirilmedi.
 - GET /settings yalnız public branding DTO; /settings/admin ve PUT admin/no-store. İzinli anahtar/tip şeması ve transaction'lı yazma var. allowRegistration/maintenanceMode public DTO'dadır ve register/login/protect'te uygulanır; sessionTimeout boşta süresi olarak rotateAuthSession'da uygulanır (maxStudentsPerCourse kaldırıldı; bildirim teslimatı yok). Ayar okuma tek kaynağı services/siteSettings.ts. Backup route'ları admin; native SQLite backup API, dosya dışı manifest/SHA-256/integrity/FK/şema kontrolü, güvenlik yedeği/atomik destination restore/rollback ve bakım kapısı uygulanmıştır. settings_only/all reset transaction'lıdır. Her 5 dakikadaki job ayarı yeniden okuyarak 1/5/7 tam gün hesabı yapar. Tek backend süreci sınırı, offsite/kapasite/retention işleri açık; otomatik yedek silme yoktur.
-- Admin: `GET /users/admin-stats` (global özet) ve `GET /users?includeStats=true` (toplu kullanıcı özeti) `getAllTimeSummaries` kullanır; yalnız admin. Güncel check 223 test. Konu ilerlemesi: GET /topics/progress, PUT /topics/:id/progress (kullanıcıya özel).
+- Admin: `GET /users/admin-stats` (global özet) ve `GET /users?includeStats=true` (toplu kullanıcı özeti) `getAllTimeSummaries` kullanır; yalnız admin. Güncel check 278 test. Konu ilerlemesi: GET /topics/progress, PUT /topics/:id/progress (kullanıcıya özel).
 - Merkezi hata handler Sequelize ValidationError→400, Unique/FK→409; beklenmeyen hata mesajı istemciye verilmez. Eski MongoDB hata eşlemeleri kaldırıldı. Joi/Zod/manual validation birleştirilmedi.
 
 ## Güncel görsel sistem (15 Ekim 2026)
@@ -67,7 +67,7 @@ Tasarım paketi kapanışında: 22 backend + 8 frontend = 30 test (tarihsel), st
 - `npm run setup`: npm ci → configure → build; DB'ye yazmaz.
 - `npm run check`: ASCII teknik adlandırma → iki workspace typecheck → sıfır uyarılı lint → testler → build.
 - TypeScript strict/optional/no-unused ayarları gevşetilmedi. ESLint temel JS/TS doğruluk ve unused kurallarını, hooks rules-of-hooks kuralını uygular. Mevcut any borcu veya bütün hooks/exhaustive-deps sorunları kapatılmış değildir; disable yorumuyla bastırma eklenmedi.
-- Güncel check: **8 contracts + 125 backend + 90 frontend = 223 test**, atlanan yok; strict typecheck, sıfır uyarılı lint ve iki production build başarılı. Backend WAL/restore/rollback ve oturum yarışları, frontend gerçek HTTP transport ile eşzamanlı/geç 401 dahil.
+- Güncel check: **10 contracts + 130 backend + 138 frontend = 278 test**, atlanan yok; strict typecheck, sıfır uyarılı lint ve iki production build başarılı. Backend WAL/restore/rollback ve oturum yarışları, frontend gerçek HTTP transport ile eşzamanlı/geç 401 dahil.
 - Yerel yeni admin ile giriş, reload/cookie bootstrap ve manuel snapshot tarayıcıda doğrulandı; gerçek DB'de reset/restore/seed yapılmadı.
 - İlk paket tarihsel doğrulaması — Backend Node test runner + Supertest: 22 test; gerçek HTTP/geçici SQLite, env, hata response'ları ve migration/snapshot yolu. Frontend Vitest/Testing Library/jsdom: 5 test; ErrorBoundary ve hesap cache sınırı.
 - GitHub Actions checkout/setup-node v7 + npm ci + check tanımlı; GitHub'da koşum yapılmadı.
@@ -137,3 +137,32 @@ API/şema/dependency değişmedi. Drag 15 dk, resize 5 dk (5–1440 dk), gerçek
 `npm run check`: **8 contracts + 125 backend + 90 frontend = 223 test**, atlanan yok; naming/strict/lint/production build başarılı. Son erişilebilir drag-handle adı eklemesinden sonra ilgili frontend typecheck/lint/5 component testi/build tekrar geçti. Production fixture'da öğrenci ders/konu edit, arşiv UI/geri alma/reload ve admin ortak ders create doğrulandı. Temp SQLite kontrolünde completed ilerleme, seans notları/bağlantıları ve 300 ölçülmüş saniye korundu; FK temiz. Tarayıcıdaki son kalıcı silme onayı iptal edildi; silme API/SQLite regresyonlarında testlidir. Fixture süreçleri/sekmesi/verisi temizlendi. Gerçek DB'de test yazması/migration/seed/reset/restore yok; schema 006 korunur. Tek root dev localhost:3000/API 5002 çalışır; log /tmp/study-tracker-shared-planner-dev.log. Commit/push/deployment yok. Detay: implementation/2026-10-16-catalog-editing.md.
 
 **A21 kalan:** kategori/kullanıcı/ayar ve diğer modal/admin yüzeylerinde nötr tasarım tutarlılığı. Öğrenci katalog UI ve ortak planner tamamdır; A19/A22/A04 açık kalır.
+
+
+## Kategori yönetimi ve tests/ — 17 Ekim
+
+Kategori yönetimi alt paketi tamamlandı: nötr liste ve ortak CategoryEditorModal/CatalogEditorDialog; shared contracts doğrulaması, yalnız değişen alanların kaydı, hata/boş/retry ayrımı, pasif kategori görünürlüğü ve taslak koruması. Silme/taşıma onayı sunucu başarısını bekler; hedef açıkça seçilir, hata/pending/çift gönderim ve account epoch sınırı uygulanır. İç içe Dialog Escape/odak dönüşü testlidir. Eski inline form/ikon/mutation tekrarları kaldırıldı.
+
+Yeni 13 ekran regresyonu frontend/tests/category-management.test.tsx içindedir; tests/ Vitest, strict TypeScript ve ESLint kapsamına alındı. Mevcut src testleri korunur; topluca taşıma veya kopyalama yapılmadı. npm run check: **8 contracts + 125 backend + 103 frontend = 236 test**, atlanan yok; naming/strict/lint/production build başarılı. Ayrı production fixture'da create/edit/pasiflik/Escape ve taşıma onayı/iptal kontrol edildi. Temp API ile 3 özel/ortak/pasif ders taşındı; konu/ilerleme/seans/not/300 saniyelik interval geçmişi birebir korundu, integrity/FK temiz. Tarayıcı reload yeni kategori adını gösterdi. Fixture sekme/süreç/verisi temizlendi. Gerçek DB'de test yazması/migration/seed/reset/restore yok. Tek root dev localhost:3000/API 5002, log /tmp/study-tracker-category-management-dev.log. Detay: implementation/2026-10-17-category-management.md.
+
+**A21 kalan:** kullanıcı yönetimi/oluşturma ve ayar/yedekleme ekranlarının nötr tasarım, async onay, hata/taslak ve hesap sınırı tutarlılığı. Kategori ve öğrenci katalog UI/ortak planner tamamdır. A19/A22/A04 açık kalır.
+
+
+## A21 kullanıcı yönetimi — 17 Ekim 2026
+
+Kullanıcı yönetimi/oluşturma tamamlandı: nötr yüzeyler, 20 kayıt/sayfa ve sunucu toplamı, bütün kayıtlarda sunucu araması, stabil ikincil ID sıralaması, hata/boş/retry ayrımı ve son satır sonrası sayfa düzeltmesi. Rol/durum/silme onayları sunucu başarısını bekler; hata, pending, çift gönderim, öz-koruma ve hesap epoch sınırı uygulanır. Oluşturma istemci/admin POST ortak Zod 4 sözleşmesiyle doğrulanır; parola tekrarı gönderilmez, form yeniden açılınca eski kimlik bilgileri temizlenir. EditorDialog ve useAccountMutation katalog ile kullanıcı akışlarında ortaktır; eski CatalogEditorDialog kaldırıldı.
+
+npm run check: **10 contracts + 130 backend + 116 frontend = 256 test**, atlanan yok; naming/strict/lint/production build başarılı. Yeni 13 frontend ekran testi frontend/tests/user-management.test.tsx, 5 temp HTTP/SQLite testi backend/tests/user-management.test.cjs, 2 sözleşme testi packages/contracts/tests/users.test.cjs içindedir. Production bundle ayrı atılabilir DB'de 102 kullanıcı/6 sayfa, ikinci sayfa, tüm katalog araması, silme onayı/iptal, oluşturma formu etiketleri ve Escape/odak dönüşüyle doğrulandı. Tarayıcıdan kalıcı silme/rol değişikliği/yeni parola kaydı yapılmadı; bunların davranışı otomatik test kapsamındadır. Fixture sekme/süreç/verisi temizlendi. Gerçek DB'de test yazması/migration/seed/reset/restore yok; schema 006 korunur. Tek root dev localhost:3000/API 5002, log /tmp/study-tracker-user-management-dev.log. Detay: implementation/2026-10-17-user-management.md.
+
+**A21 kalan:** AdminSettingsPage ayar/yedekleme taslak/refetch, dirty patch, backup GET hata/boş ayrımı ve restore/reset async onay/busy/error/epoch; verified === true kontrolü. Diğer kalan admin yüzeylerinin nötr tasarım incelemesi sürer. A19 kalan auth/user update/plan/backup DTO ve Plan sözleşmesi; A22/A04 açıktır.
+
+
+## A21 site ayarları/yedekleme — 17 Ekim 2026
+
+Site ayarları ve yedekleme alt paketi tamamlandı. AdminSettingsPage nötr tasarım ve etiketli alanlar kullanır; pristine form yeni okumayı izler, düzenlenen taslak refetch/bölüm değişiminde korunur. Shared schema ile yalnız değişen alanlar kaydedilir; no-op yazmaz, hata taslağı korur. Private settings read/write revision + account generation geç yanıtı sınırlar. Public hata private hatayı ezmez.
+
+BackupPanel hesaplı Query ile loading/error/retry/boş listeyi ayırır. Restore yalnız verified === true ise açılır; dirty taslakta restore/reset kapalıdır. Ayar/yedek/restore/reset tek busy/mount/epoch hook'u ve async ConfirmDialog kullanır; pending kapama/çift gönderim kilitlidir. Restore ack sonrası protected refetch öncesinde logout; reset ack sonrası account invalidation + private settings yeniden okuma vardır. Native confirm/gecikmeli reload kaldırıldı. Bildirim teslimatı/offsite/saklama altyapısı uygulanmış gibi gösterilmez.
+
+npm run check: **10 contracts + 130 backend + 138 frontend = 278 test**, atlanan yok; naming/strict/lint/production build başarılı. Yeni 18 ekran testi frontend/tests/admin-settings.test.tsx, 4 store yarış/sınır regresyonu var. Son frontend strict/root lint tekrar geçti. Temp production fixture: taslak/bölüm/dirty kilit, verified/unverified liste, manuel backup create/refetch, restore Escape/odak ve settings_only iptal doğrulandı. Temp snapshot checksum/integrity ve hesap/site ayarı korunması kontrol edildi; kaydedilmemiş taslak DB'ye yazılmadı. Tarayıcı restore/reset final onayı verilmedi; gerçek servis davranışları mevcut temp SQLite testlerinde geçer. Fixture sekme/süreç/DB temizlendi. Gerçek DB'de test yazması/migration/seed/reset/restore yok; schema 006 korunur. Tek root dev localhost:3000/API 5002 sağlıklı; log /tmp/study-tracker-user-management-dev.log. Detay: implementation/2026-10-17-admin-settings-and-backups.md.
+
+**Sıradaki:** A21 diğer modal/admin (özellikle yönetim özeti) nötr yüzey/kullanılmayan yol son denetimi; ardından A19 auth/user update/backup/plan DTO ve Plan ürün anlamı. A22/A04 ve bağımlılık backlog'u açık.

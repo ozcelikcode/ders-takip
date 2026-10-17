@@ -1,6 +1,6 @@
 # Ders Takip Sistemi — Aktif Bağlam
 
-Son güncelleme: 16 Ekim 2026, A21 öğrenci katalog düzenleme alt paketi. Tamamlanmış paket geçmişi progress.md ve implementation/ belgelerindedir; bu dosya güncel çalışma devridir.
+Son güncelleme: 17 Ekim 2026, A21 site ayarları/yedekleme alt paketi. Tamamlanmış paket geçmişi progress.md ve implementation/ belgelerindedir; bu dosya güncel çalışma devridir.
 
 ## Kalıcı talimatlar ve kaynak sırası
 
@@ -8,13 +8,15 @@ Kullanıcı mevcut projeden disiplinli, sürdürülebilir ve ileri düzey mühen
 
 Kullanıcı limit nedeniyle başka yapay zekâlarla çalışabiliyor. Güncel progress + mevcut kaynak esas alınır; eski sohbetten tamamlanmış işler yeniden açılmaz veya mevcut değişiklikler ezilmez. Geçmiş test sayıları ile güncel toplam ayrılır. Modern sade nötr Vercel/Geist yönü geçerlidir; pastel/cam/gradyan yönü geçersizdir. Görünen site kimliği admin ayarıdır; gerçek isim kullanıcı adına değiştirilmez.
 
-## Güncel paket — A21 katalog düzenleme
+## Güncel paket — A21 site ayarları ve yedekleme
 
-Öğrencinin kendi özel ders/konusunu düzenleme ve ders silme/konu arşivleme arayüzü tamamlandı. Arşivden geri alma ve arşivde düzenleme eklendi. CourseEditorModal öğrenci/admin create/edit için tek uygulamadır; TopicEditorModal da create/edit'i birleştirir. Eski iki create modalı ve admin içindeki ikinci CourseModal kaldırıldı. Ortak dialog/ikon/yetki ve mutation sınırı vardır; shared contracts doğrulaması, değişen alanları gönderme, taslak/hata/pending koruması ve account epoch izolasyonu testlidir. Ders listesi/detayı ve admin ders yönetimi nötr tasarım sistemine taşındı. Restore sırasında aktif aynı ad çakışması transaction içinde 409 ile reddedilir; ilerleme/geçmiş korunur.
+Site ayarları ve yedekleme alt paketi tamamlandı. AdminSettingsPage nötr tasarım ve etiketli alanlar kullanır; pristine form yeni okumayı izler, düzenlenen taslak refetch/bölüm değişiminde korunur. Shared schema ile yalnız değişen alanlar kaydedilir; no-op yazmaz, hata taslağı korur. Private settings read/write revision + account generation geç yanıtı sınırlar. Public hata private hatayı ezmez.
 
-`npm run check`: **8 contracts + 125 backend + 90 frontend = 223 test**, atlanan yok; naming/strict/lint/production build başarılı. Son erişilebilir drag-handle adı eklemesinden sonra ilgili frontend typecheck/lint/5 component testi/build tekrar geçti. Production fixture'da öğrenci ders/konu edit, arşiv UI/geri alma/reload ve admin ortak ders create doğrulandı. Temp SQLite kontrolünde completed ilerleme, seans notları/bağlantıları ve 300 ölçülmüş saniye korundu; FK temiz. Tarayıcıdaki son kalıcı silme onayı iptal edildi; silme API/SQLite regresyonlarında testlidir. Fixture süreçleri/sekmesi/verisi temizlendi. Gerçek DB'de test yazması/migration/seed/reset/restore yok; schema 006 korunur. Tek root dev localhost:3000/API 5002 çalışır; log /tmp/study-tracker-shared-planner-dev.log. Commit/push/deployment yok. Detay: implementation/2026-10-16-catalog-editing.md.
+BackupPanel hesaplı Query ile loading/error/retry/boş listeyi ayırır. Restore yalnız verified === true ise açılır; dirty taslakta restore/reset kapalıdır. Ayar/yedek/restore/reset tek busy/mount/epoch hook'u ve async ConfirmDialog kullanır; pending kapama/çift gönderim kilitlidir. Restore ack sonrası protected refetch öncesinde logout; reset ack sonrası account invalidation + private settings yeniden okuma vardır. Native confirm/gecikmeli reload kaldırıldı. Bildirim teslimatı/offsite/saklama altyapısı uygulanmış gibi gösterilmez.
 
-**A21 kalan:** kategori/kullanıcı/ayar ve diğer modal/admin yüzeylerinde nötr tasarım tutarlılığı. Öğrenci katalog UI ve ortak planner tamamdır; A19/A22/A04 açık kalır.
+npm run check: **10 contracts + 130 backend + 138 frontend = 278 test**, atlanan yok; naming/strict/lint/production build başarılı. Yeni 18 ekran testi frontend/tests/admin-settings.test.tsx, 4 store yarış/sınır regresyonu var. Son frontend strict/root lint tekrar geçti. Temp production fixture: taslak/bölüm/dirty kilit, verified/unverified liste, manuel backup create/refetch, restore Escape/odak ve settings_only iptal doğrulandı. Temp snapshot checksum/integrity ve hesap/site ayarı korunması kontrol edildi; kaydedilmemiş taslak DB'ye yazılmadı. Tarayıcı restore/reset final onayı verilmedi; gerçek servis davranışları mevcut temp SQLite testlerinde geçer. Fixture sekme/süreç/DB temizlendi. Gerçek DB'de test yazması/migration/seed/reset/restore yok; schema 006 korunur. Tek root dev localhost:3000/API 5002 sağlıklı; log /tmp/study-tracker-user-management-dev.log. Detay: implementation/2026-10-17-admin-settings-and-backups.md.
+
+**Sıradaki:** A21 diğer modal/admin (özellikle yönetim özeti) nötr yüzey/kullanılmayan yol son denetimi; ardından A19 auth/user update/backup/plan DTO ve Plan ürün anlamı. A22/A04 ve bağımlılık backlog'u açık.
 
 ## Korunan tamamlanmış temel
 
@@ -32,7 +34,7 @@ Yerel schema 006'dır. 003/004/005/006 normal yükseltmelerinden önce private n
 
 ## Sıradaki açık işler
 
-1. A21 kalan: kategori/kullanıcı/ayar ve diğer modal/admin yüzeylerinin nötr tasarım tutarlılığı. Öğrenci özel ders/konu düzenleme-silme/arşiv/geri alma UI ve planner ortaklaştırması tamamdır.
+1. A21 diğer modal/admin (özellikle yönetim özeti) nötr yüzey/kullanılmayan yol son denetimi. Kategori/kullanıcı/ayar-yedekleme yönetimi, öğrenci katalog UI ve ortak planner tamamdır; yeniden uygulanmayacak.
 2. A19: auth/user/plan/backup doğrulamalarını ortak contracts'a taşıma; Plan API ile StudySession planner ilişkisinin ürün anlamını netleştirme.
 3. A22/A04: tam klavye/dokunmatik takvim ve otomatik E2E/WCAG/Lighthouse; kurtarma/kapasite/offsite/retention operasyonları; kalan güvenlik/major bağımlılık işleri. Önceki audit backlog'u 12 paket düğümü (5 high/7 moderate); bütün kütüphaneler en yeni major değildir.
 

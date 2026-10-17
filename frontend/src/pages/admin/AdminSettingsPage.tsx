@@ -1,597 +1,537 @@
-import { defaultSiteSettings, siteSettingsSchema, type SiteSettings } from '@study-tracker/contracts';
-import { useAuthStore } from '../../store/authStore';
-import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
-import { motion } from 'framer-motion';
 import {
-AlertTriangle,
-Bell,
-BookOpen,Calendar as CalendarIcon,
-ClipboardList,
-Clock,
-Database,Download,
-FileText,
-Globe,
-GraduationCap,
-Lightbulb,
-Mail,
-Palette,
-RotateCcw,
-Save,
-School,
-Settings,
-Shield,
-Target,
-Trash2,
-Trophy,
-Users
-} from 'lucide-react';
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import toast from 'react-hot-toast';
+  brandIconNames,
+  siteSettingsSchema,
+  settingsPatchSchema,
+  type SiteSettings,
+} from '@study-tracker/contracts';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import BackupPanel, {
+  type MaintenanceAction,
+} from '../../components/admin/BackupPanel';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
+import PageHeader from '../../components/common/PageHeader';
+import { useAccountMutation } from '../../hooks/useAccountMutation';
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { backupAPI } from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 
-type SiteSettingsForm = SiteSettings;
-
-const AdminSettingsPage = () => {
-  const [activeTab, setActiveTab] = useState<'general' | 'security' | 'notifications' | 'appearance' | 'backup'>('general');
-  const [backups, setBackups] = useState<any[]>([]);
-  const [isBackingUp, setIsBackingUp] = useState(false);
-  const { adminSettings, fetchAdminSettings, updateSettings, isLoading, error: settingsError } = useSettingsStore();
-  const settings = adminSettings || defaultSiteSettings;
-
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    reset,
-    formState: { errors, isDirty, isSubmitting },
-  } = useForm<SiteSettingsForm>({
-    resolver: async values => {
-      const result = siteSettingsSchema.safeParse(values);
-      return result.success ? { values: result.data, errors: {} } : { values: {}, errors: Object.fromEntries(result.error.issues.map(issue => [issue.path[0], { type: 'validate', message: 'Geçerli bir değer girin' }])) };
-    },
-    defaultValues: settings,
-  });
-
-  // Fetch settings on mount
-  React.useEffect(() => {
-    void fetchAdminSettings();
-  }, [fetchAdminSettings]);
-
-  // Update form when settings change
-  React.useEffect(() => {
-    reset(settings);
-  }, [settings, reset]);
-
-  const loadBackups = async () => {
-    try {
-      const response = await backupAPI.getBackups();
-      setBackups(response.data.data);
-    } catch {
-      console.error('Failed to load backups');
+const sections = [
+  ['general', 'Genel'],
+  ['security', 'Güvenlik'],
+  ['notifications', 'Bildirimler'],
+  ['appearance', 'Görünüm'],
+  ['backup', 'Yedekleme ve sıfırlama'],
+] as const;
+type Section = (typeof sections)[number][0];
+function SettingsForm({
+  initial,
+  onReset,
+}: {
+  initial: SiteSettings;
+  onReset: () => Promise<void>;
+}) {
+  const { adminSettings, updateSettings, isLoading } = useSettingsStore();
+  const [baseline, setBaseline] = useState(initial);
+  const [draft, setDraft] = useState(initial);
+  const [section, setSection] = useState<Section>('general');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [action, setAction] = useState<MaintenanceAction | null>(null);
+  const prefix = useId();
+  const mounted = useRef(true);
+  const epoch = useRef(useAuthStore.getState().epoch);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const current = () =>
+    mounted.current &&
+    epoch.current === useAuthStore.getState().epoch &&
+    useAuthStore.getState().user?.role === 'admin';
+  const mutation = useAccountMutation([]);
+  const client = useQueryClient();
+  const keys = useAccountQueryKeys();
+  const dirty = (Object.keys(draft) as (keyof SiteSettings)[]).some(
+    (key) => draft[key] !== baseline[key],
+  );
+  useEffect(() => {
+    if (!dirty && !mutation.isPending && adminSettings) {
+      setDraft(adminSettings);
+      setBaseline(adminSettings);
     }
+  }, [adminSettings, dirty, mutation.isPending]);
+  const busy = mutation.isPending || isLoading;
+  const resetDraft = (settings: SiteSettings) => {
+    setDraft(settings);
+    setBaseline(settings);
+    setErrors({});
+    mutation.clearError();
   };
-
-  React.useEffect(() => {
-    if (activeTab === 'backup') {
-      loadBackups();
-    }
-  }, [activeTab]);
-
-  const handleManualBackup = async () => {
-    setIsBackingUp(true);
-    try {
-      await backupAPI.createBackup();
-      toast.success('Yedek başarıyla oluşturuldu');
-      loadBackups();
-    } catch {
-      toast.error('Yedekleme hatası');
-    } finally {
-      setIsBackingUp(false);
-    }
-  };
-
-  const handleRestore = async (id: number) => {
-    if (window.confirm('Bu yedeği geri yüklemek istediğinizden emin misiniz? Mevcut verinin güvenlik yedeği alınacak, seçilen yedekteki hesaplar ve parolalar geri gelecek. Bütün oturumlar kapanacak.')) {
-      try {
-        toast.loading('Yedek geri yükleniyor...', { id: 'restore' });
-        await backupAPI.restoreBackup(id);
-        toast.success('Yedek doğrulandı ve geri yüklendi. Yeniden giriş yapın.', { id: 'restore' });
-        useAuthStore.getState().logout();
-      } catch {
-        toast.error('Geri yükleme hatası', { id: 'restore' });
-      }
-    }
-  };
-
-  const handleReset = async (mode: 'settings_only' | 'all') => {
-    const msg = mode === 'settings_only'
-      ? 'Yalnızca site ayarları sıfırlanacak. Hesaplar, dersler, konular ve çalışma geçmişi korunacak. İşlem öncesinde güvenlik yedeği alınacak. Devam edilsin mi?'
-      : 'Öğrenci hesapları, dersler, konular, planlar, çalışma geçmişi ve ayarlar silinecek. Yönetici hesapları korunacak ve işlem öncesi güvenlik yedeği alınacak. Devam edilsin mi?';
-
-    if (window.confirm(msg)) {
-      try {
-        await backupAPI.resetData(mode);
-        toast.success('Veriler başarıyla sıfırlandı');
-        setTimeout(() => window.location.reload(), 1000);
-      } catch {
-        toast.error('Sıfırlama hatası');
-      }
-    }
-  };
-
-  const siteIcons = [
-    { id: 'GraduationCap', icon: GraduationCap },
-    { id: 'BookOpen', icon: BookOpen },
-    { id: 'Calendar', icon: CalendarIcon },
-    { id: 'Clock', icon: Clock },
-    { id: 'Trophy', icon: Trophy },
-    { id: 'Target', icon: Target },
-    { id: 'Lightbulb', icon: Lightbulb },
-    { id: 'School', icon: School },
-    { id: 'ClipboardList', icon: ClipboardList },
-    { id: 'Users', icon: Users },
-  ];
-
-  const onSubmit = async (data: SiteSettingsForm) => {
-    try {
-      await updateSettings(data);
-      toast.success('Site ayarları güncellendi ve uygulandı');
-    } catch (error: any) {
-      toast.error(error.response?.data?.error?.message || 'Ayarlar güncellenirken hata oluştu');
-    }
-  };
-
-  const tabs = [
-    { id: 'general', name: 'Genel', icon: Globe },
-    { id: 'security', name: 'Güvenlik', icon: Shield },
-    { id: 'notifications', name: 'Bildirimler', icon: Bell },
-    { id: 'appearance', name: 'Görünüm', icon: Palette },
-    { id: 'backup', name: 'Yedekleme & Sıfırlama', icon: Database },
-  ];
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Site Ayarları</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Sistem genelinde geçerli ayarları yönetin
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Settings className="w-5 h-5 text-gray-400" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="card">
-            <div className="card-body p-0">
-              <nav className="space-y-1">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id as any)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors ${activeTab === tab.id
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-r-2 border-blue-500'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
-                        }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      {tab.name}
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="lg:col-span-3">
-          <form onSubmit={handleSubmit(onSubmit)}>
-            {settingsError && <p role="alert" className="mb-4 text-sm text-red-600">{settingsError}</p>}
-            <div className="card">
-              <div className="card-body space-y-6">
-                {/* General Settings */}
-                {activeTab === 'general' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-4"
-                  >
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Genel Ayarlar</h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="siteName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Site Adı *
-                        </label>
-                        <input
-                          id="siteName"
-                          {...register('siteName')}
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                        />
-                        {errors.siteName && (
-                          <p className="mt-1 text-sm text-red-600">{errors.siteName.message}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label htmlFor="siteUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Site URL *
-                        </label>
-                        <input
-                          id="siteUrl"
-                          {...register('siteUrl')}
-                          type="url"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                        />
-                        {errors.siteUrl && (
-                          <p className="mt-1 text-sm text-red-600">{errors.siteUrl.message}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label htmlFor="siteDescription" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Site Açıklaması *
-                      </label>
-                      <textarea
-                        id="siteDescription"
-                          {...register('siteDescription')}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                      />
-                      {errors.siteDescription && (
-                        <p className="mt-1 text-sm text-red-600">{errors.siteDescription.message}</p>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="adminEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Admin Email *
-                        </label>
-                        <input
-                          id="adminEmail"
-                          {...register('adminEmail')}
-                          type="email"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                        />
-                        {errors.adminEmail && (
-                          <p className="mt-1 text-sm text-red-600">{errors.adminEmail.message}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label htmlFor="siteLogo" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Site Logosu (URL)
-                        </label>
-                        <input
-                          id="siteLogo"
-                          {...register('siteLogo')}
-                          type="text"
-                          placeholder="https://example.com/logo.png"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Site İkonu
-                      </label>
-                      <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-                        {siteIcons.map((item) => {
-                          const Icon = item.icon;
-                          const isSelected = watch('siteIcon') === item.id;
-                          return (
-                            <button
-                              key={item.id}
-                              type="button"
-                              aria-label={`${item.id} site ikonu`}
-                              aria-pressed={isSelected}
-                              onClick={() => setValue('siteIcon', item.id, { shouldDirty: true })}
-                              className={`p-2 rounded-md border flex items-center justify-center transition-all ${isSelected
-                                ? 'bg-blue-50 border-blue-500 text-blue-600 dark:bg-blue-900/20 dark:border-blue-400 dark:text-blue-300'
-                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600'
-                                }`}
-                            >
-                              <Icon className="w-5 h-5" />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Security Settings */}
-                {activeTab === 'security' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-4"
-                  >
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Güvenlik Ayarları</h3>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
-                        <div>
-                          <h4 className="font-medium text-gray-900 dark:text-white">Yeni Kayıtlara İzin Ver</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Kullanıcıların sisteme kayıt olmasına izin ver</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            {...register('allowRegistration')}
-                            type="checkbox"
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
-                        <div>
-                          <h4 className="font-medium text-gray-900 dark:text-white">Bakım Modu</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Siteyi bakım moduna al (sadece adminler erişebilir)</p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            {...register('maintenanceMode')}
-                            type="checkbox"
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
-                        <label htmlFor="sessionTimeout" className="font-medium text-gray-900 dark:text-white">Oturum Zaman Aşımı (dakika)</label>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Bu süre boyunca etkinlik olmayan oturumlar kapatılır. Etkin süre en az erişim anahtarı ömrü (15 dakika) kadardır.</p>
-                        <input
-                          {...register('sessionTimeout', { valueAsNumber: true })}
-                          id="sessionTimeout"
-                          type="number"
-                          min={1}
-                          max={1440}
-                          className="mt-2 w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
-                        />
-                        {errors.sessionTimeout && <p className="mt-1 text-sm text-red-600">1 ile 1440 arasında bir değer girin</p>}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Notification Settings */}
-                {activeTab === 'notifications' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-4"
-                  >
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Bildirim Ayarları</h3>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Mail className="w-5 h-5 text-blue-500" />
-                          <div>
-                            <h4 className="font-medium text-gray-900 dark:text-white">Email Bildirimleri</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Sistem genelinde email bildirimlerini etkinleştir</p>
-                          </div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            {...register('emailNotifications')}
-                            type="checkbox"
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Bell className="w-5 h-5 text-green-500" />
-                          <div>
-                            <h4 className="font-medium text-gray-900 dark:text-white">Push Bildirimleri</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Tarayıcı push bildirimlerini etkinleştir</p>
-                          </div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            {...register('pushNotifications')}
-                            type="checkbox"
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Appearance Settings */}
-                {activeTab === 'appearance' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-4"
-                  >
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Görünüm Ayarları</h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Ana Renk
-                        </label>
-                        <div className="flex items-center gap-3">
-                          <input
-                            {...register('primaryColor')}
-                            type="color"
-                            className="w-12 h-10 border border-gray-300 dark:border-gray-600 rounded cursor-pointer"
-                          />
-                          <input
-                            {...register('primaryColor')}
-                            type="text"
-                            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Backup Settings */}
-                {activeTab === 'backup' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-6"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Yedekleme Yönetimi</h3>
-                      <button
-                        type="button"
-                        onClick={handleManualBackup}
-                        disabled={isBackingUp}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 rounded-md transition-colors"
-                      >
-                        {isBackingUp ? <RotateCcw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                        Şimdi Yedek Al
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Otomatik Yedekleme Aralığı
-                        </label>
-                        <select
-                          {...register('backup_interval')}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                        >
-                          <option value="1">Her Gün</option>
-                          <option value="5">5 Günde Bir</option>
-                          <option value="7">7 Günde Bir</option>
-                        </select>
-                        <p className="mt-2 text-xs text-gray-500">Son başarılı otomatik yedekten itibaren seçilen süre dolduğunda yeni yedek alınır. Sistem her 5 dakikada bir kontrol eder.</p>
-                      </div>
-
-                      <div className="p-4 border border-orange-200 dark:border-orange-900/30 bg-orange-50 dark:bg-orange-900/10 rounded-lg">
-                        <h4 className="flex items-center gap-2 text-sm font-semibold text-orange-800 dark:text-orange-300 mb-2">
-                          <AlertTriangle className="w-4 h-4" />
-                          Veri Temizliği
-                        </h4>
-                        <div className="space-y-2">
-                          <button
-                            type="button"
-                            onClick={() => handleReset('settings_only')}
-                            className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-orange-700 hover:bg-orange-200/50 rounded transition-colors"
-                          >
-                            Yalnızca Site Ayarlarını Sıfırla
-                            <RotateCcw className="w-3 h-3" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleReset('all')}
-                            className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-100 rounded transition-colors"
-                          >
-                            Öğrenci ve Çalışma Verilerini Temizle
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-gray-400" />
-                        Doğrulanmış Yedekler ve Geçmiş Kayıtlar
-                      </h4>
-                      <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                          <thead className="bg-gray-50 dark:bg-gray-800/50">
-                            <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarih</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tip</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Boyut</th>
-                              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">İşlem</th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            {backups.map((backup) => (
-                              <tr key={backup.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                                  {format(new Date(backup.createdAt), 'dd MMMM yyyy HH:mm', { locale: tr })}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${backup.type === 'auto'
-                                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                                    }`}>
-                                    {backup.type === 'auto' ? 'Otomatik' : 'Manuel'}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                  {(backup.size / 1024 / 1024).toFixed(2)} MB
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
-                                  <button
-                                    type="button"
-                                    disabled={backup.verified === false}
-                                    title={backup.verified === false ? 'Eski yedek doğrulanmamış; yeni bir yedek oluşturun' : 'Doğrulanmış yedeği geri yükle'}
-                                    onClick={() => handleRestore(backup.id)}
-                                    className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-                                  >
-                                    {backup.verified === false ? 'Doğrulanmamış' : 'Geri Yükle'}
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                            {backups.length === 0 && (
-                              <tr>
-                                <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                                  Henüz yedek bulunmuyor.
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Save Button */}
-                <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    type="submit"
-                    disabled={!isDirty || !adminSettings || isLoading || isSubmitting}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
-                  >
-                    <Save className="w-4 h-4" />
-                    Değişiklikleri Kaydet
-                  </button>
-                </div>
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
+  const field = (
+    name: keyof SiteSettings,
+    label: string,
+    control: ReactNode,
+  ) => (
+    <div>
+      <label
+        htmlFor={`${prefix}-${name}`}
+        className="mb-2 block text-sm font-medium"
+      >
+        {label}
+      </label>
+      {control}
+      {errors[name] && (
+        <p id={`${prefix}-${name}-error`} className="mt-1 text-sm text-red-600">
+          {errors[name]}
+        </p>
+      )}
     </div>
   );
-};
-
-export default AdminSettingsPage;
+  const input = (name: keyof SiteSettings, label: string, type = 'text') =>
+    field(
+      name,
+      label,
+      <input
+        id={`${prefix}-${name}`}
+        className="input"
+        type={type}
+        aria-invalid={!!errors[name]}
+        aria-describedby={errors[name] ? `${prefix}-${name}-error` : undefined}
+        value={String(draft[name] ?? '')}
+        onChange={(event) =>
+          setDraft({
+            ...draft,
+            [name]:
+              type === 'number'
+                ? Number(event.target.value)
+                : event.target.value,
+          })
+        }
+      />,
+    );
+  const toggle = (
+    name:
+      | 'allowRegistration'
+      | 'maintenanceMode'
+      | 'emailNotifications'
+      | 'pushNotifications',
+    label: string,
+    description: string,
+  ) => (
+    <label className="flex items-start gap-3 rounded-lg border border-[var(--line)] p-4">
+      <input
+        className="mt-1"
+        type="checkbox"
+        checked={draft[name]}
+        onChange={(event) =>
+          setDraft({ ...draft, [name]: event.target.checked })
+        }
+      />
+      <span>
+        <span className="block text-sm font-medium">{label}</span>
+        <span className="mt-1 block text-sm text-[var(--muted)]">
+          {description}
+        </span>
+      </span>
+    </label>
+  );
+  const save = async () => {
+    if (!dirty || busy || !current()) return;
+    const result = siteSettingsSchema.safeParse(draft);
+    if (!result.success) {
+      setErrors(
+        Object.fromEntries(
+          result.error.issues.map((issue) => [
+            String(issue.path[0]),
+            'Geçerli bir değer girin.',
+          ]),
+        ),
+      );
+      return;
+    }
+    const patch = settingsPatchSchema.parse(
+      Object.fromEntries(
+        (Object.keys(result.data) as (keyof SiteSettings)[])
+          .filter((key) => result.data[key] !== baseline[key])
+          .map((key) => [key, result.data[key]]),
+      ),
+    );
+    if (Object.keys(patch).length === 0) {
+      resetDraft(result.data);
+      return;
+    }
+    setErrors({});
+    const saved = await mutation.save(
+      () => updateSettings(patch),
+      'Site ayarları kaydedildi ve uygulandı.',
+    );
+    const confirmed = useSettingsStore.getState().adminSettings;
+    if (saved && current() && confirmed) resetDraft(confirmed);
+  };
+  const confirm = async () => {
+    if (!action || dirty || !current()) return false;
+    const saved = await mutation.save(
+      () =>
+        action.kind === 'restore'
+          ? backupAPI.restoreBackup(action.backup.id)
+          : backupAPI.resetData(action.mode),
+      action.kind === 'restore'
+        ? 'Yedek geri yüklendi. Yeniden giriş yapın.'
+        : 'Seçilen veriler sıfırlandı; güvenlik yedeği saklandı.',
+    );
+    if (!saved || !current()) return false;
+    if (action.kind === 'restore') {
+      useAuthStore.getState().logout();
+      return true;
+    }
+    await client.invalidateQueries({ queryKey: keys.resource() });
+    if (current()) await onReset();
+    return true;
+  };
+  const message =
+    action?.kind === 'restore'
+      ? 'Mevcut verinin güvenlik yedeği alınacak. Seçilen yedekteki hesaplar, parolalar, ayarlar ve çalışma verileri geri gelecek; sonradan yapılan değişiklikler yerini yedekteki verilere bırakacak. Bütün oturumlar kapanacak ve yeniden giriş gerekecek.'
+      : action?.kind === 'reset' && action.mode === 'all'
+        ? 'Öğrenci hesapları, bütün dersler, konular, planlar, seanslar, ölçülen çalışma geçmişi, konu ilerlemeleri ve site ayarları silinecek. Yönetici hesapları ve yedekler korunacak. Önce güvenlik yedeği alınır; geri dönüş yedeği geri yüklemeyi gerektirir.'
+        : 'Yalnızca site ayarları varsayılanlara dönecek. Hesaplar, dersler, konular ve çalışma geçmişi korunacak. Önce güvenlik yedeği alınır.';
+  return (
+    <>
+      <nav
+        aria-label="Site ayarı bölümleri"
+        className="flex flex-wrap gap-2 border-b border-[var(--line)] pb-4"
+      >
+        {sections.map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            aria-current={section === id ? 'page' : undefined}
+            className={`btn ${section === id ? 'btn-primary' : 'btn-secondary'}`}
+            disabled={busy}
+            onClick={() => setSection(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+      <form
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          void save();
+        }}
+        className="panel space-y-6 p-5 sm:p-6"
+        aria-label="Site ayarları formu"
+        aria-busy={busy}
+      >
+        <fieldset
+          disabled={busy || !!action}
+          className="space-y-5 disabled:opacity-60"
+        >
+          {section === 'general' && (
+            <>
+              <h2 className="text-base font-medium">Site kimliği</h2>
+              <div className="grid gap-5 sm:grid-cols-2">
+                {input('siteName', 'Site adı')}
+                {input('siteUrl', 'Site URL', 'url')}
+              </div>
+              {field(
+                'siteDescription',
+                'Site açıklaması',
+                <textarea
+                  id={`${prefix}-siteDescription`}
+                  className="input"
+                  rows={3}
+                  value={draft.siteDescription}
+                  aria-invalid={!!errors.siteDescription}
+                  aria-describedby={
+                    errors.siteDescription
+                      ? `${prefix}-siteDescription-error`
+                      : undefined
+                  }
+                  onChange={(event) =>
+                    setDraft({ ...draft, siteDescription: event.target.value })
+                  }
+                />,
+              )}
+              {input('adminEmail', 'Yönetici iletişim e-postası', 'email')}
+              <p className="text-xs text-[var(--muted)]">
+                Site adı bütün görünen marka alanlarına uygulanır. Site URL
+                alanı hosting adresinizi veya alan adınızı değiştirmez.
+              </p>
+            </>
+          )}
+          {section === 'security' && (
+            <>
+              <h2 className="text-base font-medium">Erişim kuralları</h2>
+              {toggle(
+                'allowRegistration',
+                'Yeni kayıtlara izin ver',
+                'Kapatıldığında yeni kullanıcı kaydı sunucuda reddedilir.',
+              )}
+              {toggle(
+                'maintenanceMode',
+                'Bakım modu',
+                'Yalnızca yöneticiler giriş yapabilir ve korunan alanlara erişebilir.',
+              )}
+              {input(
+                'sessionTimeout',
+                'Boşta oturum süresi (dakika)',
+                'number',
+              )}
+              <p className="text-xs text-[var(--muted)]">
+                1–1440 dakika. Etkin alt sınır erişim anahtarının ömrüdür (en
+                fazla 15 dakika); süre yenileme sırasında denetlenir.
+              </p>
+            </>
+          )}
+          {section === 'notifications' && (
+            <>
+              <h2 className="text-base font-medium">Bildirim tercihleri</h2>
+              <p className="text-sm text-[var(--muted)]">
+                Bu değerler saklanır; e-posta ve tarayıcı push teslimat
+                altyapısı henüz kurulmadı. Bu seçenekleri açmak bildirim
+                göndermez.
+              </p>
+              {toggle(
+                'emailNotifications',
+                'E-posta bildirim tercihi',
+                'Sistem genelindeki kayıtlı e-posta tercihi.',
+              )}
+              {toggle(
+                'pushNotifications',
+                'Push bildirim tercihi',
+                'Sistem genelindeki kayıtlı push tercihi.',
+              )}
+            </>
+          )}
+          {section === 'appearance' && (
+            <>
+              <h2 className="text-base font-medium">Marka görünümü</h2>
+              {input('siteLogo', 'Logo URL', 'url')}
+              {field(
+                'siteIcon',
+                'Site ikonu veya ikon URL',
+                <input
+                  id={`${prefix}-siteIcon`}
+                  className="input"
+                  list={`${prefix}-icons`}
+                  value={draft.siteIcon ?? ''}
+                  aria-invalid={!!errors.siteIcon}
+                  aria-describedby={
+                    errors.siteIcon ? `${prefix}-siteIcon-error` : undefined
+                  }
+                  onChange={(event) =>
+                    setDraft({ ...draft, siteIcon: event.target.value })
+                  }
+                />,
+              )}
+              <datalist id={`${prefix}-icons`}>
+                {brandIconNames.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+              <p className="text-xs text-[var(--muted)]">
+                Yerleşik ikon adlarından birini veya HTTP(S) görsel adresini
+                kullanın. Logo URL boşsa site ikonu gösterilir.
+              </p>
+              <div className="grid gap-5 sm:grid-cols-2">
+                {input('primaryColor', 'Ana renk (HEX)')}
+              </div>
+            </>
+          )}
+          {section === 'backup' && (
+            <>
+              <h2 className="text-base font-medium">Otomatik yedekleme</h2>
+              {field(
+                'backup_interval',
+                'Otomatik yedekleme aralığı',
+                <select
+                  id={`${prefix}-backup_interval`}
+                  className="input"
+                  value={draft.backup_interval}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      backup_interval: event.target
+                        .value as SiteSettings['backup_interval'],
+                    })
+                  }
+                >
+                  <option value="1">Her gün</option>
+                  <option value="5">5 günde bir</option>
+                  <option value="7">7 günde bir</option>
+                </select>,
+              )}
+              <p className="text-sm text-[var(--muted)]">
+                Son başarılı otomatik yedekten itibaren seçilen süre dolduğunda
+                yeni yedek alınır. Sistem her 5 dakikada bir kontrol eder.
+              </p>
+            </>
+          )}
+        </fieldset>
+        {Object.keys(errors).length > 0 && (
+          <p role="alert" className="text-sm text-red-600">
+            Geçersiz alanlar:{' '}
+            {Object.keys(errors)
+              .map(
+                (key) =>
+                  ({
+                    siteName: 'Site adı',
+                    siteUrl: 'Site URL',
+                    siteDescription: 'Site açıklaması',
+                    adminEmail: 'Yönetici e-postası',
+                    sessionTimeout: 'Oturum süresi',
+                    primaryColor: 'Ana renk',
+                    secondaryColor: 'İkincil renk',
+                    siteLogo: 'Logo URL',
+                    siteIcon: 'Site ikonu',
+                  })[key] ?? key,
+              )
+              .join(', ')}
+            . İlgili bölümdeki değerleri kontrol edin.
+          </p>
+        )}
+        {!action && mutation.errorMessage && (
+          <p role="alert" className="text-sm text-red-600">
+            {mutation.errorMessage}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-5">
+          <p className="text-sm text-[var(--muted)]" role="status">
+            {mutation.isPending
+              ? 'İşlem sürüyor…'
+              : dirty
+                ? 'Kaydedilmemiş değişiklikler var.'
+                : 'Kaydedilmemiş değişiklik yok.'}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={busy || !dirty}
+              onClick={() => resetDraft(adminSettings ?? baseline)}
+            >
+              Değişikliklerden vazgeç
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={busy || !dirty}
+            >
+              {mutation.isPending ? 'Bekleniyor…' : 'Değişiklikleri kaydet'}
+            </button>
+          </div>
+        </div>
+      </form>
+      {section === 'backup' && (
+        <div className="panel p-5 sm:p-6">
+          <BackupPanel
+            busy={busy || !!action}
+            dirty={dirty}
+            onAction={(next) => {
+              mutation.clearError();
+              setAction(next);
+            }}
+            onCreate={() => {
+              if (!current()) return;
+              void mutation
+                .save(
+                  () => backupAPI.createBackup(),
+                  'Yedek doğrulandı ve sunucuda saklandı.',
+                )
+                .then((saved) => {
+                  if (saved && current())
+                    void client.invalidateQueries({
+                      queryKey: keys.resource('backups'),
+                    });
+                });
+            }}
+          />
+        </div>
+      )}
+      {action && (
+        <ConfirmDialog
+          isOpen
+          title={
+            action.kind === 'restore'
+              ? `Yedeği geri yükle (#${action.backup.id})`
+              : action.mode === 'all'
+                ? 'Öğrenci ve çalışma verilerini temizle'
+                : 'Site ayarlarını sıfırla'
+          }
+          message={message}
+          type="danger"
+          confirmText={
+            action.kind === 'restore'
+              ? 'Yedeği geri yükle'
+              : 'Sıfırlamayı uygula'
+          }
+          onClose={() => setAction(null)}
+          onConfirm={confirm}
+        >
+          {mutation.errorMessage && (
+            <p role="alert" className="text-sm text-red-600">
+              {mutation.errorMessage}
+            </p>
+          )}
+        </ConfirmDialog>
+      )}
+    </>
+  );
+}
+function SettingsWorkspace() {
+  const {
+    adminSettings,
+    fetchAdminSettings,
+    error,
+    isLoading,
+    clearAdminSettings,
+  } = useSettingsStore();
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    void fetchAdminSettings();
+  }, [fetchAdminSettings]);
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Site ayarları"
+        description="Site kimliğini, erişim kurallarını ve yedeklemeyi yönetin."
+      />
+      {error && (
+        <div
+          role="alert"
+          className="panel flex flex-wrap items-center gap-3 p-4"
+        >
+          <p>{error}</p>
+          <button
+            className="btn btn-secondary"
+            disabled={isLoading}
+            onClick={() => void fetchAdminSettings()}
+          >
+            Ayarları tekrar yükle
+          </button>
+        </div>
+      )}
+      {adminSettings ? (
+        <SettingsForm
+          key={version}
+          initial={adminSettings}
+          onReset={async () => {
+            clearAdminSettings();
+            setVersion((value) => value + 1);
+            await fetchAdminSettings();
+          }}
+        />
+      ) : (
+        !error && <p role="status">Yönetim ayarları yükleniyor…</p>
+      )}
+    </div>
+  );
+}
+export default function AdminSettingsPage() {
+  const { user } = useAuthStore();
+  return user?.role === 'admin' ? <SettingsWorkspace /> : null;
+}

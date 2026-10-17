@@ -63,3 +63,8 @@ Site adı, açıklama, logo/ikon bütün görünen yüzeylerde tek public brandi
 ## Birden fazla araçla devam etme — 16 Ekim 2026
 
 Kullanıcı limit nedeniyle diğer yapay zekâlarla da geliştirme yapabilir. Devam ederken progress.md ve mevcut kod birlikte esas alınır; tamamlanmış işler eski sohbet listesinden yeniden açılmaz veya önceki uygulamayla ezilmez. Yarım kalan kapsam tamamlanır; yeni değişikliklerden etkilenen entegrasyon ve çalışma ortamı ayrıca doğrulanır. Tarihsel test sonuçlarıyla güncel toplam ayrılır.
+
+
+## Test disiplini — 17 Ekim 2026
+
+Kullanıcı güvenli, disiplinli ve profesyonel çalışma düzenini yeniden vurguladı; gerekli testlerin tests/ altında da tutulabileceğini belirtti. Yeni yönetim ekranı akış regresyonları frontend/tests altında çalışır; aynı dosyalar strict TypeScript ve ESLint kapsamındadır. Mevcut src colocation ve backend/tests testleri gereksiz toplu taşımayla bozulmaz veya kopyalanmaz. Test konumu başarı kanıtı değildir: ilgili davranış, hata/rollback/hesap sınırı ve build/lint kapıları geçmelidir. Mocked API, gerçek HTTP/SQLite ve manuel browser kanıtları birbirinden ayrılır; gerçek kullanıcı DB'si hiçbir doğrulamada fixture değildir.

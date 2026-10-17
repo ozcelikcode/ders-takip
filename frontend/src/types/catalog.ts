@@ -5,6 +5,12 @@ export interface CatalogCategory {
   icon?: string | null;
 }
 
+export interface CatalogCategoryRecord extends CatalogCategory {
+  description?: string | null;
+  order: number;
+  isActive: boolean;
+}
+
 export interface CatalogTopic {
   id: number;
   name: string;

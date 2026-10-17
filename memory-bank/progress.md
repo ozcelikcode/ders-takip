@@ -1,12 +1,38 @@
 # Ders Takip Sistemi — İlerleme
 
-Son güncelleme: 16 Ekim 2026, A21 öğrenci katalog düzenleme alt paketi; yerel schema 006.
+Son güncelleme: 17 Ekim 2026, A21 site ayarları/yedekleme alt paketi; yerel schema 006.
 
 ## Genel durum
 
 İnceleme sonrası geliştirme başladı. Derleme ve kalite tabanı çalışır hale getirildi; kritik erişim/veri okuma sorunları ve tam kapsamlı site taramasında tespit edilen çalışma zamanı/UI/veri bütünlüğü hataları kapatıldı. Bütün audit bulguları çözülmüş veya üretime hazır kabul edilmez.
 
 Kurallar: `workingPrinciples.md`. Başlangıç incelemesi: `audits/2026-10-15-project-audit.md`. Uygulama kaydı: `implementation/2026-10-15-foundation.md`.
+
+## A21 — Site ayarları ve yedekleme (17 Ekim 2026)
+
+Site ayarları ve yedekleme alt paketi tamamlandı. AdminSettingsPage nötr tasarım ve etiketli alanlar kullanır; pristine form yeni okumayı izler, düzenlenen taslak refetch/bölüm değişiminde korunur. Shared schema ile yalnız değişen alanlar kaydedilir; no-op yazmaz, hata taslağı korur. Private settings read/write revision + account generation geç yanıtı sınırlar. Public hata private hatayı ezmez.
+
+BackupPanel hesaplı Query ile loading/error/retry/boş listeyi ayırır. Restore yalnız verified === true ise açılır; dirty taslakta restore/reset kapalıdır. Ayar/yedek/restore/reset tek busy/mount/epoch hook'u ve async ConfirmDialog kullanır; pending kapama/çift gönderim kilitlidir. Restore ack sonrası protected refetch öncesinde logout; reset ack sonrası account invalidation + private settings yeniden okuma vardır. Native confirm/gecikmeli reload kaldırıldı. Bildirim teslimatı/offsite/saklama altyapısı uygulanmış gibi gösterilmez.
+
+npm run check: **10 contracts + 130 backend + 138 frontend = 278 test**, atlanan yok; naming/strict/lint/production build başarılı. Yeni 18 ekran testi frontend/tests/admin-settings.test.tsx, 4 store yarış/sınır regresyonu var. Son frontend strict/root lint tekrar geçti. Temp production fixture: taslak/bölüm/dirty kilit, verified/unverified liste, manuel backup create/refetch, restore Escape/odak ve settings_only iptal doğrulandı. Temp snapshot checksum/integrity ve hesap/site ayarı korunması kontrol edildi; kaydedilmemiş taslak DB'ye yazılmadı. Tarayıcı restore/reset final onayı verilmedi; gerçek servis davranışları mevcut temp SQLite testlerinde geçer. Fixture sekme/süreç/DB temizlendi. Gerçek DB'de test yazması/migration/seed/reset/restore yok; schema 006 korunur. Tek root dev localhost:3000/API 5002 sağlıklı; log /tmp/study-tracker-user-management-dev.log. Detay: implementation/2026-10-17-admin-settings-and-backups.md.
+
+**Sıradaki:** A21 diğer modal/admin (özellikle yönetim özeti) nötr yüzey/kullanılmayan yol son denetimi; ardından A19 auth/user update/backup/plan DTO ve Plan ürün anlamı. A22/A04 ve bağımlılık backlog'u açık.
+
+## A21 — Kullanıcı yönetimi (17 Ekim 2026)
+
+Kullanıcı yönetimi/oluşturma tamamlandı: nötr yüzeyler, 20 kayıt/sayfa ve sunucu toplamı, bütün kayıtlarda sunucu araması, stabil ikincil ID sıralaması, hata/boş/retry ayrımı ve son satır sonrası sayfa düzeltmesi. Rol/durum/silme onayları sunucu başarısını bekler; hata, pending, çift gönderim, öz-koruma ve hesap epoch sınırı uygulanır. Oluşturma istemci/admin POST ortak Zod 4 sözleşmesiyle doğrulanır; parola tekrarı gönderilmez, form yeniden açılınca eski kimlik bilgileri temizlenir. EditorDialog ve useAccountMutation katalog ile kullanıcı akışlarında ortaktır; eski CatalogEditorDialog kaldırıldı.
+
+npm run check: **10 contracts + 130 backend + 116 frontend = 256 test**, atlanan yok; naming/strict/lint/production build başarılı. Yeni 13 frontend ekran testi frontend/tests/user-management.test.tsx, 5 temp HTTP/SQLite testi backend/tests/user-management.test.cjs, 2 sözleşme testi packages/contracts/tests/users.test.cjs içindedir. Production bundle ayrı atılabilir DB'de 102 kullanıcı/6 sayfa, ikinci sayfa, tüm katalog araması, silme onayı/iptal, oluşturma formu etiketleri ve Escape/odak dönüşüyle doğrulandı. Tarayıcıdan kalıcı silme/rol değişikliği/yeni parola kaydı yapılmadı; bunların davranışı otomatik test kapsamındadır. Fixture sekme/süreç/verisi temizlendi. Gerçek DB'de test yazması/migration/seed/reset/restore yok; schema 006 korunur. Tek root dev localhost:3000/API 5002, log /tmp/study-tracker-user-management-dev.log. Detay: implementation/2026-10-17-user-management.md.
+
+**A21 kalan:** AdminSettingsPage ayar/yedekleme taslak/refetch, dirty patch, backup GET hata/boş ayrımı ve restore/reset async onay/busy/error/epoch; verified === true kontrolü. Diğer kalan admin yüzeylerinin nötr tasarım incelemesi sürer. A19 kalan auth/user update/plan/backup DTO ve Plan sözleşmesi; A22/A04 açıktır.
+
+## A21 — Kategori yönetimi ve test düzeni (17 Ekim 2026)
+
+Kategori yönetimi alt paketi tamamlandı: nötr liste ve ortak CategoryEditorModal/CatalogEditorDialog; shared contracts doğrulaması, yalnız değişen alanların kaydı, hata/boş/retry ayrımı, pasif kategori görünürlüğü ve taslak koruması. Silme/taşıma onayı sunucu başarısını bekler; hedef açıkça seçilir, hata/pending/çift gönderim ve account epoch sınırı uygulanır. İç içe Dialog Escape/odak dönüşü testlidir. Eski inline form/ikon/mutation tekrarları kaldırıldı.
+
+Yeni 13 ekran regresyonu frontend/tests/category-management.test.tsx içindedir; tests/ Vitest, strict TypeScript ve ESLint kapsamına alındı. Mevcut src testleri korunur; topluca taşıma veya kopyalama yapılmadı. npm run check: **8 contracts + 125 backend + 103 frontend = 236 test**, atlanan yok; naming/strict/lint/production build başarılı. Ayrı production fixture'da create/edit/pasiflik/Escape ve taşıma onayı/iptal kontrol edildi. Temp API ile 3 özel/ortak/pasif ders taşındı; konu/ilerleme/seans/not/300 saniyelik interval geçmişi birebir korundu, integrity/FK temiz. Tarayıcı reload yeni kategori adını gösterdi. Fixture sekme/süreç/verisi temizlendi. Gerçek DB'de test yazması/migration/seed/reset/restore yok. Tek root dev localhost:3000/API 5002, log /tmp/study-tracker-category-management-dev.log. Detay: implementation/2026-10-17-category-management.md.
+
+**A21 kalan:** kullanıcı yönetimi/oluşturma ve ayar/yedekleme ekranlarının nötr tasarım, async onay, hata/taslak ve hesap sınırı tutarlılığı. Kategori ve öğrenci katalog UI/ortak planner tamamdır. A19/A22/A04 açık kalır.
 
 ## A21 — Öğrenci katalog düzenleme alt paketi (16 Ekim 2026)
 
@@ -127,9 +153,9 @@ Son aktivitelerin zaman sırası, dashboard konu verisi/sayıları, query respon
 | İngilizce/ASCII teknik adlandırma | Kural kaydedildi; otomatik ASCII kontrolü geçti, anlam incelemesi ayrı |
 | Backend/frontend typecheck | Başarılı, strict korunuyor |
 | Lint | ESLint 10 flat config, sıfır uyarı |
-| Ortak sözleşme test | 8 test; timezone/DST ve Preferences, ayar şemaları ve seans geçiş/yazma sözleşmeleri |
-| Backend test | 125 test; restore ad çakışması/yarışı ve geçmiş koruma dahil; admin agregasyonları/runtime ayarları/kullanıcı-konu ilerlemesi dahil; Pomodoro deadline/faz/yarış/migration/bakım regresyonları, arşivlenmiş ders/konu ilişkisi koruma ve ilişki temizleme (`null`), katalog `isActive=all` ve arşivlenmiş konu adı yeniden kullanımı, admin kendi hesabını koruma ve base64/null profil fotoğrafı regresyonları dahil |
-| Frontend test | 90 test; ortak katalog create/edit, yetki/dirty patch/pending/epoch ve arşiv/restore regresyonları dahil; ortak drag/resize/409/retry/epoch ve async dialog regresyonları dahil; sunucuya bağlı konu ilerlemesi dahil; ortak timer, gecikmiş callback/yanıt, hesap ayrımı, iki planner erişim ve haftalık takvim kartından düzenleme modalı açma regresyonları dahil; katalog transport/cache ve sıralama component regresyonları dahil; takvim alanları/gece yarısı/Pomodoro fazı ve sürümlü seans transport ve iki Pomodoro yüzeyinin sunucu onayı, auth/cache/çevrimdışı logout, tercih/kayıt/kullanıcı/tarih/bildirim/branding, gerçek HTTP refresh, hata sınırı ve sıralama |
+| Ortak sözleşme test | 10 test; managed-user create kuralları dahil; timezone/DST ve Preferences, ayar şemaları ve seans geçiş/yazma sözleşmeleri |
+| Backend test | 130 test; kullanıcı sayfalama/arama/create ve öz-koruma dahil; restore ad çakışması/yarışı ve geçmiş koruma dahil; admin agregasyonları/runtime ayarları/kullanıcı-konu ilerlemesi dahil; Pomodoro deadline/faz/yarış/migration/bakım regresyonları, arşivlenmiş ders/konu ilişkisi koruma ve ilişki temizleme (`null`), katalog `isActive=all` ve arşivlenmiş konu adı yeniden kullanımı, admin kendi hesabını koruma ve base64/null profil fotoğrafı regresyonları dahil |
+| Frontend test | 138 test; ayar taslağı/patch/private read yarışları ve backup async/epoch/kurtarma sınırları dahil; kullanıcı yönetimi/oluşturma, sunucu onayı ve hesap sınırları dahil; kategori yönetimi/hata/retry/hedef seçimi ve nested dialog/epoch dahil; ortak katalog create/edit, yetki/dirty patch/pending/epoch ve arşiv/restore regresyonları dahil; ortak drag/resize/409/retry/epoch ve async dialog regresyonları dahil; sunucuya bağlı konu ilerlemesi dahil; ortak timer, gecikmiş callback/yanıt, hesap ayrımı, iki planner erişim ve haftalık takvim kartından düzenleme modalı açma regresyonları dahil; katalog transport/cache ve sıralama component regresyonları dahil; takvim alanları/gece yarısı/Pomodoro fazı ve sürümlü seans transport ve iki Pomodoro yüzeyinin sunucu onayı, auth/cache/çevrimdışı logout, tercih/kayıt/kullanıcı/tarih/bildirim/branding, gerçek HTTP refresh, hata sınırı ve sıralama |
 | Backend/frontend production build | Başarılı, Vite 8 |
 | Production bundle tarayıcı smoke | Dolu geçici veride giriş/dashboard/dersler, planner/özet, arama, mobil özel seans oluşturma; açık/koyu görünüm |
 | GitHub CI | Workflow eklendi; uzak koşum yapılmadı |
@@ -151,16 +177,16 @@ Son aktivitelerin zaman sırası, dashboard konu verisi/sayıları, query respon
 | A09 | Uygulandı/testli: ayrı ölçülen aralıklar, study/break/pause, kayıpsız 004/coverage, gerçek süre özetleri; 5+3+5 dakika ve rollback. İnsan varlığı/offline geriye dönük ölçüm iddiası yok. |
 | A10 | Uygulandı/testli: reset safety/transaction ve ortak IMMEDIATE catalog servisi; atomik kategori taşıma/silme (+ `AdminCoursesPage` üzerinde kategori taşıma/silme UI'ı), FK/sürüm ile geçmişi koruyan ders silme, soft topic delete, arşivlenmiş konu adını yeniden kullanabilme, `isActive=all` listeleme ve sürümlü tam reorder. Hata enjeksiyonu ve eşzamanlı HTTP/SQLite regresyonları var; harici SQL domain kapsamı dışındadır. |
 | A11 | Uygulandı/testli: ortak v1 sözleşme, explicit legacy JSON migration/arşiv, tam round-trip, sıralı ve sunucu onaylı kayıt, hata ve hesap sınırı. Dil/bildirim/süre tercihi saklamak ilgili ürün altyapısının tamamlandığı anlamına gelmez. |
-| A12 | Yerel check zinciri çalışıyor; 223 test ve CI workflow var. Uzak CI ve kapsamlı E2E henüz yok. |
+| A12 | Yerel check zinciri çalışıyor; 278 test ve CI workflow var. Uzak CI ve kapsamlı E2E henüz yok. |
 | A13 | Uygulandı/testli: DB session, hash'li refresh rotasyonu/replay iptali, cookie/CSRF, logout/parola/rol iptali, ortak refresh ve geç yanıt izolasyonu. Production cookie dağıtımı ayrıca doğrulanmalı. |
 | A14 | Tanımlı kapsam uygulandı/testli: ortak account/resource/date/timezone key factory, kategori önbellek şekli uyumu, ilgili özetlere invalidation, gün anahtarı yenileme, memory-only tercihler, hesaplı bildirim geçmişi, profil/admin geç yanıt sınırı. Backend timezone doğruluğu sonraki A16 paketiyle tamamlandı. |
 | A15 | Uygulandı/testli: kalıcı sunucu deadline/faz/döngü, ortak timer hook/UI, reload/modal/çoklu sekme, sürüm/epoch koruması; gecikmiş worker ölçümü deadline ile sınırlı. Otomatik mola opt-in; otomatik çalışma yok. Yük/çok süreç operasyonu ayrıca doğrulanmalı. |
 | A16 | Uygulandı/testli: ortak timezone sınırı/form/takvim, kesişimli okuma ve günlük gerçek süre; UTC/İstanbul/New York ve DST 23/25 saat. Grid tekrarlanan saat için ayrı satır üretmez; kapsamlı DST pointer/E2E A22 altında açık. |
 | A17 | Uygulandı/testli: global admin özet endpoint'i ve dashboard, `includeStats` ile toplu kullanıcı istatistikleri (N+1 kalktı), all-time ölçülen süre. Büyük veri performansı ölçülmedi. |
 | A18 | Uygulandı/testli (API); UI elle doğrulanmadı: allowRegistration, maintenanceMode (admin hariç 503), sessionTimeout (boşta süresi, alt sınır 15 dk). maxStudentsPerCourse kaldırıldı (model yok). **Açık:** bildirim teslimatı yok, ürün kararı gerekir. |
-| A19 | Kısmen: MongoDB hata kalıntıları kaldırıldı, Sequelize 400/409 dönüşümü, kullanıcı yönetimi (`userController`) parametre/transaction/öz-koruma doğrulamaları ve profil/parola kuralları düzeltildi. **Eksikler:** `planController`, `userController`, `authController` ve `backupController` doğrulamalarının ortak `@study-tracker/contracts` Zod şemalarına taşınması ve `Plan` (`/api/plans`) modeli ile `StudySession` tabanlı Planner UI arasındaki sözleşme kopukluğunun giderilmesi açık. |
+| A19 | Kısmen: MongoDB hata kalıntıları kaldırıldı, Sequelize 400/409 dönüşümü, admin kullanıcı oluşturma ortak Zod 4 sözleşmesi ve kullanıcı yönetimi (`userController`) parametre/transaction/öz-koruma doğrulamaları ve profil/parola kuralları düzeltildi. **Eksikler:** `planController`, `userController`, `authController` ve `backupController` doğrulamalarının ortak `@study-tracker/contracts` Zod şemalarına taşınması ve `Plan` (`/api/plans`) modeli ile `StudySession` tabanlı Planner UI arasındaki sözleşme kopukluğunun giderilmesi açık. |
 | A20 | Lock, modern dev araçları, güvenli setup, üç workspace ve açık 001–006 migration var. Legacy şema evrimleri için sonraki explicit migration'lar gerekiyor. |
-| A21 | Kısmen: yedi ölü modül/eski script/paket kaldırıldı; route splitting tamam; iki timer motoru ortaklaştırıldı; `WeeklyPlanner` ve `DailyCalendar` etkileşim hataları düzeltildi. PlannerCalendar/usePlannerCalendar/kart/geometry ile iki takvim motoru birleştirildi; drag/resize/409/epoch ve async dialog testli. Öğrenci özel ders/konu edit/delete/archive/restore UI, tek öğrenci/admin ders editörü ve nötr ders yüzeyleri tamam. **Eksikler:** kalan kategori/kullanıcı/ayar ve diğer modal/admin nötr tasarım tutarlılığı. |
+| A21 | Kısmen: yedi ölü modül/eski script/paket kaldırıldı; route splitting tamam; iki timer motoru ortaklaştırıldı; `WeeklyPlanner` ve `DailyCalendar` etkileşim hataları düzeltildi. PlannerCalendar/usePlannerCalendar/kart/geometry ile iki takvim motoru birleştirildi; drag/resize/409/epoch ve async dialog testli. Öğrenci özel ders/konu edit/delete/archive/restore UI, tek öğrenci/admin ders editörü ve nötr ders yüzeyleri tamam. Kategori ve kullanıcı yönetimi/shared editor ve async onaylar da tamamlandı. Ayar/yedekleme taslak/dirty patch/read error/async onay/epoch da tamam. **Eksikler:** diğer modal/admin (özellikle yönetim özeti) nötr tasarım/kullanılmayan yol son denetimi. |
 | A22 | Kısmen: ErrorBoundary, mobil Dialog odak/Escape, `MoveSessionModal` klavye/etiket erişilebilirliği, skip link, reduced-motion ve 390 px manuel kontrolü var. **Eksikler:** Takvim sürükle-bırak ve boyutlandırma için klavye/dokunmatik alternatifleri, tam WCAG, Lighthouse ve otomatik Playwright E2E tamamlanmadı. |
 | A23 | Yeni kullanıcı gereksinimi uygulandı: bütün görünen site adı/admin kimlik ayarları ortak kaynaktan değişir; repo/domain değiştirmez. |
 | A24 | Uygulandı/testli: 006 migration, kullanıcıya özel `user_topic_progress`, GET/PUT uç noktaları, `CourseDetailPage` sunucu bağlantısı. Yerel 006 özel snapshot/veri koruma kontrolü ve schema backup id 6 ile uygulandı. Tarayıcı elle doğrulaması ayrıca açık. |
@@ -178,7 +204,10 @@ Node 24.21.0, npm 11.19.0; Vite 8.3.4, plugin-react 6.1.2, ESLint 10.12.0, types
 1. **A21 — Kalan Modal/Admin Tasarım Tutarlılığı:**
    - Planner ortaklaştırması tamamlandı/testli; ikinci işlem motoru açılmamalı.
    - Öğrenci özel ders/konu düzenleme-silme/arşiv/geri alma ve ortak öğrenci/admin ders editörü tamamlandı; yeniden uygulanmayacak.
-   - Kalan modal ve admin bileşenlerindeki eski renk/gradyan kalıntıları `design-system.md` kurallarına göre sadeleştirilecek.
+   - Kategori yönetimi tamamlandı; yeni ekran testleri frontend/tests altında kalite zincirine bağlı.
+   - Kullanıcı yönetimi/oluşturma, sunucu sayfalaması/araması ve async onaylar tamamlandı; yeniden uygulanmayacak.
+   - Site ayarları/yedekleme taslak/dirty patch/read error/async onay/epoch ve verified === true tamamlandı.
+   - Sırada diğer modal/admin (özellikle yönetim özeti) nötr yüzey/kullanılmayan yol son denetimi.
 2. **A19 — Kalan Sözleşme/DTO Birleştirmesi ve Plan Modeli:**
    - `userController`, `authController`, `planController` ve `backupController` doğrulamaları `@study-tracker/contracts` altına taşınacak; `/api/plans` uç noktalarının ürün içindeki yeri netleştirilecek.
 3. **A22 & A04 — Klavye/Dokunmatik Takvim, Otomatik E2E, Kurtarma ve Bağımlılıklar:**

@@ -1,575 +1,284 @@
-import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Dialog } from '@headlessui/react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen, Brain, Briefcase, Calculator, Code, Edit2, Globe, GraduationCap, Heart, Lightbulb, MoreHorizontal, Plus, Search, Sparkles, Tag, Target, Trash2, Users, X } from 'lucide-react';
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import toast from 'react-hot-toast';
-import { z } from 'zod';
+import { useQuery } from '@tanstack/react-query';
+import { Pencil, Plus, Search, Tag, Trash2, X } from 'lucide-react';
+import { useId, useState } from 'react';
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
+import { useCatalogMutation } from '../../hooks/useCatalogMutation';
+import { useAuthStore } from '../../store/authStore';
 import { categoriesAPI } from '../../services/api';
+import type { CatalogCategoryRecord } from '../../types/catalog';
+import { catalogIcon } from '../catalog/catalogIcons';
 import ConfirmDialog from '../common/ConfirmDialog';
+import CategoryEditorModal from './CategoryEditorModal';
 
-interface Category {
-  id: number;
-  name: string;
-  description?: string;
-  color: string;
-  icon?: string;
-  order: number;
-  isActive: boolean;
-}
-
-const categorySchema = z.object({
-  name: z.string().min(1, 'Kategori adı gereklidir').max(100, 'Kategori adı çok uzun'),
-  description: z.string().optional(),
-  color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Geçerli bir renk kodu girin'),
-  icon: z.string().optional(),
-  order: z.number().min(1, 'Sıra en az 1 olmalıdır'),
-  isActive: z.boolean(),
-});
-
-type CategoryForm = z.infer<typeof categorySchema>;
-
-interface CategoryManagementModalProps {
+interface Props {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const CategoryManagementModal: React.FC<CategoryManagementModalProps> = ({ isOpen, onClose }) => {
-  const accountKeys = useAccountQueryKeys();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [selectedIcon, setSelectedIcon] = useState('Tag');
-  const [deleteConfirm, setDeleteConfirm] = useState<{
-    isOpen: boolean;
-    categoryId: string;
-    categoryName: string;
-    migrateToCategoryId?: number;
-  }>({
-    isOpen: false,
-    categoryId: '',
-    categoryName: '',
-  });
-  const queryClient = useQueryClient();
-
-  const presetColors = [
-    '#3b82f6', // Blue
-    '#8b5cf6', // Purple
-    '#ec4899', // Pink
-    '#f97316', // Orange
-    '#eab308', // Yellow
-    '#22c55e', // Green
-    '#06b6d4', // Cyan
-    '#6366f1', // Indigo
-    '#ef4444', // Red
-    '#14b8a6', // Teal
-  ];
-
-  const availableIcons = [
-    { name: 'Tag', component: Tag },
-    { name: 'Briefcase', component: Briefcase },
-    { name: 'GraduationCap', component: GraduationCap },
-    { name: 'Sparkles', component: Sparkles },
-    { name: 'Heart', component: Heart },
-    { name: 'Code', component: Code },
-    { name: 'Users', component: Users },
-    { name: 'MoreHorizontal', component: MoreHorizontal },
-    { name: 'BookOpen', component: BookOpen },
-    { name: 'Calculator', component: Calculator },
-    { name: 'Globe', component: Globe },
-    { name: 'Brain', component: Brain },
-    { name: 'Target', component: Target },
-    { name: 'Lightbulb', component: Lightbulb },
-  ];
-
-  const { data: categoriesData, isLoading } = useQuery({
-    queryKey: accountKeys.catalog('categories'),
-    queryFn: () => categoriesAPI.getCategories(),
-    enabled: isOpen,
-  });
-
-  const categories: Category[] = Array.isArray(categoriesData)
-    ? categoriesData
-    : categoriesData?.data?.data?.categories || [];
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-    watch,
-  } = useForm<CategoryForm>({
-    resolver: zodResolver(categorySchema),
-    defaultValues: {
-      name: '',
-      description: '',
-      color: '#3b82f6',
-      icon: 'Tag',
-      order: categories.length + 1,
-      isActive: true,
-    },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (data: CategoryForm) => categoriesAPI.createCategory(data),
-    onSuccess: () => {
-      toast.success('Kategori başarıyla oluşturuldu');
-      queryClient.invalidateQueries({ queryKey: accountKeys.catalog() });
-      handleCloseCreateModal();
-    },
-    onError: () => {
-      toast.error('Kategori oluşturulurken hata oluştu');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CategoryForm> }) =>
-      categoriesAPI.updateCategory(id, data),
-    onSuccess: () => {
-      toast.success('Kategori başarıyla güncellendi');
-      queryClient.invalidateQueries({ queryKey: accountKeys.catalog() });
-      handleCloseCreateModal();
-    },
-    onError: () => {
-      toast.error('Kategori güncellenirken hata oluştu');
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: ({ id, migrateToCategoryId }: { id: string; migrateToCategoryId?: number }) =>
-      categoriesAPI.deleteCategory(id, migrateToCategoryId),
-    onSuccess: () => {
-      toast.success('Kategori başarıyla silindi');
-      queryClient.invalidateQueries({ queryKey: accountKeys.catalog() });
-    },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error?.message || 'Kategori silinirken hata oluştu');
-    },
-  });
-
-  const onSubmit = (data: CategoryForm) => {
-    const formData = {
-      ...data,
-      icon: selectedIcon,
-    };
-
-    if (editingCategory) {
-      updateMutation.mutate({
-        id: editingCategory.id.toString(),
-        data: formData,
-      });
-    } else {
-      createMutation.mutate(formData);
-    }
-  };
-
-  const handleCloseCreateModal = () => {
-    setIsCreateModalOpen(false);
-    setEditingCategory(null);
-    setSelectedIcon('Tag');
-    reset({
-      name: '',
-      description: '',
-      color: '#3b82f6',
-      icon: 'Tag',
-      order: categories.length + 1,
-      isActive: true,
-    });
-  };
-
-  const handleEdit = (category: Category) => {
-    setEditingCategory(category);
-    setSelectedIcon(category.icon || 'Tag');
-    setValue('name', category.name);
-    setValue('description', category.description || '');
-    setValue('color', category.color);
-    setValue('icon', category.icon || 'Tag');
-    setValue('order', category.order);
-    setValue('isActive', category.isActive);
-    setIsCreateModalOpen(true);
-  };
-
-  const handleDelete = (category: Category) => {
-    const fallbackTarget = categories.find((c) => c.id !== category.id);
-    setDeleteConfirm({
-      isOpen: true,
-      categoryId: category.id.toString(),
-      categoryName: category.name,
-      ...(fallbackTarget ? { migrateToCategoryId: fallbackTarget.id } : {}),
-    });
-  };
-
-  const confirmDelete = () => {
-    if (deleteConfirm.categoryId) {
-      deleteMutation.mutate({
-        id: deleteConfirm.categoryId,
-        ...(deleteConfirm.migrateToCategoryId !== undefined ? { migrateToCategoryId: deleteConfirm.migrateToCategoryId } : {}),
-      });
-      setDeleteConfirm({
-        isOpen: false,
-        categoryId: '',
-        categoryName: '',
-      });
-    }
-  };
-
-  const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getIconComponent = (iconName?: string) => {
-    const icon = availableIcons.find((i) => i.name === iconName);
-    return icon ? icon.component : Tag;
-  };
-
+function CategoryDeleteDialog({
+  category,
+  categories,
+  onClose,
+}: {
+  category: CatalogCategoryRecord;
+  categories: CatalogCategoryRecord[];
+  onClose: () => void;
+}) {
+  const [targetId, setTargetId] = useState('');
+  const mutation = useCatalogMutation();
+  const inputId = useId();
+  const targets = categories.filter((item) => item.id !== category.id);
+  const validTarget =
+    !targetId || targets.some((item) => String(item.id) === targetId);
   return (
-    <>
-      <AnimatePresence>
-        {isOpen && (
-          <Dialog
-            as={motion.div}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            open={isOpen}
-            onClose={onClose}
-            className="relative z-50"
-          >
-            <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+    <ConfirmDialog
+      isOpen
+      onClose={onClose}
+      title="Kategoriyi sil"
+      confirmText="Kategoriyi sil"
+      type="danger"
+      message={`“${category.name}” kategorisi kalıcı olarak silinecek. Kategori doluysa bütün kullanıcıların aktif ve pasif derslerini taşıyacağınız hedefi seçin. Dersler, konular, seanslar ve ilerleme kayıtları korunur.`}
+      onConfirm={() =>
+        validTarget
+          ? mutation.save(
+              () =>
+                categoriesAPI.deleteCategory(
+                  String(category.id),
+                  targetId ? Number(targetId) : undefined,
+                ),
+              'Kategori silindi. Dersler ve çalışma geçmişi korundu.',
+            )
+          : false
+      }
+    >
+      <div className="space-y-2">
+        <label htmlFor={inputId} className="block text-sm font-medium">
+          Derslerin taşınacağı kategori
+        </label>
+        <select
+          id={inputId}
+          className="input"
+          disabled={mutation.isPending}
+          value={targetId}
+          onChange={(event) => setTargetId(event.target.value)}
+          aria-invalid={!validTarget}
+        >
+          <option value="">Hedef seçin (kategori boşsa gerekmez)</option>
+          {targets.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+              {!item.isActive ? ' · Pasif' : ''}
+            </option>
+          ))}
+        </select>
+        {!validTarget && (
+          <p role="alert" className="text-sm text-red-600">
+            Seçilen hedef artık bulunmuyor. Başka bir kategori seçin.
+          </p>
+        )}
+        {targets.length === 0 && (
+          <p className="text-sm text-[var(--muted)]">
+            Dolu bir kategoriyi silmeden önce başka bir kategori ekleyin.
+          </p>
+        )}
+        {mutation.errorMessage && (
+          <p role="alert" className="text-sm text-red-600">
+            {mutation.errorMessage}
+          </p>
+        )}
+      </div>
+    </ConfirmDialog>
+  );
+}
 
-            <div className="fixed inset-0 flex items-center justify-center p-4">
-              <Dialog.Panel
-                as={motion.div}
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                className="mx-auto max-w-4xl w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl max-h-[90vh] flex flex-col"
+function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
+  const keys = useAccountQueryKeys();
+  const searchId = useId();
+  const [search, setSearch] = useState('');
+  const [editor, setEditor] = useState<{
+    category: CatalogCategoryRecord | null;
+  } | null>(null);
+  const [deleting, setDeleting] = useState<CatalogCategoryRecord | null>(null);
+  const query = useQuery({
+    queryKey: keys.catalog('categories'),
+    queryFn: () => categoriesAPI.getCategories(),
+  });
+  const categories: CatalogCategoryRecord[] =
+    query.data?.data.data?.categories ?? [];
+  const filtered = categories.filter((category) =>
+    category.name
+      .toLocaleLowerCase('tr')
+      .includes(search.trim().toLocaleLowerCase('tr')),
+  );
+  const close = () => {
+    if (!editor && !deleting) onClose();
+  };
+  return (
+    <Dialog open onClose={close} className="relative z-50">
+      <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
+      <div className="fixed inset-0 overflow-y-auto">
+        <div className="flex min-h-full items-center justify-center p-4">
+          <Dialog.Panel className="panel w-full max-w-3xl shadow-xl">
+            <div className="flex items-start justify-between gap-4 border-b p-5 sm:p-6">
+              <div>
+                <Dialog.Title className="text-lg font-medium">
+                  Kategori yönetimi
+                </Dialog.Title>
+                <Dialog.Description className="mt-2 text-sm text-[var(--muted)]">
+                  Tüm kullanıcıların derslerini gruplandıran ortak kategorileri
+                  yönetin.
+                </Dialog.Description>
+              </div>
+              <button
+                className="icon-button"
+                onClick={close}
+                aria-label="Kategori yönetimini kapat"
               >
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                  <div>
-                    <Dialog.Title className="text-xl font-semibold text-gray-900 dark:text-white">
-                      Kategori Yönetimi
-                    </Dialog.Title>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      İş, Eğitim, Projeler gibi görev kategorilerini yönetin
-                    </p>
-                  </div>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-5 p-5 sm:p-6">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative min-w-0 flex-1 basis-48">
+                  <label htmlFor={searchId} className="sr-only">
+                    Kategori ara
+                  </label>
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-[var(--muted)]" />
+                  <input
+                    id={searchId}
+                    className="input pl-9"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Kategori ara…"
+                  />
+                </div>
+                <button
+                  className="btn btn-primary"
+                  disabled={!query.isSuccess}
+                  onClick={() => setEditor({ category: null })}
+                >
+                  <Plus className="h-4 w-4" />
+                  Kategori ekle
+                </button>
+              </div>
+              {query.isPending ? (
+                <p
+                  role="status"
+                  className="py-8 text-center text-sm text-[var(--muted)]"
+                >
+                  Kategoriler yükleniyor…
+                </p>
+              ) : query.isError ? (
+                <div role="alert" className="panel p-5 text-sm">
+                  Kategoriler yüklenemedi.{' '}
                   <button
-                    onClick={onClose}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="btn btn-secondary ml-2"
+                    onClick={() => void query.refetch()}
                   >
-                    <X className="w-6 h-6" />
+                    Tekrar dene
                   </button>
                 </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
-                  {/* Search and Create */}
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="flex-1 relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Kategori ara..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-800 dark:text-white"
-                      />
-                    </div>
-                    <button
-                      onClick={() => setIsCreateModalOpen(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Yeni Kategori
-                    </button>
-                  </div>
-
-                  {/* Categories List */}
-                  {isLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {filteredCategories.map((category) => {
-                        const IconComponent = getIconComponent(category.icon);
-                        return (
+              ) : (
+                <>
+                  <p className="text-xs text-[var(--muted)]">
+                    {categories.length} kategori · {filtered.length} sonuç
+                  </p>
+                  <div className="max-h-[50vh] space-y-2 overflow-y-auto">
+                    {filtered.map((category) => {
+                      const Icon = catalogIcon(category.icon ?? 'Tag');
+                      return (
+                        <article
+                          key={category.id}
+                          className="panel flex flex-wrap items-center gap-3 p-4"
+                        >
                           <div
-                            key={category.id}
-                            className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border"
+                            style={{ color: category.color }}
                           >
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-center gap-3 flex-1">
-                                <div
-                                  className="w-10 h-10 rounded-lg flex items-center justify-center"
-                                  style={{ backgroundColor: category.color }}
-                                >
-                                  <IconComponent className="w-5 h-5 text-white" />
-                                </div>
-                                <div className="flex-1">
-                                  <h3 className="font-medium text-gray-900 dark:text-white">
-                                    {category.name}
-                                  </h3>
-                                  {category.description && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                                      {category.description}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => handleEdit(category)}
-                                  className="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(category)}
-                                  className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
+                            <Icon className="h-4 w-4" />
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </Dialog.Panel>
-            </div>
-          </Dialog>
-        )}
-      </AnimatePresence>
-
-      {/* Create/Edit Modal */}
-      <AnimatePresence>
-        {isCreateModalOpen && (
-          <Dialog
-            as={motion.div}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            open={isCreateModalOpen}
-            onClose={handleCloseCreateModal}
-            className="relative z-[60]"
-          >
-            <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
-
-            <div className="fixed inset-0 flex items-center justify-center p-4">
-              <Dialog.Panel
-                as={motion.div}
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                className="mx-auto max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl flex flex-col max-h-[90vh]"
-              >
-                <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
-                  <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-                    <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {editingCategory ? 'Kategoriyi Düzenle' : 'Yeni Kategori Oluştur'}
-                    </Dialog.Title>
-                  </div>
-
-                  <div className="p-6 space-y-3 overflow-y-scroll flex-1">
-                    {/* Name */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Kategori Adı *
-                      </label>
-                      <input
-                        {...register('name')}
-                        type="text"
-                        placeholder="ör. İş, Eğitim, Projeler"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
-                      />
-                      {errors.name && (
-                        <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-                      )}
-                    </div>
-
-                    {/* Description */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Açıklama
-                      </label>
-                      <textarea
-                        {...register('description')}
-                        rows={2}
-                        placeholder="Kategori açıklaması..."
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
-                      />
-                    </div>
-
-                    {/* Color */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Renk *
-                      </label>
-                      <div className="grid grid-cols-10 gap-2">
-                        {presetColors.map((color) => (
-                          <button
-                            key={color}
-                            type="button"
-                            onClick={() => setValue('color', color)}
-                            className={`w-8 h-8 rounded-lg border-2 transition-all ${
-                              watch('color') === color
-                                ? 'border-gray-900 dark:border-white scale-110'
-                                : 'border-gray-300 dark:border-gray-600 hover:scale-105'
-                            }`}
-                            style={{ backgroundColor: color }}
-                            title={color}
-                          />
-                        ))}
-                      </div>
-                      {errors.color && (
-                        <p className="mt-1 text-sm text-red-600">{errors.color.message}</p>
-                      )}
-                    </div>
-
-                    {/* Icon */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        İkon
-                      </label>
-                      <div className="grid grid-cols-7 gap-1.5">
-                        {availableIcons.map((icon) => {
-                          const IconComp = icon.component;
-                          return (
+                          <div className="min-w-0 flex-1 basis-32">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="break-words text-sm font-medium">
+                                {category.name}
+                              </h3>
+                              {!category.isActive && (
+                                <span className="badge border text-[var(--muted)]">
+                                  Pasif
+                                </span>
+                              )}
+                            </div>
+                            {category.description && (
+                              <p className="mt-1 break-words text-sm text-[var(--muted)]">
+                                {category.description}
+                              </p>
+                            )}
+                            <p className="mt-1 text-xs text-[var(--muted)]">
+                              Sıra: {category.order}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
                             <button
-                              key={icon.name}
-                              type="button"
-                              onClick={() => setSelectedIcon(icon.name)}
-                              className={`p-1.5 rounded border-2 transition-colors ${
-                                selectedIcon === icon.name
-                                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                                  : 'border-gray-300 dark:border-gray-600 hover:border-primary-300'
-                              }`}
+                              className="icon-button"
+                              aria-label={`${category.name} kategorisini düzenle`}
+                              onClick={() => setEditor({ category })}
                             >
-                              <IconComp className="w-4 h-4 mx-auto text-gray-700 dark:text-gray-300" />
+                              <Pencil className="h-4 w-4" />
                             </button>
-                          );
-                        })}
+                            <button
+                              className="icon-button"
+                              aria-label={`${category.name} kategorisini sil`}
+                              onClick={() => setDeleting(category)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                    {filtered.length === 0 && (
+                      <div className="py-8 text-center">
+                        <Tag className="mx-auto mb-3 h-6 w-6 text-[var(--muted)]" />
+                        <p className="text-sm text-[var(--muted)]">
+                          {search.trim()
+                            ? 'Aramanıza uygun kategori bulunamadı.'
+                            : 'Henüz kategori eklenmedi.'}
+                        </p>
                       </div>
-                    </div>
-
-                    {/* Order and Active */}
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Order */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Sıra *
-                        </label>
-                        <input
-                          {...register('order', { valueAsNumber: true })}
-                          type="number"
-                          min="1"
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
-                        />
-                        {errors.order && (
-                          <p className="mt-1 text-sm text-red-600">{errors.order.message}</p>
-                        )}
-                      </div>
-
-                      {/* Is Active */}
-                      <div className="flex items-end pb-2">
-                        <div className="flex items-center gap-2">
-                          <input
-                            {...register('isActive')}
-                            type="checkbox"
-                            id="isActive"
-                            className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                          />
-                          <label htmlFor="isActive" className="text-sm text-gray-700 dark:text-gray-300">
-                            Aktif
-                          </label>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
-
-                  <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={handleCloseCreateModal}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                    >
-                      İptal
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={createMutation.isPending || updateMutation.isPending}
-                      className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50"
-                    >
-                      {createMutation.isPending || updateMutation.isPending
-                        ? 'Kaydediliyor...'
-                        : editingCategory
-                        ? 'Güncelle'
-                        : 'Oluştur'}
-                    </button>
-                  </div>
-                </form>
-              </Dialog.Panel>
+                </>
+              )}
             </div>
-          </Dialog>
-        )}
-      </AnimatePresence>
-
-      {/* Delete Confirmation */}
-      <ConfirmDialog
-        isOpen={deleteConfirm.isOpen}
-        onClose={() =>
-          setDeleteConfirm({
-            isOpen: false,
-            categoryId: '',
-            categoryName: '',
-          })
-        }
-        onConfirm={confirmDelete}
-        title="Kategoriyi Sil"
-        message={`"${deleteConfirm.categoryName}" kategorisini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
-        type="danger"
-      >
-        {categories.filter((c) => c.id.toString() !== deleteConfirm.categoryId).length > 0 && (
-          <div className="space-y-1.5">
-            <label htmlFor="migrateToCategoryId" className="block text-xs font-medium text-gray-700 dark:text-gray-300">
-              Varsa derslerin taşınacağı hedef kategori
-            </label>
-            <select
-              id="migrateToCategoryId"
-              value={deleteConfirm.migrateToCategoryId ?? ''}
-              onChange={(e) => {
-                const val = e.target.value ? Number(e.target.value) : undefined;
-                setDeleteConfirm((prev) => ({
-                  isOpen: prev.isOpen,
-                  categoryId: prev.categoryId,
-                  categoryName: prev.categoryName,
-                  ...(val !== undefined ? { migrateToCategoryId: val } : {}),
-                }));
-              }}
-              className="input text-sm"
-            >
-              {categories
-                .filter((c) => c.id.toString() !== deleteConfirm.categoryId)
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-        )}
-      </ConfirmDialog>
-    </>
+          </Dialog.Panel>
+        </div>
+      </div>
+      {editor && (
+        <CategoryEditorModal
+          key={editor.category?.id ?? 'new'}
+          category={editor.category}
+          nextOrder={
+            Math.max(0, ...categories.map((category) => category.order)) + 1
+          }
+          onClose={() => setEditor(null)}
+        />
+      )}
+      {deleting && (
+        <CategoryDeleteDialog
+          key={deleting.id}
+          category={deleting}
+          categories={categories}
+          onClose={() => setDeleting(null)}
+        />
+      )}
+    </Dialog>
   );
-};
+}
 
-export default CategoryManagementModal;
+export default function CategoryManagementModal({ isOpen, onClose }: Props) {
+  const { user } = useAuthStore();
+  return isOpen && user?.role === 'admin' ? (
+    <CategoryManagement onClose={onClose} />
+  ) : null;
+}

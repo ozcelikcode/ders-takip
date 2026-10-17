@@ -51,7 +51,7 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction):
 
     const { count, rows: users } = await User.findAndCountAll({
       where,
-      order: [[safeSortBy, safeSortOrder]],
+      order: [[safeSortBy, safeSortOrder], ['id', safeSortOrder]],
       limit: limitNum,
       offset,
       attributes: { exclude: ['password'] },

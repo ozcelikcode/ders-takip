@@ -5,6 +5,7 @@ export * from './time.js';
 export * from './studyTracking.js';
 export * from './catalog.js';
 export * from './pomodoro.js';
+export * from './users.js';
 
 export const colorSchema = z.string().regex(/^#[0-9a-f]{6}$/i);
 export const preferencesSchema = z.object({

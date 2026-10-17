@@ -75,4 +75,19 @@ A21 planner alt paketinde günlük/haftalık kartlar tek CalendarSessionCard ve 
 
 CoursesPage, CourseDetailPage ve AdminCoursesPage nötr panel/yüzey/typography/btn sınıflarını kullanır. Ders rengi küçük simgeyle sınırlıdır; konu durumları renkli büyük kart yüzeyi yerine erişilebilir pressed state taşıyan kompakt düğmelerle gösterilir. Kartın detay linki ve düzenle/sil düğmeleri ayrı etkileşim alanıdır. Mobilde kontroller/satırlar wrap eder; bu pakette yeni manuel mobil/touch doğrulaması yapılmadı.
 
-CourseEditorModal / TopicEditorModal tek CatalogEditorDialog kullanır; etiketli native input/select, doğrulama açıklaması, server error, pending ve Headless UI focus/Escape vardır. Admin için ikinci bir ders formu tutulmaz. Arşiv/sil onayları farklı veri etkilerini açıklar. Kalan kategori/kullanıcı/ayar modal ve admin yüzeyleri A21'de açıktır; tam WCAG iddiası yoktur. Kanıt ve 223 testlik güncel kalite tabanı: implementation/2026-10-16-catalog-editing.md.
+CourseEditorModal / TopicEditorModal tek EditorDialog kullanır; etiketli native input/select, doğrulama açıklaması, server error, pending ve Headless UI focus/Escape vardır. Admin için ikinci bir ders formu tutulmaz. Arşiv/sil onayları farklı veri etkilerini açıklar. Kalan ayar/yedekleme modal ve admin yüzeyleri A21'de açıktır; tam WCAG iddiası yoktur. Kanıt ve 223 testlik güncel kalite tabanı: implementation/2026-10-16-catalog-editing.md.
+
+
+## Kategori yönetimi — 17 Ekim
+
+Liste ve CategoryEditorModal nötr yüzey/tipografi/düğme token'larını kullanır; renk yalnız küçük simgededir. Eski renkli preset butonları/ikinci ikon haritası yerine etiketli HEX alanı ve ortak ikon select kullanılır. Pasif kayıt görünürdür. Parent yönetim Dialog'u ve çocuk edit/onay Headless UI odak/Escape sınırını paylaşır; pending kapama kilidi ve hata/boş ayrımı vardır. Masaüstü production fixture ve 13 yeni davranış testi doğrulandı; mobil/touch/tam WCAG iddiası yoktur. Kullanıcı/ayar/yedekleme yüzeyleri A21'de açık kalır. Detay: implementation/2026-10-17-category-management.md.
+
+
+## Kullanıcı yönetimi — 17 Ekim 2026
+
+Admin kullanıcı listesi nötr panel satırları, ince sınır, tipografik rol/pasif/öz-hesap işaretleri ve ölçülen çalışma özetini kullanır; renkli istatistik kartları kaldırıldı. Erişilebilir adlandırılmış arama/sayfalama/menü; EditorDialog etiketli alanları, inline hata ve pending fieldset kilidi sunar. Rol/durum/silme onayları somut etkisini açıklar ve sunucuyu bekler. Form Escape/odak dönüşü tarayıcıda, pending/epoch/hata testlerde doğrulandı; kapsamlı WCAG/mobil E2E hâlâ A22 kapsamındadır.
+
+
+## Site ayarları ve yedekleme — 17 Ekim 2026
+
+AdminSettingsPage nötr PageHeader, sarmalanan bölüm düğmeleri, etiketli input/checkbox ve açık dirty/pending/error durumunu kullanır. BackupPanel ince sınır ve yatay kaydırılabilen caption/başlıklı tabloyla tarih/tür/boyut/doğrulamayı gösterir; doğrulanmamış kayıt kilitlidir. Reset/restore ortak async ConfirmDialog kullanır; kapsam ve oturum etkisi açıktır. Bildirim teslimatı/offsite/saklama altyapısının bulunmadığı belirtilir. Masaüstü fixture taslak/bölüm/Escape/odak/backup create doğrulandı; mobil/WCAG/E2E iddiası yoktur. Detay: implementation/2026-10-17-admin-settings-and-backups.md.

@@ -2,7 +2,7 @@ import { Dialog } from '@headlessui/react';
 import { X } from 'lucide-react';
 import type { ReactNode, FormEvent } from 'react';
 
-export default function CatalogEditorDialog({
+export default function EditorDialog({
   title,
   description,
   pending,

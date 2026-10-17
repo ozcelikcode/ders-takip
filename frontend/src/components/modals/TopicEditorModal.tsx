@@ -8,7 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useCatalogMutation } from '../../hooks/useCatalogMutation';
 import { canManageCourse } from '../../lib/catalogAccess';
 import type { CatalogCourse, CatalogTopic } from '../../types/catalog';
-import CatalogEditorDialog from '../catalog/CatalogEditorDialog';
+import EditorDialog from '../common/EditorDialog';
 
 interface Props {
   isOpen: boolean;
@@ -96,7 +96,7 @@ function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
     if (saved) onClose();
   };
   return (
-    <CatalogEditorDialog
+    <EditorDialog
       title={topic ? 'Konuyu düzenle' : 'Konu ekle'}
       description={
         topic?.isActive === false
@@ -167,7 +167,7 @@ function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
           {error('difficulty')}
         </div>
       </div>
-    </CatalogEditorDialog>
+    </EditorDialog>
   );
 }
 

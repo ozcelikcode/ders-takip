@@ -1,6 +1,6 @@
 # Ders Takip Sistemi — Sistem Örüntüleri
 
-Kaynak kodla doğrulama: 16 Ekim 2026, katalog düzenleme ve ortak planlayıcı paketleri. Bu belge mevcut davranışla hedef standardı ayrı tutar. Güncel uygulama kayıtları implementation/2026-10-16-catalog-editing.md ve implementation/2026-10-16-shared-planner.md içindedir; foundation kaydı tarihseldir.
+Kaynak kodla doğrulama: 17 Ekim 2026, kategori yönetimi ve önceki katalog/planlayıcı paketleri. Bu belge mevcut davranışla hedef standardı ayrı tutar. Güncel uygulama kayıtları implementation/2026-10-16-catalog-editing.md ve implementation/2026-10-16-shared-planner.md içindedir; foundation kaydı tarihseldir.
 
 ## Mevcut mimari
 
@@ -61,7 +61,7 @@ Query key'i sorgu sonucunu belirleyen kimlik/filtrelere bağlamak gerekir. Inval
 
 ## Hâlâ açık iş kuralı sorunları
 
-- Günlük/haftalık planner tek ortak renderer/işlem hook/kart/geometry kullanır. İki Pomodoro motoru A15 ile tek ortak hook/UI ve sunucu faz makinesine taşındı. A21 öğrenci katalog UI tamamdır; kalan kategori/kullanıcı/ayar ve diğer tasarım yüzeyleri açıktır.
+- Günlük/haftalık planner tek ortak renderer/işlem hook/kart/geometry kullanır. İki Pomodoro motoru A15 ile tek ortak hook/UI ve sunucu faz makinesine taşındı. A21 öğrenci katalog ve kategori yönetimi UI tamamdır; kullanıcı/ayar/yedekleme sonraki paketlerle tamamlandı; diğer tasarım yüzeylerinin son denetimi açıktır.
 - Preferences/site settings ortak contracts Zod 4 şeması/tiplerinden gelir; diğer form/API sözleşmelerinde Zod 3/Joi/manual ayrışması sürer.
 - Katalog transaction kapsamı tamamlandı; genel metadata yazmaları last-writer-wins, reorder bütün aktif liste/sürüm snapshot’ını denetler. Kullanıcı-konu ilerlemesi artık kullanıcıya özel user_topic_progress tablosundadır (A24).
 
@@ -154,6 +154,27 @@ WeeklyPlanner/DailyCalendar yalnız mode adaptörleridir. PlannerCalendar tek gr
 
 ## Katalog düzenleme sınırı — 16 Ekim
 
-CourseEditorModal öğrenci/admin create/edit, TopicEditorModal konu create/edit için tektir. Ortak CatalogEditorDialog ve CatalogDeleteDialog kullanılır; eskileri kod tabanında tutulmaz. Yeni formlar Zod 4 contracts create şemalarıyla doğrulanır; edit yalnız değişen izinli alanları yollar. Form snapshot'ı background refetch ile sıfırlanmaz, metadata halen last-writer-wins'tir. Frontend canManageCourse ortak görünüm politikasıdır; services/catalog.ts nihai yetki/transaction sınırıdır.
+CourseEditorModal öğrenci/admin create/edit, TopicEditorModal konu create/edit için tektir. Ortak EditorDialog ve CatalogDeleteDialog kullanılır; eskileri kod tabanında tutulmaz. Yeni formlar Zod 4 contracts create şemalarıyla doğrulanır; edit yalnız değişen izinli alanları yollar. Form snapshot'ı background refetch ile sıfırlanmaz, metadata halen last-writer-wins'tir. Frontend canManageCourse ortak görünüm politikasıdır; services/catalog.ts nihai yetki/transaction sınırıdır.
 
 useCatalogMutation busy ref/epoch/sunucu onayı kullanır; catalog, sessions ve topic-progress account prefix'lerini yeniler. Arşiv sorgusu yalnız istenince açılır; arşivde reorder/progress yazımı yoktur. Restore aktif ad çakışmasını ad değişmese de transaction içinde doğrular; 409 otomatik tekrar edilmez. Geri alınan konunun kullanıcı ilerlemesi mevcut DB kaydından okunur. Ders silme kalıcı katalog/progress cascade ve session/interval koruma politikasını, konu silme geri alınabilir arşiv politikasını açıkça gösterir.
+
+
+## Kategori yönetimi — 17 Ekim
+
+CategoryManagementModal admin sınırından sonra listeler; CategoryEditorModal ortak EditorDialog ve useCatalogMutation kullanır. Create/edit doğrudan contracts kategori şemasıyla doğrulanır, dirty patch ve taslak snapshot'ı vardır. Silme onayı aynı parent Dialog'un altındadır; açık taşıma hedefi/async başarı/hata/kapama kilidi uygulanır, katalog ve seans/ilerleme cache'leri yenilenir. Ortak icon registry mevcut kategori ikonlarını da kapsar. İkinci form/mutation motoru yoktur. Backend transaction ve veri sözleşmeleri değişmedi.
+
+Yeni feature akış testleri frontend/tests altında, eski src colocation testleriyle aynı Vitest/strict/lint kapısındadır. Tek senaryo iki konumda kopyalanmaz. Gerçek SQL/yetki/rollback kanıtı backend/tests temp SQLite testlerinden gelir; mocked frontend API E2E sayılmaz. Kanıt/sınırlar implementation/2026-10-17-category-management.md içindedir.
+
+
+## Kullanıcı yönetimi ve ortak mutation sınırı — 17 Ekim 2026
+
+AdminUsersPage sunucunun pagination/total verisi ve submit edilen search parametresini account query key içinde taşır; sayfa başına 20, includeStats toplu okuma kullanır. Tarihler görüntüleyen kullanıcı timezone tercihine bağlıdır. Admin POST /users ve CreateUserModal aynı strict createManagedUserSchema kullanır; diğer auth/update ve runtime response DTO geçişi A19 içinde açıktır. Liste/patch transport tipleri contracts içinde paylaşılır.
+
+EditorDialog katalog ve kullanıcı formunun tek dialog bileşenidir. useAccountMutation busy ref + mounted/epoch + awaited invalidation/inline error katmanıdır; useCatalogMutation katalog kaynak adaptörüdür. Kullanıcı mutationları current-account resource prefix tamamını yeniler; katalog mutationları catalog/session/progress alt prefixlerini yeniler. Hesap değişimi/unmount sonrası geciken onay UI başarısı veya cache yenilemesi yaratmaz. ConfirmDialog async false sonucunda açık kalır.
+
+
+## Yönetim ayarları ve kurtarma UI sınırı — 17 Ekim 2026
+
+SettingsForm baseline/draft ile pristine refetch ve dirty korumayı ayırır; shared siteSettingsSchema normalizasyonu sonrası settingsPatchSchema ile yalnız değişmiş alanlar kaydedilir. Store private read/write revision + account generation eski okuma/yazmayı sınırlar. Public branding hatası private read error alanına yazmaz. Sunucunun mevcut IMMEDIATE settings patch servisi korunur; optimistic version eklenmedi.
+
+BackupPanel account resource(backups) sorgusudur; verified === true restore açar. Tek useAccountMutation settings/create/restore/reset yazmalarını serileştirir; ConfirmDialog async sonucu bekler. Restore sonrası protected refetch öncesinde logout yapılır. Reset account resource prefix invalidation + private settings tekrar okuma yapar; başarısız okuma default form yerine retry gösterir. Backend safety snapshot/rollback/bakım/transaction değişmedi. useAccountMutation.clearError yeni işlemde önceki hatayı temizler.

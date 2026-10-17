@@ -24,7 +24,7 @@ export default [
     },
   },
   {
-    files: ['frontend/src/**/*.{ts,tsx}'],
+    files: ['frontend/{src,tests}/**/*.{ts,tsx}'],
     languageOptions: { globals: globals.browser },
     plugins: { 'react-hooks': reactHooks },
     rules: { 'react-hooks/rules-of-hooks': 'error' },

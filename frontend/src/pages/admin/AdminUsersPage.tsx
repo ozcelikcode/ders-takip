@@ -1,363 +1,395 @@
-import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Menu } from '@headlessui/react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { format, parseISO } from 'date-fns';
-import { tr } from 'date-fns/locale';
-import { motion } from 'framer-motion';
-import { Calendar, Mail, MoreVertical, Plus, Search, Shield, Trash2, User, Users } from 'lucide-react';
-import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { useQuery } from '@tanstack/react-query';
+import type { ManagedUser } from '@study-tracker/contracts';
+import {
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Shield,
+  Trash2,
+  UserRound,
+  X,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
 import CreateUserModal from '../../components/admin/CreateUserModal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import PageHeader from '../../components/common/PageHeader';
+import { useAccountMutation } from '../../hooks/useAccountMutation';
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { usersAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
+import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 
-const AdminUsersPage = () => {
-  const accountKeys = useAccountQueryKeys();
-  const currentUser = useAuthStore(state => state.user);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    type: 'danger' | 'warning' | 'info';
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    type: 'warning',
-    onConfirm: () => {},
-  });
-  const queryClient = useQueryClient();
+type UserAction = { user: ManagedUser; kind: 'delete' | 'role' | 'status' };
+const roleLabel = (role: ManagedUser['role']) =>
+  role === 'admin' ? 'Yönetici' : 'Öğrenci';
 
-  const { data: usersData, isLoading } = useQuery({
-    queryKey: accountKeys.resource('admin-users'),
+function UserActionDialog({
+  action,
+  onClose,
+}: {
+  action: UserAction;
+  onClose: () => void;
+}) {
+  const keys = useAccountQueryKeys();
+  const mutation = useAccountMutation([keys.resource()]);
+  const { user, kind } = action;
+  const nextRole = user.role === 'admin' ? 'student' : 'admin';
+  const name = `${user.firstName} ${user.lastName}`;
+  const title =
+    kind === 'delete'
+      ? 'Kullanıcıyı sil'
+      : kind === 'role'
+        ? 'Kullanıcı rolünü değiştir'
+        : user.isActive
+          ? 'Hesabı pasifleştir'
+          : 'Hesabı aktifleştir';
+  const message =
+    kind === 'delete'
+      ? `“${name}” hesabı, bu hesaba ait özel dersler, konular, planlar, seanslar ve ilerleme kayıtları kalıcı olarak silinecek. Ortak dersler korunur. Bu işlem geri alınamaz.`
+      : kind === 'role'
+        ? `“${name}” hesabının yeni rolü: ${roleLabel(nextRole)}. ${nextRole === 'admin' ? 'Yönetim paneline ve sistem ayarlarına erişebilecek.' : 'Yönetim paneline erişimi kaldırılacak.'} Rol değişikliği mevcut oturumlarını kapatır.`
+        : `“${name}” hesabı ${user.isActive ? 'pasifleştirilecek ve giriş yapamayacak' : 'aktifleştirilecek ve yeniden giriş yapabilecek'}. Verileri korunur. Hesap durumu değişikliği mevcut oturumlarını kapatır.`;
+  return (
+    <ConfirmDialog
+      isOpen
+      title={title}
+      message={message}
+      confirmText={kind === 'delete' ? 'Kullanıcıyı sil' : 'Uygula'}
+      type={kind === 'delete' ? 'danger' : 'warning'}
+      onClose={onClose}
+      onConfirm={() => {
+        const actor = useAuthStore.getState().user;
+        if (actor?.role !== 'admin' || String(actor.id) === String(user.id))
+          return false;
+        return mutation.save(
+          () =>
+            kind === 'delete'
+              ? usersAPI.deleteUser(String(user.id))
+              : usersAPI.updateUser(
+                  String(user.id),
+                  kind === 'role'
+                    ? { role: nextRole }
+                    : { isActive: !user.isActive },
+                ),
+          kind === 'delete' ? 'Kullanıcı silindi.' : 'Kullanıcı güncellendi.',
+        );
+      }}
+    >
+      {mutation.errorMessage && (
+        <p role="alert" className="text-sm text-red-600">
+          {mutation.errorMessage}
+        </p>
+      )}
+    </ConfirmDialog>
+  );
+}
+
+function UserManagement() {
+  const { user: currentUser } = useAuthStore();
+  const keys = useAccountQueryKeys();
+  const timezone = useUserPreferencesStore(
+    (state) => state.preferences.timezone,
+  );
+  const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState({ search: '', page: 1 });
+  const [creating, setCreating] = useState(false);
+  const [action, setAction] = useState<UserAction | null>(null);
+  const params = { ...filters, limit: 20, includeStats: true };
+  const query = useQuery({
+    queryKey: keys.resource('admin-users', params),
     queryFn: async () => {
-      const response = await usersAPI.getUsers({ limit: 100, includeStats: true });
-      return response.data.data?.users || [];
+      const response = await usersAPI.getUsers(params);
+      if (!response.data.data) throw new Error('User list response is missing');
+      return response.data.data;
     },
   });
-
-  const deleteUserMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      await usersAPI.deleteUser(userId);
-    },
-    onSuccess: () => {
-      toast.success('Kullanıcı silindi');
-      queryClient.invalidateQueries({ queryKey: accountKeys.resource() });
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error?.message || 'Silme işlemi başarısız');
-    },
-  });
-
-  const updateUserMutation = useMutation({
-    mutationFn: async ({ userId, updates }: { userId: string; updates: any }) => {
-      await usersAPI.updateUser(userId, updates);
-    },
-    onSuccess: () => {
-      toast.success('Kullanıcı güncellendi');
-      queryClient.invalidateQueries({ queryKey: accountKeys.resource() });
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error?.message || 'Güncelleme başarısız');
-    },
-  });
-
-  const handleDeleteUser = (userId: string) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: 'Kullanıcıyı Sil',
-      message: 'Bu kullanıcıyı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.',
-      type: 'danger',
-      onConfirm: () => {
-        deleteUserMutation.mutate(userId);
-      },
-    });
-  };
-
-  const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
-    updateUserMutation.mutate({
-      userId,
-      updates: { isActive: !currentStatus }
-    });
-  };
-
-  const handleChangeUserRole = (userId: string, newRole: string) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: 'Rol Değiştir',
-      message: `Bu kullanıcının rolünü ${newRole} olarak değiştirmek istediğinizden emin misiniz?`,
-      type: 'warning',
-      onConfirm: () => {
-        updateUserMutation.mutate({
-          userId,
-          updates: { role: newRole }
-        });
-      },
-    });
-  };
-
-  const filteredUsers = usersData?.filter((user: any) =>
-    user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'admin': return 'bg-red-100 text-red-800 border-red-200';
-      case 'student': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getRoleText = (role: string) => {
-    switch (role) {
-      case 'admin': return 'Admin';
-      case 'student': return 'Öğrenci';
-      default: return role;
-    }
-  };
-
-
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-6"></div>
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  const data = query.data;
+  // Deleting the last row on a page may reduce the number of pages.
+  useEffect(() => {
+    if (data && filters.page > Math.max(1, data.pagination.pages))
+      setFilters((previous) => ({
+        ...previous,
+        page: Math.max(1, data.pagination.pages),
+      }));
+  }, [data, filters.page]);
+  const date = (value?: string | null) =>
+    value
+      ? new Intl.DateTimeFormat('tr-TR', {
+          dateStyle: 'medium',
+          timeZone: timezone,
+        }).format(new Date(value))
+      : 'Henüz yok';
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Kullanıcı Yönetimi</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Toplam {usersData?.length || 0} kullanıcı
-          </p>
+      <PageHeader
+        title="Kullanıcı yönetimi"
+        description={
+          data
+            ? `${data.pagination.total} ${filters.search ? 'sonuç' : 'kullanıcı'} · Hesapları ve erişim yetkilerini yönetin.`
+            : 'Hesapları ve erişim yetkilerini yönetin.'
+        }
+        actions={
+          <button
+            className="btn btn-primary"
+            disabled={!!action}
+            onClick={() => setCreating(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Kullanıcı oluştur
+          </button>
+        }
+      />
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          setFilters({ search: search.trim(), page: 1 });
+        }}
+        className="flex max-w-2xl flex-wrap items-center gap-2"
+        role="search"
+        aria-label="Kullanıcılarda ara"
+      >
+        <div className="relative min-w-0 flex-1 basis-56">
+          <label className="sr-only" htmlFor="admin-user-search">
+            Kullanıcı ara
+          </label>
+          <Search className="absolute left-3 top-3 h-4 w-4 text-[var(--muted)]" />
+          <input
+            id="admin-user-search"
+            className="input pl-9 pr-9"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Ad, e-posta veya kullanıcı adı…"
+          />
+          {search && (
+            <button
+              type="button"
+              className="absolute right-2 top-2 p-1 text-[var(--muted)]"
+              aria-label="Aramayı temizle"
+              onClick={() => {
+                setSearch('');
+                setFilters({ search: '', page: 1 });
+              }}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Yeni Kullanıcı
+        <button className="btn btn-secondary" type="submit">
+          Ara
         </button>
-      </div>
-
-      {/* Search */}
-      <div className="card">
-        <div className="card-body">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Ad, soyad, email veya kullanıcı adı ara..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
+      </form>
+      {query.isPending ? (
+        <p
+          className="py-8 text-center text-sm text-[var(--muted)]"
+          role="status"
+        >
+          Kullanıcılar yükleniyor…
+        </p>
+      ) : query.isError ? (
+        <div className="panel p-6" role="alert">
+          Kullanıcılar yüklenemedi.{' '}
+          <button
+            className="btn btn-secondary ml-2"
+            onClick={() => void query.refetch()}
+          >
+            Tekrar dene
+          </button>
         </div>
-      </div>
-
-      {/* Users List */}
-      <div className="space-y-4">
-        {filteredUsers.length === 0 ? (
-          <div className="card">
-            <div className="card-body text-center py-12">
-              <div className="text-gray-400 mb-4">
-                <Users className="w-12 h-12 mx-auto mb-4" />
-                <p>
-                  {searchTerm ? 'Arama kriterlerine uygun kullanıcı bulunamadı' : 'Henüz kullanıcı yok'}
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          filteredUsers.map((user: any, index: number) => {
-            const userStats = user.stats
-              ? { ...user.stats, totalHours: Math.round(user.stats.studySeconds / 3600 * 10) / 10, unavailable: false }
-              : { unavailable: true, totalSessions: 0, completedSessions: 0, totalHours: 0, lastActivity: null };
-
-            return (
-              <motion.div
-                key={user.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="card hover:shadow-lg transition-shadow"
-              >
-                <div className="card-body">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4 flex-1">
-                      {/* Avatar */}
-                      <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white font-semibold">
-                        {user.firstName?.[0] || ''}{user.lastName?.[0] || ''}
-                      </div>
-
-                      {/* User Info */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {user.firstName} {user.lastName}
-                          </h3>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium border ${getRoleColor(user.role)}`}
-                          >
-                            {getRoleText(user.role)}
-                          </span>
-                          {!user.isActive && (
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-                              Pasif
+      ) : (
+        data && (
+          <>
+            <div className="space-y-3" aria-busy={query.isFetching}>
+              {data.users.map((user) => {
+                const self = String(user.id) === String(currentUser?.id);
+                const name = `${user.firstName} ${user.lastName}`;
+                return (
+                  <article key={user.id} className="panel p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <div className="avatar h-10 w-10 text-xs">
+                          {user.firstName[0]}
+                          {user.lastName[0]}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h2 className="break-words text-sm font-medium">
+                              {name}
+                            </h2>
+                            <span className="badge border text-[var(--muted)]">
+                              {roleLabel(user.role)}
                             </span>
+                            {!user.isActive && (
+                              <span className="badge border text-[var(--muted)]">
+                                Pasif
+                              </span>
+                            )}
+                            {self && (
+                              <span className="text-xs text-[var(--muted)]">
+                                Siz
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 break-all text-xs text-[var(--muted)]">
+                            @{user.username} · {user.email}
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--muted)]">
+                            Katılma: {date(user.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <Menu as="div" className="relative shrink-0">
+                        <Menu.Button
+                          className="icon-button"
+                          aria-label={`${name} için işlemler`}
+                        >
+                          <MoreHorizontal className="h-5 w-5" />
+                        </Menu.Button>
+                        <Menu.Items className="dropdown-panel w-56 py-1">
+                          {(
+                            [
+                              {
+                                kind: 'status',
+                                label: user.isActive
+                                  ? 'Pasifleştir'
+                                  : 'Aktifleştir',
+                                icon: Shield,
+                              },
+                              {
+                                kind: 'role',
+                                label:
+                                  user.role === 'admin'
+                                    ? 'Öğrenci yap'
+                                    : 'Yönetici yap',
+                                icon: UserRound,
+                              },
+                              {
+                                kind: 'delete',
+                                label: 'Kullanıcıyı sil',
+                                icon: Trash2,
+                              },
+                            ] as const
+                          ).map((item) => (
+                            <Menu.Item
+                              key={item.kind}
+                              disabled={self || query.isFetching}
+                            >
+                              {({ active, disabled }) => (
+                                <button
+                                  disabled={disabled}
+                                  onClick={() =>
+                                    setAction({ user, kind: item.kind })
+                                  }
+                                  className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm disabled:opacity-40 ${active ? 'bg-[var(--subtle)]' : ''} ${item.kind === 'delete' ? 'text-red-600' : ''}`}
+                                >
+                                  <item.icon className="h-4 w-4" />
+                                  {item.label}
+                                </button>
+                              )}
+                            </Menu.Item>
+                          ))}
+                          {self && (
+                            <p className="border-t px-4 py-2 text-xs text-[var(--muted)]">
+                              Kendi yönetici erişiminizi buradan
+                              değiştiremezsiniz.
+                            </p>
                           )}
-                        </div>
-
-                        <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400 mb-3">
-                          <div className="flex items-center gap-1">
-                            <User className="w-4 h-4" />
-                            <span>@{user.username}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Mail className="w-4 h-4" />
-                            <span>{user.email}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            <span>
-                              Katılma: {format(parseISO(user.createdAt), 'dd MMM yyyy', { locale: tr })}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Stats */}
-                        <div className="grid grid-cols-4 gap-4 text-sm">
-                          <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
-                            <div className="font-semibold text-blue-600 dark:text-blue-400">
-                              {userStats.unavailable ? '—' : userStats.totalSessions}
-                            </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">Toplam Seans</div>
-                          </div>
-                          <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded">
-                            <div className="font-semibold text-green-600 dark:text-green-400">
-                              {userStats.unavailable ? '—' : userStats.completedSessions}
-                            </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">Tamamlanan</div>
-                          </div>
-                          <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
-                            <div className="font-semibold text-purple-600 dark:text-purple-400">
-                              {userStats.unavailable ? '—' : `${userStats.totalHours} sa`}
-                            </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">Ölçülen Çalışma</div>
-                          </div>
-                          <div className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                            <div className="font-semibold text-gray-600 dark:text-gray-400">
-                              {userStats.lastActivity ?
-                                format(parseISO(userStats.lastActivity), 'dd/MM', { locale: tr }) :
-                                'Hiç'
-                              }
-                            </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">Son Aktivite</div>
-                          </div>
-                        </div>
-                      </div>
+                        </Menu.Items>
+                      </Menu>
                     </div>
-
-                    {/* Actions */}
-                    <Menu as="div" className="relative">
-                      <Menu.Button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                        <MoreVertical className="w-4 h-4" />
-                      </Menu.Button>
-                      <Menu.Items className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-10">
-                        <div className="py-1">
-                          <Menu.Item disabled={String(user.id) === String(currentUser?.id) && user.isActive}>
-                            {({ active, disabled }) => (
-                              <button
-                                disabled={disabled}
-                                onClick={() => handleToggleUserStatus(user.id.toString(), user.isActive)}
-                                className={`flex items-center gap-2 w-full px-4 py-2 text-sm text-left ${
-                                  active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                } ${disabled ? 'opacity-40 cursor-not-allowed' : ''} text-gray-700 dark:text-gray-300`}
-                              >
-                                <Shield className="w-4 h-4" />
-                                {user.isActive ? 'Pasifleştir' : 'Aktifleştir'}
-                              </button>
-                            )}
-                          </Menu.Item>
-                          <Menu.Item disabled={String(user.id) === String(currentUser?.id)}>
-                            {({ active, disabled }) => (
-                              <button
-                                disabled={disabled}
-                                onClick={() => handleChangeUserRole(
-                                  user.id.toString(),
-                                  user.role === 'admin' ? 'student' : 'admin'
-                                )}
-                                className={`flex items-center gap-2 w-full px-4 py-2 text-sm text-left ${
-                                  active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                } ${disabled ? 'opacity-40 cursor-not-allowed' : ''} text-gray-700 dark:text-gray-300`}
-                              >
-                                <User className="w-4 h-4" />
-                                {user.role === 'admin' ? 'Öğrenci Yap' : 'Admin Yap'}
-                              </button>
-                            )}
-                          </Menu.Item>
-                          <Menu.Item disabled={String(user.id) === String(currentUser?.id)}>
-                            {({ active, disabled }) => (
-                              <button
-                                disabled={disabled}
-                                onClick={() => handleDeleteUser(user.id.toString())}
-                                className={`flex items-center gap-2 w-full px-4 py-2 text-sm text-left ${
-                                  active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                } ${disabled ? 'opacity-40 cursor-not-allowed' : ''} text-red-600 dark:text-red-400`}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                Sil
-                              </button>
-                            )}
-                          </Menu.Item>
+                    <dl className="mt-5 grid grid-cols-2 gap-4 border-t pt-4 sm:grid-cols-4">
+                      {[
+                        ['Toplam seans', user.stats?.totalSessions ?? '—'],
+                        ['Tamamlanan', user.stats?.completedSessions ?? '—'],
+                        [
+                          'Ölçülen çalışma',
+                          user.stats
+                            ? `${Math.round(user.stats.studySeconds / 360) / 10} sa`
+                            : '—',
+                        ],
+                        [
+                          'Son aktivite',
+                          user.stats ? date(user.stats.lastActivity) : '—',
+                        ],
+                      ].map(([label, value]) => (
+                        <div key={label}>
+                          <dt className="text-xs text-[var(--muted)]">
+                            {label}
+                          </dt>
+                          <dd className="mt-1 text-sm font-medium tabular-nums">
+                            {value}
+                          </dd>
                         </div>
-                      </Menu.Items>
-                    </Menu>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })
-        )}
-      </div>
-
-      {/* Create User Modal */}
-      <CreateUserModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-      />
-
-      {/* Confirm Dialog */}
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
-        onConfirm={confirmDialog.onConfirm}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        type={confirmDialog.type}
-      />
+                      ))}
+                    </dl>
+                  </article>
+                );
+              })}
+              {data.users.length === 0 && (
+                <p className="panel p-10 text-center text-sm text-[var(--muted)]">
+                  {filters.search
+                    ? 'Aramanıza uygun kullanıcı bulunamadı.'
+                    : 'Henüz kullanıcı bulunmuyor.'}
+                </p>
+              )}
+            </div>
+            <nav
+              aria-label="Kullanıcı sayfaları"
+              className="flex flex-wrap items-center justify-between gap-3 border-t pt-4"
+            >
+              <p className="text-sm text-[var(--muted)]">
+                Sayfa {data.pagination.current} /{' '}
+                {Math.max(1, data.pagination.pages)} · {data.pagination.total}{' '}
+                {filters.search ? 'sonuç' : 'kullanıcı'}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  className="btn btn-secondary"
+                  disabled={filters.page <= 1 || query.isFetching}
+                  onClick={() =>
+                    setFilters((previous) => ({
+                      ...previous,
+                      page: previous.page - 1,
+                    }))
+                  }
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Önceki
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  disabled={
+                    filters.page >= data.pagination.pages || query.isFetching
+                  }
+                  onClick={() =>
+                    setFilters((previous) => ({
+                      ...previous,
+                      page: previous.page + 1,
+                    }))
+                  }
+                >
+                  Sonraki
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </nav>
+          </>
+        )
+      )}
+      <CreateUserModal isOpen={creating} onClose={() => setCreating(false)} />
+      {action && (
+        <UserActionDialog
+          key={`${action.user.id}:${action.kind}`}
+          action={action}
+          onClose={() => setAction(null)}
+        />
+      )}
     </div>
   );
-};
-
-export default AdminUsersPage;
+}
+export default function AdminUsersPage() {
+  const { user } = useAuthStore();
+  return user?.role === 'admin' ? <UserManagement /> : null;
+}

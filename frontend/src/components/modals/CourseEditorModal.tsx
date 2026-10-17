@@ -10,7 +10,7 @@ import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useCatalogMutation } from '../../hooks/useCatalogMutation';
 import { canManageCourse } from '../../lib/catalogAccess';
 import type { CatalogCategory, CatalogCourse } from '../../types/catalog';
-import CatalogEditorDialog from '../catalog/CatalogEditorDialog';
+import EditorDialog from '../common/EditorDialog';
 import { catalogIcons, catalogIcon } from '../catalog/catalogIcons';
 
 interface Props {
@@ -142,7 +142,7 @@ function CourseEditor({
     if (saved) onClose();
   };
   return (
-    <CatalogEditorDialog
+    <EditorDialog
       title={course ? 'Dersi düzenle' : 'Ders ekle'}
       description="Dersin adını, kategorisini ve görünümünü belirleyin."
       pending={mutation.isPending}
@@ -296,7 +296,7 @@ function CourseEditor({
           </label>
         </div>
       )}
-    </CatalogEditorDialog>
+    </EditorDialog>
   );
 }
 
