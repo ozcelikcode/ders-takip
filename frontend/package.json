@@ -32,7 +32,7 @@
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.20.0",
     "recharts": "^2.15.4",
-    "zod": "^3.22.4",
+    "zod": "^4.1.9",
     "zustand": "^4.4.7"
   },
   "devDependencies": {

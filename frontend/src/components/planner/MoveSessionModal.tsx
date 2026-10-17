@@ -1,5 +1,9 @@
 import { Dialog } from '@headlessui/react';
-import { calendarViewDate } from '@study-tracker/contracts';
+import {
+  calendarViewDate,
+  sessionDurationLimits,
+  isSessionDurationValid,
+} from '@study-tracker/contracts';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import React, { useEffect, useState } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -20,7 +24,13 @@ import { tr } from 'date-fns/locale';
 interface MoveSessionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectDate: (date: Date) => void | boolean | Promise<void | boolean>;
+  onSelectDate: (
+    date: Date,
+    changes?: { minute?: number; duration?: number },
+  ) => void | boolean | Promise<void | boolean>;
+  sessionDuration?: number | undefined;
+  sourceUnavailable?: boolean;
+  onReload?: (() => void) | undefined;
   pending?: boolean;
   sessionTitle: string;
   currentDate: Date;
@@ -33,6 +43,9 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
   sessionTitle,
   currentDate,
   pending = false,
+  sessionDuration,
+  sourceUnavailable = false,
+  onReload,
 }) => {
   const timezone = useUserPreferencesStore(
     (state) => state.preferences.timezone,
@@ -41,12 +54,20 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
   const isToday = (date: Date) => isSameDay(date, today);
   const [selectedMonth, setSelectedMonth] = useState(currentDate);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [editedTime, setTime] = useState<string | null>(null);
+  const time = editedTime ?? format(currentDate, 'HH:mm');
+  const [editedDuration, setDuration] = useState<string | null>(null);
+  const duration = editedDuration ?? String(sessionDuration ?? 60);
+  const [error, setError] = useState('');
 
   // A refreshed source must not clear the destination chosen by the user.
   useEffect(() => {
     if (isOpen) {
       setSelectedMonth(currentDate);
       setSelectedDate(null);
+      setTime(null);
+      setDuration(null);
+      setError('');
     }
   }, [isOpen]);
 
@@ -64,9 +85,36 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
   };
 
   const handleConfirm = async () => {
-    if (!selectedDate || pending) return;
-    const result = await onSelectDate(selectedDate);
-    if (result !== false) onClose();
+    if (pending || sourceUnavailable) return;
+    if (
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(time) ||
+      (sessionDuration !== undefined &&
+        !isSessionDurationValid(Number(duration) * 60_000))
+    ) {
+      setError(
+        'Saat ve süreyi kontrol edin. Süre 1 dakika ile 24 saat arasında olmalıdır.',
+      );
+      return;
+    }
+    setError('');
+    const changes = {
+      ...(editedTime === null
+        ? {}
+        : { minute: Number(time.slice(0, 2)) * 60 + Number(time.slice(3)) }),
+      ...(sessionDuration === undefined || editedDuration === null
+        ? {}
+        : { duration: Number(duration) }),
+    };
+    try {
+      const result = await onSelectDate(selectedDate ?? currentDate, changes);
+      if (result !== false) onClose();
+      else
+        setError(
+          'Değişiklik kaydedilemedi. Taslağınız korunuyor; güncel bilgileri kontrol edip tekrar deneyin.',
+        );
+    } catch {
+      setError('Değişiklik kaydedilemedi. Lütfen tekrar deneyin.');
+    }
   };
 
   const handlePrevMonth = () => {
@@ -88,7 +136,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <Dialog.Panel
-          className="panel max-w-md w-full shadow-xl"
+          className="panel max-h-[calc(100dvh-32px)] max-w-md w-full overflow-y-auto shadow-xl"
           aria-busy={pending}
         >
           {/* Header */}
@@ -111,11 +159,31 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
             </button>
           </div>
 
+          {sourceUnavailable && (
+            <div
+              role="alert"
+              className="space-y-2 border-b border-[var(--line)] p-4 text-sm"
+            >
+              <p>
+                Güncel seans okunamadı veya bu takvim aralığında bulunamadı.
+                Kaydetmeden önce yeniden yükleyin.
+              </p>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={onReload}
+                className="btn btn-secondary"
+              >
+                Seansı yeniden yükle
+              </button>
+            </div>
+          )}
           {/* Calendar */}
           <div className="p-4">
             {/* Month Navigation */}
             <div className="flex items-center justify-between mb-4">
               <button
+                disabled={pending}
                 onClick={handlePrevMonth}
                 aria-label="Önceki ay"
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -126,6 +194,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
                 {format(selectedMonth, 'MMMM yyyy', { locale: tr })}
               </h4>
               <button
+                disabled={pending}
                 onClick={handleNextMonth}
                 aria-label="Sonraki ay"
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -192,6 +261,58 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
             )}
           </div>
 
+          {sessionDuration !== undefined && (
+            <div className="space-y-3 border-t border-[var(--line)] p-4">
+              <p className="text-xs text-[var(--muted)]">
+                Tarihi değiştirmeden saat veya süreyi düzenleyebilirsiniz. Saat
+                dilimi: {timezone}.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="text-sm">
+                  Başlangıç saati
+                  <input
+                    type="time"
+                    className="input mt-1"
+                    value={time}
+                    disabled={pending}
+                    onChange={(event) => {
+                      setTime(
+                        event.target.value === format(currentDate, 'HH:mm')
+                          ? null
+                          : event.target.value,
+                      );
+                      if (!selectedDate) setSelectedDate(currentDate);
+                    }}
+                  />
+                </label>
+                <label className="text-sm">
+                  Planlanan süre (dakika)
+                  <input
+                    type="number"
+                    className="input mt-1"
+                    min={sessionDurationLimits.minMinutes}
+                    max={sessionDurationLimits.maxMinutes}
+                    step="any"
+                    value={duration}
+                    disabled={pending}
+                    onChange={(event) => {
+                      setDuration(
+                        Number(event.target.value) === sessionDuration
+                          ? null
+                          : event.target.value,
+                      );
+                      if (!selectedDate) setSelectedDate(currentDate);
+                    }}
+                  />
+                </label>
+              </div>
+              {error && (
+                <p role="alert" className="text-sm text-red-600">
+                  {error}
+                </p>
+              )}
+            </div>
+          )}
           {/* Footer */}
           <div className="flex gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
             <button
@@ -203,7 +324,14 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
             </button>
             <button
               onClick={() => void handleConfirm()}
-              disabled={pending || !selectedDate}
+              disabled={
+                pending ||
+                sourceUnavailable ||
+                (!selectedDate &&
+                  (sessionDuration === undefined ||
+                    (time === format(currentDate, 'HH:mm') &&
+                      Number(duration) === sessionDuration)))
+              }
               className="btn btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {pending ? 'Taşınıyor…' : 'Taşı'}

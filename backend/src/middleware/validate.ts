@@ -1,41 +1,31 @@
-import { NextFunction, Request, Response } from 'express';
+import { validationError } from '@study-tracker/contracts';
+import type { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 
-export const validate = (schema: z.ZodTypeAny) => {
+interface ValidatedRequest {
+  body?: unknown;
+  query?: Record<string, unknown>;
+  params?: Request['params'];
+}
+export const validate = (schema: z.ZodType<ValidatedRequest>) => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    try {
-
-      const validated = schema.parse({
-        body: req.body,
-        query: req.query,
-        params: req.params,
-      }) as any;
-
-      req.body = validated.body;
-      req.query = validated.query;
-      req.params = validated.params;
-
-      next();
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-
-        res.status(400).json({
-          success: false,
-          error: {
-            message: 'Validation error',
-            details: error.issues.map((err: any) => ({
-              field: err.path.join('.'),
-              message: err.message,
-            })),
-          },
-        });
-        return;
-      }
-
-      res.status(500).json({
+    const result = schema.safeParse({
+      body: req.body,
+      query: req.query,
+      params: req.params,
+    });
+    if (!result.success) {
+      res.status(400).json({
         success: false,
-        error: { message: 'Internal server error' },
+        error: validationError(result.error.issues),
       });
+      return;
     }
+    // Unspecified sections remain intact; controllers consume normalized values.
+    if (result.data.body !== undefined) req.body = result.data.body;
+    if (result.data.query !== undefined)
+      req.query = result.data.query as Request['query'];
+    if (result.data.params !== undefined) req.params = result.data.params;
+    next();
   };
 };

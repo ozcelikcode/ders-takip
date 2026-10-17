@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { StudySession } from '../../types/planner';
 import {
   calendarSegment,
+  calendarCardMinHeight,
+  layoutCalendarCards,
   canRepositionSession,
   moveSessionTimes,
   resizedDuration,
@@ -21,6 +23,70 @@ const session: StudySession = {
   updatedAt: '2026-10-16T00:00:00Z',
 };
 describe('shared calendar geometry', () => {
+  it.each([48, 64])(
+    'keeps adjacent short card targets separate across an hour boundary on a %ipx grid',
+    (height) => {
+      const cards = [
+        { id: 1, top: height * (9 + 59 / 60), height: height / 60 },
+        { id: 2, top: height * 10, height: height / 60 },
+        { id: 3, top: height * (10 + 1 / 60), height: height / 60 },
+        { id: 4, top: height * 12, height },
+      ];
+      const placements = layoutCalendarCards(cards);
+      for (const first of cards)
+        for (const second of cards) {
+          if (first.id >= second.id) continue;
+          const a = placements.get(first.id)!;
+          const b = placements.get(second.id)!;
+          if (
+            first.top < second.top + b.height &&
+            second.top < first.top + a.height
+          ) {
+            expect(a.lane).not.toBe(b.lane);
+            expect(a.laneCount).toBe(b.laneCount);
+          }
+        }
+      expect(placements.get(1)?.height).toBe(calendarCardMinHeight);
+      expect(placements.get(1)?.laneCount).toBe(3);
+      expect(placements.get(4)).toMatchObject({
+        lane: 0,
+        laneCount: 1,
+        height,
+      });
+    },
+  );
+  it('reuses free lanes inside a connected group and keeps ordering stable without mutating source cards', () => {
+    const cards = [
+      { id: 3, top: 50, height: 28 },
+      { id: 2, top: 0, height: 28 },
+      { id: 1, top: 0, height: 100 },
+    ];
+    const before = structuredClone(cards);
+    const result = layoutCalendarCards(cards);
+    expect(result.get(1)).toMatchObject({ lane: 0, laneCount: 2 });
+    expect(result.get(2)).toMatchObject({ lane: 1, laneCount: 2 });
+    expect(result.get(3)).toMatchObject({ lane: 1, laneCount: 2 });
+    expect([...layoutCalendarCards([...cards].reverse())]).toEqual([...result]);
+    expect(cards).toEqual(before);
+    expect(layoutCalendarCards([]).size).toBe(0);
+    expect(
+      layoutCalendarCards([
+        { id: 1, top: 0, height: 28 },
+        { id: 2, top: 28, height: 28 },
+      ]).get(2),
+    ).toMatchObject({ lane: 0, laneCount: 1 });
+  });
+  it('retains sub-minute start placement without changing persisted timing', () => {
+    expect(
+      calendarSegment(
+        session,
+        new CalendarDate('2026-10-16'),
+        'Europe/Istanbul',
+        64,
+      ).top,
+    ).toBeCloseTo((0.1 / 3600) * 64);
+    expect(session.startTime).toBe('2026-10-16T06:00:00.100Z');
+  });
   it.each([48, 64])(
     'snaps equally on the %ipx grid and clamps the destination to the visible day',
     (height) => {

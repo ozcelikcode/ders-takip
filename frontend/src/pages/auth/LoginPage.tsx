@@ -2,8 +2,8 @@ import { Brand } from '../../components/common/Brand';
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { contractResolver } from '../../lib/contractResolver';
+import { loginSchema, type LoginInput } from '@study-tracker/contracts';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -11,25 +11,22 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 
-const loginSchema = z.object({
-  email: z.string().email('Geçerli bir e-posta adresi giriniz'),
-  password: z.string().min(1, 'Şifre zorunludur'),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
+type LoginFormData = LoginInput;
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated } = useAuthStore();
-  const allowRegistration = useSettingsStore(state => state.settings.allowRegistration);
+  const allowRegistration = useSettingsStore(
+    (state) => state.settings.allowRegistration,
+  );
 
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+    resolver: contractResolver(loginSchema),
   });
 
   if (isAuthenticated) {
@@ -57,7 +54,9 @@ const LoginPage = () => {
         className="max-w-md w-full space-y-8"
       >
         <div className="text-center">
-          <div className="flex justify-center"><Brand /></div>
+          <div className="flex justify-center">
+            <Brand />
+          </div>
           <h2 className="mt-6 text-[28px] font-semibold tracking-tight text-gray-900 dark:text-white">
             Giriş Yap
           </h2>
@@ -69,7 +68,10 @@ const LoginPage = () => {
         <div className="panel p-6 sm:p-8">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 E-posta Adresi
               </label>
               <div className="mt-1">
@@ -82,13 +84,18 @@ const LoginPage = () => {
                   placeholder="ornek@email.com"
                 />
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Şifre
               </label>
               <div className="mt-1 relative">
@@ -113,7 +120,9 @@ const LoginPage = () => {
                   )}
                 </button>
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -149,8 +158,6 @@ const LoginPage = () => {
               </div>
             )}
           </form>
-
-
         </div>
       </motion.div>
     </div>

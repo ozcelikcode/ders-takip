@@ -1,4 +1,4 @@
-import type { DragEvent, MouseEvent, PointerEvent } from 'react';
+import type { DragEvent, MouseEvent, PointerEvent, Ref } from 'react';
 import { CheckCircle, MoreHorizontal, Pause, Play, Timer } from 'lucide-react';
 import { formatZonedTime } from '@study-tracker/contracts';
 import type { StudySession } from '../../types/planner';
@@ -10,6 +10,8 @@ interface Props {
   timezone: string;
   top: number;
   height: number;
+  lane: number;
+  laneCount: number;
   pending: boolean;
   dragging: boolean;
   resizing: boolean;
@@ -19,6 +21,7 @@ interface Props {
   onDragEnd: () => void;
   onResize: (event: PointerEvent<HTMLDivElement>) => void;
   onEdit: () => void;
+  actionRef?: Ref<HTMLButtonElement>;
   onActions: (event: MouseEvent<HTMLElement>) => void;
   onStart: () => void;
   onPause: () => void;
@@ -28,7 +31,7 @@ interface Props {
 
 export default function CalendarSessionCard(props: Props) {
   const { session, timezone, top, height, pending } = props;
-  const compact = height < 40;
+  const compact = height < 68;
   const canStart = canStartSession(session);
   const status = {
     planned: 'Planlandı',
@@ -39,10 +42,12 @@ export default function CalendarSessionCard(props: Props) {
   }[session.status];
   return (
     <div
-      className={`absolute inset-x-1 group rounded border border-[var(--line)] bg-[var(--surface)] text-[var(--text)] ${props.dragging ? 'opacity-30' : ''} ${session.status === 'completed' || session.status === 'cancelled' ? 'opacity-60' : ''}`}
+      className={`absolute group rounded border border-[var(--line)] bg-[var(--surface)] text-[var(--text)] ${props.dragging ? 'opacity-30' : ''} ${session.status === 'completed' || session.status === 'cancelled' ? 'opacity-60' : ''}`}
       style={{
         top,
-        height: Math.max(20, height),
+        height,
+        left: `calc(${(props.lane / props.laneCount) * 100}% + 4px)`,
+        width: `calc(${100 / props.laneCount}% - 8px)`,
         zIndex: props.dragging || props.resizing ? 30 : 10,
         borderLeft: `3px solid ${session.color ?? '#737373'}`,
       }}
@@ -69,7 +74,8 @@ export default function CalendarSessionCard(props: Props) {
           )}
           {compact && (
             <button
-              className="min-w-0 flex-1 truncate text-left text-[11px] font-medium"
+              className="min-h-6 min-w-0 flex-1 truncate text-left text-[11px] font-medium"
+              aria-description={`${formatZonedTime(session.startTime, timezone)} · ${session.duration} dakika · ${status}`}
               onClick={(event) => {
                 event.stopPropagation();
                 props.onEdit();
@@ -92,7 +98,7 @@ export default function CalendarSessionCard(props: Props) {
                     : 'Seansı başlat'
                 }
                 onClick={props.onStart}
-                className="rounded p-0.5 hover:bg-[var(--subtle)] disabled:opacity-40"
+                className="inline-flex min-h-6 min-w-6 items-center justify-center rounded hover:bg-[var(--subtle)] disabled:opacity-40"
               >
                 <Play className="h-3.5 w-3.5" />
               </button>
@@ -104,7 +110,7 @@ export default function CalendarSessionCard(props: Props) {
                     disabled={pending}
                     aria-label="Pomodoro sayacını aç"
                     onClick={props.onTimer}
-                    className="rounded p-0.5 hover:bg-[var(--subtle)]"
+                    className="inline-flex min-h-6 min-w-6 items-center justify-center rounded hover:bg-[var(--subtle)]"
                   >
                     <Timer className="h-3.5 w-3.5" />
                   </button>
@@ -113,7 +119,7 @@ export default function CalendarSessionCard(props: Props) {
                   disabled={pending}
                   aria-label="Seansı duraklat"
                   onClick={props.onPause}
-                  className="rounded p-0.5 hover:bg-[var(--subtle)]"
+                  className="inline-flex min-h-6 min-w-6 items-center justify-center rounded hover:bg-[var(--subtle)]"
                 >
                   <Pause className="h-3.5 w-3.5" />
                 </button>
@@ -121,7 +127,7 @@ export default function CalendarSessionCard(props: Props) {
                   disabled={pending}
                   aria-label="Seansı tamamla"
                   onClick={props.onComplete}
-                  className="rounded p-0.5 hover:bg-[var(--subtle)]"
+                  className="inline-flex min-h-6 min-w-6 items-center justify-center rounded hover:bg-[var(--subtle)]"
                 >
                   <CheckCircle className="h-3.5 w-3.5" />
                 </button>
@@ -129,9 +135,10 @@ export default function CalendarSessionCard(props: Props) {
             )}
             <button
               disabled={pending}
+              ref={props.actionRef}
               aria-label={`${session.title}: işlemler`}
               onClick={props.onActions}
-              className="rounded p-0.5 hover:bg-[var(--subtle)]"
+              className="inline-flex min-h-6 min-w-6 items-center justify-center rounded hover:bg-[var(--subtle)]"
             >
               <MoreHorizontal className="h-3.5 w-3.5" />
             </button>
@@ -139,7 +146,8 @@ export default function CalendarSessionCard(props: Props) {
         </div>
         {!compact && (
           <button
-            className="min-w-0 truncate text-left text-xs font-medium"
+            className="min-h-6 min-w-0 truncate text-left text-xs font-medium"
+            aria-description={`${formatZonedTime(session.startTime, timezone)} · ${session.duration} dakika · ${status}`}
             onClick={(event) => {
               event.stopPropagation();
               props.onEdit();
@@ -148,7 +156,7 @@ export default function CalendarSessionCard(props: Props) {
             {session.title}
           </button>
         )}
-        {height >= 65 && (
+        {height >= 90 && (
           <span className="truncate text-[10px] text-[var(--muted)]">
             {session.duration} dk · {status}
           </span>

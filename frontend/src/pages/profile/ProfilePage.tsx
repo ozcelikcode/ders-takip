@@ -1,6 +1,21 @@
+import {
+  profilePatchSchema,
+  changePasswordSchema,
+  type ProfilePatch,
+  type ChangePasswordInput,
+} from '@study-tracker/contracts';
+import { isAxiosError } from 'axios';
 import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Camera, Lock, Mail, Save, Upload, User as UserIcon, X } from 'lucide-react';
+import {
+  Camera,
+  Lock,
+  Mail,
+  Save,
+  Upload,
+  User as UserIcon,
+  X,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { authAPI } from '../../services/api';
@@ -42,63 +57,71 @@ const ProfilePage = () => {
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: typeof profileForm) => {
-      return useAuthStore.getState().updateProfile({
-        firstName: data.firstName.trim(),
-        lastName: data.lastName.trim(),
-        username: data.username.trim(),
-        profileImage: data.profileImage || null,
-        preferences: {
-          studyField: (data.studyField || null) as any,
-        },
-      });
-    },
+    mutationFn: (data: ProfilePatch) =>
+      useAuthStore.getState().updateProfile(data),
     onSuccess: () => {
       toast.success('Profil başarıyla güncellendi');
       setIsEditingProfile(false);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error?.message || 'Profil güncellenirken hata oluştu');
+    onError: (error: unknown) => {
+      toast.error(
+        (isAxiosError(error)
+          ? error.response?.data?.error?.message
+          : undefined) || 'Profil güncellenirken hata oluştu',
+      );
     },
   });
 
   // Change password mutation
   const changePasswordMutation = useMutation({
-    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+    mutationFn: async (data: ChangePasswordInput) => {
       return authAPI.changePassword(data);
     },
     onSuccess: () => {
       toast.success('Şifre başarıyla değiştirildi');
-      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
       setIsEditingPassword(false);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error?.message || 'Şifre değiştirilirken hata oluştu');
+    onError: (error: unknown) => {
+      toast.error(
+        (isAxiosError(error)
+          ? error.response?.data?.error?.message
+          : undefined) || 'Şifre değiştirilirken hata oluştu',
+      );
     },
   });
 
   const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
-    if (!profileForm.firstName.trim() || !profileForm.lastName.trim() || !profileForm.username.trim()) {
-      toast.error('Lütfen tüm zorunlu alanları doldurun');
+    const { studyField, ...fields } = profileForm;
+    const parsed = profilePatchSchema.safeParse({
+      ...fields,
+      profileImage: fields.profileImage || null,
+      preferences: { studyField: studyField || null },
+    });
+    if (!parsed.success) {
+      toast.error(
+        parsed.error.issues[0]?.message ?? 'Profil alanlarını kontrol edin',
+      );
       return;
     }
-
-    if (profileForm.firstName.trim().length < 2 || profileForm.lastName.trim().length < 2) {
-      toast.error('Ad ve soyad en az 2 karakter olmalıdır');
-      return;
-    }
-
-    updateProfileMutation.mutate(profileForm);
+    updateProfileMutation.mutate(parsed.data);
   };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+    if (
+      !passwordForm.currentPassword ||
+      !passwordForm.newPassword ||
+      !passwordForm.confirmPassword
+    ) {
       toast.error('Lütfen tüm alanları doldurun');
       return;
     }
@@ -108,15 +131,17 @@ const ProfilePage = () => {
       return;
     }
 
-    if (passwordForm.newPassword.length < 12 || new TextEncoder().encode(passwordForm.newPassword).length > 72) {
-      toast.error('Yeni şifre en az 12 karakter ve en fazla 72 UTF-8 baytı olmalıdır');
-      return;
-    }
-
-    changePasswordMutation.mutate({
+    const parsed = changePasswordSchema.safeParse({
       currentPassword: passwordForm.currentPassword,
       newPassword: passwordForm.newPassword,
     });
+    if (!parsed.success) {
+      toast.error(
+        parsed.error.issues[0]?.message ?? 'Şifre alanlarını kontrol edin',
+      );
+      return;
+    }
+    changePasswordMutation.mutate(parsed.data);
   };
 
   const handleCancelProfile = () => {
@@ -142,7 +167,13 @@ const ProfilePage = () => {
     }
 
     // Check file type - only allow specific image formats
-    const allowedTypes = ['image/webp', 'image/jpeg', 'image/jpg', 'image/png', 'image/bmp'];
+    const allowedTypes = [
+      'image/webp',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/bmp',
+    ];
     if (!allowedTypes.includes(file.type.toLowerCase())) {
       toast.error('Desteklenen formatlar: WebP, JPG, JPEG, PNG, BMP');
       return;
@@ -176,7 +207,9 @@ const ProfilePage = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Profil</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Profil
+        </h1>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
           Profil bilgilerinizi ve ayarlarınızı yönetin
         </p>
@@ -208,7 +241,9 @@ const ProfilePage = () => {
                 {isEditingProfile && (
                   <button
                     type="button"
-                    onClick={() => document.getElementById('file-upload')?.click()}
+                    onClick={() =>
+                      document.getElementById('file-upload')?.click()
+                    }
                     className="absolute bottom-0 right-0 p-2 bg-white dark:bg-gray-700 rounded-full shadow-lg border-2 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
                   >
                     <Camera className="h-5 w-5 text-gray-600 dark:text-gray-300" />
@@ -219,7 +254,9 @@ const ProfilePage = () => {
               <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
                 {user?.fullName}
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">@{user?.username}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                @{user?.username}
+              </p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                 {user?.role === 'admin' ? 'Yönetici' : 'Öğrenci'}
               </p>
@@ -263,7 +300,9 @@ const ProfilePage = () => {
                   {imageInputType === 'file' && (
                     <button
                       type="button"
-                      onClick={() => document.getElementById('file-upload')?.click()}
+                      onClick={() =>
+                        document.getElementById('file-upload')?.click()
+                      }
                       className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-500 dark:hover:border-primary-500 transition-colors text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
                     >
                       <Upload className="h-4 w-4 inline mr-2" />
@@ -278,7 +317,12 @@ const ProfilePage = () => {
                     <input
                       type="url"
                       value={profileForm.profileImage}
-                      onChange={(e) => setProfileForm({ ...profileForm, profileImage: e.target.value })}
+                      onChange={(e) =>
+                        setProfileForm({
+                          ...profileForm,
+                          profileImage: e.target.value,
+                        })
+                      }
                       placeholder="https://example.com/image.jpg"
                       className="input text-sm"
                     />
@@ -287,7 +331,9 @@ const ProfilePage = () => {
                   {profileForm.profileImage && (
                     <button
                       type="button"
-                      onClick={() => setProfileForm({ ...profileForm, profileImage: '' })}
+                      onClick={() =>
+                        setProfileForm({ ...profileForm, profileImage: '' })
+                      }
                       className="text-xs text-red-600 hover:text-red-700 dark:text-red-400 flex items-center gap-1"
                     >
                       <X className="h-3 w-3" /> Resmi Kaldır
@@ -308,19 +354,25 @@ const ProfilePage = () => {
             <div className="card-body space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Durum:</span>
-                <span className={`font-medium ${user?.isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                <span
+                  className={`font-medium ${user?.isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+                >
                   {user?.isActive ? 'Aktif' : 'Pasif'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Kayıt:</span>
                 <span className="text-gray-900 dark:text-white">
-                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR') : '-'}
+                  {user?.createdAt
+                    ? new Date(user.createdAt).toLocaleDateString('tr-TR')
+                    : '-'}
                 </span>
               </div>
               {user?.lastLogin && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Son Giriş:</span>
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Son Giriş:
+                  </span>
                   <span className="text-gray-900 dark:text-white text-xs">
                     {new Date(user.lastLogin).toLocaleDateString('tr-TR')}
                   </span>
@@ -363,12 +415,19 @@ const ProfilePage = () => {
                       <input
                         type="text"
                         value={profileForm.firstName}
-                        onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                        onChange={(e) =>
+                          setProfileForm({
+                            ...profileForm,
+                            firstName: e.target.value,
+                          })
+                        }
                         required
                         className="input"
                       />
                     ) : (
-                      <p className="text-gray-900 dark:text-white py-2">{user?.firstName}</p>
+                      <p className="text-gray-900 dark:text-white py-2">
+                        {user?.firstName}
+                      </p>
                     )}
                   </div>
                   <div>
@@ -379,12 +438,19 @@ const ProfilePage = () => {
                       <input
                         type="text"
                         value={profileForm.lastName}
-                        onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                        onChange={(e) =>
+                          setProfileForm({
+                            ...profileForm,
+                            lastName: e.target.value,
+                          })
+                        }
                         required
                         className="input"
                       />
                     ) : (
-                      <p className="text-gray-900 dark:text-white py-2">{user?.lastName}</p>
+                      <p className="text-gray-900 dark:text-white py-2">
+                        {user?.lastName}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -397,12 +463,19 @@ const ProfilePage = () => {
                     <input
                       type="text"
                       value={profileForm.username}
-                      onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value })}
+                      onChange={(e) =>
+                        setProfileForm({
+                          ...profileForm,
+                          username: e.target.value,
+                        })
+                      }
                       required
                       className="input"
                     />
                   ) : (
-                    <p className="text-gray-900 dark:text-white py-2">{user?.username}</p>
+                    <p className="text-gray-900 dark:text-white py-2">
+                      {user?.username}
+                    </p>
                   )}
                 </div>
 
@@ -412,8 +485,12 @@ const ProfilePage = () => {
                   </label>
                   <div className="flex items-center gap-2 py-2">
                     <Mail className="h-4 w-4 text-gray-400" />
-                    <p className="text-gray-900 dark:text-white">{user?.email}</p>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">(değiştirilemez)</span>
+                    <p className="text-gray-900 dark:text-white">
+                      {user?.email}
+                    </p>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      (değiştirilemez)
+                    </span>
                   </div>
                 </div>
 
@@ -424,7 +501,12 @@ const ProfilePage = () => {
                   {isEditingProfile ? (
                     <select
                       value={profileForm.studyField}
-                      onChange={(e) => setProfileForm({ ...profileForm, studyField: e.target.value })}
+                      onChange={(e) =>
+                        setProfileForm({
+                          ...profileForm,
+                          studyField: e.target.value,
+                        })
+                      }
                       className="input"
                     >
                       {studyFieldOptions.map((option) => (
@@ -436,7 +518,9 @@ const ProfilePage = () => {
                   ) : (
                     <p className="text-gray-900 dark:text-white py-2">
                       {user?.preferences?.studyField
-                        ? studyFieldOptions.find((opt) => opt.value === user.preferences.studyField)?.label
+                        ? studyFieldOptions.find(
+                            (opt) => opt.value === user.preferences.studyField,
+                          )?.label
                         : 'Belirtilmemiş'}
                     </p>
                   )}
@@ -450,7 +534,9 @@ const ProfilePage = () => {
                       className="btn btn-primary flex items-center gap-2"
                     >
                       <Save className="h-4 w-4" />
-                      {updateProfileMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
+                      {updateProfileMutation.isPending
+                        ? 'Kaydediliyor...'
+                        : 'Kaydet'}
                     </button>
                     <button
                       type="button"
@@ -494,7 +580,12 @@ const ProfilePage = () => {
                     <input
                       type="password"
                       value={passwordForm.currentPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                      onChange={(e) =>
+                        setPasswordForm({
+                          ...passwordForm,
+                          currentPassword: e.target.value,
+                        })
+                      }
                       required
                       className="input"
                     />
@@ -506,7 +597,12 @@ const ProfilePage = () => {
                     <input
                       type="password"
                       value={passwordForm.newPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                      onChange={(e) =>
+                        setPasswordForm({
+                          ...passwordForm,
+                          newPassword: e.target.value,
+                        })
+                      }
                       required
                       minLength={12}
                       className="input"
@@ -522,7 +618,12 @@ const ProfilePage = () => {
                     <input
                       type="password"
                       value={passwordForm.confirmPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                      onChange={(e) =>
+                        setPasswordForm({
+                          ...passwordForm,
+                          confirmPassword: e.target.value,
+                        })
+                      }
                       required
                       className="input"
                     />
@@ -534,12 +635,18 @@ const ProfilePage = () => {
                       className="btn btn-primary flex items-center gap-2"
                     >
                       <Lock className="h-4 w-4" />
-                      {changePasswordMutation.isPending ? 'Değiştiriliyor...' : 'Şifreyi Değiştir'}
+                      {changePasswordMutation.isPending
+                        ? 'Değiştiriliyor...'
+                        : 'Şifreyi Değiştir'}
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                        setPasswordForm({
+                          currentPassword: '',
+                          newPassword: '',
+                          confirmPassword: '',
+                        });
                         setIsEditingPassword(false);
                       }}
                       disabled={changePasswordMutation.isPending}

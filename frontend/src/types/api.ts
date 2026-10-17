@@ -1,11 +1,9 @@
+import type { ApiError } from '@study-tracker/contracts';
 export interface ApiResponse<T = any> {
   success: boolean;
   message?: string;
   data?: T;
-  error?: {
-    message: string;
-    details?: string[];
-  };
+  error?: ApiError;
 }
 
 export interface PaginationParams {

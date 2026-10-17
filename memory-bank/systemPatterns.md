@@ -1,6 +1,6 @@
 # Ders Takip Sistemi — Sistem Örüntüleri
 
-Kaynak kodla doğrulama: 17 Ekim 2026, kategori yönetimi ve önceki katalog/planlayıcı paketleri. Bu belge mevcut davranışla hedef standardı ayrı tutar. Güncel uygulama kayıtları implementation/2026-10-16-catalog-editing.md ve implementation/2026-10-16-shared-planner.md içindedir; foundation kaydı tarihseldir.
+Kaynak kodla doğrulama: 17 Ekim 2026, A19 ortak sözleşmeler ve önceki yönetim/katalog/planlayıcı paketleri. Bu belge mevcut davranışla hedef standardı ayrı tutar. Güncel uygulama kayıtları implementation/2026-10-16-catalog-editing.md ve implementation/2026-10-16-shared-planner.md içindedir; foundation kaydı tarihseldir.
 
 ## Mevcut mimari
 
@@ -62,7 +62,7 @@ Query key'i sorgu sonucunu belirleyen kimlik/filtrelere bağlamak gerekir. Inval
 ## Hâlâ açık iş kuralı sorunları
 
 - Günlük/haftalık planner tek ortak renderer/işlem hook/kart/geometry kullanır. İki Pomodoro motoru A15 ile tek ortak hook/UI ve sunucu faz makinesine taşındı. A21 öğrenci katalog ve kategori yönetimi UI tamamdır; kullanıcı/ayar/yedekleme sonraki paketlerle tamamlandı; diğer tasarım yüzeylerinin son denetimi açıktır.
-- Preferences/site settings ortak contracts Zod 4 şeması/tiplerinden gelir; diğer form/API sözleşmelerinde Zod 3/Joi/manual ayrışması sürer.
+- Preferences/site settings ve auth/profile/admin kullanıcı/Plan/backup girişleri ortak contracts Zod 4 şeması/tiplerinden gelir. Joi ve frontend Zod 3 yolları kaldırıldı; diğer API response runtime kapsamı tümden tamamlanmış değildir.
 - Katalog transaction kapsamı tamamlandı; genel metadata yazmaları last-writer-wins, reorder bütün aktif liste/sürüm snapshot’ını denetler. Kullanıcı-konu ilerlemesi artık kullanıcıya özel user_topic_progress tablosundadır (A24).
 
 Bulguların güncel durumları progress.md içinde, tarihsel kaynakları A01–A22 audit raporunda kayıtlıdır.
@@ -178,3 +178,29 @@ EditorDialog katalog ve kullanıcı formunun tek dialog bileşenidir. useAccount
 SettingsForm baseline/draft ile pristine refetch ve dirty korumayı ayırır; shared siteSettingsSchema normalizasyonu sonrası settingsPatchSchema ile yalnız değişmiş alanlar kaydedilir. Store private read/write revision + account generation eski okuma/yazmayı sınırlar. Public branding hatası private read error alanına yazmaz. Sunucunun mevcut IMMEDIATE settings patch servisi korunur; optimistic version eklenmedi.
 
 BackupPanel account resource(backups) sorgusudur; verified === true restore açar. Tek useAccountMutation settings/create/restore/reset yazmalarını serileştirir; ConfirmDialog async sonucu bekler. Restore sonrası protected refetch öncesinde logout yapılır. Reset account resource prefix invalidation + private settings tekrar okuma yapar; başarısız okuma default form yerine retry gösterir. Backend safety snapshot/rollback/bakım/transaction değişmedi. useAccountMutation.clearError yeni işlemde önceki hatayı temizler.
+
+
+## Günlük seans ve editör yaşam döngüsü — 17 Ekim 2026
+
+TodaysPlans günlük liste/işlem sınırıdır; GoalsOverview adı ve ikinci modal state'i kaldırıldı. sessionPresentation ortak durum/tür etiketlerini taşır. AdminDashboardPage bağımsız özet/kullanıcı query hata sınırlarını kullanır; başarısız okumada sıfır veri üretmez.
+
+CreateSessionModal yalnız açıkken snapshot tabanlı SessionEditor mount eder; kapalı modallar katalog sorgulamaz. useAccountMutation.isCurrent async conflict read için mount/auth epoch sınırını sunar. 409'da ayrı writeSnapshot yenilenir, form taslağı korunur; başarısız GET yazmayı engeller ve açık retry gerekir. Nested ConfirmDialog parent editörün odak/taslak sınırındadır; save/delete tek busy ref altında sunucu onayını bekler. Aktif/pasif mevcut ders ve tarihsel başlık korunur; açıklama temizliği boş string gönderir. Request/runtime DTO ortaklaştırması ve büyük form alan sınırları A19 altında açıktır.
+
+
+## A19 request/response ve Plan sınırı — 17 Ekim 2026
+
+validate yalnız belirtilen body/query/params bölümlerini parse edilmiş değerle değiştirir; query'nin Express ParsedQs adaptasyonu bu sınırdadır. Ortak validationError yalnız field/message üretir. Sparse managedUserPatch rol/isActive default'u taşımaz; create defaults'u patch'e yayılmaz. userResponse izinli DTO'dur; auth/admin kaynakları ORM toJSON yaymaz. İstemci auth/profile/admin liste-özet ve backup ack'larını runtime doğrular; API numeric ID auth view'e String çevrilir. Preferences ayrı modüle alındı; v1 persisted sözleşmesi değişmedi.
+
+Plan mevcut isteğe bağlı hedef kabı, takvim girdisi StudySession'dır; otomatik/zorunlu bağlama yoktur. services/plans tek IMMEDIATE create/update/reactivate/delete sınırıdır. Kısmi tarihler mevcut kaynakla denetlenir, goals patch birleşir; response DTO transaction içinde doğrulanır. Delete instance-save ile planId ayırır ve seans optimistic sürümünü ilerletir, ölçüm/not geçmişi kalır. Metadata last-writer-wins; dış SQL kapsam dışıdır. Kullanılmayan frontend Plan API/DTO kopyası kaldırıldı.
+
+contractResolver ortak şemaları RHF'ye taşır; sessionForm yalnız view adaptörüdür. Gönderimde ortak request DTO doğrulanır, gerçek süre sınırı 1–1440 dakikadır. Takvim snap/min UX ayrı kalır. Kanıt/sınırlar implementation/2026-10-17-shared-request-contracts.md içindedir.
+
+## A22 Header ve takvim erişim sınırı
+
+Header menüleri tek Popover.Group ile odak/Escape ve karşılıklı kapanmayı yönetir. NotificationsPanel hesap anahtarlı sorgu ve epoch kontrolü kullanır; başarısız refetch boş başarı veya doğrulanmış okunmamış sayısı olmaz. Yerel okundu eylemi yalnız doğrulanmış görünür 5 kayıtla sınırlıdır; kaybolan eylemden odak kalıcı kapatmaya döner.
+
+Takvim boş saatleri tek Tab durağı ve ok/Home/End gezinmesiyle mevcut editöre açılır. Native saat/süre alanları aynı sürümlü move komutuna bağlanır; ayrı mutation motoru yoktur. Pristine alanlar refetch kaynağını izler; dirty alanlar 409/read retry sırasında korunur. Yalnız explicit değişiklik instant/süreyi değiştirir. Taşınan kart odak referansı seans/gün/saat anahtarıyla tutulur; eski hücrenin null ref callback'i yeni hücre kaydını silemez. Görünür kart yoksa odak Bugün gezinme düğmesine döner. Tam erişilebilirlik ve browser E2E kapsamı açık; implementation/2026-10-17-header-and-calendar-accessibility.md.
+
+## A22 kısa kart yerleşimi
+
+Günlük/haftalık kartların gerçek zaman geometrisi ve görsel hit alanı ayrıdır. Ortak layoutCalendarCards tüm günün (saat sınırını aşan) minimum yükseklik aralıklarını bağlı çakışma gruplarına ayırır, eşit start için ID kullanır, boş lane'i yeniden kullanır. Bu saf görünüm hesabı kayıt veya interval yazmaz. Aynı günün header ve saat grid'leri ortak kolon şablonundadır; sütunlar okunamayacak kadar daraltılmaz, iç yatay kaydırma kullanılır. Gün sonu gutter odak çerçevesini korur. Kısa kartın resize tutamacı native saat/süre alternatifine bırakılır; büyük kart pointer motoru korunur. Ayrıntı: implementation/2026-10-17-calendar-card-layout.md.

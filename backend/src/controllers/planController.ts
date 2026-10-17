@@ -1,45 +1,48 @@
 import { Request, Response, NextFunction } from 'express';
 import { Plan, StudySession, Course, Topic, Category } from '../models';
-import { Op } from 'sequelize';
+import type { WhereOptions, Includeable } from 'sequelize';
+import * as plans from '../services/plans';
 import { getStudyStats } from '../services/studyTracking';
-import { dateKeyInZone } from '@study-tracker/contracts';
+import { dateKeyInZone, planRecordSchema } from '@study-tracker/contracts';
 
-export const getPlans = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+const planSessions = (userId: number): Includeable => ({
+  model: StudySession,
+  as: 'studySessions',
+  where: { userId },
+  required: false,
+  include: [
+    {
+      model: Course,
+      as: 'course',
+      attributes: ['id', 'name', 'color', 'icon'],
+      include: [
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name', 'color'],
+        },
+      ],
+    },
+    { model: Topic, as: 'topic', attributes: ['id', 'name', 'difficulty'] },
+  ],
+});
+
+export const getPlans = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const userId = req.user.id;
     const { isActive, includeSessions } = req.query;
 
-    const where: any = { userId };
+    const where: WhereOptions<Plan> = { userId };
 
     if (isActive !== undefined) {
       where.isActive = isActive === 'true';
     }
 
-    const include = includeSessions === 'true' ? [
-      {
-        model: StudySession,
-        as: 'studySessions',
-        include: [
-          {
-            model: Course,
-            as: 'course',
-            attributes: ['id', 'name', 'color', 'icon'],
-            include: [
-              {
-                model: Category,
-                as: 'category',
-                attributes: ['id', 'name', 'color'],
-              }
-            ]
-          },
-          {
-            model: Topic,
-            as: 'topic',
-            attributes: ['id', 'name', 'difficulty'],
-          },
-        ],
-      },
-    ] : [];
+    const include = includeSessions === 'true' ? [planSessions(userId)] : [];
 
     const plans = await Plan.findAll({
       where,
@@ -49,44 +52,26 @@ export const getPlans = async (req: Request, res: Response, next: NextFunction):
 
     res.json({
       success: true,
-      data: { plans },
+      data: {
+        plans: plans.map((plan) => planRecordSchema.parse(plan.toJSON())),
+      },
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const getPlan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getPlan = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
     const { includeSessions } = req.query;
 
-    const include = includeSessions === 'true' ? [
-      {
-        model: StudySession,
-        as: 'studySessions',
-        include: [
-          {
-            model: Course,
-            as: 'course',
-            attributes: ['id', 'name', 'color', 'icon'],
-            include: [
-              {
-                model: Category,
-                as: 'category',
-                attributes: ['id', 'name', 'color'],
-              }
-            ]
-          },
-          {
-            model: Topic,
-            as: 'topic',
-            attributes: ['id', 'name', 'difficulty'],
-          },
-        ],
-      },
-    ] : [];
+    const include = includeSessions === 'true' ? [planSessions(userId)] : [];
 
     const plan = await Plan.findOne({
       where: { id, userId },
@@ -103,65 +88,20 @@ export const getPlan = async (req: Request, res: Response, next: NextFunction): 
 
     res.json({
       success: true,
-      data: { plan },
+      data: { plan: planRecordSchema.parse(plan.toJSON()) },
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const createPlan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const createPlan = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
-    const userId = req.user.id;
-    const { title, description, startDate, endDate, goals } = req.body;
-
-    // Check for overlapping active plans
-    const existingPlan = await Plan.findOne({
-      where: {
-        userId,
-        isActive: true,
-        [Op.or]: [
-          {
-            startDate: {
-              [Op.between]: [startDate, endDate],
-            },
-          },
-          {
-            endDate: {
-              [Op.between]: [startDate, endDate],
-            },
-          },
-          {
-            [Op.and]: [
-              { startDate: { [Op.lte]: startDate } },
-              { endDate: { [Op.gte]: endDate } },
-            ],
-          },
-        ],
-      },
-    });
-
-    if (existingPlan) {
-      res.status(400).json({
-        success: false,
-        error: { message: 'Bu tarih aralığında aktif bir plan zaten mevcut' },
-      });
-      return;
-    }
-
-    const plan = await Plan.create({
-      userId,
-      title,
-      description,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      goals: goals || {
-        dailyHours: 4,
-        weeklyHours: 28,
-        targetTopics: 10,
-        priority: 'medium',
-      },
-    });
+    const plan = await plans.createPlan(req.user.id, req.body);
 
     res.status(201).json({
       success: true,
@@ -173,33 +113,17 @@ export const createPlan = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-export const updatePlan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const updatePlan = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
-    const { id } = req.params;
-    const userId = req.user.id;
-    const { title, description, startDate, endDate, goals, isActive } = req.body;
-
-    const plan = await Plan.findOne({
-      where: { id, userId },
-    });
-
-    if (!plan) {
-      res.status(404).json({
-        success: false,
-        error: { message: 'Plan bulunamadı' },
-      });
-      return;
-    }
-
-    // Update fields
-    if (title) plan.title = title;
-    if (description !== undefined) plan.description = description;
-    if (startDate) plan.startDate = new Date(startDate);
-    if (endDate) plan.endDate = new Date(endDate);
-    if (goals) plan.goals = { ...plan.goals, ...goals };
-    if (isActive !== undefined) plan.isActive = isActive;
-
-    await plan.save();
+    const plan = await plans.updatePlan(
+      req.user.id,
+      Number(req.params.id),
+      req.body,
+    );
 
     res.json({
       success: true,
@@ -211,24 +135,13 @@ export const updatePlan = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-export const deletePlan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const deletePlan = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    const plan = await Plan.findOne({
-      where: { id, userId },
-    });
-
-    if (!plan) {
-      res.status(404).json({
-        success: false,
-        error: { message: 'Plan bulunamadı' },
-      });
-      return;
-    }
-
-    await plan.destroy();
+    await plans.deletePlan(req.user.id, Number(req.params.id));
 
     res.json({
       success: true,
@@ -239,33 +152,18 @@ export const deletePlan = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-export const getPlanStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getPlanStats = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
 
     const plan = await Plan.findOne({
       where: { id, userId },
-      include: [
-        {
-          model: StudySession,
-          as: 'studySessions',
-          include: [
-            {
-              model: Course,
-              as: 'course',
-              attributes: ['id', 'name', 'color', 'icon'],
-              include: [
-                {
-                  model: Category,
-                  as: 'category',
-                  attributes: ['id', 'name', 'color'],
-                }
-              ]
-            },
-          ],
-        },
-      ],
+      include: [planSessions(userId)],
     });
 
     if (!plan) {
@@ -280,24 +178,43 @@ export const getPlanStats = async (req: Request, res: Response, next: NextFuncti
 
     const timezone = req.user.preferences.timezone;
     const measured = await getStudyStats(userId, timezone, { planId: plan.id });
-    const planDays = Math.max(1, Math.round((Date.parse(dateKeyInZone(plan.endDate, timezone)) - Date.parse(dateKeyInZone(plan.startDate, timezone))) / 86400000) + 1);
+    const planDays = Math.max(
+      1,
+      Math.round(
+        (Date.parse(dateKeyInZone(plan.endDate, timezone)) -
+          Date.parse(dateKeyInZone(plan.startDate, timezone))) /
+          86400000,
+      ) + 1,
+    );
     const stats = {
       ...measured,
       totalSessions: sessions.length,
-      completedSessions: sessions.filter(s => s.status === 'completed').length,
+      completedSessions: sessions.filter((s) => s.status === 'completed')
+        .length,
       totalStudyHours: measured.studySeconds / 3600,
-      averageProductivity: sessions.filter(s => s.productivity).length > 0
-        ? sessions.reduce((acc, s) => acc + (s.productivity || 0), 0) / sessions.filter(s => s.productivity).length
-        : 0,
-      coursesStudied: [...new Set(sessions.filter(s => s.course).map(s => s.course!.name))],
-      dailyProgress: plan.goals.dailyHours > 0
-        ? Math.min((measured.studySeconds / 3600 / (planDays * plan.goals.dailyHours)) * 100, 100)
-        : 0,
+      averageProductivity:
+        sessions.filter((s) => s.productivity).length > 0
+          ? sessions.reduce((acc, s) => acc + (s.productivity || 0), 0) /
+            sessions.filter((s) => s.productivity).length
+          : 0,
+      coursesStudied: [
+        ...new Set(sessions.filter((s) => s.course).map((s) => s.course!.name)),
+      ],
+      dailyProgress:
+        plan.goals.dailyHours > 0
+          ? Math.min(
+              (measured.studySeconds /
+                3600 /
+                (planDays * plan.goals.dailyHours)) *
+                100,
+              100,
+            )
+          : 0,
     };
 
     res.json({
       success: true,
-      data: { plan, stats },
+      data: { plan: planRecordSchema.parse(plan.toJSON()), stats },
     });
   } catch (error) {
     next(error);

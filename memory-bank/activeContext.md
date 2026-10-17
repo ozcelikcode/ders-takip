@@ -1,6 +1,6 @@
 # Ders Takip Sistemi — Aktif Bağlam
 
-Son güncelleme: 17 Ekim 2026, A21 site ayarları/yedekleme alt paketi. Tamamlanmış paket geçmişi progress.md ve implementation/ belgelerindedir; bu dosya güncel çalışma devridir.
+Son güncelleme: 17 Ekim 2026, A22 kısa takvim kartlarının yerleşimi. Tamamlanmış paket geçmişi progress.md ve implementation/ belgelerindedir; bu dosya güncel çalışma devridir.
 
 ## Kalıcı talimatlar ve kaynak sırası
 
@@ -8,15 +8,17 @@ Kullanıcı mevcut projeden disiplinli, sürdürülebilir ve ileri düzey mühen
 
 Kullanıcı limit nedeniyle başka yapay zekâlarla çalışabiliyor. Güncel progress + mevcut kaynak esas alınır; eski sohbetten tamamlanmış işler yeniden açılmaz veya mevcut değişiklikler ezilmez. Geçmiş test sayıları ile güncel toplam ayrılır. Modern sade nötr Vercel/Geist yönü geçerlidir; pastel/cam/gradyan yönü geçersizdir. Görünen site kimliği admin ayarıdır; gerçek isim kullanıcı adına değiştirilmez.
 
-## Güncel paket — A21 site ayarları ve yedekleme
+## Güncel paket — A22 kısa takvim kartlarının yerleşimi
 
-Site ayarları ve yedekleme alt paketi tamamlandı. AdminSettingsPage nötr tasarım ve etiketli alanlar kullanır; pristine form yeni okumayı izler, düzenlenen taslak refetch/bölüm değişiminde korunur. Shared schema ile yalnız değişen alanlar kaydedilir; no-op yazmaz, hata taslağı korur. Private settings read/write revision + account generation geç yanıtı sınırlar. Public hata private hatayı ezmez.
+Kısa seansların minimum tıklama yüksekliği, komşu kartları saat sınırları üzerinden örtebiliyordu. Ortak calendarGeometry artık gerçek piksel başlangıcı ve en az 28 px görsel yükseklik üzerinden bağlı çakışma grupları kurar; serbest sütunları yeniden kullanır ve eşit başlangıçta ID ile stabil sıralar. Kayıtların UTC başlangıç/bitiş/süre/durum/not değerleri değiştirilmez. İptal edilmiş ve diğer görünür kartlar aynı yerleşime katılır. Her etkileşim sütunu en az 160 px; boş haftalık günler 104 px kalır. Header ve saatler aynı kolon şablonunu kullanır, yoğun günlerde yatay kaydırma vardır. Gün sonunda 36 px boşluk son dakika kartını ve odak çerçevesini korur.
 
-BackupPanel hesaplı Query ile loading/error/retry/boş listeyi ayırır. Restore yalnız verified === true ise açılır; dirty taslakta restore/reset kapalıdır. Ayar/yedek/restore/reset tek busy/mount/epoch hook'u ve async ConfirmDialog kullanır; pending kapama/çift gönderim kilitlidir. Restore ack sonrası protected refetch öncesinde logout; reset ack sonrası account invalidation + private settings yeniden okuma vardır. Native confirm/gecikmeli reload kaldırıldı. Bildirim teslimatı/offsite/saklama altyapısı uygulanmış gibi gösterilmez.
+Kart başlığı/ikon hedefleri en az 24 px olarak 28 px kabuğa sığar; 68 px altı kompakt satırdır. Kısa kartta hedefi örten resize tutamacı kaldırıldı (36 px altı); mevcut Saat ve süreyi değiştir alternatifi korunur. Büyük kartlarda pointer resize devam eder. Takvim başlangıcında saniye/milisaniye korunur; hiçbir kaydın zamanı kaydırılmaz. Günlük/haftalık aynı motoru kullanır; DOM sırası görünür başlangıç/ID sırasıdır.
 
-npm run check: **10 contracts + 130 backend + 138 frontend = 278 test**, atlanan yok; naming/strict/lint/production build başarılı. Yeni 18 ekran testi frontend/tests/admin-settings.test.tsx, 4 store yarış/sınır regresyonu var. Son frontend strict/root lint tekrar geçti. Temp production fixture: taslak/bölüm/dirty kilit, verified/unverified liste, manuel backup create/refetch, restore Escape/odak ve settings_only iptal doğrulandı. Temp snapshot checksum/integrity ve hesap/site ayarı korunması kontrol edildi; kaydedilmemiş taslak DB'ye yazılmadı. Tarayıcı restore/reset final onayı verilmedi; gerçek servis davranışları mevcut temp SQLite testlerinde geçer. Fixture sekme/süreç/DB temizlendi. Gerçek DB'de test yazması/migration/seed/reset/restore yok; schema 006 korunur. Tek root dev localhost:3000/API 5002 sağlıklı; log /tmp/study-tracker-user-management-dev.log. Detay: implementation/2026-10-17-admin-settings-and-backups.md.
+Doğrulama: **18 contracts + 142 backend + 200 frontend = 360 test**, atlanan yok; npm run check naming/strict/lint/production build geçti. Son görsel boşluk/sıra düzenlemesinden sonra frontend strict, kök lint, 200 test ve production build tekrar geçti. Yeni 4 geometry ve günlük/haftalık toplam 4 component regresyonu var. Ayrı temp production fixture'da 1 dakikalık komşu kartlar/iptal kaydı, klavye menüsü/Escape/odak ve 23:59 hedefi kontrol edildi. Beş seansın bütün kolonları eski snapshot ile aynı; interval üretilmedi, integrity/FK temiz. Gerçek kullanıcı DB'si/şema/bağımlılıklar değişmedi. Fixture sekme/süreç/temp veri temizlendi; root dev 3000/API 5002 korunur.
 
-**Sıradaki:** A21 diğer modal/admin (özellikle yönetim özeti) nötr yüzey/kullanılmayan yol son denetimi; ardından A19 auth/user update/backup/plan DTO ve Plan ürün anlamı. A22/A04 ve bağımlılık backlog'u açık.
+A22 bütünüyle kapanmadı: gerçek dokunmatik cihaz, DST fold, tam WCAG/ekran okuyucu, Lighthouse ve otomatik gerçek tarayıcı E2E açık. A04/bağımlılık backlog'u sürer. Ayrıntı: implementation/2026-10-17-calendar-card-layout.md.
+
+Önceki A22 Header popover/hata/boş/stale/epoch ve takvim tek Tab/ok/native saat-süre akışları tamamdır. A19 auth/user/Plan/backup ortak Zod 4 sözleşmeleri ve Plan/StudySession ayrımı korunur; bu işler yeniden açılmayacak. Önceki ayrıntılar implementation/ belgelerindedir.
 
 ## Korunan tamamlanmış temel
 
@@ -34,8 +36,7 @@ Yerel schema 006'dır. 003/004/005/006 normal yükseltmelerinden önce private n
 
 ## Sıradaki açık işler
 
-1. A21 diğer modal/admin (özellikle yönetim özeti) nötr yüzey/kullanılmayan yol son denetimi. Kategori/kullanıcı/ayar-yedekleme yönetimi, öğrenci katalog UI ve ortak planner tamamdır; yeniden uygulanmayacak.
-2. A19: auth/user/plan/backup doğrulamalarını ortak contracts'a taşıma; Plan API ile StudySession planner ilişkisinin ürün anlamını netleştirme.
-3. A22/A04: tam klavye/dokunmatik takvim ve otomatik E2E/WCAG/Lighthouse; kurtarma/kapasite/offsite/retention operasyonları; kalan güvenlik/major bağımlılık işleri. Önceki audit backlog'u 12 paket düğümü (5 high/7 moderate); bütün kütüphaneler en yeni major değildir.
+1. A22 kalan: otomatik gerçek tarayıcı E2E, tam WCAG/ekran okuyucu, Lighthouse, gerçek dokunmatik cihaz ve DST fold.
+2. A04 ve bağımlılıklar: kurtarma/kapasite/offsite/retention operasyonları; kalan güvenlik/major bağımlılık işleri. Önceki audit backlog'u 12 paket düğümü (5 high/7 moderate); bütün kütüphaneler en yeni major değildir.
 
 Ürün eğitim/TYT-AYT ve genel görev takibi anlatımlarını birlikte taşır; yeni ürün kapsamı kararı kullanıcı adına alınmaz. AI/sosyal/offline aktif öncelik değildir. Detaylı açık/kapalı durum ve kanıtlar progress.md'dedir.

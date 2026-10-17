@@ -71,7 +71,9 @@ export function usePlannerCalendar(mode: CalendarMode) {
         endDate,
         timezone,
       });
-      return response.data.data?.sessions ?? [];
+      const sessions = response.data.data?.sessions;
+      if (!sessions) throw new Error('Missing calendar sessions');
+      return sessions;
     },
   });
   const perform = async (
@@ -113,16 +115,26 @@ export function usePlannerCalendar(mode: CalendarMode) {
       setPending(false);
     }
   };
-  const move = async (session: StudySession, target: Date, minute?: number) => {
+  const move = async (
+    session: StudySession,
+    target: Date,
+    minute?: number,
+    duration?: number,
+  ) => {
     if (!canRepositionSession(session)) return false;
-    return perform(
-      () =>
-        studySessionsAPI.updateSession(
-          session,
-          moveSessionTimes(session, target, timezone, minute),
-        ),
-      'Oturum taşındı',
-    );
+    return perform(() => {
+      const times = moveSessionTimes(session, target, timezone, minute);
+      return studySessionsAPI.updateSession(session, {
+        ...times,
+        ...(duration === undefined
+          ? {}
+          : {
+              endTime: new Date(
+                Date.parse(times.startTime) + duration * 60_000,
+              ).toISOString(),
+            }),
+      });
+    }, 'Oturum taşındı');
   };
   const resize = async (session: StudySession, minutes: number) => {
     if (!canRepositionSession(session)) return false;
@@ -134,6 +146,17 @@ export function usePlannerCalendar(mode: CalendarMode) {
           ).toISOString(),
         }),
       'Süre güncellendi',
+    );
+  };
+  const reloadMoving = async () => {
+    const epoch = useAuthStore.getState().epoch;
+    const result = await query.refetch();
+    if (useAuthStore.getState().epoch !== epoch || !result.isSuccess) return;
+    setMoving((previous) =>
+      previous
+        ? (result.data.find((session) => session.id === previous.id) ??
+          previous)
+        : null,
     );
   };
   const openTimer = (session: StudySession) => {
@@ -191,6 +214,7 @@ export function usePlannerCalendar(mode: CalendarMode) {
     setEditing,
     moving,
     setMoving,
+    reloadMoving,
     timer,
     setTimer,
     minimized,

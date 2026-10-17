@@ -114,3 +114,8 @@ Kullanıcı modern, basit, sade ve özenli; Vercel benzeri tasarım istedi. Gün
 ## Değiştirilebilir marka ve yönetim (16 Ekim 2026)
 
 Görünen site adı tamamen admin ayarından değişebilir; logo/ikon/açıklama aynı kimlik kaynağını kullanır. Admin paneli mevcut ve /admin/settings genel ayarları bu akışın merkezidir. Yeni isim kullanıcı adına seçilmez; kod/dosya/paket adları İngilizce kalır. Uygulama ve doğrulama implementation/2026-10-16-preferences-and-site-identity.md içinde; tamamlanmamış diğer yönetim ayarları progress.md'de açıkça izlenir.
+
+
+## Mevcut hedef ve takvim ayrımı — 17 Ekim 2026
+
+A19 mevcut sözleşmeyi açıklaştırdı: takvim ve sayaç StudySession üzerinden çalışır. Plan API'si isteğe bağlı tarihli hedef kabıdır; planId açıkça atanır. Plan olmadan seans oluşturulabilir; tarihten otomatik Plan türetilmez. Kullanılmayan frontend plansAPI kopyası kaldırıldı; yeni hedef yönetim ekranı veya zorunlu ürün akışı eklenmedi. Plan silmek ölçüm/seans/not geçmişini silmez. Hedef UI'ı genişletmek ayrı ürün kapsamıdır; bu belgeki vizyon mevcut uygulama kanıtı yerine geçmez.

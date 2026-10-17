@@ -1,5 +1,5 @@
 import { Op, Transaction, type Includeable } from 'sequelize';
-import { canTransitionSession, reservesSessionTime, type CreateSessionInput, type UpdateSessionInput, type PomodoroCommand } from '@study-tracker/contracts';
+import { canTransitionSession, reservesSessionTime, isSessionDurationValid, type CreateSessionInput, type UpdateSessionInput, type PomodoroCommand } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
 import { Category, Course, Plan, StudySession, Topic, SessionInterval, PomodoroClock } from '../models';
 import { createPomodoroClock, settlePomodoroClock, updatePomodoroClock, savePomodoroClock } from './pomodoroClocks';
@@ -23,7 +23,7 @@ function fail(statusCode: number, message: string): never {
 
 function scheduledDuration(start: Date, end: Date): number {
   const milliseconds = end.getTime() - start.getTime();
-  if (!Number.isFinite(milliseconds) || milliseconds < 60_000 || milliseconds > 86_400_000) {
+  if (!isSessionDurationValid(milliseconds)) {
     fail(400, 'Seans bitişi başlangıcından sonra olmalı; süre 1 dakika ile 24 saat arasında olmalıdır');
   }
   return Math.round(milliseconds / 60_000);

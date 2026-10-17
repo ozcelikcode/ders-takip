@@ -10,63 +10,40 @@ import {
 import { protect } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { z } from 'zod';
+import {
+  createPlanSchema,
+  updatePlanSchema,
+  planQuerySchema,
+  catalogPathIdSchema,
+} from '@study-tracker/contracts';
 
 const router = Router();
 
-// Validation schemas
-const createPlanSchema = z.object({
-  body: z.object({
-    title: z.string().min(1).max(100),
-    description: z.string().optional(),
-    startDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
-      message: 'Invalid start date format',
-    }),
-    endDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
-      message: 'Invalid end date format',
-    }),
-    goals: z.object({
-      dailyHours: z.number().min(0).max(24),
-      weeklyHours: z.number().min(0).max(168),
-      targetTopics: z.number().min(0),
-      priority: z.enum(['low', 'medium', 'high']),
-    }).optional(),
-  }),
-});
-
-const updatePlanSchema = z.object({
-  body: z.object({
-    title: z.string().min(1).max(100).optional(),
-    description: z.string().optional(),
-    startDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
-      message: 'Invalid start date format',
-    }).optional(),
-    endDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
-      message: 'Invalid end date format',
-    }).optional(),
-    goals: z.object({
-      dailyHours: z.number().min(0).max(24).optional(),
-      weeklyHours: z.number().min(0).max(168).optional(),
-      targetTopics: z.number().min(0).optional(),
-      priority: z.enum(['low', 'medium', 'high']).optional(),
-    }).optional(),
-    isActive: z.boolean().optional(),
-  }),
-});
+const params = z.object({ id: catalogPathIdSchema });
 
 // Apply authentication middleware to all routes
 router.use(protect);
 
 // Routes
-router.route('/')
-  .get(getPlans)
-  .post(validate(createPlanSchema), createPlan);
+router
+  .route('/')
+  .get(validate(z.object({ query: planQuerySchema })), getPlans)
+  .post(validate(z.object({ body: createPlanSchema })), createPlan);
 
-router.route('/:id')
-  .get(getPlan)
-  .put(validate(updatePlanSchema), updatePlan)
-  .delete(deletePlan);
+router
+  .route('/:id')
+  .get(
+    validate(
+      z.object({
+        params,
+        query: planQuerySchema.pick({ includeSessions: true }),
+      }),
+    ),
+    getPlan,
+  )
+  .put(validate(z.object({ params, body: updatePlanSchema })), updatePlan)
+  .delete(validate(z.object({ params })), deletePlan);
 
-router.route('/:id/stats')
-  .get(getPlanStats);
+router.route('/:id/stats').get(validate(z.object({ params })), getPlanStats);
 
 export default router;

@@ -125,7 +125,7 @@ npm test
 npm run build
 ```
 
-Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 10 contracts + 130 backend + 138 frontend = 278 testtir. Yeni ekran akış regresyonları `frontend/tests/` altındadır; burası da Vitest, strict TypeScript ve ESLint kapsamındadır. Mevcut `src/**/*.test.*` testleri aynı kalite zincirinde korunur. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
+Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 18 contracts + 142 backend + 200 frontend = 360 testtir. Yeni ekran akış regresyonları `frontend/tests/` altındadır; burası da Vitest, strict TypeScript ve ESLint kapsamındadır. Mevcut `src/**/*.test.*` testleri aynı kalite zincirinde korunur. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
 
 Adlandırma kontrolü dosya/klasör ve kod sembollerinde ASCII dışı adları yakalar. İsimlerin anlam bakımından İngilizce oluşu kod incelemesinde doğrulanır; Türkçe arayüz metinleri bu kontrolün dışındadır.
 
@@ -191,3 +191,8 @@ memory-bank/         Kalıcı kararlar, mevcut durum ve teknik inceleme
 Uygulamada kayıt/giriş, ders/konu yönetimi, haftalık/günlük planlayıcı, Pomodoro ve yönetim ekranları bulunur. Oturum iptali, tek süreçli snapshot/restore/reset, Preferences v1, kullanıcı/tarih cache ayrımı değiştirilebilir site kimliği ve atomik seans/durum bütünlüğü uygulandı ve davranış testleriyle doğrulandı. Üretime hazır olma iddiası yoktur. Katalog silme/taşıma/sıralama transaction bütünlüğü tamamlandı. Kalıcı sunucu deadline/faz/döngüsü ve ortak Pomodoro motoru tamamlandı. Global admin agregasyonları, kayıt/bakım/boşta oturum ayarları ve kalıcı kullanıcı-konu ilerlemesi de uygulandı. Günlük/haftalık planner tek işlem ve görünüm motoruna taşındı. Öğrenci katalog ve kategori yönetimi UI tamamlandı. Kalan sözleşmeler/kullanıcı-ayar-yedekleme UI tutarlılığı, bildirim teslimatı ve dağıtım/kurtarma operasyonları açık işlerdir.
 
 Güncel ilerleme [memory-bank/progress.md](memory-bank/progress.md), çalışma kuralları [memory-bank/workingPrinciples.md](memory-bank/workingPrinciples.md), başlangıç incelemesi [teknik audit](memory-bank/audits/2026-10-15-project-audit.md) içindedir.
+
+
+### Plan ve takvim sözleşmesi
+
+Takvim girdisi `StudySession`'dır; `/api/plans` mevcut, isteğe bağlı tarihli hedef kaplarını yönetir. Seanslar plan olmadan çalışır; `planId` ile ilişki açıkça kurulur, tarihten otomatik türetilmez. Plan silme seans/not/ölçüm geçmişini koruyarak bağlantıyı ayırır. Frontend'de ayrı bir Plan yönetim ekranı yoktur. Girdi ve DTO kuralları `@study-tracker/contracts` içindedir; API ayrıntıları ve uyumluluk sınırları [A19 uygulama kaydında](memory-bank/implementation/2026-10-17-shared-request-contracts.md) bulunur.

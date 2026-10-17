@@ -1,21 +1,43 @@
-import { preferencesSchema, preferencesPatchSchema } from '@study-tracker/contracts';
+import { userResponse } from '../services/userResponses';
+import { preferencesSchema } from '@study-tracker/contracts';
 import { NextFunction, Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { User } from '../models/User';
 import { Transaction } from 'sequelize';
 import { sequelize } from '../config/database';
-import { createAuthSession, rotateAuthSession, revokeCredential, revokeUserSessions } from '../services/authSessions';
+import {
+  createAuthSession,
+  rotateAuthSession,
+  revokeCredential,
+  revokeUserSessions,
+} from '../services/authSessions';
 import { readSiteSettings, sendMaintenance } from '../services/siteSettings';
-import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from '../middleware/authCookies';
+import {
+  clearRefreshCookie,
+  readRefreshCookie,
+  setRefreshCookie,
+} from '../middleware/authCookies';
 
-export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const register = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const { username, email, password, firstName, lastName } = req.body;
 
     const site = await readSiteSettings();
-    if (site.maintenanceMode) { sendMaintenance(res); return; }
+    if (site.maintenanceMode) {
+      sendMaintenance(res);
+      return;
+    }
     if (!site.allowRegistration) {
-      res.status(403).json({ success: false, error: { message: 'Yeni kayıtlar şu anda kapalı' } });
+      res
+        .status(403)
+        .json({
+          success: false,
+          error: { message: 'Yeni kayıtlar şu anda kapalı' },
+        });
       return;
     }
 
@@ -29,9 +51,10 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       res.status(400).json({
         success: false,
         error: {
-          message: existingUser.email === email
-            ? 'Bu e-posta adresi zaten kullanılıyor'
-            : 'Bu kullanıcı adı zaten alınmış',
+          message:
+            existingUser.email === email
+              ? 'Bu e-posta adresi zaten kullanılıyor'
+              : 'Bu kullanıcı adı zaten alınmış',
         },
       });
       return;
@@ -52,25 +75,13 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     user.lastLogin = new Date();
     await user.save();
 
-    const userResponse = {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      fullName: user.getFullName(),
-      role: user.role,
-      isActive: user.isActive,
-      profileImage: user.profileImage,
-      preferences: preferencesSchema.parse(user.preferences),
-      createdAt: user.createdAt,
-    };
+    const profile = userResponse(user);
 
     res.status(201).json({
       success: true,
       message: 'Hesap başarıyla oluşturuldu',
       data: {
-        user: userResponse,
+        user: profile,
         tokens,
       },
     });
@@ -79,13 +90,17 @@ export const register = async (req: Request, res: Response, next: NextFunction):
   }
 };
 
-export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const login = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({
       where: { email },
-      attributes: { include: ['password'] }
+      attributes: { include: ['password'] },
     });
 
     if (!user) {
@@ -109,12 +124,18 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     if (!user.isActive) {
       res.status(401).json({
         success: false,
-        error: { message: 'Hesabınız deaktif durumda. Lütfen yöneticiyle iletişime geçin' },
+        error: {
+          message:
+            'Hesabınız deaktif durumda. Lütfen yöneticiyle iletişime geçin',
+        },
       });
       return;
     }
 
-    if (user.role !== 'admin' && (await readSiteSettings()).maintenanceMode) { sendMaintenance(res); return; }
+    if (user.role !== 'admin' && (await readSiteSettings()).maintenanceMode) {
+      sendMaintenance(res);
+      return;
+    }
 
     const session = await createAuthSession(user);
     setRefreshCookie(res, session.credential, session.session.expiresAt);
@@ -123,26 +144,13 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     user.lastLogin = new Date();
     await user.save();
 
-    const userResponse = {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      fullName: user.getFullName(),
-      role: user.role,
-      isActive: user.isActive,
-      profileImage: user.profileImage,
-      preferences: preferencesSchema.parse(user.preferences),
-      lastLogin: user.lastLogin,
-      createdAt: user.createdAt,
-    };
+    const profile = userResponse(user);
 
     res.json({
       success: true,
       message: 'Giriş başarılı',
       data: {
-        user: userResponse,
+        user: profile,
         tokens,
       },
     });
@@ -151,88 +159,122 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
   }
 };
 
-export const refreshToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const refreshToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const result = await rotateAuthSession(readRefreshCookie(req));
     if (!result) {
       clearRefreshCookie(res);
-      res.status(401).json({ success: false, error: { message: 'Oturum sona erdi. Lütfen yeniden giriş yapın' } });
+      res
+        .status(401)
+        .json({
+          success: false,
+          error: { message: 'Oturum sona erdi. Lütfen yeniden giriş yapın' },
+        });
       return;
     }
     setRefreshCookie(res, result.credential, result.session.expiresAt);
     const user = result.user;
-    res.json({ success: true, message: 'Oturum yenilendi', data: { tokens: result.tokens, user: { ...user.toJSON(), fullName: user.getFullName(), preferences: preferencesSchema.parse(user.preferences), password: undefined } } });
-  } catch (error) { next(error); }
-};
-
-export const logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    await revokeCredential(readRefreshCookie(req));
-    clearRefreshCookie(res);
-    res.json({ success: true, message: 'Çıkış başarılı' });
-  } catch (error) { next(error); }
-};
-
-export const getMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const user = req.user;
-
-    const userResponse = {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      fullName: user.getFullName(),
-      role: user.role,
-      isActive: user.isActive,
-      profileImage: user.profileImage,
-      preferences: preferencesSchema.parse(user.preferences),
-      lastLogin: user.lastLogin,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
-
     res.json({
       success: true,
-      data: { user: userResponse },
+      message: 'Oturum yenilendi',
+      data: { tokens: result.tokens, user: userResponse(user) },
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const logout = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
-    const { firstName, lastName, username, profileImage, preferences } = req.body;
-    const parsed = preferencesPatchSchema.safeParse(preferences ?? {});
-    if (!parsed.success) {
-      res.status(400).json({ success: false, error: { message: 'Tercihler geçersiz', details: parsed.error.flatten() } });
-      return;
-    }
-    const user = await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
-      const current = await User.findByPk(req.user.id, { transaction });
-      if (!current?.isActive) throw Object.assign(new Error('Kullanıcı bulunamadı'), { statusCode: 404 });
-      if (firstName) current.firstName = firstName;
-      if (lastName) current.lastName = lastName;
-      if (username) current.username = username;
-      if (profileImage !== undefined) current.profileImage = profileImage || null;
-      if (preferences !== undefined) current.preferences = { ...current.preferences, ...preferencesSchema.parse({ ...current.preferences, ...parsed.data }) };
-      await current.save({ transaction });
-      return current;
-    });
-    const profile = user.toJSON();
-    res.json({ success: true, message: 'Profil başarıyla güncellendi', data: { user: { ...profile, password: undefined, fullName: user.getFullName(), preferences: preferencesSchema.parse(user.preferences) } } });
-  } catch (error) { next(error); }
+    await revokeCredential(readRefreshCookie(req));
+    clearRefreshCookie(res);
+    res.json({ success: true, message: 'Çıkış başarılı' });
+  } catch (error) {
+    next(error);
+  }
 };
 
-export const changePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getMe = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const user = req.user;
+
+    const profile = userResponse(user);
+
+    res.json({
+      success: true,
+      data: { user: profile },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const { firstName, lastName, username, profileImage, preferences } =
+      req.body;
+    const user = await sequelize.transaction(
+      { type: Transaction.TYPES.IMMEDIATE },
+      async (transaction) => {
+        const current = await User.findByPk(req.user.id, { transaction });
+        if (!current?.isActive)
+          throw Object.assign(new Error('Kullanıcı bulunamadı'), {
+            statusCode: 404,
+          });
+        if (firstName) current.firstName = firstName;
+        if (lastName) current.lastName = lastName;
+        if (username) current.username = username;
+        if (profileImage !== undefined)
+          current.profileImage = profileImage || null;
+        if (preferences !== undefined)
+          current.preferences = {
+            ...current.preferences,
+            ...preferencesSchema.parse({
+              ...current.preferences,
+              ...preferences,
+            }),
+          };
+        await current.save({ transaction });
+        return current;
+      },
+    );
+    res.json({
+      success: true,
+      message: 'Profil başarıyla güncellendi',
+      data: { user: userResponse(user) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const changePassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const userId = req.user.id;
     const { currentPassword, newPassword } = req.body;
 
     const user = await User.findByPk(userId, {
-      attributes: { include: ['password'] }
+      attributes: { include: ['password'] },
     });
 
     if (!user) {
@@ -253,13 +295,23 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
       return;
     }
 
-    await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
-      const current = await User.findByPk(user.id, { attributes: { include: ['password'] }, transaction });
-      if (!current?.isActive || current.password !== user.password) throw Object.assign(new Error('Kimlik bilgileri değişti. Yeniden giriş yapın'), { statusCode: 409 });
-      current.password = newPassword;
-      await current.save({ transaction });
-      await revokeUserSessions(user.id, transaction);
-    });
+    await sequelize.transaction(
+      { type: Transaction.TYPES.IMMEDIATE },
+      async (transaction) => {
+        const current = await User.findByPk(user.id, {
+          attributes: { include: ['password'] },
+          transaction,
+        });
+        if (!current?.isActive || current.password !== user.password)
+          throw Object.assign(
+            new Error('Kimlik bilgileri değişti. Yeniden giriş yapın'),
+            { statusCode: 409 },
+          );
+        current.password = newPassword;
+        await current.save({ transaction });
+        await revokeUserSessions(user.id, transaction);
+      },
+    );
     clearRefreshCookie(res);
 
     res.json({

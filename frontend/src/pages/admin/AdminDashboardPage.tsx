@@ -1,264 +1,268 @@
-import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import { Activity, BookOpen, Calendar, Clock, Settings, Target, Users } from 'lucide-react';
+import { ArrowRight, BookOpen, Settings, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import PageHeader from '../../components/common/PageHeader';
+import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { usersAPI } from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
+import { formatMeasuredTime } from '../../utils/sessionHelpers';
+import {
+  sessionStatusLabels,
+  sessionTypeLabels,
+} from '../../utils/sessionPresentation';
 
-const AdminDashboardPage = () => {
-  const accountKeys = useAccountQueryKeys();
-  const { data: overview } = useQuery({
-    queryKey: accountKeys.resource('admin-overview'),
+function AdminOverview() {
+  const keys = useAccountQueryKeys();
+  const overview = useQuery({
+    queryKey: keys.resource('admin-overview'),
     queryFn: async () => {
       const response = await usersAPI.getAdminOverview();
-      return response.data.data?.overview;
+      if (!response.data.data?.overview)
+        throw new Error('Admin overview response is missing');
+      return response.data.data.overview;
     },
   });
-  const { data: recentUsers } = useQuery({
-    queryKey: accountKeys.resource('admin-dashboard-users'),
+  const users = useQuery({
+    queryKey: keys.resource('admin-dashboard-users'),
     queryFn: async () => {
       const response = await usersAPI.getUsers({ limit: 5 });
-      return response.data.data?.users || [];
+      if (!response.data.data?.users)
+        throw new Error('Recent users response is missing');
+      return response.data.data.users;
     },
   });
-
-  const stats = {
-    totalUsers: overview?.users.total ?? 0,
-    activeUsers: overview?.users.active ?? 0,
-    totalCourses: overview?.courses.total ?? 0,
-    activeCourses: overview?.courses.active ?? 0,
-    totalSessions: overview?.sessions.totalSessions ?? 0,
-    completedSessions: overview?.sessions.completedSessions ?? 0,
-  };
-  const recentSessions = overview?.recentSessions ?? [];
-
-  const quickActions = [
+  const data = overview.data;
+  const stats = data
+    ? [
+        {
+          label: 'Kullanıcılar',
+          value: data.users.total,
+          detail: `${data.users.active} aktif hesap`,
+        },
+        {
+          label: 'Dersler',
+          value: data.courses.total,
+          detail: `${data.courses.active} aktif ders`,
+        },
+        {
+          label: 'Seanslar',
+          value: data.sessions.totalSessions,
+          detail: `${data.sessions.completedSessions} tamamlanan`,
+        },
+        {
+          label: 'Ölçülen çalışma',
+          value: formatMeasuredTime(data.sessions.studySeconds),
+          detail: 'Tüm kullanıcılar · Mola ve duraklama hariç',
+        },
+      ]
+    : [];
+  const shortcuts = [
     {
-      title: 'Kullanıcı Yönetimi',
-      description: 'Kullanıcıları görüntüle, düzenle ve yönet',
-      icon: Users,
+      title: 'Kullanıcı yönetimi',
+      detail: 'Hesaplar ve erişim yetkileri',
       href: '/admin/users',
-      color: 'bg-blue-500',
-    },
-    {
-      title: 'Ders Yönetimi',
-      description: 'Dersler oluştur, düzenle ve yönet',
-      icon: BookOpen,
-      href: '/admin/courses',
-      color: 'bg-green-500',
-    },
-    {
-      title: 'Site Ayarları',
-      description: 'Sistem ayarlarını yapılandır',
-      icon: Settings,
-      href: '/admin/settings',
-      color: 'bg-purple-500',
-    },
-  ];
-
-  const statCards = [
-    {
-      title: 'Toplam Kullanıcı',
-      value: stats.totalUsers,
-      subtitle: `${stats.activeUsers} aktif`,
       icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
     },
     {
-      title: 'Toplam Ders',
-      value: stats.totalCourses,
-      subtitle: `${stats.activeCourses} aktif`,
+      title: 'Ders yönetimi',
+      detail: 'Ortak ve kişisel dersler',
+      href: '/admin/courses',
       icon: BookOpen,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
     },
     {
-      title: 'Çalışma Seansı',
-      value: stats.totalSessions,
-      subtitle: `${stats.completedSessions} tamamlanan`,
-      icon: Calendar,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
-    },
-    {
-      title: 'Tamamlanma Oranı',
-      value: stats.totalSessions > 0 ? `${Math.round((stats.completedSessions / stats.totalSessions) * 100)}%` : '0%',
-      subtitle: `${Math.round((overview?.sessions.studySeconds ?? 0) / 3600 * 10) / 10} sa ölçülen çalışma`,
-      icon: Target,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
+      title: 'Site ayarları',
+      detail: 'Site kimliği, kurallar ve yedekler',
+      href: '/admin/settings',
+      icon: Settings,
     },
   ];
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Sistem genel durumu ve hızlı erişim menüsü
-        </p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="card"
+      <PageHeader
+        title="Yönetim özeti"
+        description="Tüm kullanıcıların hesap, ders ve çalışma verilerine genel bakış."
+      />
+      <section aria-label="Sistem özeti" aria-busy={overview.isFetching}>
+        {overview.isPending ? (
+          <p role="status" className="panel p-6 text-sm text-[var(--muted)]">
+            Yönetim özeti yükleniyor…
+          </p>
+        ) : overview.isError ? (
+          <div
+            role="alert"
+            className="panel flex flex-wrap items-center gap-3 p-6"
+          >
+            <p>Yönetim özeti alınamadı.</p>
+            <button
+              className="btn btn-secondary"
+              disabled={overview.isFetching}
+              onClick={() => void overview.refetch()}
             >
-              <div className="card-body">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      {stat.title}
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {stat.value}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {stat.subtitle}
-                    </p>
-                  </div>
-                  <div className={`p-3 rounded-full ${stat.bgColor} dark:bg-opacity-20`}>
-                    <Icon className={`w-6 h-6 ${stat.color} dark:opacity-90`} />
-                  </div>
-                </div>
+              Özeti tekrar yükle
+            </button>
+          </div>
+        ) : (
+          <dl className="panel grid grid-cols-1 divide-y divide-[var(--line)] sm:grid-cols-2 lg:grid-cols-4">
+            {stats.map((stat) => (
+              <div key={stat.label} className="min-w-0 p-5 sm:p-6">
+                <dt className="text-xs text-[var(--muted)]">{stat.label}</dt>
+                <dd className="my-4 break-words text-3xl font-medium tracking-tight tabular-nums">
+                  {stat.value}
+                </dd>
+                <p className="text-xs leading-5 text-[var(--muted)]">
+                  {stat.detail}
+                </p>
               </div>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Hızlı İşlemler</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quickActions.map((action, index) => {
-            const Icon = action.icon;
-            return (
-              <motion.div
-                key={action.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Link
-                  to={action.href}
-                  className="card hover:shadow-lg dark:hover:shadow-primary-900/20 hover:border-primary-300 dark:hover:border-primary-700 transition-all group"
+            ))}
+          </dl>
+        )}
+      </section>
+      <nav
+        aria-label="Yönetim kısayolları"
+        className="grid gap-3 lg:grid-cols-3"
+      >
+        {shortcuts.map((item) => (
+          <Link
+            key={item.href}
+            to={item.href}
+            className="panel group flex min-w-0 items-center gap-3 p-5 transition-colors hover:bg-[var(--subtle)]"
+          >
+            <item.icon
+              className="h-5 w-5 shrink-0 text-[var(--muted)]"
+              strokeWidth={1.5}
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium">{item.title}</span>
+              <span className="mt-1 block text-xs leading-5 text-[var(--muted)]">
+                {item.detail}
+              </span>
+            </span>
+            <ArrowRight className="h-4 w-4 shrink-0 text-[var(--muted)]" />
+          </Link>
+        ))}
+      </nav>
+      <div className="grid items-start gap-5 xl:grid-cols-2">
+        <section
+          className="panel min-w-0"
+          aria-labelledby="recent-admin-users"
+          aria-busy={users.isFetching}
+        >
+          <div className="panel-heading">
+            <h2 id="recent-admin-users" className="text-sm font-medium">
+              Son kullanıcılar
+            </h2>
+            <Link
+              to="/admin/users"
+              className="text-xs text-[var(--muted)] underline"
+            >
+              Tüm kullanıcılar
+            </Link>
+          </div>
+          <div className="p-5">
+            {users.isPending ? (
+              <p role="status" className="text-sm text-[var(--muted)]">
+                Kullanıcılar yükleniyor…
+              </p>
+            ) : users.isError ? (
+              <div role="alert" className="space-y-3">
+                <p>Kullanıcılar alınamadı.</p>
+                <button
+                  className="btn btn-secondary"
+                  disabled={users.isFetching}
+                  onClick={() => void users.refetch()}
                 >
-                  <div className="card-body">
-                    <div className="flex items-start gap-4">
-                      <div className={`p-3 rounded-lg ${action.color} text-white group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                          {action.title}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {action.description}
-                        </p>
-                      </div>
+                  Kullanıcıları tekrar yükle
+                </button>
+              </div>
+            ) : users.data.length === 0 ? (
+              <p className="text-sm text-[var(--muted)]">
+                Henüz kullanıcı yok.
+              </p>
+            ) : (
+              <ul className="divide-y divide-[var(--line)]">
+                {users.data.map((user) => (
+                  <li
+                    key={user.id}
+                    className="flex min-w-0 items-start gap-3 py-3 first:pt-0 last:pb-0"
+                  >
+                    <span
+                      className="avatar h-8 w-8 shrink-0 text-xs"
+                      aria-hidden="true"
+                    >
+                      {user.firstName[0]}
+                      {user.lastName[0]}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block break-words text-sm font-medium">
+                        {user.firstName} {user.lastName}
+                      </span>
+                      <span className="mt-1 block break-all text-xs text-[var(--muted)]">
+                        {user.email}
+                      </span>
+                    </span>
+                    <span className="badge shrink-0">
+                      {user.role === 'admin' ? 'Yönetici' : 'Öğrenci'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+        <section
+          className="panel min-w-0"
+          aria-labelledby="recent-admin-sessions"
+        >
+          <div className="panel-heading">
+            <h2 id="recent-admin-sessions" className="text-sm font-medium">
+              Son çalışma seansları
+            </h2>
+          </div>
+          <div className="p-5">
+            {overview.isPending ? (
+              <p role="status" className="text-sm text-[var(--muted)]">
+                Seanslar yükleniyor…
+              </p>
+            ) : overview.isError ? (
+              <p role="status" className="text-sm text-[var(--muted)]">
+                Seanslar için yönetim özetini tekrar yükleyin.
+              </p>
+            ) : data?.recentSessions.length === 0 ? (
+              <p className="text-sm text-[var(--muted)]">
+                Henüz çalışma seansı yok.
+              </p>
+            ) : (
+              <ul className="divide-y divide-[var(--line)]">
+                {data?.recentSessions.map((session) => (
+                  <li
+                    key={session.id}
+                    className="flex flex-wrap items-start justify-between gap-2 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div className="min-w-0 flex-1 basis-48">
+                      <p className="break-words text-sm font-medium">
+                        {session.title}
+                      </p>
+                      <p className="mt-1 break-words text-xs leading-5 text-[var(--muted)]">
+                        {session.userName} · Plan: {session.duration} dakika ·{' '}
+                        {sessionTypeLabels[
+                          session.sessionType as keyof typeof sessionTypeLabels
+                        ] ?? 'Diğer'}
+                      </p>
                     </div>
-                  </div>
-                </Link>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card">
-          <div className="card-body">
-            <div className="flex items-center gap-2 mb-4">
-              <Activity className="w-5 h-5 text-blue-500" />
-              <h3 className="font-semibold text-gray-900 dark:text-white">Son Kullanıcılar</h3>
-            </div>
-            <div className="space-y-3">
-              {recentUsers?.map((user: any) => (
-                <div key={user.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
-                  <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                    {user.firstName[0]}{user.lastName[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {user.firstName} {user.lastName}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {user.email}
-                    </p>
-                  </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    user.role === 'admin'
-                      ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                  }`}>
-                    {user.role === 'admin' ? 'Admin' : 'Öğrenci'}
-                  </span>
-                </div>
-              ))}
-              {(!recentUsers || recentUsers.length === 0) && (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                  Henüz kullanıcı yok
-                </p>
-              )}
-            </div>
+                    <span className="badge">
+                      {sessionStatusLabels[session.status]}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        </div>
-
-        <div className="card">
-          <div className="card-body">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="w-5 h-5 text-green-500" />
-              <h3 className="font-semibold text-gray-900 dark:text-white">Son Çalışma Seansları</h3>
-            </div>
-            <div className="space-y-3">
-              {recentSessions.map(session => (
-                <div key={session.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
-                  <div className={`w-3 h-3 rounded-full ${
-                    session.status === 'completed' ? 'bg-green-500' :
-                    session.status === 'in_progress' ? 'bg-yellow-500' :
-                    'bg-gray-400'
-                  }`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {session.title}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {session.userName} • Plan: {session.duration} dakika • {session.sessionType}
-                    </p>
-                  </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    session.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                    session.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                    'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
-                  }`}>
-                    {session.status === 'completed' ? 'Tamamlandı' :
-                     session.status === 'in_progress' ? 'Devam Ediyor' :
-                     'Planlandı'}
-                  </span>
-                </div>
-              ))}
-              {recentSessions.length === 0 && (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                  Henüz çalışma seansı yok
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   );
-};
-
-export default AdminDashboardPage;
+}
+export default function AdminDashboardPage() {
+  const { user } = useAuthStore();
+  return user?.role === 'admin' ? <AdminOverview /> : null;
+}

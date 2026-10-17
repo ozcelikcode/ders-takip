@@ -10,18 +10,29 @@ import {
 } from '../controllers/userController';
 import { authorize, protect } from '../middleware/auth';
 import { z } from 'zod';
-import { createManagedUserSchema } from '@study-tracker/contracts';
+import {
+  createManagedUserSchema,
+  managedUserPatchSchema,
+  userListQuerySchema,
+  catalogPathIdSchema,
+} from '@study-tracker/contracts';
 import { validate } from '../middleware/validate';
 
 const router = express.Router();
 
 router.use(protect);
 
-router.get('/', authorize('admin'), getUsers);
+const params = z.object({ id: catalogPathIdSchema });
+router.get(
+  '/',
+  authorize('admin'),
+  validate(z.object({ query: userListQuerySchema })),
+  getUsers,
+);
 
 router.get('/admin-stats', authorize('admin'), getAdminOverview);
-router.get('/:id/stats', getUserStudyStats);
-router.get('/:id', getUser);
+router.get('/:id/stats', validate(z.object({ params })), getUserStudyStats);
+router.get('/:id', validate(z.object({ params })), getUser);
 
 router.post(
   '/',
@@ -30,8 +41,18 @@ router.post(
   createUser,
 );
 
-router.put('/:id', authorize('admin'), updateUser);
+router.put(
+  '/:id',
+  authorize('admin'),
+  validate(z.object({ params, body: managedUserPatchSchema })),
+  updateUser,
+);
 
-router.delete('/:id', authorize('admin'), deleteUser);
+router.delete(
+  '/:id',
+  authorize('admin'),
+  validate(z.object({ params })),
+  deleteUser,
+);
 
 export default router;

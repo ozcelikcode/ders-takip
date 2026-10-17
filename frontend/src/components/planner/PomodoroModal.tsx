@@ -36,29 +36,43 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
         >
           <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
 
-          <div className={`fixed ${isMinimized ? 'bottom-4 right-4' : 'inset-0 flex items-center justify-center p-4'}`}>
+          <div
+            className={`fixed ${isMinimized ? 'bottom-4 right-4' : 'inset-0 flex items-center justify-center p-4'}`}
+          >
             <Dialog.Panel
               as={motion.div}
-              initial={isMinimized ? { scale: 0.8, y: 100 } : { scale: 0.95, opacity: 0 }}
-              animate={isMinimized ? { scale: 1, y: 0 } : { scale: 1, opacity: 1 }}
-              exit={isMinimized ? { scale: 0.8, y: 100 } : { scale: 0.95, opacity: 0 }}
-              className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl ${
+              initial={
                 isMinimized
-                  ? 'w-80 max-w-sm'
+                  ? { scale: 0.8, y: 100 }
+                  : { scale: 0.95, opacity: 0 }
+              }
+              animate={
+                isMinimized ? { scale: 1, y: 0 } : { scale: 1, opacity: 1 }
+              }
+              exit={
+                isMinimized
+                  ? { scale: 0.8, y: 100 }
+                  : { scale: 0.95, opacity: 0 }
+              }
+              className={`panel shadow-xl ${
+                isMinimized
+                  ? 'w-[min(320px,calc(100vw-32px))]'
                   : 'mx-auto max-w-lg w-full'
               }`}
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
+                <Dialog.Title className="text-lg font-medium">
                   Pomodoro
                 </Dialog.Title>
                 <div className="flex items-center gap-2">
                   {onToggleMinimize && (
                     <button
                       onClick={onToggleMinimize}
-                      aria-label={isMinimized ? 'Sayacı büyüt' : 'Sayacı küçült'}
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                      aria-label={
+                        isMinimized ? 'Sayacı büyüt' : 'Sayacı küçült'
+                      }
+                      className="icon-button"
                     >
                       {isMinimized ? (
                         <Maximize2 className="w-5 h-5" />
@@ -70,7 +84,7 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
                   <button
                     onClick={onClose}
                     aria-label="Sayacı kapat"
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    className="icon-button"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -79,10 +93,7 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
 
               {/* Timer Content */}
               <div className={`p-6 ${isMinimized ? 'pb-4' : ''}`}>
-                <PomodoroTimer
-                  session={session}
-                  onComplete={onClose}
-                />
+                <PomodoroTimer session={session} onComplete={onClose} />
               </div>
             </Dialog.Panel>
           </div>

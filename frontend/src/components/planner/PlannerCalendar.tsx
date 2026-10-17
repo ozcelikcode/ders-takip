@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useId,
   useRef,
   useState,
   type DragEvent,
@@ -24,11 +25,14 @@ import type { StudySession } from '../../types/planner';
 import { initializeCalendarViewport } from './calendarViewport';
 import {
   calendarHours,
+  calendarCardMinHeight,
+  calendarLaneMinWidth,
   calendarSegment,
   canRepositionSession,
   resizedDuration,
   sessionMinutes,
   snappedDropMinute,
+  layoutCalendarCards,
   type CalendarMode,
 } from './calendarGeometry';
 import { usePlannerCalendar } from './usePlannerCalendar';
@@ -69,9 +73,23 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
   const [hoverDirection, setHoverDirection] = useState<number | null>(null);
   const suppressClickUntil = useRef(0);
   const dateKey = format(days[0]!, 'yyyy-MM-dd');
+  const sessionActionRefs = useRef(new Map<string, HTMLButtonElement>());
+  const todayButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreSessionFocus = (id: number) => {
+    window.requestAnimationFrame(() => {
+      const target =
+        [...sessionActionRefs.current.entries()].find(([key]) =>
+          key.startsWith(`${id}:`),
+        )?.[1] ?? todayButtonRef.current;
+      target?.focus();
+    });
+  };
+  const slotHelpId = useId();
+  const slotRefs = useRef(new Map<string, HTMLButtonElement>());
+  const [focusedSlot, setFocusedSlot] = useState('0:8');
   const sessions = query.data ?? [];
-  const daySegments = days.map((day) =>
-    sessions
+  const daySegments = days.map((day) => {
+    const segments = sessions
       .map((session) => {
         const preview =
           resize?.session.id === session.id
@@ -89,8 +107,98 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
           segment: calendarSegment(preview, day, timezone, hourHeight),
         };
       })
-      .filter(({ segment }) => segment.minutes > 0),
+      .filter(({ segment }) => segment.minutes > 0)
+      .sort(
+        (a, b) =>
+          a.segment.hour - b.segment.hour ||
+          a.segment.top - b.segment.top ||
+          a.session.id - b.session.id,
+      );
+    const placements = layoutCalendarCards(
+      segments.map(({ session, segment }) => ({
+        id: session.id,
+        top: segment.hour * hourHeight + segment.top,
+        height: segment.height,
+      })),
+    );
+    return segments.map((entry) => ({
+      ...entry,
+      placement: placements.get(entry.session.id)!,
+    }));
+  });
+  const dayMinWidths = daySegments.map((segments) =>
+    segments.length === 0 && weekly
+      ? 104
+      : Math.max(1, ...segments.map(({ placement }) => placement.laneCount)) *
+        calendarLaneMinWidth,
   );
+  const gridTemplateColumns = `64px ${dayMinWidths.map((width) => `minmax(${width}px, 1fr)`).join(' ')}`;
+  const occupiedSlots = new Set<string>();
+  daySegments.forEach((segments, day) =>
+    calendarHours.forEach((hour) => {
+      if (
+        segments.some(
+          ({ session, segment }) =>
+            session.status !== 'cancelled' &&
+            segment.hour * 60 + (segment.top / hourHeight) * 60 <
+              (hour + 1) * 60 &&
+            segment.hour * 60 +
+              (segment.top / hourHeight) * 60 +
+              segment.minutes >
+              hour * 60,
+        )
+      )
+        occupiedSlots.add(`${day}:${hour}`);
+    }),
+  );
+  const availableSlots = calendarHours.flatMap((hour) =>
+    days.flatMap((_, day) =>
+      occupiedSlots.has(`${day}:${hour}`) ? [] : [`${day}:${hour}`],
+    ),
+  );
+  const activeSlot = availableSlots.includes(focusedSlot)
+    ? focusedSlot
+    : availableSlots[0];
+  const navigateSlot = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    day: number,
+    hour: number,
+  ) => {
+    let candidates: string[];
+    const coordinate = (key: string) =>
+      key.split(':').map(Number) as [number, number];
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown')
+      candidates = availableSlots
+        .filter((key) => {
+          const [d, h] = coordinate(key);
+          return d === day && (event.key === 'ArrowUp' ? h < hour : h > hour);
+        })
+        .sort(
+          (a, b) =>
+            Math.abs(coordinate(a)[1] - hour) -
+            Math.abs(coordinate(b)[1] - hour),
+        );
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+      candidates = availableSlots
+        .filter((key) => {
+          const [d, h] = coordinate(key);
+          return h === hour && (event.key === 'ArrowLeft' ? d < day : d > day);
+        })
+        .sort(
+          (a, b) =>
+            Math.abs(coordinate(a)[0] - day) - Math.abs(coordinate(b)[0] - day),
+        );
+    else if (event.key === 'Home' || event.key === 'End') {
+      candidates = availableSlots.filter(
+        (key) => event.ctrlKey || coordinate(key)[0] === day,
+      );
+      if (event.key === 'End') candidates.reverse();
+    } else return;
+    event.preventDefault();
+    const node = slotRefs.current.get(candidates[0] ?? '');
+    node?.focus();
+    node?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  };
   const clearDrag = () => {
     setDrag(null);
     setDrop(null);
@@ -105,6 +213,7 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
   }, [timezone]);
   useEffect(() => {
     setResize(null);
+    setFocusedSlot('0:8');
   }, [dateKey]);
   useEffect(() => {
     if (!drag) return;
@@ -174,7 +283,10 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
       return;
     }
     const rect = event.currentTarget.getBoundingClientRect();
-    if (event.clientY - rect.top >= rect.height - 6) {
+    if (
+      event.currentTarget.querySelector('[data-resize-handle]') &&
+      event.clientY - rect.top >= rect.height - 6
+    ) {
       event.preventDefault();
       return;
     }
@@ -281,6 +393,7 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
           {[-1, 0, 1].map((direction) => (
             <button
               key={direction}
+              ref={direction === 0 ? todayButtonRef : undefined}
               disabled={pending}
               className="btn btn-secondary"
               aria-label={
@@ -317,6 +430,13 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
           ))}
         </div>
       </div>
+      {onCreateSession && (
+        <p id={slotHelpId} className="text-xs text-[var(--muted)]">
+          Boş saatlerde ok tuşlarıyla gezinip Enter veya boşlukla seans ekleyin.
+          Home/End günün ilk/son boş saatine gider. Seans işlemlerinden tarih,
+          saat ve süre değiştirilebilir.
+        </p>
+      )}
       {query.isError ? (
         <div role="alert" className="panel p-6 text-center">
           <p>Planlayıcı verileri alınamadı.</p>
@@ -339,12 +459,18 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
             aria-label={`${weekly ? 'Haftalık' : 'Günlük'} takvim, saatleri görmek için kaydırın`}
             ref={initializeCalendarViewport}
           >
-            <div style={{ minWidth: weekly ? 800 : 0 }}>
+            <div
+              style={{
+                minWidth:
+                  64 + dayMinWidths.reduce((total, width) => total + width, 0),
+                paddingBottom: calendarCardMinHeight + 8,
+              }}
+            >
               <div
                 data-calendar-header
                 className="sticky top-0 z-40 grid border-b border-[var(--line)] bg-[var(--surface)]"
                 style={{
-                  gridTemplateColumns: `64px repeat(${days.length}, minmax(0, 1fr))`,
+                  gridTemplateColumns,
                 }}
               >
                 <div className="flex items-center justify-center border-r border-[var(--line)]">
@@ -368,7 +494,7 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
                   data-calendar-hour={hour}
                   className="grid border-b border-[var(--line)]"
                   style={{
-                    gridTemplateColumns: `64px repeat(${days.length}, minmax(0, 1fr))`,
+                    gridTemplateColumns,
                     height: hourHeight,
                   }}
                 >
@@ -383,16 +509,7 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
                       format(day, 'yyyy-MM-dd') ===
                         format(planner.now, 'yyyy-MM-dd') &&
                       planner.now.getHours() === hour;
-                    const occupied = daySegments[index]!.some(
-                      ({ session, segment }) =>
-                        session.status !== 'cancelled' &&
-                        segment.hour * 60 + (segment.top / hourHeight) * 60 <
-                          (hour + 1) * 60 &&
-                        segment.hour * 60 +
-                          (segment.top / hourHeight) * 60 +
-                          segment.minutes >
-                          hour * 60,
-                    );
+                    const occupied = occupiedSlots.has(`${index}:${hour}`);
                     return (
                       <div
                         key={day.getTime()}
@@ -405,9 +522,23 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
                         <div className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-dashed border-[var(--line)] opacity-50" />
                         {!occupied && onCreateSession && (
                           <button
+                            ref={(node) => {
+                              const key = `${index}:${hour}`;
+                              if (node) slotRefs.current.set(key, node);
+                              else slotRefs.current.delete(key);
+                            }}
+                            tabIndex={
+                              activeSlot === `${index}:${hour}` ? 0 : -1
+                            }
+                            aria-describedby={slotHelpId}
+                            onFocus={() => setFocusedSlot(`${index}:${hour}`)}
+                            onKeyDown={(event) =>
+                              navigateSlot(event, index, hour)
+                            }
                             disabled={pending}
                             aria-label={`${format(day, 'd MMMM')} ${String(hour).padStart(2, '0')}:00 seans ekle`}
-                            className="absolute inset-0 flex items-center justify-center text-[var(--muted)] opacity-0 hover:opacity-100 focus-visible:opacity-100"
+                            className="absolute inset-0 flex items-center justify-center text-[var(--muted)] opacity-100 sm:opacity-0 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px]"
+                            style={{ scrollMarginTop: 56 }}
                             onClick={() => create(index, hour)}
                           >
                             <Plus className="h-3 w-3" />
@@ -444,46 +575,58 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
                             </span>
                           </div>
                         )}
-                        {segments.map(({ session, preview, segment }) => (
-                          <CalendarSessionCard
-                            key={session.id}
-                            session={preview}
-                            timezone={timezone}
-                            top={segment.top}
-                            height={segment.height}
-                            pending={pending}
-                            dragging={drag?.session.id === session.id}
-                            resizing={resize?.session.id === session.id}
-                            canDrag={segment.startsHere}
-                            canResize={segment.endsHere}
-                            onDragStart={(event) => beginDrag(event, session)}
-                            onDragEnd={clearDrag}
-                            onResize={(event) => beginResize(event, session)}
-                            onEdit={() => {
-                              if (
-                                !pending &&
-                                !resize &&
-                                Date.now() >= suppressClickUntil.current
-                              )
-                                planner.setEditing(session);
-                            }}
-                            onActions={(event) => openActions(event, session)}
-                            onStart={() => void planner.startSession(session)}
-                            onPause={() =>
-                              planner.setConfirmation({
-                                session,
-                                action: 'pause',
-                              })
-                            }
-                            onComplete={() =>
-                              planner.setConfirmation({
-                                session,
-                                action: 'complete',
-                              })
-                            }
-                            onTimer={() => planner.openTimer(session)}
-                          />
-                        ))}
+                        {segments.map(
+                          ({ session, preview, segment, placement }) => (
+                            <CalendarSessionCard
+                              key={session.id}
+                              actionRef={(node) => {
+                                const key = `${session.id}:${format(day, 'yyyy-MM-dd')}:${hour}`;
+                                if (node)
+                                  sessionActionRefs.current.set(key, node);
+                                else sessionActionRefs.current.delete(key);
+                              }}
+                              session={preview}
+                              timezone={timezone}
+                              top={segment.top}
+                              height={placement.height}
+                              lane={placement.lane}
+                              laneCount={placement.laneCount}
+                              pending={pending}
+                              dragging={drag?.session.id === session.id}
+                              resizing={resize?.session.id === session.id}
+                              canDrag={segment.startsHere}
+                              canResize={
+                                segment.endsHere && placement.height >= 36
+                              }
+                              onDragStart={(event) => beginDrag(event, session)}
+                              onDragEnd={clearDrag}
+                              onResize={(event) => beginResize(event, session)}
+                              onEdit={() => {
+                                if (
+                                  !pending &&
+                                  !resize &&
+                                  Date.now() >= suppressClickUntil.current
+                                )
+                                  planner.setEditing(session);
+                              }}
+                              onActions={(event) => openActions(event, session)}
+                              onStart={() => void planner.startSession(session)}
+                              onPause={() =>
+                                planner.setConfirmation({
+                                  session,
+                                  action: 'pause',
+                                })
+                              }
+                              onComplete={() =>
+                                planner.setConfirmation({
+                                  session,
+                                  action: 'complete',
+                                })
+                              }
+                              onTimer={() => planner.openTimer(session)}
+                            />
+                          ),
+                        )}
                       </div>
                     );
                   })}
@@ -562,6 +705,17 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
               Tarihe taşı
             </button>
             <button
+              disabled={!canRepositionSession(actions.session)}
+              className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-[var(--subtle)] disabled:opacity-40"
+              onClick={() => {
+                planner.setMoving(actions.session);
+                setActions(null);
+              }}
+            >
+              <Clock className="h-4 w-4" />
+              Saat ve süreyi değiştir
+            </button>
+            <button
               className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm text-red-600 hover:bg-[var(--subtle)]"
               onClick={() => {
                 planner.setConfirmation({
@@ -605,12 +759,30 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
       <MoveSessionModal
         isOpen={!!planner.moving}
         onClose={() => {
-          if (!pending) planner.setMoving(null);
+          if (!pending) {
+            const id = planner.moving?.id;
+            planner.setMoving(null);
+            if (id !== undefined) restoreSessionFocus(id);
+          }
         }}
-        onSelectDate={(date) =>
-          planner.moving ? planner.move(planner.moving, date) : false
+        sourceUnavailable={
+          query.isError ||
+          (!!planner.moving &&
+            !sessions.some((session) => session.id === planner.moving!.id))
         }
-        pending={pending}
+        onReload={() => void planner.reloadMoving()}
+        sessionDuration={planner.moving ? sessionMinutes(planner.moving) : 60}
+        onSelectDate={(date, changes) =>
+          planner.moving
+            ? planner.move(
+                planner.moving,
+                date,
+                changes?.minute,
+                changes?.duration,
+              )
+            : false
+        }
+        pending={pending || query.isFetching}
         sessionTitle={planner.moving?.title ?? ''}
         currentDate={
           planner.moving

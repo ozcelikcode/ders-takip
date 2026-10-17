@@ -17,13 +17,10 @@ export function useAccountMutation(invalidateKeys: readonly QueryKey[]) {
   const boundEpoch = useRef(useAuthStore.getState().epoch);
   const [isPending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const isCurrent = () =>
+    mounted.current && useAuthStore.getState().epoch === boundEpoch.current;
   const save = async (operation: () => Promise<unknown>, message: string) => {
-    if (
-      !mounted.current ||
-      busy.current ||
-      useAuthStore.getState().epoch !== boundEpoch.current
-    )
-      return false;
+    if (!isCurrent() || busy.current) return false;
     busy.current = true;
     setPending(true);
     setErrorMessage('');
@@ -60,6 +57,7 @@ export function useAccountMutation(invalidateKeys: readonly QueryKey[]) {
     save,
     isPending,
     errorMessage,
+    isCurrent,
     clearError: () => setErrorMessage(''),
   };
 }

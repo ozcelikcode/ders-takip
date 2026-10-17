@@ -1,27 +1,18 @@
-import type { CreateSessionInput, UpdateSessionInput, SessionStatus, ActivityInterval, TrackingCoverage, CreateTopicInput, UpdateTopicInput, PomodoroClockState } from '@study-tracker/contracts';
-
-export interface Plan {
-  id: number;
-  userId: number;
-  title: string;
-  description?: string;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-  goals: {
-    dailyHours: number;
-    weeklyHours: number;
-    targetTopics: number;
-    priority: 'low' | 'medium' | 'high';
-  };
-  createdAt: string;
-  updatedAt: string;
-}
+import type {
+  CreateSessionInput,
+  UpdateSessionInput,
+  SessionStatus,
+  ActivityInterval,
+  TrackingCoverage,
+  CreateTopicInput,
+  UpdateTopicInput,
+  PomodoroClockState,
+} from '@study-tracker/contracts';
 
 export interface StudySession {
   id: number;
   userId: number;
-  planId?: number;
+  planId?: number | null;
   topicId?: number | null;
   courseId?: number | null;
   title: string;
@@ -66,21 +57,11 @@ export interface StudySession {
   };
 }
 
-export interface CreatePlanRequest {
-  title: string;
-  description?: string | undefined;
-  startDate: string;
-  endDate: string;
-  goals?: {
-    dailyHours: number;
-    weeklyHours: number;
-    targetTopics: number;
-    priority: 'low' | 'medium' | 'high';
-  } | undefined;
-}
-
 export type CreateStudySessionRequest = CreateSessionInput;
-export type UpdateStudySessionRequest = Omit<UpdateSessionInput, 'expectedUpdatedAt'>;
+export type UpdateStudySessionRequest = Omit<
+  UpdateSessionInput,
+  'expectedUpdatedAt'
+>;
 
 export interface Topic {
   id: number;

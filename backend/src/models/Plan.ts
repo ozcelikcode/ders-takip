@@ -1,3 +1,10 @@
+import {
+  defaultPlanGoals,
+  planGoalsSchema,
+  type PlanGoals,
+} from '@study-tracker/contracts';
+import type { StudySession } from './StudySession';
+import type { Course } from './Course';
 import { DataTypes, Model, Optional, Association } from 'sequelize';
 import { sequelize } from '../config/database';
 
@@ -9,19 +16,20 @@ interface PlanAttributes {
   startDate: Date;
   endDate: Date;
   isActive: boolean;
-  goals: {
-    dailyHours: number;
-    weeklyHours: number;
-    targetTopics: number;
-    priority: 'low' | 'medium' | 'high';
-  };
+  goals: PlanGoals;
   createdAt: Date;
   updatedAt: Date;
 }
 
-interface PlanCreationAttributes extends Optional<PlanAttributes, 'id' | 'description' | 'isActive' | 'createdAt' | 'updatedAt'> {}
+interface PlanCreationAttributes extends Optional<
+  PlanAttributes,
+  'id' | 'description' | 'isActive' | 'createdAt' | 'updatedAt'
+> {}
 
-export class Plan extends Model<PlanAttributes, PlanCreationAttributes> implements PlanAttributes {
+export class Plan
+  extends Model<PlanAttributes, PlanCreationAttributes>
+  implements PlanAttributes
+{
   public id!: number;
   public userId!: number;
   public title!: string;
@@ -29,20 +37,15 @@ export class Plan extends Model<PlanAttributes, PlanCreationAttributes> implemen
   public startDate!: Date;
   public endDate!: Date;
   public isActive!: boolean;
-  public goals!: {
-    dailyHours: number;
-    weeklyHours: number;
-    targetTopics: number;
-    priority: 'low' | 'medium' | 'high';
-  };
+  public goals!: PlanGoals;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
   // Association
-  public studySessions?: any[];
+  declare studySessions?: (StudySession & { course?: Course })[];
 
   public static override associations: {
-    studySessions: Association<Plan, any>;
+    studySessions: Association<Plan, StudySession>;
   };
 }
 
@@ -81,8 +84,8 @@ Plan.init(
       type: DataTypes.DATE,
       allowNull: false,
       validate: {
-        isAfterStartDate(value: Date) {
-          if (value <= (this as any).startDate) {
+        isAfterStartDate(this: Plan, value: Date) {
+          if (value <= this.startDate) {
             throw new Error('End date must be after start date');
           }
         },
@@ -95,30 +98,10 @@ Plan.init(
     goals: {
       type: DataTypes.JSON,
       allowNull: false,
-      defaultValue: {
-        dailyHours: 4,
-        weeklyHours: 28,
-        targetTopics: 10,
-        priority: 'medium',
-      },
+      defaultValue: { ...defaultPlanGoals },
       validate: {
-        isValidGoals(value: any) {
-          if (!value || typeof value !== 'object') {
-            throw new Error('Goals must be an object');
-          }
-          const goals = value as any;
-          if (typeof goals.dailyHours !== 'number' || goals.dailyHours < 0 || goals.dailyHours > 24) {
-            throw new Error('Daily hours must be between 0 and 24');
-          }
-          if (typeof goals.weeklyHours !== 'number' || goals.weeklyHours < 0 || goals.weeklyHours > 168) {
-            throw new Error('Weekly hours must be between 0 and 168');
-          }
-          if (typeof goals.targetTopics !== 'number' || goals.targetTopics < 0) {
-            throw new Error('Target topics must be a positive number');
-          }
-          if (!['low', 'medium', 'high'].includes(goals.priority)) {
-            throw new Error('Priority must be low, medium, or high');
-          }
+        isValidGoals(value: unknown) {
+          planGoalsSchema.parse(value);
         },
       },
     },
@@ -148,7 +131,7 @@ Plan.init(
         fields: ['isActive'],
       },
     ],
-  }
+  },
 );
 
 export default Plan;

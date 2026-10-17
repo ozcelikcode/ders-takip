@@ -7,6 +7,49 @@ import { addDays, format, sessionDayBounds } from '../../utils/calendarDates';
 import type { StudySession } from '../../types/planner';
 
 export const calendarHours = Array.from({ length: 24 }, (_, hour) => hour);
+export const calendarCardMinHeight = 28;
+export const calendarLaneMinWidth = 160;
+
+interface CardBounds {
+  id: number;
+  top: number;
+  height: number;
+}
+
+export function layoutCalendarCards(cards: CardBounds[]) {
+  const placements = new Map<
+    number,
+    { lane: number; laneCount: number; height: number }
+  >();
+  const ordered = cards
+    .map((card) => ({
+      ...card,
+      height: Math.max(calendarCardMinHeight, card.height),
+    }))
+    .sort((a, b) => a.top - b.top || a.id - b.id);
+  let group: typeof ordered = [];
+  let laneEnds: number[] = [];
+  let groupEnd = -Infinity;
+  const finishGroup = () => {
+    for (const card of group)
+      placements.get(card.id)!.laneCount = laneEnds.length;
+    group = [];
+    laneEnds = [];
+  };
+  for (const card of ordered) {
+    if (card.top >= groupEnd) finishGroup();
+    const available = laneEnds.findIndex((end) => end <= card.top);
+    const lane = available === -1 ? laneEnds.length : available;
+    const end = card.top + card.height;
+    laneEnds[lane] = end;
+    groupEnd = Math.max(groupEnd, end);
+    group.push(card);
+    placements.set(card.id, { lane, laneCount: 1, height: card.height });
+  }
+  finishGroup();
+  return placements;
+}
+
 export type CalendarMode = 'daily' | 'weekly';
 export const canRepositionSession = (session: StudySession) =>
   session.status !== 'in_progress' && session.status !== 'completed';
@@ -71,7 +114,12 @@ export function calendarSegment(
   const bounds = sessionDayBounds(session, date, timezone);
   return {
     hour: bounds.start.getHours(),
-    top: (bounds.start.getMinutes() / 60) * hourHeight,
+    top:
+      ((bounds.start.getMinutes() +
+        bounds.start.getSeconds() / 60 +
+        bounds.start.getMilliseconds() / 60_000) /
+        60) *
+      hourHeight,
     height: (bounds.minutes / 60) * hourHeight,
     minutes: bounds.minutes,
     startsHere:

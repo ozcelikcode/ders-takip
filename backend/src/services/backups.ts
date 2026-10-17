@@ -1,3 +1,4 @@
+import { backupRecordSchema } from '@study-tracker/contracts';
 import { createReadStream } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
@@ -143,5 +144,5 @@ export const runScheduledBackup = (now = new Date()): Promise<boolean> => withDa
 export const listBackups = async () => {
   const manifests = await verifiedManifests();
   const verifiedIds = new Set(manifests.map(manifest => manifest.id));
-  return (await Backup.findAll({ order: [['createdAt', 'DESC']] })).map(entry => ({ ...entry.toJSON(), verified: verifiedIds.has(entry.id) }));
+  return (await Backup.findAll({ order: [['createdAt', 'DESC']] })).map(entry => backupRecordSchema.parse({ id: entry.id, filename: entry.filename, size: entry.size, type: entry.type, createdAt: entry.createdAt.toISOString(), verified: verifiedIds.has(entry.id) }));
 };

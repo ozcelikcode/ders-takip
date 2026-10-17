@@ -2,8 +2,8 @@ import { Brand } from '../../components/common/Brand';
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { contractResolver } from '../../lib/contractResolver';
+import { registerSchema, type RegisterInput } from '@study-tracker/contracts';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -11,28 +11,22 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 
-const registerSchema = z.object({
-  firstName: z.string().min(2, 'Ad en az 2 karakter olmalıdır'),
-  lastName: z.string().min(2, 'Soyad en az 2 karakter olmalıdır'),
-  username: z.string().min(3, 'Kullanıcı adı en az 3 karakter olmalıdır'),
-  email: z.string().email('Geçerli bir e-posta adresi giriniz'),
-  password: z.string().min(12, 'Şifre en az 12 karakter olmalıdır').refine(value => new TextEncoder().encode(value).length <= 72, 'Şifre en fazla 72 UTF-8 baytı olabilir'),
-});
-
-type RegisterFormData = z.infer<typeof registerSchema>;
+type RegisterFormData = RegisterInput;
 
 const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { register: registerUser, isAuthenticated } = useAuthStore();
-  const allowRegistration = useSettingsStore(state => state.settings.allowRegistration);
+  const allowRegistration = useSettingsStore(
+    (state) => state.settings.allowRegistration,
+  );
 
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
+    resolver: contractResolver(registerSchema),
   });
 
   if (isAuthenticated) {
@@ -54,11 +48,23 @@ const RegisterPage = () => {
   if (!allowRegistration) {
     return (
       <div className="min-h-screen bg-[var(--canvas)] flex items-center justify-center py-12 px-4">
-        <div className="panel w-full max-w-md space-y-4 p-8 text-center" role="status">
-          <div className="flex justify-center"><Brand /></div>
-          <h2 className="text-2xl font-semibold tracking-tight">Kayıtlar kapalı</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Yeni hesap oluşturma şu anda kapalı. Mevcut hesabınızla giriş yapabilirsiniz.</p>
-          <Link to="/login" className="btn btn-secondary">Giriş yap</Link>
+        <div
+          className="panel w-full max-w-md space-y-4 p-8 text-center"
+          role="status"
+        >
+          <div className="flex justify-center">
+            <Brand />
+          </div>
+          <h2 className="text-2xl font-semibold tracking-tight">
+            Kayıtlar kapalı
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Yeni hesap oluşturma şu anda kapalı. Mevcut hesabınızla giriş
+            yapabilirsiniz.
+          </p>
+          <Link to="/login" className="btn btn-secondary">
+            Giriş yap
+          </Link>
         </div>
       </div>
     );
@@ -73,7 +79,9 @@ const RegisterPage = () => {
         className="max-w-md w-full space-y-8"
       >
         <div className="text-center">
-          <div className="flex justify-center"><Brand /></div>
+          <div className="flex justify-center">
+            <Brand />
+          </div>
           <h2 className="mt-6 text-[28px] font-semibold tracking-tight text-gray-900 dark:text-white">
             Kayıt Ol
           </h2>
@@ -86,44 +94,57 @@ const RegisterPage = () => {
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="firstName"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Ad
                 </label>
                 <div className="mt-1">
                   <input
                     {...register('firstName')}
-                  id="firstName"
+                    id="firstName"
                     type="text"
                     className={`input ${errors.firstName ? 'input-error' : ''}`}
                     placeholder="Adınız"
                   />
                   {errors.firstName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.firstName.message}
+                    </p>
                   )}
                 </div>
               </div>
 
               <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="lastName"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Soyad
                 </label>
                 <div className="mt-1">
                   <input
                     {...register('lastName')}
-                  id="lastName"
+                    id="lastName"
                     type="text"
                     className={`input ${errors.lastName ? 'input-error' : ''}`}
                     placeholder="Soyadınız"
                   />
                   {errors.lastName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.lastName.message}
+                    </p>
                   )}
                 </div>
               </div>
             </div>
 
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Kullanıcı Adı
               </label>
               <div className="mt-1">
@@ -135,13 +156,18 @@ const RegisterPage = () => {
                   placeholder="kullaniciadi"
                 />
                 {errors.username && (
-                  <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.username.message}
+                  </p>
                 )}
               </div>
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 E-posta Adresi
               </label>
               <div className="mt-1">
@@ -154,13 +180,18 @@ const RegisterPage = () => {
                   placeholder="ornek@email.com"
                 />
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Şifre
               </label>
               <div className="mt-1 relative">
@@ -185,7 +216,9 @@ const RegisterPage = () => {
                   )}
                 </button>
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
             </div>

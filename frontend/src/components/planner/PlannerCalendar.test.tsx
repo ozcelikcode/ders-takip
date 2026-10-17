@@ -124,6 +124,91 @@ describe.each([
     (await screen.findByRole('button', { name: base.title })).closest(
       '[draggable]',
     )!;
+  it('keeps short adjacent sessions in separate lanes across hours and opens each action menu without writing', async () => {
+    sessions = [
+      {
+        ...base,
+        id: 1,
+        title: 'Short first',
+        startTime: '2026-10-16T06:59:00Z',
+        endTime: '2026-10-16T07:00:00Z',
+        duration: 1,
+      },
+      {
+        ...base,
+        id: 2,
+        title: 'Short second',
+        startTime: '2026-10-16T07:00:00Z',
+        endTime: '2026-10-16T07:01:00Z',
+        duration: 1,
+      },
+      {
+        ...base,
+        id: 3,
+        title: 'Cancelled overlay',
+        startTime: '2026-10-16T07:00:00Z',
+        endTime: '2026-10-16T07:01:00Z',
+        duration: 1,
+        status: 'cancelled',
+      },
+    ];
+    const before = structuredClone(sessions);
+    const { container } = mount();
+    const cards = await Promise.all(
+      sessions.map(async (session) =>
+        (
+          await screen.findByRole('button', {
+            name: session.title,
+          })
+        ).closest<HTMLElement>('[draggable]')!,
+      ),
+    );
+    expect(new Set(cards.map((node) => node.style.left)).size).toBe(3);
+    for (let index = 0; index < sessions.length; index++) {
+      expect(cards[index]!.style.height).toBe('28px');
+      expect(cards[index]!.querySelector('[data-resize-handle]')).toBeNull();
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: `${sessions[index]!.title}: işlemler`,
+        }),
+      );
+      const menu = await screen.findByRole('dialog', {
+        name: 'Seans işlemleri',
+      });
+      expect(
+        within(menu).getByRole('button', { name: 'Saat ve süreyi değiştir' }),
+      ).toBeTruthy();
+      fireEvent.keyDown(menu, { key: 'Escape' });
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    }
+    expect(
+      container.querySelector<HTMLElement>('[data-calendar-header]')!.style
+        .gridTemplateColumns,
+    ).toContain('minmax(480px, 1fr)');
+    expect(sessions).toEqual(before);
+    expect(studySessionsAPI.updateSession).not.toHaveBeenCalled();
+  });
+  it('reserves space after midnight so the last minute target is not clipped', async () => {
+    sessions = [
+      {
+        ...base,
+        title: 'Last minute',
+        startTime: '2026-10-16T20:59:00Z',
+        endTime: '2026-10-16T21:00:00Z',
+        duration: 1,
+      },
+    ];
+    const { container } = mount();
+    const item = (
+      await screen.findByRole('button', { name: 'Last minute' })
+    ).closest<HTMLElement>('[draggable]')!;
+    expect(item.style.height).toBe('28px');
+    expect(Number.parseFloat(item.style.top)).toBeCloseTo((height * 59) / 60);
+    expect(
+      container.querySelector<HTMLElement>('[data-calendar-header]')!
+        .parentElement!.style.paddingBottom,
+    ).toBe('36px');
+  });
   it('moves to the same quarter hour using the original optimistic snapshot and blocks duplicate writes', async () => {
     let finish!: (
       value: Awaited<ReturnType<typeof studySessionsAPI.updateSession>>,
@@ -257,6 +342,234 @@ describe.each([
       startTime: '2026-10-17T06:30:00.000Z',
       endTime: '2026-10-17T08:00:00.000Z',
     });
+  });
+  it('uses one Tab stop for available slots and arrow/Home/End navigation without writing', async () => {
+    const { container } = mount();
+    await card();
+    const buttons = () =>
+      screen.getAllByRole('button', {
+        name: /seans ekle$/,
+      }) as HTMLButtonElement[];
+    expect(buttons().filter((button) => button.tabIndex === 0)).toHaveLength(1);
+    const initial = buttons().find((button) => button.tabIndex === 0)!;
+    act(() => initial.focus());
+    const slot = initial
+      .closest('[data-calendar-slot]')!
+      .getAttribute('data-calendar-slot')!;
+    fireEvent.keyDown(initial, { key: 'ArrowDown' });
+    const next = document.activeElement as HTMLButtonElement;
+    expect(next).not.toBe(initial);
+    expect(
+      next.closest('[data-calendar-slot]')!.getAttribute('data-calendar-slot'),
+    ).toContain(slot.slice(0, 10));
+    fireEvent.keyDown(next, { key: 'End' });
+    expect(
+      document.activeElement
+        ?.closest('[data-calendar-slot]')
+        ?.getAttribute('data-calendar-slot'),
+    ).toContain('T23:00');
+    fireEvent.keyDown(document.activeElement!, { key: 'Home' });
+    expect(
+      document.activeElement
+        ?.closest('[data-calendar-slot]')
+        ?.getAttribute('data-calendar-slot'),
+    ).toContain('T00:00');
+    if (_mode === 'weekly') {
+      const original = document.activeElement;
+      fireEvent.keyDown(original!, { key: 'ArrowRight' });
+      expect(document.activeElement).not.toBe(original);
+    }
+    expect(buttons().filter((button) => button.tabIndex === 0)).toHaveLength(1);
+    expect(container.querySelectorAll('[data-calendar-slot]')).toHaveLength(
+      _mode === 'weekly' ? 168 : 24,
+    );
+    expect(studySessionsAPI.updateSession).not.toHaveBeenCalled();
+  });
+  it('changes time and duration through the same versioned command without drag or pointer resize', async () => {
+    vi.mocked(studySessionsAPI.updateSession).mockImplementation(
+      async (_source, input) => {
+        sessions = [
+          {
+            ...base,
+            startTime: input.startTime ?? base.startTime,
+            endTime: input.endTime ?? base.endTime,
+            duration: 90,
+          },
+        ];
+        return response({ success: true, data: { session: sessions[0] } });
+      },
+    );
+    mount();
+    await card();
+    fireEvent.click(
+      screen.getByRole('button', { name: `${base.title}: işlemler` }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Saat ve süreyi değiştir' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Başlangıç saati'), {
+      target: { value: '11:15' },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Planlanan süre (dakika)'), {
+      target: { value: '90' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Taşı' }));
+    await waitFor(() =>
+      expect(studySessionsAPI.updateSession).toHaveBeenCalledWith(base, {
+        startTime: '2026-10-16T08:15:00.000Z',
+        endTime: '2026-10-16T09:45:00.000Z',
+      }),
+    );
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: `${base.title}: işlemler` }),
+      ),
+    );
+  });
+  it('preserves a time/duration draft after 409 and retries only with an explicit new confirmation', async () => {
+    const conflict = new AxiosError(
+      'Conflict',
+      'ERR_BAD_REQUEST',
+      undefined,
+      undefined,
+      response({ error: { message: 'Eski sürüm' } }),
+    );
+    conflict.response!.status = 409;
+    vi.mocked(studySessionsAPI.updateSession)
+      .mockRejectedValueOnce(conflict)
+      .mockResolvedValue(response({ success: true, data: { session: base } }));
+    mount();
+    await card();
+    fireEvent.click(
+      screen.getByRole('button', { name: `${base.title}: işlemler` }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Saat ve süreyi değiştir' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Başlangıç saati'), {
+      target: { value: '11:15' },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Planlanan süre (dakika)'), {
+      target: { value: '90' },
+    });
+    const changed = {
+      ...base,
+      updatedAt: '2026-10-16T00:00:01Z',
+      startTime: '2026-10-16T07:00:00Z',
+      endTime: '2026-10-16T09:00:00Z',
+      duration: 120,
+    };
+    sessions = [changed];
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Taşı' }));
+    await waitFor(() =>
+      expect(
+        within(dialog)
+          .getByRole('button', { name: 'Taşı' })
+          .hasAttribute('disabled'),
+      ).toBe(false),
+    );
+    expect(studySessionsAPI.updateSession).toHaveBeenCalledTimes(1);
+    expect(
+      (within(dialog).getByLabelText('Başlangıç saati') as HTMLInputElement)
+        .value,
+    ).toBe('11:15');
+    expect(
+      (
+        within(dialog).getByLabelText(
+          'Planlanan süre (dakika)',
+        ) as HTMLInputElement
+      ).value,
+    ).toBe('90');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Taşı' }));
+    await waitFor(() =>
+      expect(studySessionsAPI.updateSession).toHaveBeenLastCalledWith(changed, {
+        startTime: '2026-10-16T08:15:00.000Z',
+        endTime: '2026-10-16T09:45:00.000Z',
+      }),
+    );
+  });
+  it('rejects invalid duration without a write and preserves navigation on cancel', async () => {
+    mount();
+    await card();
+    fireEvent.click(
+      screen.getByRole('button', { name: `${base.title}: işlemler` }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Saat ve süreyi değiştir' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Planlanan süre (dakika)'), {
+      target: { value: '1441' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Taşı' }));
+    await screen.findByRole('alert');
+    expect(studySessionsAPI.updateSession).not.toHaveBeenCalled();
+    fireEvent.keyDown(dialog, { key: 'Escape', code: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+  it('blocks a stale schedule write after a failed refresh and supports reading the source again', async () => {
+    const conflict = new AxiosError(
+      'Conflict',
+      'ERR_BAD_REQUEST',
+      undefined,
+      undefined,
+      response({ error: { message: 'Eski sürüm' } }),
+    );
+    conflict.response!.status = 409;
+    vi.mocked(studySessionsAPI.updateSession)
+      .mockRejectedValueOnce(conflict)
+      .mockResolvedValue(response({ success: true, data: { session: base } }));
+    mount();
+    await card();
+    fireEvent.click(
+      screen.getByRole('button', { name: `${base.title}: işlemler` }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Saat ve süreyi değiştir' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Başlangıç saati'), {
+      target: { value: '11:15' },
+    });
+    vi.mocked(studySessionsAPI.getSessions).mockRejectedValue(
+      new Error('Offline'),
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Taşı' }));
+    await screen.findByText(
+      'Güncel seans okunamadı veya bu takvim aralığında bulunamadı. Kaydetmeden önce yeniden yükleyin.',
+    );
+    expect(
+      within(dialog)
+        .getByRole('button', { name: 'Taşı' })
+        .hasAttribute('disabled'),
+    ).toBe(true);
+    const changed = { ...base, updatedAt: '2026-10-16T00:00:01Z' };
+    vi.mocked(studySessionsAPI.getSessions).mockResolvedValue(
+      response({ success: true, data: { sessions: [changed] } }),
+    );
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Seansı yeniden yükle' }),
+    );
+    await waitFor(() =>
+      expect(
+        within(dialog)
+          .getByRole('button', { name: 'Taşı' })
+          .hasAttribute('disabled'),
+      ).toBe(false),
+    );
+    expect(
+      (within(dialog).getByLabelText('Başlangıç saati') as HTMLInputElement)
+        .value,
+    ).toBe('11:15');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Taşı' }));
+    await waitFor(() =>
+      expect(studySessionsAPI.updateSession).toHaveBeenLastCalledWith(changed, {
+        startTime: '2026-10-16T08:15:00.000Z',
+        endTime: '2026-10-16T09:15:00.000Z',
+      }),
+    );
   });
   it('ignores a late mutation acknowledgement after the authentication epoch changes', async () => {
     let finish!: (

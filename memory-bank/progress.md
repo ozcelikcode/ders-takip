@@ -1,12 +1,60 @@
 # Ders Takip Sistemi — İlerleme
 
-Son güncelleme: 17 Ekim 2026, A21 site ayarları/yedekleme alt paketi; yerel schema 006.
+Son güncelleme: 17 Ekim 2026, A22 kısa takvim kartlarının yerleşimi; yerel schema 006.
 
 ## Genel durum
 
 İnceleme sonrası geliştirme başladı. Derleme ve kalite tabanı çalışır hale getirildi; kritik erişim/veri okuma sorunları ve tam kapsamlı site taramasında tespit edilen çalışma zamanı/UI/veri bütünlüğü hataları kapatıldı. Bütün audit bulguları çözülmüş veya üretime hazır kabul edilmez.
 
 Kurallar: `workingPrinciples.md`. Başlangıç incelemesi: `audits/2026-10-15-project-audit.md`. Uygulama kaydı: `implementation/2026-10-15-foundation.md`.
+
+## A22 — Kısa takvim kartlarının yerleşimi (17 Ekim 2026)
+
+Kısa seansların minimum tıklama yüksekliği, komşu kartları saat sınırları üzerinden örtebiliyordu. Ortak calendarGeometry artık gerçek piksel başlangıcı ve en az 28 px görsel yükseklik üzerinden bağlı çakışma grupları kurar; serbest sütunları yeniden kullanır ve eşit başlangıçta ID ile stabil sıralar. Kayıtların UTC başlangıç/bitiş/süre/durum/not değerleri değiştirilmez. İptal edilmiş ve diğer görünür kartlar aynı yerleşime katılır. Her etkileşim sütunu en az 160 px; boş haftalık günler 104 px kalır. Header ve saatler aynı kolon şablonunu kullanır, yoğun günlerde yatay kaydırma vardır. Gün sonunda 36 px boşluk son dakika kartını ve odak çerçevesini korur.
+
+Kart başlığı/ikon hedefleri en az 24 px olarak 28 px kabuğa sığar; 68 px altı kompakt satırdır. Kısa kartta hedefi örten resize tutamacı kaldırıldı (36 px altı); mevcut Saat ve süreyi değiştir alternatifi korunur. Büyük kartlarda pointer resize devam eder. Takvim başlangıcında saniye/milisaniye korunur; hiçbir kaydın zamanı kaydırılmaz. Günlük/haftalık aynı motoru kullanır; DOM sırası görünür başlangıç/ID sırasıdır.
+
+Doğrulama: **18 contracts + 142 backend + 200 frontend = 360 test**, atlanan yok; npm run check naming/strict/lint/production build geçti. Son görsel boşluk/sıra düzenlemesinden sonra frontend strict, kök lint, 200 test ve production build tekrar geçti. Yeni 4 geometry ve günlük/haftalık toplam 4 component regresyonu var. Ayrı temp production fixture'da 1 dakikalık komşu kartlar/iptal kaydı, klavye menüsü/Escape/odak ve 23:59 hedefi kontrol edildi. Beş seansın bütün kolonları eski snapshot ile aynı; interval üretilmedi, integrity/FK temiz. Gerçek kullanıcı DB'si/şema/bağımlılıklar değişmedi. Fixture sekme/süreç/temp veri temizlendi; root dev 3000/API 5002 korunur.
+
+A22 bütünüyle kapanmadı: gerçek dokunmatik cihaz, DST fold, tam WCAG/ekran okuyucu, Lighthouse ve otomatik gerçek tarayıcı E2E açık. A04/bağımlılık backlog'u sürer. Ayrıntı: implementation/2026-10-17-calendar-card-layout.md.
+
+## A22 — Header ve takvim erişilebilirliği, ilk paket (17 Ekim 2026)
+
+Header bildirim ve hesap menüleri Headless UI Popover.Group kullanır; ilk odak, Escape ile tetikleyiciye dönüş, birbirini kapatma ve dış hedefe odak davranışı testlidir. Manuel document dinleyicileri/ikinci popover yolu kaldırıldı. Arama tek form gönderimidir. Bildirim pending/error/retry/gerçek boş durumları ayrıldı; başarısız arka plan okumasında eski kayıt açıkça belirtilir, bilinmeyen okunmamış sayısı gösterilmez ve okundu yazması kapatılır. Liste son 5 tamamlanan seanstır; yerel okundu bilgisi hesaba özeldir. İşlem sonrası odak kalıcı kapatma düğmesine döner ve sonuç duyurulur. Geç hesap okuması epoch sınırında reddedilir.
+
+Takvimde mevcut boş saat düğmeleri tek Tab durağı ve ok/Home/End/Ctrl+Home/End gezinmesine geçirildi; Enter/Space mevcut editörü açar. Seans işlemlerindeki etiketli saat/süre alanları sürükleme/boyutlandırmaya alternatif sunar ve mevcut sürümlü yazma motorunu kullanır. Yalnız değişen alanlar gönderilir; 409/read hatasında taslak korunur, kaynak yeniden okunmadan yazılmaz ve otomatik yazma tekrarı yapılmaz. Hücre değişince odak yeni seans düğmesine, görünür aralık dışındaysa Bugün düğmesine döner. Küçük kart komutları en az 24 px oldu; kısa komşu kart çakışmalarının tamamı çözülmedi.
+
+npm run check: **18 contracts + 142 backend + 192 frontend = 352 test**, atlanan yok; naming/strict/lint/production build geçti. Son odak düzeltmesinden sonra frontend strict/root lint/192 test/build tekrar doğrulandı. Yeni 7 Header ve günlük/haftalık toplam 10 takvim regresyonu var. Ayrı production fixture ile bildirim okundu/ölçülen 5 dakika, popover/Escape/odak, günlük ok/Home/End/Enter ve saat/süre kaydı doğrulandı. Tarayıcıda bulunan hücre değişimi ref çakışması düzeltildi; odak yeni seans komutuna döndü. SQLite iki seansı, notu ve 300 saniyelik ölçümü korudu; integrity/FK temiz. Test oturumu kapatıldı, fixture süreç/sekme/DB/helper dosyaları kaldırıldı. Gerçek DB'ye test yazması/migration/seed/reset/restore yok; schema 006 korunur.
+
+**A22 açık:** otomatik gerçek tarayıcı E2E, tam WCAG/ekran okuyucu, Lighthouse, gerçek dokunmatik cihaz kanıtı, DST fold ve kısa komşu kart yerleşimi. Bu paket A22'nin tamamını kapatmaz. A04 ve bağımlılık backlog'u sürer. Detay: implementation/2026-10-17-header-and-calendar-accessibility.md.
+
+## A19 — Ortak sözleşmeler ve Plan sınırları (17 Ekim 2026)
+
+A19 auth/user update/backup/plan doğrulama ve bu yüzeylerin DTO/Plan ayrımı kapsamı tamamlandı. Ortak Zod 4 şemaları normalize edilmiş body/query/params üretir; belirtilmeyen request bölümleri korunur. Joi dosyası/paketi kaldırıldı. Public register yetki alanlarını reddeder; admin patch rol/aktiflik varsayılanı üretmez. Profil/parola/query/ID/null ve UTF-8 sınırları ortak kaynaktan gelir. Validation hataları field/message biçimindedir.
+
+Auth ve kullanıcı yanıtları tek izinli userResponse projeksiyonudur. İstemci auth/profile/admin liste-özet/backup yanıtlarını runtime doğrular; bozuk yanıt başarı/boş veri olmaz. Numeric API ID auth view sınırında String'e dönüştürülür. Backup DTO host path döndürmez; verified gerçek boolean ve reset safetyBackupId doğrulanır. Eski hesaptan geç parola yanıtı yeni hesabı logout etmez.
+
+Plan isteğe bağlı tarihli hedef kabı, takvim girdisi StudySession'dır. Otomatik/zorunlu Plan veya yeni hedef ekranı eklenmedi; kullanılmayan frontend plansAPI/Plan tipleri kaldırıldı. Plan create/update/reactivation tek IMMEDIATE transaction'da tarih/aktif çakışmasını denetler; hata 400/409/404'tür. Delete seansları instance save ile ayırır, not/ölçüm geçmişini korur ve session sürümünü ilerletir. Metadata last-writer-wins kalır. Date-only ISO UTC olarak korunur; belirsiz tarih reddedilir. goals patch diğer alanları korur.
+
+Giriş/kayıt/profil/parola formları ortak şemaları kullanır; sessionForm.ts görünüm adaptörüdür ve gönderimde ortak seans DTO ayrıca doğrulanır. Gerçek süre sınırı form/API için 1–1440 dakika (kesirli geçerli dakika dahil) olarak birleşti. Üç workspace tek Zod 4.6.7 kullanır; Preferences v1 alanları değişmeden ayrı modüle taşındı.
+
+Temiz npm ci ve npm run check geçti: **18 contracts + 142 backend + 175 frontend = 335 test**, atlanan yok; naming/strict/lint/production build başarılı. Yeni 8 contracts/12 backend/13 frontend regresyonu var. Plan yarışları/detach/sürüm/300 saniye ölçüm koruma/SQL rollback gerçek HTTP ve mkdtemp SQLite üzerinde testli. Yeni form ve geçici HTTP transport testleri gerçek tarayıcı E2E değildir. Bu pakette yeni manuel tarayıcı doğrulaması yapılmadı. Audit hâlâ 12 paket düğümü (5 high/7 moderate/0 critical); major bağımlılık işleri açık.
+
+Gerçek DB'ye test yazması/migration/seed/reset/restore uygulanmadı; schema 006 ve özel snapshot pointer'ları korunur. Tek root dev localhost:3000/API 5002 temiz contracts/Vite başlangıcıyla yeniden açıldı; log /tmp/study-tracker-a19-dev.log. Detay: implementation/2026-10-17-shared-request-contracts.md.
+
+**Sıradaki:** A22 Header bildirim hata/boş ayrımı ve popover klavye/odak; takvim klavye/dokunmatik alternatifleri ve otomatik E2E/WCAG/Lighthouse. A04 ve bağımlılıklar açık. Bütün kaynakların runtime response DTO'su/optimistic metadata'sı veya yeni Plan UI'ı tamamlandı iddiası yoktur.
+
+## A21 — Yönetim özeti ve seans yüzeyleri (17 Ekim 2026)
+
+Yönetim özeti nötr yüzeylere geçirildi; global sayılar ve ölçülen süre korunur, beş durum/tür doğru etiketlenir. Özet ve son kullanıcılar bağımsız loading/error/retry/gerçek boş durumlarını gösterir. GoalsOverview kaldırıldı; gerçek işlevi karşılayan TodaysPlans tek günlük işlem/editor sınırıdır.
+
+Günlük işlemler ve seans editörü ortak useAccountMutation busy/mount/epoch sınırını kullanır. Pending kapama/çift gönderim kilitlidir, async onay sunucuyu bekler. 409 otomatik yazma tekrarlamaz; güncel kaynak okunur, taslak korunur ve yeni açık onay gerekir. Başarısız kaynak okuması eski sürümle yazmayı engeller. Nested silme onayı Escape/odak/taslak korur. Kapalı editör ders sorgulamaz; mevcut pasif ders, tarihsel başlık ve açıklamayı temizleme korunur. Pomodoro ortak sayaç üzerinden açılır; ikinci motor yoktur. Dekoratif modal yüzeyleri ve tekrar eden yaşam döngüsü yolları kaldırıldı.
+
+npm run check: **10 contracts + 130 backend + 162 frontend = 302 test**, atlanan yok; naming/strict/lint/production build geçti. Son editör temizliğinden sonra frontend strict/lint/162 test/build tekrar geçti. Yeni 8 yönetim özeti ve 16 seans yüzeyi regresyonu frontend/tests altındadır. Üretim import grafiğinde 73/73 kaynak erişilebilir; bu tüm export/runtime kullanım kanıtı değildir.
+
+Atılabilir production fixture ile global özet/ölçülen süre/beş durum, günlük plan, editör yerel taslağı, nested Escape ve odak dönüşü doğrulandı. SQLite bütünlüğü ve özgün kayıtların değişmediği kontrol edildi. Tarayıcıda save/start/delete yapılmadı; yazma davranışı otomatik test kapsamındadır. Geçici oturum kapatıldı, sekme/süreç/DB temizlendi. Gerçek DB'ye test yazması/migration/seed/reset/restore yapılmadı; schema 006 korunur. localhost:3000 HTTP 200 ve API 5002 sağlıklı; iki portta birer servis var. Detay: implementation/2026-10-17-admin-and-session-surfaces.md.
+
+**Sıradaki:** A19 auth/user update/backup/plan ortak DTO ve Plan API/StudySession ürün anlamı. A21 admin/modal/today alt kapsamı kapandı; performans ve bütün proje bakımı tamamlanmış sayılmaz. Header bildirim hata/boş ayrımı ve popover klavye/odak A22'ye kaydedildi. A22/A04 ve bağımlılık backlog'u açıktır.
 
 ## A21 — Site ayarları ve yedekleme (17 Ekim 2026)
 
@@ -153,9 +201,9 @@ Son aktivitelerin zaman sırası, dashboard konu verisi/sayıları, query respon
 | İngilizce/ASCII teknik adlandırma | Kural kaydedildi; otomatik ASCII kontrolü geçti, anlam incelemesi ayrı |
 | Backend/frontend typecheck | Başarılı, strict korunuyor |
 | Lint | ESLint 10 flat config, sıfır uyarı |
-| Ortak sözleşme test | 10 test; managed-user create kuralları dahil; timezone/DST ve Preferences, ayar şemaları ve seans geçiş/yazma sözleşmeleri |
-| Backend test | 130 test; kullanıcı sayfalama/arama/create ve öz-koruma dahil; restore ad çakışması/yarışı ve geçmiş koruma dahil; admin agregasyonları/runtime ayarları/kullanıcı-konu ilerlemesi dahil; Pomodoro deadline/faz/yarış/migration/bakım regresyonları, arşivlenmiş ders/konu ilişkisi koruma ve ilişki temizleme (`null`), katalog `isActive=all` ve arşivlenmiş konu adı yeniden kullanımı, admin kendi hesabını koruma ve base64/null profil fotoğrafı regresyonları dahil |
-| Frontend test | 138 test; ayar taslağı/patch/private read yarışları ve backup async/epoch/kurtarma sınırları dahil; kullanıcı yönetimi/oluşturma, sunucu onayı ve hesap sınırları dahil; kategori yönetimi/hata/retry/hedef seçimi ve nested dialog/epoch dahil; ortak katalog create/edit, yetki/dirty patch/pending/epoch ve arşiv/restore regresyonları dahil; ortak drag/resize/409/retry/epoch ve async dialog regresyonları dahil; sunucuya bağlı konu ilerlemesi dahil; ortak timer, gecikmiş callback/yanıt, hesap ayrımı, iki planner erişim ve haftalık takvim kartından düzenleme modalı açma regresyonları dahil; katalog transport/cache ve sıralama component regresyonları dahil; takvim alanları/gece yarısı/Pomodoro fazı ve sürümlü seans transport ve iki Pomodoro yüzeyinin sunucu onayı, auth/cache/çevrimdışı logout, tercih/kayıt/kullanıcı/tarih/bildirim/branding, gerçek HTTP refresh, hata sınırı ve sıralama |
+| Ortak sözleşme test | 18 test; strict auth/patch/query/Plan/backup ve ortak gerçek süre sınırları dahil; managed-user create kuralları dahil; timezone/DST ve Preferences, ayar şemaları ve seans geçiş/yazma sözleşmeleri |
+| Backend test | 142 test; HTTP/SQLite normalizasyon, DTO, sparse patch, Plan yarış/detach/geçmiş/sürüm/rollback dahil; kullanıcı sayfalama/arama/create ve öz-koruma dahil; restore ad çakışması/yarışı ve geçmiş koruma dahil; admin agregasyonları/runtime ayarları/kullanıcı-konu ilerlemesi dahil; Pomodoro deadline/faz/yarış/migration/bakım regresyonları, arşivlenmiş ders/konu ilişkisi koruma ve ilişki temizleme (`null`), katalog `isActive=all` ve arşivlenmiş konu adı yeniden kullanımı, admin kendi hesabını koruma ve base64/null profil fotoğrafı regresyonları dahil |
+| Frontend test | 200 test; kısa kart sütunları/saat sınırı/gün sonu/menü ve sub-minute konum regresyonları dahil; Header hata/boş/stale/epoch ve popover odak, takvim klavye/saat/süre/409/read retry regresyonları dahil; ortak auth form/gerçek HTTP malformed response ve geç parola hesap sınırı, 1/1.5/1440 dakika form regresyonları dahil; yönetim özeti ve günlük seans/editör async/409/taslak/epoch regresyonları dahil; ayar taslağı/patch/private read yarışları ve backup async/epoch/kurtarma sınırları dahil; kullanıcı yönetimi/oluşturma, sunucu onayı ve hesap sınırları dahil; kategori yönetimi/hata/retry/hedef seçimi ve nested dialog/epoch dahil; ortak katalog create/edit, yetki/dirty patch/pending/epoch ve arşiv/restore regresyonları dahil; ortak drag/resize/409/retry/epoch ve async dialog regresyonları dahil; sunucuya bağlı konu ilerlemesi dahil; ortak timer, gecikmiş callback/yanıt, hesap ayrımı, iki planner erişim ve haftalık takvim kartından düzenleme modalı açma regresyonları dahil; katalog transport/cache ve sıralama component regresyonları dahil; takvim alanları/gece yarısı/Pomodoro fazı ve sürümlü seans transport ve iki Pomodoro yüzeyinin sunucu onayı, auth/cache/çevrimdışı logout, tercih/kayıt/kullanıcı/tarih/bildirim/branding, gerçek HTTP refresh, hata sınırı ve sıralama |
 | Backend/frontend production build | Başarılı, Vite 8 |
 | Production bundle tarayıcı smoke | Dolu geçici veride giriş/dashboard/dersler, planner/özet, arama, mobil özel seans oluşturma; açık/koyu görünüm |
 | GitHub CI | Workflow eklendi; uzak koşum yapılmadı |
@@ -177,23 +225,23 @@ Son aktivitelerin zaman sırası, dashboard konu verisi/sayıları, query respon
 | A09 | Uygulandı/testli: ayrı ölçülen aralıklar, study/break/pause, kayıpsız 004/coverage, gerçek süre özetleri; 5+3+5 dakika ve rollback. İnsan varlığı/offline geriye dönük ölçüm iddiası yok. |
 | A10 | Uygulandı/testli: reset safety/transaction ve ortak IMMEDIATE catalog servisi; atomik kategori taşıma/silme (+ `AdminCoursesPage` üzerinde kategori taşıma/silme UI'ı), FK/sürüm ile geçmişi koruyan ders silme, soft topic delete, arşivlenmiş konu adını yeniden kullanabilme, `isActive=all` listeleme ve sürümlü tam reorder. Hata enjeksiyonu ve eşzamanlı HTTP/SQLite regresyonları var; harici SQL domain kapsamı dışındadır. |
 | A11 | Uygulandı/testli: ortak v1 sözleşme, explicit legacy JSON migration/arşiv, tam round-trip, sıralı ve sunucu onaylı kayıt, hata ve hesap sınırı. Dil/bildirim/süre tercihi saklamak ilgili ürün altyapısının tamamlandığı anlamına gelmez. |
-| A12 | Yerel check zinciri çalışıyor; 278 test ve CI workflow var. Uzak CI ve kapsamlı E2E henüz yok. |
+| A12 | Yerel check zinciri çalışıyor; 360 test ve CI workflow var. Uzak CI ve kapsamlı E2E henüz yok. |
 | A13 | Uygulandı/testli: DB session, hash'li refresh rotasyonu/replay iptali, cookie/CSRF, logout/parola/rol iptali, ortak refresh ve geç yanıt izolasyonu. Production cookie dağıtımı ayrıca doğrulanmalı. |
 | A14 | Tanımlı kapsam uygulandı/testli: ortak account/resource/date/timezone key factory, kategori önbellek şekli uyumu, ilgili özetlere invalidation, gün anahtarı yenileme, memory-only tercihler, hesaplı bildirim geçmişi, profil/admin geç yanıt sınırı. Backend timezone doğruluğu sonraki A16 paketiyle tamamlandı. |
 | A15 | Uygulandı/testli: kalıcı sunucu deadline/faz/döngü, ortak timer hook/UI, reload/modal/çoklu sekme, sürüm/epoch koruması; gecikmiş worker ölçümü deadline ile sınırlı. Otomatik mola opt-in; otomatik çalışma yok. Yük/çok süreç operasyonu ayrıca doğrulanmalı. |
 | A16 | Uygulandı/testli: ortak timezone sınırı/form/takvim, kesişimli okuma ve günlük gerçek süre; UTC/İstanbul/New York ve DST 23/25 saat. Grid tekrarlanan saat için ayrı satır üretmez; kapsamlı DST pointer/E2E A22 altında açık. |
 | A17 | Uygulandı/testli: global admin özet endpoint'i ve dashboard, `includeStats` ile toplu kullanıcı istatistikleri (N+1 kalktı), all-time ölçülen süre. Büyük veri performansı ölçülmedi. |
 | A18 | Uygulandı/testli (API); UI elle doğrulanmadı: allowRegistration, maintenanceMode (admin hariç 503), sessionTimeout (boşta süresi, alt sınır 15 dk). maxStudentsPerCourse kaldırıldı (model yok). **Açık:** bildirim teslimatı yok, ürün kararı gerekir. |
-| A19 | Kısmen: MongoDB hata kalıntıları kaldırıldı, Sequelize 400/409 dönüşümü, admin kullanıcı oluşturma ortak Zod 4 sözleşmesi ve kullanıcı yönetimi (`userController`) parametre/transaction/öz-koruma doğrulamaları ve profil/parola kuralları düzeltildi. **Eksikler:** `planController`, `userController`, `authController` ve `backupController` doğrulamalarının ortak `@study-tracker/contracts` Zod şemalarına taşınması ve `Plan` (`/api/plans`) modeli ile `StudySession` tabanlı Planner UI arasındaki sözleşme kopukluğunun giderilmesi açık. |
+| A19 | Tanımlı kapsam tamamlandı: Sequelize hata çevirisi, ortak auth/profile/admin create-update/list query/Plan/backup şemaları; normalize request değerleri; tek güvenli userResponse ve istemci auth/admin/backup runtime DTO; ortak validation hata ayrıntısı. Joi/Zod 3 aktif yolları kaldırıldı. Plan isteğe bağlı hedef kabı, takvim StudySession; kullanılmayan istemci Plan motoru kaldırıldı. Plan IMMEDIATE create/update/reactivation/detach-delete ve rollback testli; geçmiş korunur. Bütün diğer API yanıtlarını runtime şemaya taşıma veya bütün metadata'ya optimistic version ekleme iddiası yoktur. |
 | A20 | Lock, modern dev araçları, güvenli setup, üç workspace ve açık 001–006 migration var. Legacy şema evrimleri için sonraki explicit migration'lar gerekiyor. |
-| A21 | Kısmen: yedi ölü modül/eski script/paket kaldırıldı; route splitting tamam; iki timer motoru ortaklaştırıldı; `WeeklyPlanner` ve `DailyCalendar` etkileşim hataları düzeltildi. PlannerCalendar/usePlannerCalendar/kart/geometry ile iki takvim motoru birleştirildi; drag/resize/409/epoch ve async dialog testli. Öğrenci özel ders/konu edit/delete/archive/restore UI, tek öğrenci/admin ders editörü ve nötr ders yüzeyleri tamam. Kategori ve kullanıcı yönetimi/shared editor ve async onaylar da tamamlandı. Ayar/yedekleme taslak/dirty patch/read error/async onay/epoch da tamam. **Eksikler:** diğer modal/admin (özellikle yönetim özeti) nötr tasarım/kullanılmayan yol son denetimi. |
-| A22 | Kısmen: ErrorBoundary, mobil Dialog odak/Escape, `MoveSessionModal` klavye/etiket erişilebilirliği, skip link, reduced-motion ve 390 px manuel kontrolü var. **Eksikler:** Takvim sürükle-bırak ve boyutlandırma için klavye/dokunmatik alternatifleri, tam WCAG, Lighthouse ve otomatik Playwright E2E tamamlanmadı. |
+| A21 | Kısmen: yedi ölü modül/eski script/paket kaldırıldı; route splitting tamam; iki timer motoru ortaklaştırıldı; `WeeklyPlanner` ve `DailyCalendar` etkileşim hataları düzeltildi. PlannerCalendar/usePlannerCalendar/kart/geometry ile iki takvim motoru birleştirildi; drag/resize/409/epoch ve async dialog testli. Öğrenci özel ders/konu edit/delete/archive/restore UI, tek öğrenci/admin ders editörü ve nötr ders yüzeyleri tamam. Kategori ve kullanıcı yönetimi/shared editor ve async onaylar da tamamlandı. Ayar/yedekleme taslak/dirty patch/read error/async onay/epoch da tamam. Yönetim özeti/günlük seans/editör/Pomodoro nötr yüzey ve işlem sınırı denetimi de tamamlandı; 73/73 kaynak modül erişilebilir. **Kalan sınırlar:** büyük formun sözleşme/alan sınırları A19, performans ve kapsamlı erişilebilirlik/E2E A22 altında açıktır. |
+| A22 | Kısmen: ErrorBoundary, mobil Dialog odak/Escape, `MoveSessionModal` klavye/etiket erişilebilirliği, skip link, reduced-motion ve 390 px manuel kontrolü var. Header hata/boş/stale ve Popover odak/Escape; ortak takvim tek Tab/ok gezinmesi ve native saat/süre alternatifi tamam/testli. Kısa komşu kartlar min 28 px/sütun yerleşimi ve gün sonu odak boşluğuyla doğrulandı. **Eksikler:** gerçek dokunmatik cihaz, DST fold, tam WCAG/ekran okuyucu, Lighthouse ve otomatik Playwright E2E. |
 | A23 | Yeni kullanıcı gereksinimi uygulandı: bütün görünen site adı/admin kimlik ayarları ortak kaynaktan değişir; repo/domain değiştirmez. |
 | A24 | Uygulandı/testli: 006 migration, kullanıcıya özel `user_topic_progress`, GET/PUT uç noktaları, `CourseDetailPage` sunucu bağlantısı. Yerel 006 özel snapshot/veri koruma kontrolü ve schema backup id 6 ile uygulandı. Tarayıcı elle doğrulaması ayrıca açık. |
 
 ## Bağımlılıklar
 
-Ortak timezone/takvim hesabı Luxon 3.7.2 kullanır; tipler 3.7.6. Ortak contracts workspace Zod 4 kullanır; diğer frontend formları Zod 3/RHF üzerinde kalır. Kök dev/build/check sözleşmeleri derler; Vite linked workspace için ayrı major bağımlılığını optimize eder.
+Ortak timezone/takvim hesabı Luxon 3.7.2 kullanır; tipler 3.7.6. Üç workspace Zod 4.6.7 kullanır; Joi ve son Zod 3 form yolu A19 ile kaldırıldı. Kök dev/build/check sözleşmeleri derler; Vite linked contracts workspace'ini optimize eder; Zod major ayrımı kaldırıldı.
 
 Node 24.21.0, npm 11.19.0; Vite 8.3.4, plugin-react 6.1.2, ESLint 10.12.0, typescript-eslint 8.71.2, Vitest 5.0.4, sqlite3 6.0.1, tsx 4.23.15. TypeScript 5.9.3 sabit; React 18/Recharts 2/Router 6/Tailwind 3 dönüşümleri tamamlanmadı.
 
@@ -201,16 +249,15 @@ Node 24.21.0, npm 11.19.0; Vite 8.3.4, plugin-react 6.1.2, ESLint 10.12.0, types
 
 ## Eksik ve tamamlanacak işler (Kaldığımız yerden devam listesi)
 
-1. **A21 — Kalan Modal/Admin Tasarım Tutarlılığı:**
-   - Planner ortaklaştırması tamamlandı/testli; ikinci işlem motoru açılmamalı.
-   - Öğrenci özel ders/konu düzenleme-silme/arşiv/geri alma ve ortak öğrenci/admin ders editörü tamamlandı; yeniden uygulanmayacak.
-   - Kategori yönetimi tamamlandı; yeni ekran testleri frontend/tests altında kalite zincirine bağlı.
-   - Kullanıcı yönetimi/oluşturma, sunucu sayfalaması/araması ve async onaylar tamamlandı; yeniden uygulanmayacak.
-   - Site ayarları/yedekleme taslak/dirty patch/read error/async onay/epoch ve verified === true tamamlandı.
-   - Sırada diğer modal/admin (özellikle yönetim özeti) nötr yüzey/kullanılmayan yol son denetimi.
-2. **A19 — Kalan Sözleşme/DTO Birleştirmesi ve Plan Modeli:**
-   - `userController`, `authController`, `planController` ve `backupController` doğrulamaları `@study-tracker/contracts` altına taşınacak; `/api/plans` uç noktalarının ürün içindeki yeri netleştirilecek.
-3. **A22 & A04 — Klavye/Dokunmatik Takvim, Otomatik E2E, Kurtarma ve Bağımlılıklar:**
-   - Takvim etkileşimleri için klavye/dokunmatik desteği, Playwright E2E testleri, yedek saklama/offsite politikası ve kalan major bağımlılık güncellemeleri tamamlanacak.
+1. **A22 — Klavye/Dokunmatik, Hata Durumları ve Otomatik E2E:**
+   - Header hata/boş/stale ve popover odak/Escape; takvim tek Tab/ok gezinmesi ve native saat/süre alternatifi tamam/testli.
+   - Kısa komşu kart/saat sınırı/gün sonu yerleşimi tamam/testli.
+   - Gerçek dokunmatik cihaz, DST fold, tam WCAG/ekran okuyucu, Lighthouse ve otomatik tarayıcı E2E açık.
+2. **A04 ve Bağımlılıklar:**
+   - Yedek saklama/offsite, kapasite/yük ve kurtarma operasyonları; kalan güvenlik ve major bağımlılık güncellemeleri açık.
+3. **Genel bakım sınırları:**
+   - Seans editörünün kalan render alanlarının daha küçük bileşenlere ayrılması, diğer API yanıtlarında runtime DTO kapsamı ve mevcut any borcu; yeni Plan ekranı ayrı ürün kapsamıdır.
+
+A21 admin/modal/today alt kapsamı tamamlandı. Önceki kategori/kullanıcı/ayar-yedekleme/katalog ve ortak planner yeniden uygulanmayacak. Bütün bakım/performance işi tamamlandı iddiası yoktur.
 
 Her iş ilgili davranış testi, gerekli kontroller ve memory-bank güncellemesiyle kapanır. İnceleme raporu tarihsel kalır; güncel durum bu dosyadan izlenir.

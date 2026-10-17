@@ -91,3 +91,21 @@ Admin kullanıcı listesi nötr panel satırları, ince sınır, tipografik rol/
 ## Site ayarları ve yedekleme — 17 Ekim 2026
 
 AdminSettingsPage nötr PageHeader, sarmalanan bölüm düğmeleri, etiketli input/checkbox ve açık dirty/pending/error durumunu kullanır. BackupPanel ince sınır ve yatay kaydırılabilen caption/başlıklı tabloyla tarih/tür/boyut/doğrulamayı gösterir; doğrulanmamış kayıt kilitlidir. Reset/restore ortak async ConfirmDialog kullanır; kapsam ve oturum etkisi açıktır. Bildirim teslimatı/offsite/saklama altyapısının bulunmadığı belirtilir. Masaüstü fixture taslak/bölüm/Escape/odak/backup create doğrulandı; mobil/WCAG/E2E iddiası yoktur. Detay: implementation/2026-10-17-admin-settings-and-backups.md.
+
+
+## Yönetim özeti ve seans yüzeyleri — 17 Ekim 2026
+
+Yönetim özeti nötr PageHeader/özet şeridi, ince sınır ve semantik kullanıcı/seans listeleri kullanır; global sayılar/ölçülen süre ile loading/error/empty ayrıdır. TodaysPlans nötr açılır günlük özet ve seans adıyla etiketli komutlar sunar. CreateSessionModal/PomodoroModal panel/input/düğme token'larına taşındı; renk yalnız mevcut seans kimliği ve anlamlı durum/yıkıcı eylemdedir. Renk/tür seçimleri isimli pressed state taşır; minimized Pomodoro viewport genişliğine uyar. Masaüstü production fixture ve 24 yeni davranış regresyonu geçti; bu pakette yeni mobil/tam WCAG/E2E kanıtı yoktur. Detay: implementation/2026-10-17-admin-and-session-surfaces.md.
+
+
+## A19 form doğrulaması — 17 Ekim 2026
+
+Görsel dil değişmedi. Giriş/kayıt ortak sözleşme mesajlarını kullanır; seans formu API ile aynı 1–1440 gerçek dakika sınırını sunar ve geçersiz request için görünür hata gösterir. Request/view adaptörü ayrıdır; Türkçe içerik ve saklı renkler korunur. Yeni form regresyonları gerçek React/RHF üzerindedir; yeni manuel tarayıcı/WCAG kanıtı yoktur.
+
+## A22 Header/takvim erişim paketi
+
+Header bildirim/hesap paneli nötr dropdown-panel ve ince sınırları kullanır. Hata, eski veri ve gerçek boş durum metinle ayrılır. Bildirim eylem sonucu canlı duyurulur. Takvim boş saatte görünür focus outline ve küçük ekranlarda ekleme işareti sunar; ok/Home/End gezinme açıklaması görünürdür. Native etiketli saat/süre alanları sürükleme zorunluluğunu kaldırır; modal viewport yüksekliğinde kaydırılır. Küçük kart komutları en az 24×24 px, başlık en az 24 px yüksekliktedir; gerçek dokunmatik hedef/komşu kısa kart yerleşimi ve tam WCAG ayrıca doğrulanacaktır.
+
+## A22 kısa kartlar
+
+Görsel minimum kart yüksekliği 28 px, iç başlık/ikon hedefi en az 24 px; 68 px altı tek satırlı kompakt düzen kullanılır. Aynı piksel aralığında çakışan komşu/iptal kartlar ayrı sütunlardır; her sütun en az 160 px olur. Yoğun gün takvim içinde yatay kaydırılır, saat/gün başlıkları aynı kolonlara hizalanır. Boş haftalık gün minimumu 104 px korunur. 36 px son gutter kart/odak kesilmesini önler; kısa kartlarda resize tutamacı hedefi örtmez, saat/süre dialog'u kullanılır. Gerçek zaman/duration değiştirilmez. Bu masaüstü/geometri kanıtıdır; gerçek dokunmatik cihaz ve tam WCAG ayrıca açıktır.

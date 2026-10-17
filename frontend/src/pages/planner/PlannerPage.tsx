@@ -3,7 +3,7 @@ import { useState } from 'react';
 import WeeklyPlanner from '../../components/planner/WeeklyPlanner';
 import DailyCalendar from '../../components/planner/DailyCalendar';
 import CreateSessionModal from '../../components/planner/CreateSessionModal';
-import TodaysPlans from '../../components/planner/GoalsOverview';
+import TodaysPlans from '../../components/planner/TodaysPlans';
 import PlannerNavigation from '../../components/planner/PlannerNavigation';
 import PageHeader from '../../components/common/PageHeader';
 
