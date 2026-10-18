@@ -72,7 +72,7 @@ const RecentActivities = () => {
                 {measuredSessionLabel(session)}
               </p>
               <span className="text-gray-300 dark:text-gray-600">•</span>
-              <p className="text-xs text-gray-400 truncate">
+              <p className="text-xs text-[var(--muted)] truncate">
                 {formatDistanceToNow(new Date(session.completedAt || session.endTime), {
                   addSuffix: true,
                   locale: tr,

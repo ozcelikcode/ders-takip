@@ -10,7 +10,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
         with:
@@ -25,3 +25,20 @@ jobs:
         run: npm ci
       - name: Verify naming, types, lint, tests, and production builds
         run: npm run check
+      - name: Install browser test engines
+        run: npx playwright install --with-deps chromium webkit
+      - name: Verify isolated browser journeys
+        run: npm run test:e2e
+      - name: Measure isolated Lighthouse pages
+        run: npm run test:lighthouse
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: browser-test-report
+          path: |
+            playwright-report/
+            test-results/
+            lighthouse-report/
+            lighthouse-results/
+          if-no-files-found: ignore
+          retention-days: 7

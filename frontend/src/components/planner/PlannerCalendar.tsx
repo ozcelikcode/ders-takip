@@ -75,15 +75,22 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
   const dateKey = format(days[0]!, 'yyyy-MM-dd');
   const sessionActionRefs = useRef(new Map<string, HTMLButtonElement>());
   const todayButtonRef = useRef<HTMLButtonElement>(null);
-  const restoreSessionFocus = (id: number) => {
-    window.requestAnimationFrame(() => {
+  const restoreFocusId = useRef<number | null>(null);
+  const movingOpen = !!planner.moving;
+  useEffect(() => {
+    if (movingOpen || pending || restoreFocusId.current === null) return;
+    const id = restoreFocusId.current;
+    // Wait for the closed dialog's passive cleanup before restoring focus.
+    const frame = window.requestAnimationFrame(() => {
       const target =
         [...sessionActionRefs.current.entries()].find(([key]) =>
           key.startsWith(`${id}:`),
         )?.[1] ?? todayButtonRef.current;
       target?.focus();
+      restoreFocusId.current = null;
     });
-  };
+    return () => window.cancelAnimationFrame(frame);
+  }, [movingOpen, pending]);
   const slotHelpId = useId();
   const slotRefs = useRef(new Map<string, HTMLButtonElement>());
   const [focusedSlot, setFocusedSlot] = useState('0:8');
@@ -454,6 +461,7 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
       ) : (
         <div className="panel overflow-hidden">
           <div
+            role="region"
             className="relative max-h-[640px] overflow-auto"
             tabIndex={0}
             aria-label={`${weekly ? 'Haftalık' : 'Günlük'} takvim, saatleri görmek için kaydırın`}
@@ -760,9 +768,8 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
         isOpen={!!planner.moving}
         onClose={() => {
           if (!pending) {
-            const id = planner.moving?.id;
+            restoreFocusId.current = planner.moving?.id ?? null;
             planner.setMoving(null);
-            if (id !== undefined) restoreSessionFocus(id);
           }
         }}
         sourceUnavailable={

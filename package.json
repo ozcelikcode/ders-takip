@@ -20,11 +20,13 @@
     "start": "npm run start --workspace backend",
     "seed": "npm run seed --workspace backend",
     "typecheck": "npm run typecheck --workspaces",
+    "typecheck:e2e": "tsc --project tests/e2e/tsconfig.json",
+    "test:e2e": "node tests/e2e/run.mjs",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "npm run lint -- --fix",
     "test": "npm run test --workspaces",
     "check:naming": "node scripts/check-naming.mjs",
-    "check": "npm run check:naming && npm run typecheck && npm run lint && npm test && npm run build",
+    "check": "npm run check:naming && npm run typecheck && npm run typecheck:e2e && npm run lint && npm test && npm run build",
     "configure": "node scripts/configure-development.mjs",
     "db:migrate": "npm run db:migrate --workspace backend",
     "admin:manage": "npm run admin:manage --workspace backend --",
@@ -32,7 +34,8 @@
     "pretest": "npm run build --workspace @study-tracker/contracts",
     "predev:all": "npm run build --workspace @study-tracker/contracts",
     "predev:backend": "npm run build --workspace @study-tracker/contracts",
-    "predev:frontend": "npm run build --workspace @study-tracker/contracts"
+    "predev:frontend": "npm run build --workspace @study-tracker/contracts",
+    "test:lighthouse": "node tests/e2e/run.mjs --config playwright.lighthouse.config.ts"
   },
   "keywords": [
     "education",
@@ -45,12 +48,15 @@
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.64.1",
     "concurrently": "^8.2.2",
     "eslint": "^10.12.0",
-    "@eslint/js": "^10.0.1",
-    "typescript-eslint": "^8.71.2",
     "globals": "^17.13.0",
-    "typescript": "~5.9.3"
+    "lighthouse": "13.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.71.2"
   },
   "engines": {
     "node": ">=24.21.0 <25",

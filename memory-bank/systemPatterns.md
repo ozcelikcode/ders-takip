@@ -1,6 +1,6 @@
 # Ders Takip Sistemi — Sistem Örüntüleri
 
-Kaynak kodla doğrulama: 17 Ekim 2026, A19 ortak sözleşmeler ve önceki yönetim/katalog/planlayıcı paketleri. Bu belge mevcut davranışla hedef standardı ayrı tutar. Güncel uygulama kayıtları implementation/2026-10-16-catalog-editing.md ve implementation/2026-10-16-shared-planner.md içindedir; foundation kaydı tarihseldir.
+Kaynak kodla doğrulama: 18 Ekim 2026, A22 otomatik tarayıcı kapısı ve önceki sözleşme/yönetim/planlayıcı paketleri. Bu belge mevcut davranışla hedef standardı ayrı tutar. Güncel uygulama kayıtları implementation/2026-10-16-catalog-editing.md ve implementation/2026-10-16-shared-planner.md içindedir; foundation kaydı tarihseldir.
 
 ## Mevcut mimari
 
@@ -204,3 +204,15 @@ Takvim boş saatleri tek Tab durağı ve ok/Home/End gezinmesiyle mevcut editör
 ## A22 kısa kart yerleşimi
 
 Günlük/haftalık kartların gerçek zaman geometrisi ve görsel hit alanı ayrıdır. Ortak layoutCalendarCards tüm günün (saat sınırını aşan) minimum yükseklik aralıklarını bağlı çakışma gruplarına ayırır, eşit start için ID kullanır, boş lane'i yeniden kullanır. Bu saf görünüm hesabı kayıt veya interval yazmaz. Aynı günün header ve saat grid'leri ortak kolon şablonundadır; sütunlar okunamayacak kadar daraltılmaz, iç yatay kaydırma kullanılır. Gün sonu gutter odak çerçevesini korur. Kısa kartın resize tutamacı native saat/süre alternatifine bırakılır; büyük kart pointer motoru korunur. Ayrıntı: implementation/2026-10-17-calendar-card-layout.md.
+
+## A22 izole browser fixture ve odak kapanışı — 18 Ekim 2026
+
+E2E test başına browser context ve child sunucu kurar; kendi boş temp dizini/SQLite/random JWT/OS loopback portu dışında kaynak kabul etmez. Build API=/api ve browser origin guard ile gerçek dış sisteme trafik engellenir. Backend test modu dotenv yüklemez. App importu scheduler/listen başlatmadığından fixture yalnız gerçek HTTP app ve static üretim frontend kurar; timer faz E2E kapsamı bu pakette yoktur. Integrity/FK/protected seans/interval karşılaştırması child kapanışında yapılır; parent normal başarı/hata yollarında süreç/dizini finally temizler. Fixture cleanup hatası test hatasıdır.
+
+Headless UI unmount passive cleanup ile onClose içindeki erken RAF yarışabilir. PlannerCalendar geri odak ID'sini ref'te tutar; moving kapalı ve mutation pending false commit'inden sonraki effect bir RAF planlar, cleanup iptal eder. Eski pre-commit restore yolu tutulmaz. İlk 6×3 browser kapısı ve ek 18 odak tekrarı doğrulandı. Kaynak: implementation/2026-10-18-isolated-browser-tests.md.
+
+## A22 accessibility scan and authenticated measurements — 18 Ekim 2026
+
+Axe mevcut test-scoped izole app fixture'ını kullanır; ikinci DB/sunucu motoru yoktur. Default kurallara WCAG 2.2 target-size açıkça eklenir; bütün violations sıfır beklenir, incomplete ayrı manuel inceleme kanıtı olarak JSON'da saklanır. Form/scroll durumları gerçek kontrollerle açılır. Header adı içerikten türetilir; sr-only önek ve açık metin boşlukları görünen ad/rolü korur. Kaydırma alanı named region, admin özetleri geçerli dt/dd'dir.
+
+Lighthouse ayrı boş Chromium profili ve OS loopback/CDP portunda gerçek login cookie'sini korur. Yeni ölçüm sayfasının beklenen başlığı kapanmadan dinlenir; final URL/runtime da denetlenir. Sonradan login'e yönlenmiş ölçüm kabul edilmez. Profile/browser ve app teardown ayrıdır; dış origin trafiği engellenir. Üç bağımsız koşunun medyanı raporlanır; tek yerel performans skoruna rastgele gate eklenmez. Accessibility100 kapısı vardır. Fixture'ın sıkıştırmasız yerel static koşulu üretim performansı değildir; mobil ilk yük ayrı açık iştir. Zorla kesilen bootstrap parent finally'ını atlayabilir; yalnız sahip olunan temp dizin doğrulanarak temizlenir, başka prefix dizinleri topluca silinmez.

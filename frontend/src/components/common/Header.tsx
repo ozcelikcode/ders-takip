@@ -73,7 +73,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               />
               <button
                 type="submit"
-                className="absolute inset-y-0 right-2 text-xs text-[var(--muted)] hover:text-[var(--text)]"
+                className="absolute inset-y-0 right-2 min-w-6 text-xs text-[var(--muted)] hover:text-[var(--text)]"
               >
                 Ara
               </button>
@@ -89,8 +89,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 <>
                   <Popover.Button
                     className="flex items-center gap-2 rounded-md p-1.5 hover:bg-[var(--subtle)]"
-                    aria-label="Hesap menüsü"
                   >
+                    <span className="sr-only">Hesap menüsü</span>
+                    {' '}
                     <span className="avatar h-8 w-8">
                       {user?.profileImage ? (
                         <img
@@ -109,6 +110,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       <span className="block text-sm font-medium">
                         {user?.fullName}
                       </span>
+                      {' '}
                       <span className="block text-xs text-[var(--muted)]">
                         {user?.role === 'admin' ? 'Yönetici' : 'Öğrenci'}
                       </span>

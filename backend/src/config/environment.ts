@@ -31,7 +31,9 @@ let environment: Environment | undefined;
 
 export const getEnvironment = (): Environment => {
   if (!environment) {
-    dotenv.config({ path: path.join(backendDirectory, '.env') });
+    if (process.env.NODE_ENV !== 'test') {
+      dotenv.config({ path: path.join(backendDirectory, '.env') });
+    }
     const result = environmentSchema.safeParse(process.env);
     if (!result.success) {
       // Never include environment values in diagnostics.

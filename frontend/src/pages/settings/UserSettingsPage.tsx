@@ -190,8 +190,8 @@ const UserSettingsPage = () => {
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Profil Bilgileri</h2>
               <form onSubmit={handleProfileSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ad Soyad</label>
-                  <input
+                  <label htmlFor="settings-fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ad Soyad</label>
+                  <input id="settings-fullName"
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
@@ -200,8 +200,8 @@ const UserSettingsPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">E-posta</label>
-                  <input
+                  <label htmlFor="settings-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">E-posta</label>
+                  <input id="settings-email"
                     type="email"
                     value={email}
                     readOnly
@@ -210,8 +210,8 @@ const UserSettingsPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rol</label>
-                  <input
+                  <label htmlFor="settings-role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rol</label>
+                  <input id="settings-role"
                     type="text"
                     value={user?.role === 'admin' ? 'Yönetici' : 'Öğrenci'}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400"
@@ -241,9 +241,9 @@ const UserSettingsPage = () => {
               ) : (
                 <form onSubmit={handlePasswordSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Mevcut Şifre</label>
+                    <label htmlFor="settings-currentPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Mevcut Şifre</label>
                     <div className="relative">
-                      <input
+                      <input id="settings-currentPassword"
                         type={showCurrentPassword ? 'text' : 'password'}
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
@@ -252,17 +252,18 @@ const UserSettingsPage = () => {
                       />
                       <button
                         type="button"
+                        aria-label={showCurrentPassword ? 'Mevcut şifreyi gizle' : 'Mevcut şifreyi göster'}
                         onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                       >
                         {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Yeni Şifre</label>
+                    <label htmlFor="settings-newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Yeni Şifre</label>
                     <div className="relative">
-                      <input
+                      <input id="settings-newPassword"
                         type={showNewPassword ? 'text' : 'password'}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
@@ -272,16 +273,17 @@ const UserSettingsPage = () => {
                       />
                       <button
                         type="button"
+                        aria-label={showNewPassword ? 'Yeni şifreyi gizle' : 'Yeni şifreyi göster'}
                         onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                       >
                         {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Yeni Şifre (Tekrar)</label>
-                    <input
+                    <label htmlFor="settings-confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Yeni Şifre (Tekrar)</label>
+                    <input id="settings-confirmPassword"
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -383,11 +385,11 @@ const UserSettingsPage = () => {
               </div>
 
               <div className="p-6 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700">
-                <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Özel Renk Seç</label>
+                <label htmlFor="settings-customPrimaryColor" className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">Özel Renk Seç</label>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <input
+                      <input id="settings-customPrimaryColor"
                         type="color"
                         value={preferences.customPrimaryColor || siteSettings.primaryColor}
                         onChange={(e) => handleColorChange(e.target.value)}
@@ -399,6 +401,7 @@ const UserSettingsPage = () => {
                     <div className="flex-1">
                       <input
                         type="text"
+                        aria-label="Özel renk HEX kodu"
                         value={preferences.customPrimaryColor || siteSettings.primaryColor}
                         onChange={(e) => {
                           const value = e.target.value;
@@ -464,8 +467,8 @@ const UserSettingsPage = () => {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Çalışma Tercihleri</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Varsayılan Pomodoro Süresi (dk)</label>
-                <input
+                <label htmlFor="settings-defaultPomodoroDuration" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Varsayılan Pomodoro Süresi (dk)</label>
+                <input id="settings-defaultPomodoroDuration"
                   type="number"
                   value={studyPrefs.defaultPomodoroDuration}
                   onChange={(e) => setStudyPrefs({ ...studyPrefs, defaultPomodoroDuration: parseInt(e.target.value) || 25 })}
@@ -475,8 +478,8 @@ const UserSettingsPage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kısa Mola Süresi (dk)</label>
-                <input
+                <label htmlFor="settings-defaultShortBreak" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kısa Mola Süresi (dk)</label>
+                <input id="settings-defaultShortBreak"
                   type="number"
                   value={studyPrefs.defaultShortBreak}
                   onChange={(e) => setStudyPrefs({ ...studyPrefs, defaultShortBreak: parseInt(e.target.value) || 5 })}
@@ -486,8 +489,8 @@ const UserSettingsPage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Uzun Mola Süresi (dk)</label>
-                <input
+                <label htmlFor="settings-defaultLongBreak" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Uzun Mola Süresi (dk)</label>
+                <input id="settings-defaultLongBreak"
                   type="number"
                   value={studyPrefs.defaultLongBreak}
                   onChange={(e) => setStudyPrefs({ ...studyPrefs, defaultLongBreak: parseInt(e.target.value) || 15 })}
@@ -497,8 +500,8 @@ const UserSettingsPage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Uzun Molaya Kadar Pomodoro Sayısı</label>
-                <input
+                <label htmlFor="settings-pomodorosUntilLongBreak" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Uzun Molaya Kadar Pomodoro Sayısı</label>
+                <input id="settings-pomodorosUntilLongBreak"
                   type="number"
                   value={studyPrefs.pomodorosUntilLongBreak}
                   onChange={(e) => setStudyPrefs({ ...studyPrefs, pomodorosUntilLongBreak: parseInt(e.target.value) || 4 })}
@@ -508,8 +511,8 @@ const UserSettingsPage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Haftalık Çalışma Hedefi (saat)</label>
-                <input
+                <label htmlFor="settings-weeklyStudyGoal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Haftalık Çalışma Hedefi (saat)</label>
+                <input id="settings-weeklyStudyGoal"
                   type="number"
                   value={studyPrefs.weeklyStudyGoal}
                   onChange={(e) => setStudyPrefs({ ...studyPrefs, weeklyStudyGoal: parseInt(e.target.value) || 20 })}
@@ -519,8 +522,8 @@ const UserSettingsPage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Günlük Çalışma Hedefi (saat)</label>
-                <input
+                <label htmlFor="settings-dailyStudyGoal" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Günlük Çalışma Hedefi (saat)</label>
+                <input id="settings-dailyStudyGoal"
                   type="number"
                   value={studyPrefs.dailyStudyGoal}
                   onChange={(e) => setStudyPrefs({ ...studyPrefs, dailyStudyGoal: parseInt(e.target.value) || 4 })}
@@ -545,6 +548,7 @@ const UserSettingsPage = () => {
                     return (
                       <button
                         key={day.id}
+                        aria-pressed={isActive}
                         type="button"
                         onClick={() => {
                           const newDays = isActive
@@ -553,7 +557,7 @@ const UserSettingsPage = () => {
                           setStudyPrefs({ ...studyPrefs, activeStudyDays: newDays });
                         }}
                         className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${isActive
-                            ? 'bg-primary-600 text-white shadow-md scale-105'
+                            ? 'bg-[var(--solid)] text-[var(--solid-text)]'
                             : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                           }`}
                       >

@@ -46,7 +46,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--canvas)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[var(--canvas)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -57,9 +57,9 @@ const LoginPage = () => {
           <div className="flex justify-center">
             <Brand />
           </div>
-          <h2 className="mt-6 text-[28px] font-semibold tracking-tight text-gray-900 dark:text-white">
+          <h1 className="mt-6 text-[28px] font-semibold tracking-tight text-gray-900 dark:text-white">
             Giriş Yap
-          </h2>
+          </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             Hesabınızla çalışma alanınıza giriş yapın
           </p>
@@ -150,7 +150,7 @@ const LoginPage = () => {
                   Hesabınız yok mu?{' '}
                   <Link
                     to="/register"
-                    className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
+                    className="font-medium text-[var(--text)] underline underline-offset-4 hover:no-underline"
                   >
                     Kayıt ol
                   </Link>
@@ -160,7 +160,7 @@ const LoginPage = () => {
           </form>
         </div>
       </motion.div>
-    </div>
+    </main>
   );
 };
 

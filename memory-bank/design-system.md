@@ -109,3 +109,11 @@ Header bildirim/hesap paneli nötr dropdown-panel ve ince sınırları kullanır
 ## A22 kısa kartlar
 
 Görsel minimum kart yüksekliği 28 px, iç başlık/ikon hedefi en az 24 px; 68 px altı tek satırlı kompakt düzen kullanılır. Aynı piksel aralığında çakışan komşu/iptal kartlar ayrı sütunlardır; her sütun en az 160 px olur. Yoğun gün takvim içinde yatay kaydırılır, saat/gün başlıkları aynı kolonlara hizalanır. Boş haftalık gün minimumu 104 px korunur. 36 px son gutter kart/odak kesilmesini önler; kısa kartlarda resize tutamacı hedefi örtmez, saat/süre dialog'u kullanılır. Gerçek zaman/duration değiştirilmez. Bu masaüstü/geometri kanıtıdır; gerçek dokunmatik cihaz ve tam WCAG ayrıca açıktır.
+
+## A22 otomatik tarayıcı kanıtı — 18 Ekim 2026
+
+Görsel token/düzen değiştirilmedi. Taşıma dialog'undan odak dönüşü React kapanış commit'i/Headless UI passive cleanup sonrasına taşındı; bekleyen RAF unmount'ta iptal edilir. Gerçek production bundle ile kısa kart hedefleri, gün sonu odak, native saat/süre, Header ve mobil menü Chromium/WebKit desktop ve 412×839 Chromium touch emülasyonunda otomatik doğrulanır. Bu 18 yürütme tam WCAG, Lighthouse veya fiziksel touch cihazı başarısı değildir; kalanlar progress.md'dedir.
+
+## A22 ölçülmüş erişilebilirlik — 18 Ekim 2026
+
+Görsel hiyerarşi korunarak auth main/h1, profil başlık sırası, alan etiketleri/ikon adları/pressed state, Header'ın içerikten gelen adı ve admin tanım listesi düzeltildi. Düşük kontrastlı yardımcı/aktif metinler nötr token'lara alındı; “bugün”, dakika modu ve dosya/URL/gün seçimleri özel vurgu renginden bağımsız okunur. Header Ara min 24 px; ayar şifre düğmeleri 32×32 px. Kişisel renk ve saklı seans renkleri değiştirilmedi. Varsayılan+target-size axe taraması 150 durumda 0 violations; incomplete kayıtlar ve tam manuel WCAG/ekran okuyucu sınırı korunur. Dört Lighthouse ekran/profilinde accessibility 100 olsa da mobil performans 67/61; görsel sadeleşme performans hedefinin karşılandığı anlamına gelmez. Ayrıntı implementation/2026-10-18-accessibility-and-lighthouse.md.

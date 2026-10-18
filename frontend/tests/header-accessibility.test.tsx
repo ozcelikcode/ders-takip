@@ -135,7 +135,7 @@ it('restores focus on Escape and closes the other header popover when switching'
   expect(screen.queryByRole('region', { name: 'Bildirimler' })).toBeNull();
   open();
   await screen.findByRole('region', { name: 'Bildirimler' });
-  fireEvent.click(screen.getByRole('button', { name: 'Hesap menüsü' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Hesap menüsü Test User Öğrenci' }));
   await screen.findByRole('navigation', { name: 'Hesap' });
   expect(screen.queryByRole('region', { name: 'Bildirimler' })).toBeNull();
   await waitFor(() =>
@@ -146,7 +146,7 @@ it('restores focus on Escape and closes the other header popover when switching'
   fireEvent.keyDown(document.activeElement!, { key: 'Escape', code: 'Escape' });
   await waitFor(() =>
     expect(document.activeElement).toBe(
-      screen.getByRole('button', { name: 'Hesap menüsü' }),
+      screen.getByRole('button', { name: 'Hesap menüsü Test User Öğrenci' }),
     ),
   );
 });

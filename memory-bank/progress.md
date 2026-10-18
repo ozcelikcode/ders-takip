@@ -1,12 +1,36 @@
 # Ders Takip Sistemi — İlerleme
 
-Son güncelleme: 17 Ekim 2026, A22 kısa takvim kartlarının yerleşimi; yerel schema 006.
+Son güncelleme: 18 Ekim 2026, A22 otomatik erişilebilirlik/Lighthouse; yerel schema 006.
 
 ## Genel durum
 
 İnceleme sonrası geliştirme başladı. Derleme ve kalite tabanı çalışır hale getirildi; kritik erişim/veri okuma sorunları ve tam kapsamlı site taramasında tespit edilen çalışma zamanı/UI/veri bütünlüğü hataları kapatıldı. Bütün audit bulguları çözülmüş veya üretime hazır kabul edilmez.
 
 Kurallar: `workingPrinciples.md`. Başlangıç incelemesi: `audits/2026-10-15-project-audit.md`. Uygulama kaydı: `implementation/2026-10-15-foundation.md`.
+
+## A22 — Otomatik erişilebilirlik ve Lighthouse (18 Ekim 2026)
+
+Form etiketleri/ikon adları/seçili durumlar, main/h1/başlık sırası/admin dt-dd/takvim region, Header ad içeriği ve kontrast sorunları düzeltildi. Lighthouse Ara düğmesinin 18.5px hedefini buldu (min 24); WCAG 2.2 target-size axe'a açıkça eklenince iki ayar şifre düğmesi de 20→32 px oldu. Kurallar/öğeler hariç tutulmadı; saklı veri/renkler değiştirilmedi.
+
+Temiz npm ci ve son check başarılı: **361 workspace testi** (18/143/200), strict/naming/lint/build. Son browser matrix **36/36**: 18 önceki davranış + 18 erişilebilirlik yürütmesi. Açık/koyu temalar/üç profil boyunca **150 axe taraması, sıfır violations** (default+target-size). 18 raporda aria-hidden-focus ve 44 raporda color-contrast incomplete korunur; tam WCAG veya fiziksel cihaz uygunluğu değildir.
+
+Lighthouse 13.5.0, login/dashboard × desktop/mobile × üç bağımsız koşu: **12/12**, accessibility hepsinde 100. Performance medyanları login **96/67**, dashboard **92/61** (desktop/mobile); mobil hedef90+ karşılanmadı. Login mobil LCP 5.43 sn/dashboard 7.52 sn, TBT 0; sonraki öncelik başlangıç JS/CSS ve route/import yükünü ölçerek azaltmaktır. Yerel sıkıştırmasız static fixture gerçek deployment/CrUX değildir. Login 401 best-practices 96, robots SPA fallback SEO91–92 olarak görünür; audit gizlenmedi. Yeni axe 4.14.0/Lighthouse 13.5.0 dev pin/lock, CI tarama/ölçüm/artifact vardır; uzak koşum yok, audit 12 backlog sürer.
+
+Gerçek DB/parola/şema 006 değişmedi; final teardown/integrity/FK/seans/300 saniye geçmiş denetimleri geçti. Erken kesilmiş bootstrap'tan kalan boş temp DB yalnız sahipliği, handlesızlığı ve read-only users 0/sessions 0/integrity/FK doğrulanarak temizlendi; force interrupt finally garantisi değildir, harness iyileştirmesi açık. Son fixture/profile/temp sayısı 0. Root dev 3000/API 5002 sağlıklı. Önceki E2E çalışma ağacı korunur; commit/push/deploy yok.
+
+Kaynak/medyan tablo/manuel inceleme sınırları: implementation/2026-10-18-accessibility-and-lighthouse.md; komutlar tests/e2e/README.md. **A22 kalan:** mobil ilk yük, incomplete/ekran okuyucu ve grafik veri alternatifi, fiziksel cihaz/DST fold/daha geniş admin-Pomodoro-pointer E2E, uzak CI ve kesilen bootstrap cleanup. A04/major bağımlılıklar açıktır.
+
+## A22 — İzole otomatik tarayıcı testleri (18 Ekim 2026)
+
+İlk gerçek tarayıcı E2E kapısı tamamlandı: altı senaryo, masaüstü Chromium/WebKit ve Pixel 7 mobil Chromium emülasyonunda **18/18 başarılı**. Gerçek giriş/cookie/reload/hesap izolasyonu, seans create/saat-süre/reload, iki sekmeli gerçek 409 ve açık retry, kısa kart hedefleri/klavye/gün sonu odak, bildirim 503/retry/okundu ve responsive menü/taşma doğrulanır. Mobil profil 412×839 CSS px/touch emülasyonudur; fiziksel cihaz veya kurulu Safari iddiası yoktur.
+
+Test başına yeni browser context, sahip olunan boş mkdtemp SQLite, random JWT/sentetik hesaplar ve OS loopback portu vardır. Üretim frontend `/api` yoluyla build edilir; browser kendi fixture origin'i dışına çıkamaz. Backend test modunda `.env` yüklemez; gerçek kullanıcı DB'si/parolası veya açık dev sunucusu fixture değildir. Kapanışta integrity/FK, beş değişmeyen seansın tüm kolonları, not ve 300 saniyelik interval geçmişi denetlenir; süreç/DB dizini finally temizlenir. Cleanup hatası testi başarısız yapar.
+
+E2E gerçek bir taşıma sonrası odak yarışını yakaladı: onClose içindeki erken RAF kaldırıldı; kapalı dialog commit'inden sonraki effect güncel kart/Bugün odağını kurar ve unmount'ta bekleyen RAF'ı iptal eder. Odak beklentileri gevşetilmedi. İki odak akışı üç profilde üçer kez ayrıca çalıştırıldı: 18/18 tekrar geçti. Aktif pencere testleri tek worker ile yürür; retry/skip yoktur.
+
+Temiz npm ci, npm run check ve son npm run test:e2e başarılı: **18 contracts + 143 backend + 200 frontend = 361 workspace testi**, ayrıca **18 E2E yürütmesi** (toplam 379). Naming, workspace/E2E strict, sıfır uyarılı lint ve production build geçti. Yeni Playwright 1.64.1 dev bağımlılığı ve lock vardır. CI browser install/E2E/7 günlük artifact adımları eklendi; uzak GitHub koşumu yapılmadı. Yerel 12 audit düğümü (5 high/7 moderate) backlog'u sürer.
+
+A22 kalan: tam WCAG/ekran okuyucu, Lighthouse, fiziksel dokunmatik cihaz, DST fold ve admin/Pomodoro/native drag-resize akışlarında daha geniş E2E. A04/major bağımlılıklar açık. Kaynak/komut/sınırlar: tests/e2e/README.md ve implementation/2026-10-18-isolated-browser-tests.md. Gerçek DB'ye test yazması/migration/seed/reset/restore veya gerçek parola okuma yok; schema 006 korunur.
 
 ## A22 — Kısa takvim kartlarının yerleşimi (17 Ekim 2026)
 
@@ -202,14 +226,16 @@ Son aktivitelerin zaman sırası, dashboard konu verisi/sayıları, query respon
 | Backend/frontend typecheck | Başarılı, strict korunuyor |
 | Lint | ESLint 10 flat config, sıfır uyarı |
 | Ortak sözleşme test | 18 test; strict auth/patch/query/Plan/backup ve ortak gerçek süre sınırları dahil; managed-user create kuralları dahil; timezone/DST ve Preferences, ayar şemaları ve seans geçiş/yazma sözleşmeleri |
-| Backend test | 142 test; HTTP/SQLite normalizasyon, DTO, sparse patch, Plan yarış/detach/geçmiş/sürüm/rollback dahil; kullanıcı sayfalama/arama/create ve öz-koruma dahil; restore ad çakışması/yarışı ve geçmiş koruma dahil; admin agregasyonları/runtime ayarları/kullanıcı-konu ilerlemesi dahil; Pomodoro deadline/faz/yarış/migration/bakım regresyonları, arşivlenmiş ders/konu ilişkisi koruma ve ilişki temizleme (`null`), katalog `isActive=all` ve arşivlenmiş konu adı yeniden kullanımı, admin kendi hesabını koruma ve base64/null profil fotoğrafı regresyonları dahil |
+| Backend test | 143 test; test süreçlerinde yerel dotenv yüklenmemesi dahil; HTTP/SQLite normalizasyon, DTO, sparse patch, Plan yarış/detach/geçmiş/sürüm/rollback dahil; kullanıcı sayfalama/arama/create ve öz-koruma dahil; restore ad çakışması/yarışı ve geçmiş koruma dahil; admin agregasyonları/runtime ayarları/kullanıcı-konu ilerlemesi dahil; Pomodoro deadline/faz/yarış/migration/bakım regresyonları, arşivlenmiş ders/konu ilişkisi koruma ve ilişki temizleme (`null`), katalog `isActive=all` ve arşivlenmiş konu adı yeniden kullanımı, admin kendi hesabını koruma ve base64/null profil fotoğrafı regresyonları dahil |
 | Frontend test | 200 test; kısa kart sütunları/saat sınırı/gün sonu/menü ve sub-minute konum regresyonları dahil; Header hata/boş/stale/epoch ve popover odak, takvim klavye/saat/süre/409/read retry regresyonları dahil; ortak auth form/gerçek HTTP malformed response ve geç parola hesap sınırı, 1/1.5/1440 dakika form regresyonları dahil; yönetim özeti ve günlük seans/editör async/409/taslak/epoch regresyonları dahil; ayar taslağı/patch/private read yarışları ve backup async/epoch/kurtarma sınırları dahil; kullanıcı yönetimi/oluşturma, sunucu onayı ve hesap sınırları dahil; kategori yönetimi/hata/retry/hedef seçimi ve nested dialog/epoch dahil; ortak katalog create/edit, yetki/dirty patch/pending/epoch ve arşiv/restore regresyonları dahil; ortak drag/resize/409/retry/epoch ve async dialog regresyonları dahil; sunucuya bağlı konu ilerlemesi dahil; ortak timer, gecikmiş callback/yanıt, hesap ayrımı, iki planner erişim ve haftalık takvim kartından düzenleme modalı açma regresyonları dahil; katalog transport/cache ve sıralama component regresyonları dahil; takvim alanları/gece yarısı/Pomodoro fazı ve sürümlü seans transport ve iki Pomodoro yüzeyinin sunucu onayı, auth/cache/çevrimdışı logout, tercih/kayıt/kullanıcı/tarih/bildirim/branding, gerçek HTTP refresh, hata sınırı ve sıralama |
 | Backend/frontend production build | Başarılı, Vite 8 |
 | Production bundle tarayıcı smoke | Dolu geçici veride giriş/dashboard/dersler, planner/özet, arama, mobil özel seans oluşturma; açık/koyu görünüm |
 | GitHub CI | Workflow eklendi; uzak koşum yapılmadı |
 | Yerel ilk kurulum | Açık kullanıcı yetkisiyle configure/migration/admin oluşturma; giriş/reload/manual snapshot başarılı; reset/restore/seed yok |
 | Mobil manuel kontrol | 390×844; günlük görünüm, menü, Escape/odak, arama ve form; yatay sayfa taşması yok |
-| Otomatik tarayıcı E2E / tam WCAG / Lighthouse / yük | Henüz yok |
+| Otomatik tarayıcı E2E | 18 davranış + 18 erişilebilirlik yürütmesi =36 başarılı; 150 axe taraması/0 violations (target-size dahil), incomplete kayıtlar korunur; uzak CI yok |
+| Lighthouse | Login/dashboard × desktop/mobile ×3 =12 ölçüm; accessibility 100, performance96/67 ve92/61; mobil 90+ açık, yerel fixture saha verisi değildir |
+| Tam WCAG / fiziksel cihaz / yük | Açık; incomplete/ekran okuyucu/gerçek cihaz ve kapasite ayrıca doğrulanmalı |
 
 ## Audit durumları
 
@@ -225,7 +251,7 @@ Son aktivitelerin zaman sırası, dashboard konu verisi/sayıları, query respon
 | A09 | Uygulandı/testli: ayrı ölçülen aralıklar, study/break/pause, kayıpsız 004/coverage, gerçek süre özetleri; 5+3+5 dakika ve rollback. İnsan varlığı/offline geriye dönük ölçüm iddiası yok. |
 | A10 | Uygulandı/testli: reset safety/transaction ve ortak IMMEDIATE catalog servisi; atomik kategori taşıma/silme (+ `AdminCoursesPage` üzerinde kategori taşıma/silme UI'ı), FK/sürüm ile geçmişi koruyan ders silme, soft topic delete, arşivlenmiş konu adını yeniden kullanabilme, `isActive=all` listeleme ve sürümlü tam reorder. Hata enjeksiyonu ve eşzamanlı HTTP/SQLite regresyonları var; harici SQL domain kapsamı dışındadır. |
 | A11 | Uygulandı/testli: ortak v1 sözleşme, explicit legacy JSON migration/arşiv, tam round-trip, sıralı ve sunucu onaylı kayıt, hata ve hesap sınırı. Dil/bildirim/süre tercihi saklamak ilgili ürün altyapısının tamamlandığı anlamına gelmez. |
-| A12 | Yerel check zinciri çalışıyor; 360 test ve CI workflow var. Uzak CI ve kapsamlı E2E henüz yok. |
+| A12 | Yerel check: 361 workspace testi + 36 browser yürütmesi ve 12 Lighthouse ölçümü başarılı; strict/lint/build ve CI browser kapısı var. Uzak CI koşumu ve bütün ürün E2E kapsamı ayrıca açık. |
 | A13 | Uygulandı/testli: DB session, hash'li refresh rotasyonu/replay iptali, cookie/CSRF, logout/parola/rol iptali, ortak refresh ve geç yanıt izolasyonu. Production cookie dağıtımı ayrıca doğrulanmalı. |
 | A14 | Tanımlı kapsam uygulandı/testli: ortak account/resource/date/timezone key factory, kategori önbellek şekli uyumu, ilgili özetlere invalidation, gün anahtarı yenileme, memory-only tercihler, hesaplı bildirim geçmişi, profil/admin geç yanıt sınırı. Backend timezone doğruluğu sonraki A16 paketiyle tamamlandı. |
 | A15 | Uygulandı/testli: kalıcı sunucu deadline/faz/döngü, ortak timer hook/UI, reload/modal/çoklu sekme, sürüm/epoch koruması; gecikmiş worker ölçümü deadline ile sınırlı. Otomatik mola opt-in; otomatik çalışma yok. Yük/çok süreç operasyonu ayrıca doğrulanmalı. |
@@ -235,7 +261,7 @@ Son aktivitelerin zaman sırası, dashboard konu verisi/sayıları, query respon
 | A19 | Tanımlı kapsam tamamlandı: Sequelize hata çevirisi, ortak auth/profile/admin create-update/list query/Plan/backup şemaları; normalize request değerleri; tek güvenli userResponse ve istemci auth/admin/backup runtime DTO; ortak validation hata ayrıntısı. Joi/Zod 3 aktif yolları kaldırıldı. Plan isteğe bağlı hedef kabı, takvim StudySession; kullanılmayan istemci Plan motoru kaldırıldı. Plan IMMEDIATE create/update/reactivation/detach-delete ve rollback testli; geçmiş korunur. Bütün diğer API yanıtlarını runtime şemaya taşıma veya bütün metadata'ya optimistic version ekleme iddiası yoktur. |
 | A20 | Lock, modern dev araçları, güvenli setup, üç workspace ve açık 001–006 migration var. Legacy şema evrimleri için sonraki explicit migration'lar gerekiyor. |
 | A21 | Kısmen: yedi ölü modül/eski script/paket kaldırıldı; route splitting tamam; iki timer motoru ortaklaştırıldı; `WeeklyPlanner` ve `DailyCalendar` etkileşim hataları düzeltildi. PlannerCalendar/usePlannerCalendar/kart/geometry ile iki takvim motoru birleştirildi; drag/resize/409/epoch ve async dialog testli. Öğrenci özel ders/konu edit/delete/archive/restore UI, tek öğrenci/admin ders editörü ve nötr ders yüzeyleri tamam. Kategori ve kullanıcı yönetimi/shared editor ve async onaylar da tamamlandı. Ayar/yedekleme taslak/dirty patch/read error/async onay/epoch da tamam. Yönetim özeti/günlük seans/editör/Pomodoro nötr yüzey ve işlem sınırı denetimi de tamamlandı; 73/73 kaynak modül erişilebilir. **Kalan sınırlar:** büyük formun sözleşme/alan sınırları A19, performans ve kapsamlı erişilebilirlik/E2E A22 altında açıktır. |
-| A22 | Kısmen: ErrorBoundary, mobil Dialog odak/Escape, `MoveSessionModal` klavye/etiket erişilebilirliği, skip link, reduced-motion ve 390 px manuel kontrolü var. Header hata/boş/stale ve Popover odak/Escape; ortak takvim tek Tab/ok gezinmesi ve native saat/süre alternatifi tamam/testli. Kısa komşu kartlar min 28 px/sütun yerleşimi ve gün sonu odak boşluğuyla doğrulandı. **Eksikler:** gerçek dokunmatik cihaz, DST fold, tam WCAG/ekran okuyucu, Lighthouse ve otomatik Playwright E2E. |
+| A22 | Kısmen: ErrorBoundary, mobil Dialog odak/Escape, `MoveSessionModal` klavye/etiket erişilebilirliği, skip link, reduced-motion ve 390 px manuel kontrolü var. Header hata/boş/stale ve Popover odak/Escape; ortak takvim tek Tab/ok gezinmesi ve native saat/süre alternatifi tamam/testli. Kısa komşu kartlar min 28 px/sütun yerleşimi ve gün sonu odak boşluğuyla doğrulandı. İlk otomatik E2E alt paketi 6 senaryo/18 yürütmeyle tamamlandı; kapanış sonrası odak yarışı düzeltildi. **Son ek:** 150 axe/0 violations (WCAG 2.2 target-size dahil), 12 Lighthouse ölçümü (accessibility 100; mobil performance67/61) tamam. **Eksikler:** mobil ilk yük optimizasyonu, incomplete/ekran okuyucu/grafik veri alternatifi, fiziksel cihaz, DST fold, geniş admin/Pomodoro/native drag-resize E2E ve bootstrap interrupt cleanup. |
 | A23 | Yeni kullanıcı gereksinimi uygulandı: bütün görünen site adı/admin kimlik ayarları ortak kaynaktan değişir; repo/domain değiştirmez. |
 | A24 | Uygulandı/testli: 006 migration, kullanıcıya özel `user_topic_progress`, GET/PUT uç noktaları, `CourseDetailPage` sunucu bağlantısı. Yerel 006 özel snapshot/veri koruma kontrolü ve schema backup id 6 ile uygulandı. Tarayıcı elle doğrulaması ayrıca açık. |
 
@@ -252,7 +278,9 @@ Node 24.21.0, npm 11.19.0; Vite 8.3.4, plugin-react 6.1.2, ESLint 10.12.0, types
 1. **A22 — Klavye/Dokunmatik, Hata Durumları ve Otomatik E2E:**
    - Header hata/boş/stale ve popover odak/Escape; takvim tek Tab/ok gezinmesi ve native saat/süre alternatifi tamam/testli.
    - Kısa komşu kart/saat sınırı/gün sonu yerleşimi tamam/testli.
-   - Gerçek dokunmatik cihaz, DST fold, tam WCAG/ekran okuyucu, Lighthouse ve otomatik tarayıcı E2E açık.
+   - İlk gerçek browser E2E kapısı tamam: 6 senaryo/18 yürütme; CI adımları tanımlı, uzak koşum açık.
+   - Otomatik axe/Lighthouse tabanı tamam: 150 tarama/0 violations ve 12 ölçüm. Mobil ilk yük 67/61→90+ hedefi sıradaki öncelik.
+   - Incomplete/ekran okuyucu/grafik veri alternatifi, fiziksel cihaz/DST fold/geniş admin-Pomodoro-pointer E2E ve bootstrap interrupt cleanup açık.
 2. **A04 ve Bağımlılıklar:**
    - Yedek saklama/offsite, kapasite/yük ve kurtarma operasyonları; kalan güvenlik ve major bağımlılık güncellemeleri açık.
 3. **Genel bakım sınırları:**

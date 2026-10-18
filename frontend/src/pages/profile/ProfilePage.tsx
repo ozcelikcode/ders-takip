@@ -244,6 +244,7 @@ const ProfilePage = () => {
                     onClick={() =>
                       document.getElementById('file-upload')?.click()
                     }
+                    aria-label="Profil resmi seç"
                     className="absolute bottom-0 right-0 p-2 bg-white dark:bg-gray-700 rounded-full shadow-lg border-2 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
                   >
                     <Camera className="h-5 w-5 text-gray-600 dark:text-gray-300" />
@@ -251,13 +252,13 @@ const ProfilePage = () => {
                 )}
               </div>
 
-              <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+              <h2 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
                 {user?.fullName}
-              </h3>
+              </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 @{user?.username}
               </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              <p className="text-xs text-[var(--muted)] mt-1">
                 {user?.role === 'admin' ? 'Yönetici' : 'Öğrenci'}
               </p>
 
@@ -275,9 +276,10 @@ const ProfilePage = () => {
                     <button
                       type="button"
                       onClick={() => setImageInputType('file')}
+                      aria-pressed={imageInputType === 'file'}
                       className={`flex-1 px-3 py-1.5 text-xs rounded transition-colors ${
                         imageInputType === 'file'
-                          ? 'bg-primary-600 text-white'
+                          ? 'bg-[var(--solid)] text-[var(--solid-text)]'
                           : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }`}
                     >
@@ -287,9 +289,10 @@ const ProfilePage = () => {
                     <button
                       type="button"
                       onClick={() => setImageInputType('url')}
+                      aria-pressed={imageInputType === 'url'}
                       className={`flex-1 px-3 py-1.5 text-xs rounded transition-colors ${
                         imageInputType === 'url'
-                          ? 'bg-primary-600 text-white'
+                          ? 'bg-[var(--solid)] text-[var(--solid-text)]'
                           : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }`}
                     >
@@ -316,6 +319,7 @@ const ProfilePage = () => {
                   {imageInputType === 'url' && (
                     <input
                       type="url"
+                      aria-label="Profil resmi URL adresi"
                       value={profileForm.profileImage}
                       onChange={(e) =>
                         setProfileForm({
@@ -347,15 +351,15 @@ const ProfilePage = () => {
           {/* Account Info Card */}
           <div className="card">
             <div className="card-header">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
                 Hesap Bilgileri
-              </h3>
+              </h2>
             </div>
             <div className="card-body space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Durum:</span>
                 <span
-                  className={`font-medium ${user?.isActive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+                  className={`font-medium ${user?.isActive ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
                 >
                   {user?.isActive ? 'Aktif' : 'Pasif'}
                 </span>
@@ -392,9 +396,9 @@ const ProfilePage = () => {
           {/* Profile Information */}
           <div className="card">
             <div className="card-header flex items-center justify-between">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                 Profil Bilgileri
-              </h3>
+              </h2>
               {!isEditingProfile && (
                 <button
                   onClick={() => setIsEditingProfile(true)}
@@ -408,11 +412,11 @@ const ProfilePage = () => {
               <form onSubmit={handleProfileSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label htmlFor="profile-firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Ad *
                     </label>
                     {isEditingProfile ? (
-                      <input
+                      <input id="profile-firstName"
                         type="text"
                         value={profileForm.firstName}
                         onChange={(e) =>
@@ -431,11 +435,11 @@ const ProfilePage = () => {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label htmlFor="profile-lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Soyad *
                     </label>
                     {isEditingProfile ? (
-                      <input
+                      <input id="profile-lastName"
                         type="text"
                         value={profileForm.lastName}
                         onChange={(e) =>
@@ -456,11 +460,11 @@ const ProfilePage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label htmlFor="profile-username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Kullanıcı Adı *
                   </label>
                   {isEditingProfile ? (
-                    <input
+                    <input id="profile-username"
                       type="text"
                       value={profileForm.username}
                       onChange={(e) =>
@@ -495,11 +499,11 @@ const ProfilePage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label htmlFor="profile-studyField" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Alan Bilgisi
                   </label>
                   {isEditingProfile ? (
-                    <select
+                    <select id="profile-studyField"
                       value={profileForm.studyField}
                       onChange={(e) =>
                         setProfileForm({
@@ -557,9 +561,9 @@ const ProfilePage = () => {
             <div className="card-header flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Lock className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                   Şifre Değiştir
-                </h3>
+                </h2>
               </div>
               {!isEditingPassword && (
                 <button
@@ -574,10 +578,10 @@ const ProfilePage = () => {
               <div className="card-body">
                 <form onSubmit={handlePasswordSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label htmlFor="profile-currentPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Mevcut Şifre *
                     </label>
-                    <input
+                    <input id="profile-currentPassword"
                       type="password"
                       value={passwordForm.currentPassword}
                       onChange={(e) =>
@@ -591,10 +595,10 @@ const ProfilePage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label htmlFor="profile-newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Yeni Şifre *
                     </label>
-                    <input
+                    <input id="profile-newPassword"
                       type="password"
                       value={passwordForm.newPassword}
                       onChange={(e) =>
@@ -612,10 +616,10 @@ const ProfilePage = () => {
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label htmlFor="profile-confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Yeni Şifre (Tekrar) *
                     </label>
-                    <input
+                    <input id="profile-confirmPassword"
                       type="password"
                       value={passwordForm.confirmPassword}
                       onChange={(e) =>

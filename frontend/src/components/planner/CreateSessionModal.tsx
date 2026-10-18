@@ -723,7 +723,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                     onClick={() => setDurationMode('minutes')}
                     className={`p-3 rounded-md border transition-colors duration-150 ${
                       durationMode === 'minutes'
-                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                        ? 'border-[var(--solid)] bg-[var(--subtle)] text-[var(--text)]'
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
                     }`}
                   >
@@ -873,7 +873,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Bitiş saati:
                     </span>
-                    <span className="text-lg font-bold text-primary-600 dark:text-primary-400">
+                    <span className="text-lg font-bold text-[var(--text)]">
                       {(() => {
                         const duration = watch('duration') || 60;
                         const startDateValue = watch('startDate');
@@ -976,10 +976,11 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-medium text-[var(--muted)] mb-1">
+                          <label htmlFor="workDuration" className="block text-xs font-medium text-[var(--muted)] mb-1">
                             Çalışma (dk)
                           </label>
                           <input
+                            id="workDuration"
                             {...register('pomodoroSettings.workDuration', {
                               valueAsNumber: true,
                             })}
@@ -991,10 +992,11 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                         </div>
 
                         <div>
-                          <label className="block text-xs font-medium text-[var(--muted)] mb-1">
+                          <label htmlFor="shortBreak" className="block text-xs font-medium text-[var(--muted)] mb-1">
                             Kısa Mola (dk)
                           </label>
                           <input
+                            id="shortBreak"
                             {...register('pomodoroSettings.shortBreak', {
                               valueAsNumber: true,
                             })}
@@ -1006,10 +1008,11 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                         </div>
 
                         <div>
-                          <label className="block text-xs font-medium text-[var(--muted)] mb-1">
+                          <label htmlFor="longBreak" className="block text-xs font-medium text-[var(--muted)] mb-1">
                             Uzun Mola (dk)
                           </label>
                           <input
+                            id="longBreak"
                             {...register('pomodoroSettings.longBreak', {
                               valueAsNumber: true,
                             })}
@@ -1021,10 +1024,11 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                         </div>
 
                         <div>
-                          <label className="block text-xs font-medium text-[var(--muted)] mb-1">
+                          <label htmlFor="cyclesBeforeLongBreak" className="block text-xs font-medium text-[var(--muted)] mb-1">
                             Döngü Sayısı
                           </label>
                           <input
+                            id="cyclesBeforeLongBreak"
                             {...register(
                               'pomodoroSettings.cyclesBeforeLongBreak',
                               { valueAsNumber: true },

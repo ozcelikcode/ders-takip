@@ -1,10 +1,23 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const { parseEnvironment } = require('../dist/config/environment');
+const { spawnSync } = require('node:child_process');
 
 const valid = { JWT_SECRET: 'a'.repeat(64) };
 
 describe('environment validation', () => {
+  it('never loads local dotenv configuration in test processes', () => {
+    const result = spawnSync(process.execPath, ['-e', `
+      require('dotenv').config = () => { throw new Error('Local dotenv was loaded'); };
+      const { getEnvironment } = require('./dist/config/environment');
+      if (getEnvironment().NODE_ENV !== 'test') process.exitCode = 1;
+    `], {
+      cwd: require('node:path').resolve(__dirname, '..'),
+      env: { NODE_ENV: 'test', JWT_SECRET: 'a'.repeat(64) },
+      encoding: 'utf8',
+    });
+    assert.equal(result.status, 0, result.stderr);
+  });
   it('requires a strong signing secret in every environment', () => {
     for (const NODE_ENV of ['development', 'test', 'production']) {
       assert.throws(() => parseEnvironment({ NODE_ENV }));

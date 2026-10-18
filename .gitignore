@@ -61,3 +61,10 @@ public/uploads/
 backend/backups/
 
 packages/*/dist/
+
+# Browser test artifacts contain only disposable fixture data.
+test-results/
+playwright-report/
+
+lighthouse-results/
+lighthouse-report/

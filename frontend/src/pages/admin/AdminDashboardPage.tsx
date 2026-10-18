@@ -109,9 +109,9 @@ function AdminOverview() {
                 <dd className="my-4 break-words text-3xl font-medium tracking-tight tabular-nums">
                   {stat.value}
                 </dd>
-                <p className="text-xs leading-5 text-[var(--muted)]">
+                <dd className="text-xs leading-5 text-[var(--muted)]">
                   {stat.detail}
-                </p>
+                </dd>
               </div>
             ))}
           </dl>

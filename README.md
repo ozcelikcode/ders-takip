@@ -116,7 +116,7 @@ Seed yalnız development modunda çalışır. Mevcut hesapların parolasını ve
 npm run check
 ```
 
-Bu komut teknik adlandırma kontrolü, backend/frontend typecheck, sıfır uyarılı lint, testler ve production derlemelerini çalıştırır. Aynı akış GitHub Actions CI içinde tanımlıdır.
+Bu komut teknik adlandırma kontrolü, workspace/E2E strict typecheck, sıfır uyarılı lint, workspace testleri ve production derlemelerini çalıştırır. GitHub Actions ayrıca ayrı browser E2E kapısını çalıştıracak şekilde yapılandırılmıştır; uzak koşum ayrıca doğrulanmalıdır.
 
 ```bash
 npm run typecheck
@@ -125,7 +125,16 @@ npm test
 npm run build
 ```
 
-Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 18 contracts + 142 backend + 200 frontend = 360 testtir. Yeni ekran akış regresyonları `frontend/tests/` altındadır; burası da Vitest, strict TypeScript ve ESLint kapsamındadır. Mevcut `src/**/*.test.*` testleri aynı kalite zincirinde korunur. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
+Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 18 contracts + 143 backend + 200 frontend = 361 workspace testidir. Yeni ekran akış regresyonları `frontend/tests/` altındadır; burası da Vitest, strict TypeScript ve ESLint kapsamındadır. Mevcut `src/**/*.test.*` testleri aynı kalite zincirinde korunur. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
+
+Gerçek tarayıcı ana akışları ayrıca çalıştırılır:
+
+```bash
+npx playwright install chromium webkit
+npm run test:e2e
+```
+
+Her test yeni temp SQLite, sentetik hesaplar ve rastgele loopback portu kullanır; gerçek `.env`/kullanıcı DB'si veya açık dev sunucusu test ortamı değildir. Altı davranış senaryosu ve açık/koyu tema erişilebilirlik senaryoları Chromium/WebKit masaüstü ve mobil Chromium emülasyonunda çalışır. İzole login/dashboard Lighthouse ölçümü: `npm run test:lighthouse`; rapor: `lighthouse-report/index.html`. Kurulum, veri koruması, rapor ve ölçüm sınırları: [Browser testleri](tests/e2e/README.md). Otomatik tarama tam WCAG veya fiziksel cihaz uygunluğu değildir.
 
 Adlandırma kontrolü dosya/klasör ve kod sembollerinde ASCII dışı adları yakalar. İsimlerin anlam bakımından İngilizce oluşu kod incelemesinde doğrulanır; Türkçe arayüz metinleri bu kontrolün dışındadır.
 

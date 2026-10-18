@@ -190,9 +190,9 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
               >
                 <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               </button>
-              <h4 className="text-base font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                 {format(selectedMonth, 'MMMM yyyy', { locale: tr })}
-              </h4>
+              </h3>
               <button
                 disabled={pending}
                 onClick={handleNextMonth}
@@ -234,7 +234,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
                     relative p-2 text-sm rounded-lg transition-colors
                     ${!isCurrentMonth ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : ''}
                     ${isCurrentMonth && !isSelected && !isTodayDate ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' : ''}
-                    ${isTodayDate && !isSelected ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 font-semibold' : ''}
+                    ${isTodayDate && !isSelected ? 'bg-primary-100 dark:bg-primary-900/30 text-[var(--text)] font-semibold' : ''}
                     ${isSelected ? 'bg-primary-600 text-white font-semibold' : ''}
                     ${isCurrentDateDay && !isSelected ? 'ring-1 ring-[var(--muted)]' : ''}
                   `}

@@ -1,6 +1,6 @@
 # Ders Takip Sistemi — Teknik Bağlam
 
-Kaynak ve doğrulama: 17 Ekim 2026, A22 kısa takvim kartlarının yerleşimi. Başlangıç incelemesi tarihsel raporda tutulur; aşağıdaki mevcut durum onun yerini alır.
+Kaynak ve doğrulama: 18 Ekim 2026, A22 erişilebilirlik/Lighthouse tabanı. Başlangıç incelemesi tarihsel raporda tutulur; aşağıdaki mevcut durum onun yerini alır.
 
 ## Araç zinciri
 
@@ -43,7 +43,7 @@ On üç model: User, Category, Course, Topic, Plan, StudySession, SessionInterva
 - GET StudySession yan etkisizdir; not veya durum güncellemez. Zaman aşımı politikası henüz ayrı service olarak uygulanmadı.
 - Create/update/action/delete services/studySessions.ts içinde IMMEDIATE transaction kullanır. Zorunlu expectedUpdatedAt ve monotonic timestamp ile stale 409, ortak durum politikası ve tek aktif seans uygulanır. Paused/completed zamanı rezerve eder; cancelled serbesttir. Ortak seans Zod şemaları contracts içindedir. Gerçek süre study/break/pause aralıkları ve IANA gün sınırlarıyla uygulanmıştır; eski hatalı ilişkiler/çakışmalar gerçek DB üzerinde taranıp değiştirilmedi.
 - GET /settings yalnız public branding DTO; /settings/admin ve PUT admin/no-store. İzinli anahtar/tip şeması ve transaction'lı yazma var. allowRegistration/maintenanceMode public DTO'dadır ve register/login/protect'te uygulanır; sessionTimeout boşta süresi olarak rotateAuthSession'da uygulanır (maxStudentsPerCourse kaldırıldı; bildirim teslimatı yok). Ayar okuma tek kaynağı services/siteSettings.ts. Backup route'ları admin; native SQLite backup API, dosya dışı manifest/SHA-256/integrity/FK/şema kontrolü, güvenlik yedeği/atomik destination restore/rollback ve bakım kapısı uygulanmıştır. settings_only/all reset transaction'lıdır. Her 5 dakikadaki job ayarı yeniden okuyarak 1/5/7 tam gün hesabı yapar. Tek backend süreci sınırı, offsite/kapasite/retention işleri açık; otomatik yedek silme yoktur.
-- Admin: `GET /users/admin-stats` (global özet) ve `GET /users?includeStats=true` (toplu kullanıcı özeti) `getAllTimeSummaries` kullanır; yalnız admin. Güncel check 360 test. Konu ilerlemesi: GET /topics/progress, PUT /topics/:id/progress (kullanıcıya özel).
+- Admin: `GET /users/admin-stats` (global özet) ve `GET /users?includeStats=true` (toplu kullanıcı özeti) `getAllTimeSummaries` kullanır; yalnız admin. Güncel check 361 workspace testi + 36 browser yürütmesi/150 axe taraması ve 12 Lighthouse ölçümü. Konu ilerlemesi: GET /topics/progress, PUT /topics/:id/progress (kullanıcıya özel).
 - Merkezi hata handler Sequelize ValidationError→400, Unique/FK→409; beklenmeyen hata mesajı istemciye verilmez. Eski MongoDB hata eşlemeleri kaldırıldı. Auth/user/plan/backup giriş doğrulamaları ortak contracts ve validate sınırında birleşti; hata ayrıntısı ortak field/message biçimidir.
 
 ## Güncel görsel sistem (15 Ekim 2026)
@@ -67,7 +67,7 @@ Tasarım paketi kapanışında: 22 backend + 8 frontend = 30 test (tarihsel), st
 - `npm run setup`: npm ci → configure → build; DB'ye yazmaz.
 - `npm run check`: ASCII teknik adlandırma → iki workspace typecheck → sıfır uyarılı lint → testler → build.
 - TypeScript strict/optional/no-unused ayarları gevşetilmedi. ESLint temel JS/TS doğruluk ve unused kurallarını, hooks rules-of-hooks kuralını uygular. Mevcut any borcu veya bütün hooks/exhaustive-deps sorunları kapatılmış değildir; disable yorumuyla bastırma eklenmedi.
-- Güncel check: **18 contracts + 142 backend + 200 frontend = 360 test**, atlanan yok; strict typecheck, sıfır uyarılı lint ve iki production build başarılı. Backend WAL/restore/rollback ve oturum yarışları, frontend gerçek HTTP transport ile eşzamanlı/geç 401 dahil.
+- Güncel check: **18 contracts + 143 backend + 200 frontend = 361 workspace testi**, ayrıca **36 browser yürütmesi/150 axe taraması ve 12 Lighthouse ölçümü**, atlanan yok; strict typecheck, sıfır uyarılı lint ve iki production build başarılı. Backend WAL/restore/rollback ve oturum yarışları, frontend gerçek HTTP transport ile eşzamanlı/geç 401 dahil.
 - Yerel yeni admin ile giriş, reload/cookie bootstrap ve manuel snapshot tarayıcıda doğrulandı; gerçek DB'de reset/restore/seed yapılmadı.
 - İlk paket tarihsel doğrulaması — Backend Node test runner + Supertest: 22 test; gerçek HTTP/geçici SQLite, env, hata response'ları ve migration/snapshot yolu. Frontend Vitest/Testing Library/jsdom: 5 test; ErrorBoundary ve hesap cache sınırı.
 - GitHub Actions checkout/setup-node v7 + npm ci + check tanımlı; GitHub'da koşum yapılmadı.
@@ -206,3 +206,15 @@ Güncel check **18 contracts + 142 backend + 192 frontend = 352 test**; son odak
 ## A22 kısa kart yerleşimi
 
 calendarGeometry.layoutCalendarCards görsel [top, top+max(28,height)) kesişimlerini gruplar; saatler arasında da aynı sütun dağıtımı uygulanır. Eşit başlangıç ID sırasındadır; serbest sütun yeniden kullanılır. Kart ve gün minimum genişliği ortak grid şablonundan gelir; 160 px/sütun, boş haftalık gün 104 px; gün sonu gutter 36 px. Görsel minimum yükseklik persisted duration değildir. Saniye/milisaniye başlangıcı korunur. 36 px altı resize tutamacı yoktur; native saat/süre yolu kullanılır. Güncel kalite 18 contracts/142 backend/200 frontend = 360 test, strict/lint/build başarılı. Temp fixture snapshot beş seansın tüm kolonlarının korunduğunu doğrular; gerçek DB/şema/dependency değişmedi. Detay: implementation/2026-10-17-calendar-card-layout.md.
+
+## A22 otomatik browser kapısı — 18 Ekim 2026
+
+Kök @playwright/test 1.64.1 dev bağımlılığı/lock; tests/e2e strict tsconfig ve lint/naming kapsamı. npm run check E2E tiplerini de denetler; npm run test:e2e ayrı production build/typecheck/browser kapısıdır. Chromium/WebKit desktop ve Pixel 7 Chromium 412×839 emülasyonunda 6×3=18 yürütme başarılı. Retry/skip yok, aktif pencere odağı için bir worker. CI browser install, E2E ve 7 günlük rapor artifact adımları tanımlı; uzak koşum yapılmadı.
+
+Test başına fresh mkdtemp DB/context/random JWT/loopback portu; child kontrollü env, NODE_ENV=test'te dotenv yüklenmez (143. backend regresyonu). Build API=/api; browser dış origin engeli; static production frontend ve gerçek API, scheduler'sız app girişi. Kapanış integrity/FK/kayıt/ölçüm koruma kontrolü ve temp cleanup yapar. Gerçek DB/schema 006 değişmez. Taşıma odağı onClose RAF'ından closed-dialog effect'ine taşındı; pending/unmount iptali var. Final kalite 361 workspace + 18 E2E, ayrıca 18 odak tekrar yürütmesi başarılı. Tam WCAG/Lighthouse/DST fold/fiziksel cihaz/yük ve bütün admin/Pomodoro E2E kapsamı açık. Ayrıntı: implementation/2026-10-18-isolated-browser-tests.md; komutlar: tests/e2e/README.md.
+
+## A22 automated accessibility and Lighthouse — 18 Ekim 2026
+
+Root dev bağımlılıkları @axe-core/playwright 4.14.0 ve Lighthouse 13.5.0 exact pin/lock; Playwright 1.64.1 korunur. `npm run test:e2e` 36 yürütme/150 axe taraması, `npm run test:lighthouse` ayrı config/dizinle dört ölçüm; `--repeat-each=3` medyan için 12 koşu üretir. Strict tsconfig iki Playwright config'ini de içerir; generated Lighthouse dizinleri Git/ESLint dışıdır. CI timeout 20 dakika, ölçüm/rapor artifact'i tanımlı; uzak koşum yapılmadı.
+
+Son clean install/check: 361 workspace testi, strict/naming/lint/build; browser 36/36, axe 150/0 violations (default + açık WCAG 2.2 target-size), Lighthouse 12/12. Accessibility100; performans medyan login 96/67 ve dashboard 92/61 (desktop/mobile). Mobil 90+ açık. Incomplete kayıtlar filtrelenmez; test sonuçları tam WCAG/ekran okuyucu veya gerçek dağıtım başarısı değildir. Lighthouse auth/CDP ve fixture koşulları, ham raporlar ve açık performans/cleanup sınırları implementation/2026-10-18-accessibility-and-lighthouse.md içindedir. Audit 12 (5 high/7 moderate) sürer; runtime/şema 006 değişmedi.
