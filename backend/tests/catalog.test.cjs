@@ -236,8 +236,7 @@ it('archives topics without losing history, allows reusing archived names, and r
   const before = await databaseSnapshot();
   await auth('delete', `/api/topics/${topics[0].id}`).expect(200);
   assert.equal(await Topic.count(), 3); assert.equal((await topics[0].reload()).isActive, false);
-  const allTopics = (await auth('get', `/api/topics?courseId=${course.id}&isActive=all`).expect(200)).body.data.topics;
-  assert.equal(allTopics.length, 3);
+  assert.equal(await Topic.count({ where: { courseId: course.id } }), 3);
   topics = topics.slice(1);
   await reorder().expect(200);
   const recreated = (await auth('post', '/api/topics').send(topicBody('Topic 1')).expect(201)).body.data.topic;

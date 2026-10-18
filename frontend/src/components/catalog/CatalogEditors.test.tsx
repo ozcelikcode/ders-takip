@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AxiosError } from 'axios';
+import { AxiosError, type AxiosResponse } from 'axios';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   act,
@@ -13,6 +13,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import toast from 'react-hot-toast';
 import { categoriesAPI, coursesAPI, topicsAPI } from '../../services/api';
 import { canManageCourse } from '../../lib/catalogAccess';
+import type { ApiResponse } from '../../types/api';
 import type { CatalogCourse, CatalogTopic } from '../../types/catalog';
 import CourseEditorModal from '../modals/CourseEditorModal';
 import TopicEditorModal from '../modals/TopicEditorModal';
@@ -66,9 +67,7 @@ const topic: CatalogTopic = {
   order: 3,
   updatedAt: '2026-10-16T09:00:00.000Z',
 };
-const ok = { data: { success: true } } as Awaited<
-  ReturnType<typeof coursesAPI.updateCourse>
->;
+const ok = { data: { success: true } } as AxiosResponse<ApiResponse<never>>;
 const failed = () =>
   new AxiosError('Conflict', 'ERR_BAD_REQUEST', undefined, undefined, {
     ...ok,
@@ -98,7 +97,7 @@ beforeEach(() => {
       success: true,
       data: { categories: [{ id: 2, name: 'TYT', color: '#123456' }] },
     },
-  } as Awaited<ReturnType<typeof categoriesAPI.getCategories>>);
+  } as unknown as Awaited<ReturnType<typeof categoriesAPI.getCategories>>);
 });
 afterEach(() => {
   cleanup();
@@ -399,7 +398,7 @@ it('explains permanent course deletion separately from preserved measured histor
 it('preserves an existing category when the active category list no longer contains it', async () => {
   vi.mocked(categoriesAPI.getCategories).mockResolvedValue({
     data: { success: true, data: { categories: [] } },
-  } as Awaited<ReturnType<typeof categoriesAPI.getCategories>>);
+  } as unknown as Awaited<ReturnType<typeof categoriesAPI.getCategories>>);
   vi.mocked(coursesAPI.updateCourse).mockResolvedValue(ok);
   mount(
     <CourseEditorModal

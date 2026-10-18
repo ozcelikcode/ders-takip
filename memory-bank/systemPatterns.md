@@ -51,7 +51,7 @@ Query key'i sorgu sonucunu belirleyen kimlik/filtrelere bağlamak gerekir. Inval
 
 ## Düzeltilen örüntüler
 
-- Ders/konu görünürlüğü ortak owner/global/admin politikasına bağlı; kullanıcı detayında self/admin sınırı var.
+- Ders/konu görünürlüğü ortak owner/global/admin politikasına bağlı; kullanıcı stats uçlarında self/admin sınırı var (tekil `GET /users/:id` 18 Ekim temizliğiyle kaldırıldı; tekil konu/kategori okuma uçları da yok).
 - Yeni oturumun course/topic ilişkileri görünürlük, aktiflik ve eşleşme açısından doğrulanıyor.
 - GET session artık not/durum değiştirmiyor.
 - app importu side-effect olarak sunucu/cron başlatmıyor; index başlangıç/kapanış sorumluluğunda.

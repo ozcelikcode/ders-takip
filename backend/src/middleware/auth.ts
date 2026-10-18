@@ -9,8 +9,7 @@ import { readSiteSettings, sendMaintenance } from '../services/siteSettings';
 declare global {
   namespace Express {
     interface Request {
-      user?: any;
-      params: any;
+      user?: User;
     }
   }
 }

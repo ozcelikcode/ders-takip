@@ -24,7 +24,7 @@ export async function recordActivity(session: StudySession, nextStatus: SessionS
   return now;
 }
 
-export function measuredTotals(intervals: readonly SessionInterval[], asOf: Date, start = -Infinity, end = Infinity, deadline?: Date | null): StudyTotals {
+function measuredTotals(intervals: readonly SessionInterval[], asOf: Date, start = -Infinity, end = Infinity, deadline?: Date | null): StudyTotals {
   const totals = emptyTotals();
   for (const interval of intervals) {
     const openEnd = !interval.endedAt && interval.kind !== 'pause' && deadline ? Math.min(asOf.getTime(), deadline.getTime()) : asOf.getTime();

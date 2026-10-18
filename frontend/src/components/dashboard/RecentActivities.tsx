@@ -9,7 +9,7 @@ import { CheckCircle, Clock, Book } from 'lucide-react';
 
 const RecentActivities = () => {
   const accountKeys = useAccountQueryKeys();
-  // Son tamamlanan oturumları çek
+  // Fetch the most recently completed sessions
   const { data: recentSessions, isLoading, isError } = useQuery({
     queryKey: accountKeys.sessions('recent-activities'),
     queryFn: async () => {
@@ -55,7 +55,7 @@ const RecentActivities = () => {
 
   return (
     <div className="space-y-4 max-h-[100%] overflow-y-auto pr-2 custom-scrollbar">
-      {recentSessions.map((session: any) => (
+      {recentSessions.map((session) => (
         <div key={session.id} className="flex items-start space-x-3 group p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
           <div className="mt-1">
             <CheckCircle className="h-4 w-4 text-green-500" />

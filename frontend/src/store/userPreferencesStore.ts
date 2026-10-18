@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { defaultPreferences, preferencesSchema, preferencesPatchSchema, type PreferencesPatch, type UserPreferences } from '@study-tracker/contracts';
 import { authAPI } from '../services/api';
 import { archiveUnscopedState } from '../lib/archiveUnscopedState';
-export type { ThemeMode, UserPreferences } from '@study-tracker/contracts';
+export type { ThemeMode } from '@study-tracker/contracts';
 
 interface PreferencesState {
   userId: string | null;

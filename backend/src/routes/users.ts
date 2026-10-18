@@ -3,7 +3,6 @@ import {
   createUser,
   deleteUser,
   getAdminOverview,
-  getUser,
   getUserStudyStats,
   getUsers,
   updateUser,
@@ -32,7 +31,6 @@ router.get(
 
 router.get('/admin-stats', authorize('admin'), getAdminOverview);
 router.get('/:id/stats', validate(z.object({ params })), getUserStudyStats);
-router.get('/:id', validate(z.object({ params })), getUser);
 
 router.post(
   '/',

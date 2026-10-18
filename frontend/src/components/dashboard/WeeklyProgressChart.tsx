@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { studySessionsAPI } from '../../services/api';
 
-// Gün isimleri sabit sıralama
+// Fixed Monday-first labels
 const DAY_NAMES = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cts', 'Paz'];
 
 const WeeklyProgressChart = () => {
@@ -29,10 +29,10 @@ const WeeklyProgressChart = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Bu haftanın başlangıcını al (Pazartesi)
+  // Start of the current week (Monday)
   const weekStart = useMemo(() => startOfWeek(new Date(`${today}T12:00:00`), { weekStartsOn: 1 }), [today]);
 
-  // Bu haftanın verilerini çek
+  // Fetch this week's stats
   const { data: statsData, isLoading, isError } = useQuery({
     queryKey: accountKeys.sessions('weekly-progress', format(weekStart, 'yyyy-MM-dd')),
     queryFn: async () => {
@@ -44,10 +44,10 @@ const WeeklyProgressChart = () => {
       });
       return response.data.data?.stats;
     },
-    refetchInterval: 30000, // Her 30 saniyede bir yenile
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  // Günlere göre grupla - Pazartesi'den Pazar'a
+  // Group by day, Monday to Sunday
   const chartData = useMemo(() => {
     const data = [];
     for (let i = 0; i < 7; i++) {
@@ -123,8 +123,8 @@ const WeeklyProgressChart = () => {
             if (name === 'hours') return [`${Math.round(value * 60 * 10) / 10} dakika`, 'Çalışma Süresi'];
             return value;
           }}
-          labelFormatter={(label: string, payload: any[]) => {
-            if (payload && payload[0]) {
+          labelFormatter={(label: string, payload: readonly { payload?: { fullName?: string; date?: string } }[]) => {
+            if (payload?.[0]?.payload) {
               return `${payload[0].payload.fullName} (${payload[0].payload.date})`;
             }
             return label;

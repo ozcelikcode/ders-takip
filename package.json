@@ -1,7 +1,7 @@
 {
   "name": "study-tracker",
   "version": "1.0.0",
-  "description": "TYT-AYT Ders Takip ve Planlama Sistemi - Full Stack Application",
+  "description": "Ders Takip ve Planlama Sistemi - Full Stack Application",
   "private": true,
   "workspaces": [
     "packages/contracts",
@@ -45,7 +45,6 @@
     "nodejs",
     "sqlite"
   ],
-  "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
@@ -53,6 +52,7 @@
     "@playwright/test": "1.64.1",
     "concurrently": "^8.2.2",
     "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
     "lighthouse": "13.5.0",
     "typescript": "~5.9.3",

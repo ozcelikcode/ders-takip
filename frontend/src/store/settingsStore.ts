@@ -9,7 +9,6 @@ import {
   type SettingsPatch,
 } from '@study-tracker/contracts';
 import { settingsAPI } from '../services/api';
-export type { SiteSettings } from '@study-tracker/contracts';
 
 interface SettingsState {
   settings: PublicSettings;

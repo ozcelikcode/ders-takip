@@ -2,6 +2,14 @@
 
 Son güncelleme: 18 Ekim 2026, A22 otomatik erişilebilirlik/Lighthouse; yerel schema 006.
 
+## Kod tabanı temizliği (19 Ekim 2026)
+
+Faz 1–4 uygulandı: ölü kod/CSS/Tailwind yapılandırması/export, kullanılmayan dört uç, 18 `any` (kural artık `error`), kök `eslint-plugin-react-hooks`, README ve `.env.example` düzeltmeleri. `npm run check` yeşil (18/141/200), `npm run test:e2e` 36/36; üretim CSS hash'i değişmedi. Faz 5 (büyük dosya bölme) ve major bağımlılıklar yapılmadı; commit yok. Ayrıntı: implementation/2026-10-19-cleanup.md.
+
+## Kod tabanı temizliği — Faz 4 (18 Ekim 2026)
+
+Kullanıcı kararıyla frontend'in çağırmadığı dört backend ucu silindi: `GET /categories/:id`, `GET /topics`, `GET /topics/:id`, `GET /users/:id`; ilgili controller'lar, `categoriesAPI.getCategory`/`usersAPI.getUser`/`topicsAPI.getTopics`/`getTopic` ve bağlı testler kaldırıldı (backend 143→141 test; tercih testi okumayı `/auth/me` ile yapar, arşiv testi DB sayımı kullanır). `npm run check` yeşil: 18 contracts + 141 backend + 200 frontend; E2E bu pakette çalıştırılmadı. Kalan temizlik fazları (ölü export/CSS/Tailwind, bağımlılık, `any`) plan dosyasındadır, uygulanmadı. Şema/veri/gerçek DB değişmedi.
+
 ## Genel durum
 
 İnceleme sonrası geliştirme başladı. Derleme ve kalite tabanı çalışır hale getirildi; kritik erişim/veri okuma sorunları ve tam kapsamlı site taramasında tespit edilen çalışma zamanı/UI/veri bütünlüğü hataları kapatıldı. Bütün audit bulguları çözülmüş veya üretime hazır kabul edilmez.

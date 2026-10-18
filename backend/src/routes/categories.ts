@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { catalogPathIdSchema, createCategorySchema, updateCategorySchema, deleteCategorySchema } from '@study-tracker/contracts';
-import { getCategories, getCategory, createCategory, updateCategory, deleteCategory } from '../controllers/categoryController';
+import { getCategories, createCategory, updateCategory, deleteCategory } from '../controllers/categoryController';
 import { protect, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 
@@ -9,7 +9,6 @@ const router = Router();
 const params = z.object({ id: catalogPathIdSchema });
 router.use(protect);
 router.get('/', getCategories);
-router.get('/:id', validate(z.object({ params })), getCategory);
 router.use(authorize('admin'));
 router.post('/', validate(z.object({ body: createCategorySchema })), createCategory);
 router.put('/:id', validate(z.object({ params, body: updateCategorySchema })), updateCategory);

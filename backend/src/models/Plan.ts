@@ -134,4 +134,3 @@ Plan.init(
   },
 );
 
-export default Plan;

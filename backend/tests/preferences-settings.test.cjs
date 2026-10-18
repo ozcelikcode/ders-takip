@@ -57,7 +57,7 @@ it('serializes concurrent partial updates without losing unrelated values or ano
 it('uses the canonical contract on admin edits and never exposes the migration archive',async()=>{
  await auth('put',`/api/users/${owner.id}`,admin).send({preferences:{theme:'invalid'}}).expect(400);
  await Promise.all([auth('put',`/api/users/${owner.id}`,admin).send({preferences:{theme:'dark'}}).expect(200),auth('put','/api/auth/profile',owner).send({preferences:{weeklyStudyGoal:22}}).expect(200)]);
- const read=await auth('get',`/api/users/${owner.id}`).expect(200);
+ const read=await auth('get','/api/auth/me').expect(200);
  assert.equal(read.body.data.user.preferences.theme,'dark');assert.equal(read.body.data.user.preferences.weeklyStudyGoal,22);assert.equal(read.body.data.user.preferences.legacyPreferences,undefined);
 });
 it('rolls back the full migration when a later row has an unsupported preference version',async()=>{

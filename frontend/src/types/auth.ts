@@ -8,7 +8,7 @@ export type User = Omit<UserResponse, 'id'> & { id: string };
 export type LoginCredentials = LoginInput;
 export type RegisterData = RegisterInput;
 
-export interface TokenResponse {
+interface TokenResponse {
   accessToken: string;
   expiresIn: string;
 }

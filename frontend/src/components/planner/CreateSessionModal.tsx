@@ -405,7 +405,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
     setValue('durationMode', durationMode, { shouldValidate: true });
   }, [durationMode, setValue]);
 
-  // Saat aralığı modunda bitiş saatinden süreyi hesapla
+  // In time-range mode, derive the duration from the end time
   const watchedEndTime = watch('endTime');
   const watchedStartDate = watch('startDate');
   const watchedStartTime = watch('startTime');

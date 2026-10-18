@@ -7,9 +7,9 @@ import type { StudySession } from '../types/planner';
 import { useAccountQueryKeys } from './useAccountQueryKeys';
 import { useAuthStore } from '../store/authStore';
 
-export const observePomodoro = (session: StudySession) => ({ session, wallTime: Date.now(), monotonicTime: performance.now(), serverTime: Date.parse(session.serverNow ?? session.asOf ?? new Date().toISOString()) });
+const observePomodoro = (session: StudySession) => ({ session, wallTime: Date.now(), monotonicTime: performance.now(), serverTime: Date.parse(session.serverNow ?? session.asOf ?? new Date().toISOString()) });
 export type PomodoroObservation = ReturnType<typeof observePomodoro>;
-export const observedServerTime = (observation: PomodoroObservation) => observation.serverTime + Math.max(0, Date.now() - observation.wallTime, performance.now() - observation.monotonicTime);
+const observedServerTime = (observation: PomodoroObservation) => observation.serverTime + Math.max(0, Date.now() - observation.wallTime, performance.now() - observation.monotonicTime);
 
 export function usePomodoro(initialSession: StudySession, onComplete?: () => void) {
   const keys = useAccountQueryKeys();

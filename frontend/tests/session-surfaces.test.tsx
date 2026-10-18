@@ -433,7 +433,7 @@ it('keeps current inactive course and stored title on a metadata edit, and suppo
   vi.mocked(coursesAPI.getCourses).mockResolvedValue(
     response({
       courses: [{ id: 9, name: 'Archived course', isActive: false }],
-    }),
+    }) as unknown as Awaited<ReturnType<typeof coursesAPI.getCourses>>,
   );
   const original = {
     ...session,

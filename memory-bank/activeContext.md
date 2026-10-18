@@ -2,6 +2,14 @@
 
 Son güncelleme: 18 Ekim 2026, A22 otomatik erişilebilirlik ve Lighthouse. Tarihsel paketler progress.md / implementation/ altında; bu dosya güncel çalışma devridir.
 
+## Temizlik paketi tamamlandı (19 Ekim 2026)
+
+Faz 1–4 uygulandı (implementation/2026-10-19-cleanup.md): check yeşil 18/141/200, E2E 36/36, kaynakta 0 `any`, `no-explicit-any` açık. Faz 5 büyük dosya bölme ve major bağımlılıklar açık; commit yok.
+
+## Temizlik paketi — Faz 4 (18 Ekim 2026)
+
+Kullanım dışı `GET /categories/:id`, `/topics`, `/topics/:id`, `/users/:id` uçları testleriyle silindi; check yeşil (361→359 workspace testi: 18/141/200). Faz 1–3 ve 5 (ölü export/CSS/Tailwind, `.env.example`, bağımlılık, `any`) plan dosyasında bekliyor; commit yok.
+
 ## Kalıcı talimatlar
 
 Mevcut projeden disiplinli, sürdürülebilir, ileri düzey mühendislikle devam edilir. Kullanılmayan/eski/tekrarlı/varsayımsal uygulama tutulmaz. Teknik semboller/dosya/klasör/paket ve yeni yorum/log İngilizce; Türkçe UI ve kalıcı lokalize değerler korunur. Strict/kalite kapıları gevşetilmez. Her görev başında bütün memory-bank okunur; AGENTS.md, workingPrinciples.md ve design-system.md geçerlidir.

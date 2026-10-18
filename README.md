@@ -27,7 +27,7 @@ npm run dev
 - API: [localhost:5002/api/health](http://localhost:5002/api/health).
 - Frontend `/api` çağrılarını Vite proxy üzerinden backend'e iletir.
 - Sunucu açılışı şema oluşturmaz, değiştirmez veya tablo silmez. Bekleyen migration ya da uyumsuz şema varsa başlangıç durur.
-- İlk migration mevcut uyumlu tabloları ve kayıtlarını koruyarak baseline oluşturur; `002-auth-sessions` iptal edilebilir oturum tablolarını, `003-user-preferences-v1` ortak tercih JSON sözleşmesini ekler. Eksik kolon içeren eski şema otomatik onarılmaz; bunun için ayrı migration gerekir.
+- İlk migration mevcut uyumlu tabloları ve kayıtlarını koruyarak baseline oluşturur; `002-auth-sessions` iptal edilebilir oturum tablolarını, `003-user-preferences-v1` ortak tercih JSON sözleşmesini, `004-session-activity-intervals` gerçek çalışma aralıklarını, `005-pomodoro-clocks` kalıcı sunucu sayacını, `006-user-topic-progress` kullanıcıya özel konu ilerlemesini ekler. Eksik kolon içeren eski şema otomatik onarılmaz; bunun için ayrı migration gerekir.
 
 ## Yapılandırma
 
@@ -98,7 +98,7 @@ Kime ait olduğu bilinmeyen eski browser tercih/bildirim değerleri `unassigned-
 
 ## Ortak sözleşme geliştirme
 
-`packages/contracts` tek TypeScript kaynaktan Node CJS ve tarayıcı ESM çıktısı üretir. Kök dev/typecheck/test ve workspace build akışları gerekli build'i yapar. Sözleşme export'u değiştiğinde geliştirme süreçlerini yeniden başlatın; Vite `--force` workspace dependency cache'ini yeniler. Backend/shared Zod 4 ile henüz taşınmamış Zod 3 formlarının geliştirme çözümlemesi ayrılmıştır. Birden fazla Vite test sunucusu aynı cache dizinini paylaşmamalıdır.
+`packages/contracts` tek TypeScript kaynaktan Node CJS ve tarayıcı ESM çıktısı üretir. Kök dev/typecheck/test ve workspace build akışları gerekli build'i yapar. Sözleşme export'u değiştiğinde geliştirme süreçlerini yeniden başlatın; Vite `--force` workspace dependency cache'ini yeniler. Birden fazla Vite test sunucusu aynı cache dizinini paylaşmamalıdır.
 
 ## Geliştirme verileri
 
@@ -197,7 +197,7 @@ memory-bank/         Kalıcı kararlar, mevcut durum ve teknik inceleme
 
 ## Mevcut kapsam ve açık işler
 
-Uygulamada kayıt/giriş, ders/konu yönetimi, haftalık/günlük planlayıcı, Pomodoro ve yönetim ekranları bulunur. Oturum iptali, tek süreçli snapshot/restore/reset, Preferences v1, kullanıcı/tarih cache ayrımı değiştirilebilir site kimliği ve atomik seans/durum bütünlüğü uygulandı ve davranış testleriyle doğrulandı. Üretime hazır olma iddiası yoktur. Katalog silme/taşıma/sıralama transaction bütünlüğü tamamlandı. Kalıcı sunucu deadline/faz/döngüsü ve ortak Pomodoro motoru tamamlandı. Global admin agregasyonları, kayıt/bakım/boşta oturum ayarları ve kalıcı kullanıcı-konu ilerlemesi de uygulandı. Günlük/haftalık planner tek işlem ve görünüm motoruna taşındı. Öğrenci katalog ve kategori yönetimi UI tamamlandı. Kalan sözleşmeler/kullanıcı-ayar-yedekleme UI tutarlılığı, bildirim teslimatı ve dağıtım/kurtarma operasyonları açık işlerdir.
+Uygulamada kayıt/giriş, ders/konu yönetimi, haftalık/günlük planlayıcı, Pomodoro ve yönetim ekranları bulunur. Oturum iptali, tek süreçli snapshot/restore/reset, Preferences v1, kullanıcı/tarih cache ayrımı değiştirilebilir site kimliği ve atomik seans/durum bütünlüğü uygulandı ve davranış testleriyle doğrulandı. Üretime hazır olma iddiası yoktur. Katalog silme/taşıma/sıralama transaction bütünlüğü tamamlandı. Kalıcı sunucu deadline/faz/döngüsü ve ortak Pomodoro motoru tamamlandı. Global admin agregasyonları, kayıt/bakım/boşta oturum ayarları ve kalıcı kullanıcı-konu ilerlemesi de uygulandı. Günlük/haftalık planner tek işlem ve görünüm motoruna taşındı. Öğrenci katalog ve kategori yönetimi UI tamamlandı. Bildirim teslimatı ve dağıtım/kurtarma operasyonları açık işlerdir.
 
 Güncel ilerleme [memory-bank/progress.md](memory-bank/progress.md), çalışma kuralları [memory-bank/workingPrinciples.md](memory-bank/workingPrinciples.md), başlangıç incelemesi [teknik audit](memory-bank/audits/2026-10-15-project-audit.md) içindedir.
 

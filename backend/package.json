@@ -20,7 +20,6 @@
     "planning",
     "api"
   ],
-  "author": "Your Name",
   "license": "MIT",
   "dependencies": {
     "@study-tracker/contracts": "1.0.0",

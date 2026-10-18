@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 const storageKey = (id: string) => `read-notifications:${id}`;
-export const readNotificationIds = (id: string): number[] => {
+const readNotificationIds = (id: string): number[] => {
   try {
     const stored: unknown = JSON.parse(localStorage.getItem(storageKey(id)) || '[]');
     return Array.isArray(stored) ? stored.filter((value): value is number => Number.isSafeInteger(value) && value > 0).slice(-500) : [];

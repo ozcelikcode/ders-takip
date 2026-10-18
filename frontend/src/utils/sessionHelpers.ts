@@ -5,7 +5,7 @@ import { StudySession } from '../types/planner';
 /**
  * Oturumun vakti geçmiş mi kontrol eder
  */
-export const isSessionOverdue = (session: StudySession): boolean => {
+const isSessionOverdue = (session: StudySession): boolean => {
   const now = new Date();
   const sessionEnd = parseISO(session.endTime);
   return sessionEnd < now;
@@ -35,23 +35,6 @@ export const canStartSession = (session: StudySession): boolean => {
   }
 
   return session.status !== 'in_progress' && canTransitionSession(session.status, 'in_progress');
-};
-
-/**
- * Oturum için text dekorasyon stil class'ını döndürür
- */
-export const getSessionTextStyle = (session: StudySession): string => {
-  // Tamamlanan görevler - yeşil line-through
-  if (session.status === 'completed') {
-    return 'line-through decoration-2 decoration-green-500/50';
-  }
-
-  // Kaçırılan görevler - kırmızı line-through
-  if (isSessionMissed(session)) {
-    return 'line-through decoration-2 decoration-red-500/50';
-  }
-
-  return '';
 };
 
 export const getRecentSessions = <T extends { endTime: string; completedAt?: string | null }>(sessions: readonly T[], limit = 5): T[] => (

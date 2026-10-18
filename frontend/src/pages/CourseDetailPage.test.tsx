@@ -170,7 +170,7 @@ it('sends the original full snapshot, blocks repeated drags and waits for server
         '10',
         { includeTopics: true },
       ])
-      ?.data.data?.course.topics.map((topic: { id: number }) => topic.id),
+      ?.data.data?.course.topics?.map((topic: { id: number }) => topic.id),
   ).toEqual([1, 2, 3]);
   await act(async () =>
     acknowledge({
@@ -220,7 +220,7 @@ it('refetches a rejected reorder and keeps the acknowledged list instead of a fa
         '10',
         { includeTopics: true },
       ])
-      ?.data.data?.course.topics.map((topic: { id: number }) => topic.id),
+      ?.data.data?.course.topics?.map((topic: { id: number }) => topic.id),
   ).toEqual([1, 2, 3]);
 });
 it('shows server-stored topic states and saves a change through the API instead of component memory', async () => {

@@ -9,14 +9,6 @@ export const getCategories = async (_req: Request, res: Response, next: NextFunc
   } catch (error) { next(error); }
 };
 
-export const getCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const category = await Category.findByPk(req.params.id);
-    if (!category) { res.status(404).json({ success: false, error: { message: 'Kategori bulunamadı' } }); return; }
-    res.json({ success: true, data: { category } });
-  } catch (error) { next(error); }
-};
-
 export const createCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const category = await catalog.createCategory(req.user!, req.body);

@@ -57,24 +57,10 @@ describe('resource access over HTTP and SQLite', () => {
     await authorized('get', `/api/courses/${fixture.ownCourse.id}`).expect(200);
     await authorized('get', `/api/courses/${fixture.otherCourse.id}`, fixture.admin).expect(200);
   });
-  it('does not expose another user’s course, topics, or profile by ID', async () => {
-    for (const endpoint of [`courses/${fixture.otherCourse.id}`, `courses/${fixture.otherCourse.id}/topics`, `topics/${fixture.otherCourseTopic.id}`, `users/${fixture.other.id}`]) {
+  it('does not expose another user’s course or its topics by ID', async () => {
+    for (const endpoint of [`courses/${fixture.otherCourse.id}`, `courses/${fixture.otherCourse.id}/topics`]) {
       await authorized('get', `/api/${endpoint}`).expect(404);
     }
-  });
-  it('scopes topic lists to visible parent courses', async () => {
-    const response = await authorized('get', '/api/topics').expect(200);
-    const ids = response.body.data.topics.map((topic) => topic.id);
-    assert.ok(ids.includes(fixture.ownCourseTopic.id));
-    assert.ok(ids.includes(fixture.globalCourseTopic.id));
-    assert.ok(!ids.includes(fixture.otherCourseTopic.id));
-    const filtered = await authorized('get', `/api/topics?courseId=${fixture.otherCourse.id}`).expect(200);
-    assert.deepEqual(filtered.body.data.topics, []);
-  });
-  it('permits self and admin profile reads without a password', async () => {
-    const own = await authorized('get', `/api/users/${fixture.owner.id}`).expect(200);
-    assert.equal(own.body.data.user.password, undefined);
-    await authorized('get', `/api/users/${fixture.other.id}`, fixture.admin).expect(200);
   });
   it('preserves existing write protections for private and global courses', async () => {
     await authorized('put', `/api/courses/${fixture.otherCourse.id}`).send({ name: 'Changed' }).expect(403);

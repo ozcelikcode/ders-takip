@@ -39,6 +39,7 @@ import axios, { AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 import type { ApiResponse } from '../types/api';
+import type { CatalogCategoryRecord, CatalogCourse, CatalogTopic } from '../types/catalog';
 import type {
   AuthResponse,
   LoginCredentials,
@@ -280,9 +281,6 @@ export const authAPI = {
   logout: (): Promise<AxiosResponse<ApiResponse>> =>
     withAuthLock(() => authTransport.post('/auth/logout')),
 
-  getMe: (): Promise<AxiosResponse<ApiResponse<{ user: User }>>> =>
-    api.get('/auth/me').then(parseProfileResponse),
-
   updateProfile,
 
   changePassword: (
@@ -302,12 +300,14 @@ export const authAPI = {
     ),
 };
 
+type QueryParams = Record<string, string | number | boolean>;
+
 // Courses API
 export const coursesAPI = {
-  getCourses: (params?: any): Promise<AxiosResponse<ApiResponse>> =>
+  getCourses: (params?: QueryParams): Promise<AxiosResponse<ApiResponse<{ courses: CatalogCourse[] }>>> =>
     api.get('/courses', { params }),
 
-  getCourse: (id: string, params?: any): Promise<AxiosResponse<ApiResponse>> =>
+  getCourse: (id: string, params?: QueryParams): Promise<AxiosResponse<ApiResponse<{ course: CatalogCourse }>>> =>
     api.get(`/courses/${id}`, { params }),
 
   createCourse: (
@@ -324,18 +324,15 @@ export const coursesAPI = {
 
   getCourseTopics: (
     id: string,
-    params?: any,
-  ): Promise<AxiosResponse<ApiResponse>> =>
+    params?: QueryParams,
+  ): Promise<AxiosResponse<ApiResponse<{ topics: CatalogTopic[] }>>> =>
     api.get(`/courses/${id}/topics`, { params }),
 };
 
 // Categories API
 export const categoriesAPI = {
-  getCategories: (params?: any): Promise<AxiosResponse<ApiResponse>> =>
+  getCategories: (params?: QueryParams): Promise<AxiosResponse<ApiResponse<{ categories: CatalogCategoryRecord[] }>>> =>
     api.get('/categories', { params }),
-
-  getCategory: (id: string): Promise<AxiosResponse<ApiResponse>> =>
-    api.get(`/categories/${id}`),
 
   createCategory: (
     data: CreateCategoryInput,
@@ -370,9 +367,6 @@ export const usersAPI = {
       ...response,
       data: managedUserListResponseSchema.parse(response.data),
     })),
-
-  getUser: (id: string): Promise<AxiosResponse<ApiResponse>> =>
-    api.get(`/users/${id}`),
 
   createUser: (
     data: CreateManagedUserInput,
@@ -471,16 +465,6 @@ export const studySessionsAPI = {
 
 // Topics API
 export const topicsAPI = {
-  getTopics: (
-    params?: any,
-  ): Promise<AxiosResponse<ApiResponse<{ topics: Topic[] }>>> =>
-    api.get('/topics', { params }),
-
-  getTopic: (
-    id: string,
-  ): Promise<AxiosResponse<ApiResponse<{ topic: Topic }>>> =>
-    api.get(`/topics/${id}`),
-
   createTopic: (
     data: CreateTopicRequest,
   ): Promise<AxiosResponse<ApiResponse<{ topic: Topic }>>> =>

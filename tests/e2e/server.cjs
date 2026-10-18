@@ -4,7 +4,8 @@ const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { once } = require('node:events');
-const express = require('express');
+// express is declared by the backend workspace, so resolve it from there.
+const express = require(require.resolve('express', { paths: [path.join(__dirname, '..', '..', 'backend')] }));
 
 // This entry point only accepts a fresh directory owned by its test fixture.
 const directory = fs.realpathSync(process.argv[2]);

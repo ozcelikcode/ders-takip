@@ -208,7 +208,7 @@ export const getMe = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const user = req.user;
+    const user = req.user!;
 
     const profile = userResponse(user);
 
@@ -232,7 +232,7 @@ export const updateProfile = async (
     const user = await sequelize.transaction(
       { type: Transaction.TYPES.IMMEDIATE },
       async (transaction) => {
-        const current = await User.findByPk(req.user.id, { transaction });
+        const current = await User.findByPk(req.user!.id, { transaction });
         if (!current?.isActive)
           throw Object.assign(new Error('Kullanıcı bulunamadı'), {
             statusCode: 404,
@@ -270,7 +270,7 @@ export const changePassword = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const userId = req.user.id;
+    const userId = req.user!.id;
     const { currentPassword, newPassword } = req.body;
 
     const user = await User.findByPk(userId, {

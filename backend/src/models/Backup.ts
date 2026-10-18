@@ -67,4 +67,3 @@ Backup.init(
     }
 );
 
-export default Backup;

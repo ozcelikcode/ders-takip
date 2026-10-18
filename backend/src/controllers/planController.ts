@@ -33,7 +33,7 @@ export const getPlans = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const userId = req.user.id;
+    const userId = req.user!.id;
     const { isActive, includeSessions } = req.query;
 
     const where: WhereOptions<Plan> = { userId };
@@ -68,7 +68,7 @@ export const getPlan = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user!.id;
     const { includeSessions } = req.query;
 
     const include = includeSessions === 'true' ? [planSessions(userId)] : [];
@@ -101,7 +101,7 @@ export const createPlan = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const plan = await plans.createPlan(req.user.id, req.body);
+    const plan = await plans.createPlan(req.user!.id, req.body);
 
     res.status(201).json({
       success: true,
@@ -120,7 +120,7 @@ export const updatePlan = async (
 ): Promise<void> => {
   try {
     const plan = await plans.updatePlan(
-      req.user.id,
+      req.user!.id,
       Number(req.params.id),
       req.body,
     );
@@ -141,7 +141,7 @@ export const deletePlan = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    await plans.deletePlan(req.user.id, Number(req.params.id));
+    await plans.deletePlan(req.user!.id, Number(req.params.id));
 
     res.json({
       success: true,
@@ -159,7 +159,7 @@ export const getPlanStats = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user!.id;
 
     const plan = await Plan.findOne({
       where: { id, userId },
@@ -176,7 +176,7 @@ export const getPlanStats = async (
 
     const sessions = plan.studySessions || [];
 
-    const timezone = req.user.preferences.timezone;
+    const timezone = req.user!.preferences.timezone;
     const measured = await getStudyStats(userId, timezone, { planId: plan.id });
     const planDays = Math.max(
       1,

@@ -26,7 +26,7 @@ export class Settings extends Model<SettingsAttributes, SettingsCreationAttribut
   public readonly updatedAt!: Date;
 
   // Helper method to get typed value
-  public getTypedValue(): any {
+  public getTypedValue(): unknown {
     switch (this.type) {
       case 'number':
         return Number(this.value);
@@ -93,4 +93,3 @@ Settings.init(
   }
 );
 
-export default Settings;

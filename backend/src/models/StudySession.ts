@@ -130,8 +130,8 @@ StudySession.init(
       type: DataTypes.DATE,
       allowNull: false,
       validate: {
-        isAfterStartTime(value: Date) {
-          if (value <= (this as any).startTime) {
+        isAfterStartTime(this: { startTime: Date }, value: Date) {
+          if (value <= this.startTime) {
             throw new Error('End time must be after start time');
           }
         },
@@ -168,14 +168,14 @@ StudySession.init(
       type: DataTypes.JSON,
       allowNull: true,
       validate: {
-        isValidPomodoroSettings(value: any) {
+        isValidPomodoroSettings(value: unknown) {
           if (value === null || value === undefined) return;
 
           if (typeof value !== 'object') {
             throw new Error('Pomodoro settings must be an object');
           }
 
-          const settings = value as any;
+          const settings = value as Record<string, unknown>;
           const required = ['workDuration', 'shortBreak', 'longBreak', 'cyclesBeforeLongBreak', 'currentCycle'];
           for (const field of required) {
             if (typeof settings[field] !== 'number' || settings[field] < 0) {
@@ -249,4 +249,3 @@ StudySession.init(
   }
 );
 
-export default StudySession;

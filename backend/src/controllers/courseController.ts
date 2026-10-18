@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { Op, type Includeable, type WhereOptions } from 'sequelize';
 import { Category, Course, Topic } from '../models';
 import { visibleCourseWhere } from '../policies/courseAccess';
 import * as catalog from '../services/catalog';
@@ -7,17 +8,17 @@ export const getCourses = async (req: Request, res: Response, next: NextFunction
   try {
     const { categoryId, isActive = 'true', includeTopics = 'false' } = req.query;
 
-    const where: any = { ...visibleCourseWhere(req.user!) };
+    const filters: WhereOptions[] = [visibleCourseWhere(req.user!)];
 
     if (categoryId) {
-      where.categoryId = categoryId;
+      filters.push({ categoryId });
     }
 
     if (isActive !== undefined && isActive !== 'all') {
-      where.isActive = isActive === 'true';
+      filters.push({ isActive: isActive === 'true' });
     }
 
-    const include: any[] = [
+    const include: Includeable[] = [
       {
         model: Category,
         as: 'category',
@@ -39,7 +40,7 @@ export const getCourses = async (req: Request, res: Response, next: NextFunction
     }
 
     const courses = await Course.findAll({
-      where,
+      where: { [Op.and]: filters },
       include,
       order: [['order', 'ASC'], ['name', 'ASC']],
     });
@@ -58,7 +59,7 @@ export const getCourse = async (req: Request, res: Response, next: NextFunction)
     const { id } = req.params;
     const { includeTopics = 'false' } = req.query;
 
-    const include: any[] = [
+    const include: Includeable[] = [
       {
         model: Category,
         as: 'category',
@@ -134,14 +135,14 @@ export const getCourseTopics = async (req: Request, res: Response, next: NextFun
       return;
     }
 
-    const where: any = { courseId: id };
+    const filters: WhereOptions[] = [{ courseId: id }];
 
     if (isActive !== undefined && isActive !== 'all') {
-      where.isActive = isActive === 'true';
+      filters.push({ isActive: isActive === 'true' });
     }
 
     const topics = await Topic.findAll({
-      where,
+      where: { [Op.and]: filters },
       order: [['order', 'ASC'], ['name', 'ASC']],
     });
 

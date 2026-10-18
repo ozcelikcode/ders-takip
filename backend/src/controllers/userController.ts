@@ -86,42 +86,6 @@ export const getUsers = async (
   }
 };
 
-export const getUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
-    const { id } = req.params;
-
-    if (req.user?.role !== 'admin' && String(req.user?.id) !== id) {
-      res
-        .status(404)
-        .json({ success: false, error: { message: 'Kullanıcı bulunamadı' } });
-      return;
-    }
-
-    const user = await User.findByPk(id, {
-      attributes: { exclude: ['password'] },
-    });
-
-    if (!user) {
-      res.status(404).json({
-        success: false,
-        error: { message: 'Kullanıcı bulunamadı' },
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      data: { user: userResponse(user) },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 export const createUser = async (
   req: Request,
   res: Response,
@@ -203,7 +167,7 @@ export const updateUser = async (
           throw Object.assign(new Error('Kullanıcı bulunamadı'), {
             statusCode: 404,
           });
-        if (current.id === req.user.id) {
+        if (current.id === req.user!.id) {
           if (isActive === false)
             throw Object.assign(
               new Error('Kendi hesabınızı pasifleştiremezsiniz'),
@@ -256,7 +220,7 @@ export const deleteUser = async (
   try {
     const { id } = req.params;
 
-    if (req.user.id.toString() === id) {
+    if (req.user!.id.toString() === id) {
       res.status(400).json({
         success: false,
         error: { message: 'Kendi hesabınızı silemezsiniz' },
