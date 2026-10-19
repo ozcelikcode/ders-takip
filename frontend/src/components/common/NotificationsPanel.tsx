@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Bell, Check, CheckCheck, X } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { dateFnsLocale } from '../../lib/locale';
 import { CanceledError } from 'axios';
 import { useAuthStore } from '../../store/authStore';
 import { useReadNotifications } from '../../hooks/useReadNotifications';
@@ -144,7 +144,7 @@ export default function NotificationsPanel() {
                             {measuredSessionLabel(session)} ·{' '}
                             {formatDistanceToNow(
                               new Date(session.completedAt || session.endTime),
-                              { addSuffix: true, locale: tr },
+                              { addSuffix: true, locale: dateFnsLocale },
                             )}
                           </p>
                           <p className="mt-1 text-xs text-[var(--muted)]">

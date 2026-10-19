@@ -5,20 +5,20 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore, ThemeMode } from '../../store/userPreferencesStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { User, Settings, Bell, Clock } from 'lucide-react';
+import { User, Settings, Clock, Globe } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AppearanceTab from './AppearanceTab';
-import NotificationsTab from './NotificationsTab';
+import RegionTab from './RegionTab';
 import ProfileTab from './ProfileTab';
 import StudyTab, { type StudyPreferencesDraft } from './StudyTab';
 import { useProfileSettings } from './useProfileSettings';
 
-type TabType = 'profile' | 'appearance' | 'notifications' | 'study';
+type TabType = 'profile' | 'appearance' | 'region' | 'study';
 
 const tabs = [
   { id: 'profile', label: 'Profil', icon: User },
   { id: 'appearance', label: 'Görünüm', icon: Settings },
-  { id: 'notifications', label: 'Bildirimler', icon: Bell },
+  { id: 'region', label: 'Bölge', icon: Globe },
   { id: 'study', label: 'Çalışma Tercihleri', icon: Clock },
 ];
 
@@ -60,7 +60,6 @@ const UserSettingsPage = () => {
   };
   const handleThemeChange = (theme: ThemeMode) => { void savePreferences({ theme }); };
   const handleColorChange = (color: string | null) => { void savePreferences({ customPrimaryColor: color || null }); };
-  const handlePreferenceChange = (key: string, value: boolean) => { void savePreferences({ [key]: value }); };
   const resetStudyPreferences = () => {
     void resetPreferences().then(() => {
       setStudyPrefs(studyDraftFrom(defaultPreferences));
@@ -101,8 +100,8 @@ const UserSettingsPage = () => {
             onColorChange={handleColorChange}
           />
         )}
-        {activeTab === 'notifications' && (
-          <NotificationsTab preferences={preferences} onChange={handlePreferenceChange} />
+        {activeTab === 'region' && (
+          <RegionTab preferences={preferences} onSave={(patch) => void savePreferences(patch)} />
         )}
         {activeTab === 'study' && (
           <StudyTab

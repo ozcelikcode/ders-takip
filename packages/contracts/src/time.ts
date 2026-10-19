@@ -13,7 +13,13 @@ export const dateKeyInZone = (instant: Date | string | number, timezone: string)
   return date.toISODate()!;
 };
 export const addDateDays = (date: string, days: number) => DateTime.fromISO(calendarDateSchema.parse(date), { zone: 'UTC' }).plus({ days }).toISODate()!;
-export const weekStartDate = (date: string) => DateTime.fromISO(calendarDateSchema.parse(date), { zone: 'UTC' }).startOf('week').toISODate()!;
+/** First weekday of a week as a JS day number: 1 Monday (ISO), 0 Sunday, 6 Saturday. */
+export const weekStartDays = [1, 0, 6] as const;
+export const weekStartSchema = z.union([z.literal(1), z.literal(0), z.literal(6)]);
+export type WeekStart = z.infer<typeof weekStartSchema>;
+export const defaultWeekStart: WeekStart = 1;
+/** Days to step back from a JS weekday (0 = Sunday) to reach the configured week start. */
+export const daysSinceWeekStart = (jsWeekday: number, weekStart: WeekStart) => (jsWeekday - weekStart + 7) % 7;
 export const dayBounds = (date: string, timezone: string) => {
   const start = DateTime.fromISO(calendarDateSchema.parse(date), { zone: timezone }).startOf('day');
   if (!start.isValid || start.toISODate() !== date) throw new CalendarTimeError('Invalid calendar day in timezone');

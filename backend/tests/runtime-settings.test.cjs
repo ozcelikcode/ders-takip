@@ -38,6 +38,16 @@ it('rejects registration while allowRegistration is off and exposes the flag pub
   await write('/api/auth/register').send(payload).expect(201);
 });
 
+it('starts a new account in the time zone sent by the browser and rejects unknown zones', async () => {
+  const payload = { username: 'tokyo', email: 'tokyo@example.com', password: 'fixture-password', firstName: 'Aki', lastName: 'Sato' };
+  await write('/api/auth/register').send({ ...payload, timezone: 'Mars/Base' }).expect(400);
+  const created = await write('/api/auth/register').send({ ...payload, timezone: 'Asia/Tokyo' }).expect(201);
+  assert.equal(created.body.data.user.preferences.timezone, 'Asia/Tokyo');
+  assert.equal((await User.findOne({ where: { username: 'tokyo' } })).preferences.timezone, 'Asia/Tokyo');
+  const fallback = await write('/api/auth/register').send({ ...payload, username: 'local', email: 'local@example.com' }).expect(201);
+  assert.equal(fallback.body.data.user.preferences.timezone, 'Europe/Istanbul');
+});
+
 it('keeps maintenance mode open to administrators only', async () => {
   const studentToken = (await login(student).expect(200)).body.data.tokens.accessToken;
   const adminToken = (await login(admin).expect(200)).body.data.tokens.accessToken;

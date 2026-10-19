@@ -24,7 +24,6 @@ import { useSettingsStore } from '../../store/settingsStore';
 const sections = [
   ['general', 'Genel'],
   ['security', 'Güvenlik'],
-  ['notifications', 'Bildirimler'],
   ['appearance', 'Görünüm'],
   ['terminology', 'Kelimeler'],
   ['backup', 'Yedekleme ve sıfırlama'],
@@ -120,9 +119,7 @@ function SettingsForm({
   const toggle = (
     name:
       | 'allowRegistration'
-      | 'maintenanceMode'
-      | 'emailNotifications'
-      | 'pushNotifications',
+      | 'maintenanceMode',
     label: string,
     description: string,
   ) => (
@@ -291,26 +288,6 @@ function SettingsForm({
                 1–1440 dakika. Etkin alt sınır erişim anahtarının ömrüdür (en
                 fazla 15 dakika); süre yenileme sırasında denetlenir.
               </p>
-            </>
-          )}
-          {section === 'notifications' && (
-            <>
-              <h2 className="text-base font-medium">Bildirim tercihleri</h2>
-              <p className="text-sm text-[var(--muted)]">
-                Bu değerler saklanır; e-posta ve tarayıcı push teslimat
-                altyapısı henüz kurulmadı. Bu seçenekleri açmak bildirim
-                göndermez.
-              </p>
-              {toggle(
-                'emailNotifications',
-                'E-posta bildirim tercihi',
-                'Sistem genelindeki kayıtlı e-posta tercihi.',
-              )}
-              {toggle(
-                'pushNotifications',
-                'Push bildirim tercihi',
-                'Sistem genelindeki kayıtlı push tercihi.',
-              )}
             </>
           )}
           {section === 'appearance' && (

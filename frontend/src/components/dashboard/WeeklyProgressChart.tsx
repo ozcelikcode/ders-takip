@@ -1,18 +1,11 @@
-import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
-import { useCurrentDateKey } from '../../hooks/useCurrentDateKey';
-import { useQuery } from '@tanstack/react-query';
-import { addDays, format, startOfWeek } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { addDays, format } from 'date-fns';
+import { dateFnsLocale, weekdayLabel } from '../../lib/locale';
+import { useWeeklyStats } from '../../hooks/useWeeklyStats';
+import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useEffect, useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { studySessionsAPI } from '../../services/api';
-
-// Fixed Monday-first labels
-const DAY_NAMES = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cts', 'Paz'];
+import { Bar, BarChart, CartesianGrid, LabelList, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 const WeeklyProgressChart = () => {
-  const accountKeys = useAccountQueryKeys();
-  const today = useCurrentDateKey();
   // Detect dark mode reactively
   const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
 
@@ -29,25 +22,10 @@ const WeeklyProgressChart = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Start of the current week (Monday)
-  const weekStart = useMemo(() => startOfWeek(new Date(`${today}T12:00:00`), { weekStartsOn: 1 }), [today]);
+  const { weekStart, query: { data: statsData, isLoading, isError } } = useWeeklyStats();
+  const dailyGoal = useUserPreferencesStore((state) => state.preferences.dailyStudyGoal);
 
-  // Fetch this week's stats
-  const { data: statsData, isLoading, isError } = useQuery({
-    queryKey: accountKeys.sessions('weekly-progress', format(weekStart, 'yyyy-MM-dd')),
-    queryFn: async () => {
-      const weekEnd = addDays(weekStart, 6);
-
-      const response = await studySessionsAPI.getStats({
-        startDate: format(weekStart, 'yyyy-MM-dd'),
-        endDate: format(weekEnd, 'yyyy-MM-dd'),
-      });
-      return response.data.data?.stats;
-    },
-    refetchInterval: 30000, // Refresh every 30 seconds
-  });
-
-  // Group by day, Monday to Sunday
+  // Group by day in display order
   const chartData = useMemo(() => {
     const data = [];
     for (let i = 0; i < 7; i++) {
@@ -55,9 +33,9 @@ const WeeklyProgressChart = () => {
       const totalMinutes = (statsData?.days.find(day => day.date === format(date, 'yyyy-MM-dd'))?.studySeconds ?? 0) / 60;
 
       data.push({
-        name: DAY_NAMES[i],
-        fullName: format(date, 'EEEE', { locale: tr }),
-        date: format(date, 'dd MMM', { locale: tr }),
+        name: weekdayLabel(date.getDay()),
+        fullName: format(date, 'EEEE', { locale: dateFnsLocale }),
+        date: format(date, 'dd MMM', { locale: dateFnsLocale }),
         hours: totalMinutes / 60, // Rounded decimal hours
         minutes: totalMinutes,
       });
@@ -105,7 +83,7 @@ const WeeklyProgressChart = () => {
           axisLine={false}
           tickLine={false}
           allowDecimals={false}
-          domain={[0, (dataMax: number) => Math.max(Math.ceil(dataMax + 1), 4)]}
+          domain={[0, (dataMax: number) => Math.max(Math.ceil(Math.max(dataMax, dailyGoal) + 1), 4)]}
           tickCount={5}
         />
         <Tooltip
@@ -130,6 +108,14 @@ const WeeklyProgressChart = () => {
             return label;
           }}
         />
+        {dailyGoal > 0 && (
+          <ReferenceLine
+            y={dailyGoal}
+            stroke={isDarkMode ? '#a1a1a1' : '#666666'}
+            strokeDasharray="4 4"
+            label={{ value: 'Günlük hedef', position: 'insideTopRight', fill: isDarkMode ? '#a1a1a1' : '#666666', fontSize: 11 }}
+          />
+        )}
         <Bar
           dataKey="hours"
           fill={isDarkMode ? '#d4d4d4' : '#262626'}

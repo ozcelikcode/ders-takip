@@ -96,7 +96,7 @@ for (const theme of ['light', 'dark'] as const) {
           await scan(page, info, 'settings-password');
           for (const [name, id] of [
             ['Görünüm', 'appearance'],
-            ['Bildirimler', 'notifications'],
+            ['Bölge', 'region'],
             ['Çalışma Tercihleri', 'study'],
           ] as const) {
             await page.getByRole('button', { name, exact: true }).click();
@@ -146,7 +146,7 @@ for (const theme of ['light', 'dark'] as const) {
       }
       for (const [name, id] of [
         ['Güvenlik', 'security'],
-        ['Bildirimler', 'notifications'],
+        ['Kelimeler', 'terminology'],
         ['Görünüm', 'appearance'],
         ['Yedekleme ve sıfırlama', 'backups'],
       ] as const) {

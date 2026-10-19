@@ -4,7 +4,7 @@ import { getRecentSessions } from '../../utils/sessionHelpers';
 import { useQuery } from '@tanstack/react-query';
 import { studySessionsAPI } from '../../services/api';
 import { formatDistanceToNow } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { dateFnsLocale } from '../../lib/locale';
 import { CheckCircle, Clock, Book } from 'lucide-react';
 
 const RecentActivities = () => {
@@ -75,7 +75,7 @@ const RecentActivities = () => {
               <p className="text-xs text-[var(--muted)] truncate">
                 {formatDistanceToNow(new Date(session.completedAt || session.endTime), {
                   addSuffix: true,
-                  locale: tr,
+                  locale: dateFnsLocale,
                 })}
               </p>
             </div>

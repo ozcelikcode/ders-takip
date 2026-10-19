@@ -10,6 +10,7 @@ import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { studySessionsAPI } from '../../services/api';
 import type { StudySession } from '../../types/planner';
 import { addDays, format, startOfWeek } from '../../utils/calendarDates';
+import { useWeekStart } from '../../hooks/useWeekStart';
 import { canStartSession } from '../../utils/sessionHelpers';
 import {
   canRepositionSession,
@@ -30,6 +31,7 @@ const errorMessage = (error: unknown) =>
       : 'İşlem tamamlanamadı.';
 
 export function usePlannerCalendar(mode: CalendarMode) {
+  const weekStart = useWeekStart();
   const t = useTerms();
   const timezone = useUserPreferencesStore(
     (state) => state.preferences.timezone,
@@ -59,7 +61,7 @@ export function usePlannerCalendar(mode: CalendarMode) {
       window.removeEventListener('focus', refresh);
     };
   }, [timezone]);
-  const start = mode === 'weekly' ? startOfWeek(date) : date;
+  const start = mode === 'weekly' ? startOfWeek(date, weekStart) : date;
   const days = Array.from({ length: mode === 'weekly' ? 7 : 1 }, (_, index) =>
     addDays(start, index),
   );

@@ -1,3 +1,4 @@
+import { appLocale } from '../lib/locale';
 import { useTerms } from '../hooks/useTerms';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -44,7 +45,7 @@ export default function CoursesPage() {
     queryFn: () => coursesAPI.getCourses({ includeTopics: true }),
   });
   const courses: CatalogCourse[] = query.data?.data.data?.courses ?? [];
-  const term = search.trim().toLocaleLowerCase('tr');
+  const term = search.trim().toLocaleLowerCase(appLocale);
   const filtered = courses.filter((course) =>
     [
       course.name,
@@ -54,7 +55,7 @@ export default function CoursesPage() {
         topic.name,
         topic.description,
       ]),
-    ].some((value) => value?.toLocaleLowerCase('tr').includes(term)),
+    ].some((value) => value?.toLocaleLowerCase(appLocale).includes(term)),
   );
   return (
     <div className="space-y-6">

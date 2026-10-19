@@ -20,7 +20,8 @@ import {
   startOfWeek,
   endOfWeek,
 } from '../../utils/calendarDates';
-import { tr } from 'date-fns/locale';
+import { orderedWeekdays, weekdayLabel } from '../../lib/locale';
+import { useWeekStart } from '../../hooks/useWeekStart';
 
 interface MoveSessionModalProps {
   isOpen: boolean;
@@ -49,6 +50,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
   onReload,
 }) => {
   const t = useTerms();
+  const weekStart = useWeekStart();
   const timezone = useUserPreferencesStore(
     (state) => state.preferences.timezone,
   );
@@ -77,8 +79,8 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
 
   const monthStart = startOfMonth(selectedMonth);
   const monthEnd = endOfMonth(selectedMonth);
-  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const calendarStart = startOfWeek(monthStart, weekStart);
+  const calendarEnd = endOfWeek(monthEnd, weekStart);
 
   const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
@@ -193,7 +195,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
                 <ChevronLeft className="h-5 w-5 text-[var(--muted)]" />
               </button>
               <h3 className="text-base font-semibold ">
-                {format(selectedMonth, 'MMMM yyyy', { locale: tr })}
+                {format(selectedMonth, 'MMMM yyyy')}
               </h3>
               <button
                 disabled={pending}
@@ -207,7 +209,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
 
             {/* Day Headers */}
             <div className="grid grid-cols-7 gap-1 mb-2">
-              {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map((day) => (
+              {orderedWeekdays(weekStart).map(weekdayLabel).map((day) => (
                 <div
                   key={day}
                   className="text-center text-xs font-medium text-[var(--muted)] py-2"
@@ -256,7 +258,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
                 <p className="text-sm">
                   Seçilen tarih:{' '}
                   <span className="font-semibold">
-                    {format(selectedDate, 'd MMMM yyyy, EEEE', { locale: tr })}
+                    {format(selectedDate, 'd MMMM yyyy, EEEE')}
                   </span>
                 </p>
               </div>

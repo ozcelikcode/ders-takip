@@ -1,5 +1,5 @@
 import { userResponse } from '../services/userResponses';
-import { preferencesSchema } from '@study-tracker/contracts';
+import { defaultPreferences, preferencesSchema } from '@study-tracker/contracts';
 import { NextFunction, Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { User } from '../models/User';
@@ -24,7 +24,7 @@ export const register = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const { username, email, password, firstName, lastName } = req.body;
+    const { username, email, password, firstName, lastName, timezone } = req.body;
 
     const site = await readSiteSettings();
     if (site.maintenanceMode) {
@@ -66,6 +66,7 @@ export const register = async (
       password,
       firstName,
       lastName,
+      ...(timezone ? { preferences: { ...defaultPreferences, timezone } } : {}),
     });
 
     const session = await createAuthSession(user);

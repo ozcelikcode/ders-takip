@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, BookOpen, Calendar, Clock, CheckCircle, Layers, Plus, Timer } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format } from '../../utils/calendarDates';
-import { tr } from 'date-fns/locale';
+import { dateFnsLocale } from '../../lib/locale';
 import RecentActivities from '../../components/dashboard/RecentActivities';
 import WeeklyProgressChart from '../../components/dashboard/WeeklyProgressChart';
 import PageHeader from '../../components/common/PageHeader';
@@ -13,6 +13,7 @@ import { formatMeasuredTime } from '../../utils/sessionHelpers';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { calendarViewDate } from '@study-tracker/contracts';
 import { useAuthStore } from '../../store/authStore';
+import GoalProgress from '../../components/dashboard/GoalProgress';
 
 const DashboardPage = () => {
   const accountKeys = useAccountQueryKeys();
@@ -43,7 +44,7 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-7">
-      <PageHeader eyebrow={format(calendarViewDate(new Date(), timezone), 'd MMMM yyyy, EEEE', { locale: tr })}
+      <PageHeader eyebrow={format(calendarViewDate(new Date(), timezone), 'd MMMM yyyy, EEEE', { locale: dateFnsLocale })}
         title={`Merhaba${firstName ? `, ${firstName}` : ''}.`}
         description="Çalışmalarına bir adım uzaktan bak. Sıradaki adımını planla."
         actions={<Link to="/planner" className="btn btn-primary"><Plus className="h-4 w-4" />{t.session({ capitalize: true })} planla</Link>} />
@@ -55,6 +56,8 @@ const DashboardPage = () => {
           <p className={`text-[11px] leading-5 ${stat.error ? 'text-red-600 dark:text-red-400' : 'text-[var(--muted)]'}`}>{stat.error ? 'Veriler alınamadı' : stat.detail}</p>
         </div>)}
       </section>
+
+      <GoalProgress />
 
       <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
         <section className="panel min-w-0">

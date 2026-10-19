@@ -1,3 +1,4 @@
+import { appLocale } from '../../lib/locale';
 import { useTerms } from '../../hooks/useTerms';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -29,10 +30,10 @@ export default function AdminCoursesPage() {
         CatalogCourse[] | undefined,
   });
   const courses = query.data ?? [];
-  const term = search.trim().toLocaleLowerCase('tr');
+  const term = search.trim().toLocaleLowerCase(appLocale);
   const filtered = courses.filter((course) =>
     [course.name, course.category?.name].some((value) =>
-      value?.toLocaleLowerCase('tr').includes(term),
+      value?.toLocaleLowerCase(appLocale).includes(term),
     ),
   );
   return (

@@ -1,0 +1,76 @@
+import { weekStartDays, resolveWeekStart, type PreferencesPatch, type UserPreferences, type WeekStart } from '@study-tracker/contracts';
+import { useMemo } from 'react';
+import { browserTimezone, listTimezones } from '../../lib/locale';
+
+const WEEK_START_LABELS: Record<WeekStart, string> = { 1: 'Pazartesi', 0: 'Pazar', 6: 'Cumartesi' };
+
+interface RegionTabProps {
+  preferences: UserPreferences;
+  onSave: (patch: PreferencesPatch) => void;
+}
+
+const RegionTab = ({ preferences, onSave }: RegionTabProps) => {
+  const detected = browserTimezone();
+  const zones = useMemo(() => listTimezones(preferences.timezone, detected), [preferences.timezone, detected]);
+  const weekStart = resolveWeekStart(preferences);
+  return (
+    <div className="space-y-8">
+      <section className="max-w-xl space-y-3">
+        <h2 className="text-base font-medium">Saat dilimi</h2>
+        <p className="text-sm text-[var(--muted)]">
+          Takvim, günlük özetler ve ölçülen süreler bu saat dilimine göre hesaplanır. Kayıtlı zamanlar değişmez.
+        </p>
+        <label htmlFor="settings-timezone" className="block text-sm font-medium">
+          Saat dilimi
+        </label>
+        <select
+          id="settings-timezone"
+          className="input"
+          value={preferences.timezone}
+          onChange={(event) => onSave({ timezone: event.target.value })}
+        >
+          {zones.map((zone) => (
+            <option key={zone} value={zone}>
+              {zone}
+            </option>
+          ))}
+        </select>
+        {detected && detected !== preferences.timezone && (
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <span className="text-[var(--muted)]">Tarayıcınızın saat dilimi: {detected}</span>
+            <button type="button" className="btn btn-secondary" onClick={() => onSave({ timezone: detected })}>
+              Bunu kullan
+            </button>
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-3 border-t border-[var(--line)] pt-6">
+        <h2 className="text-base font-medium">Hafta başlangıcı</h2>
+        <div role="group" aria-label="Hafta başlangıcı" className="segmented-control">
+          {weekStartDays.map((day) => (
+            <button
+              key={day}
+              type="button"
+              aria-pressed={weekStart === day}
+              onClick={() => onSave({ weekStartsOn: day })}
+              className={`segment ${weekStart === day ? 'segment-active' : ''}`}
+            >
+              {WEEK_START_LABELS[day]}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-[var(--muted)]">Haftalık planlayıcı, tarih seçici ve haftalık grafik bu günden başlar.</p>
+      </section>
+
+      <section className="space-y-2 border-t border-[var(--line)] pt-6">
+        <h2 className="text-base font-medium">Dil</h2>
+        <p className="text-sm text-[var(--muted)]">
+          Arayüz şu anda yalnızca Türkçe. Tarih ve sayı biçimleri Türkçe kurallarına göre gösterilir.
+        </p>
+      </section>
+    </div>
+  );
+};
+
+export default RegionTab;

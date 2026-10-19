@@ -1,3 +1,4 @@
+import { appLocale } from '../../lib/locale';
 import { useTerms } from '../../hooks/useTerms';
 import { Dialog } from '@headlessui/react';
 import { useQuery } from '@tanstack/react-query';
@@ -111,8 +112,8 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
     query.data?.data.data?.categories ?? [];
   const filtered = categories.filter((category) =>
     category.name
-      .toLocaleLowerCase('tr')
-      .includes(search.trim().toLocaleLowerCase('tr')),
+      .toLocaleLowerCase(appLocale)
+      .includes(search.trim().toLocaleLowerCase(appLocale)),
   );
   const close = () => {
     if (!editor && !deleting) onClose();

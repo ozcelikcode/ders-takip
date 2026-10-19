@@ -22,3 +22,20 @@ it('keeps the focus area audience-neutral: free text up to 60 characters, legacy
   assert.equal(preferencesSchema.parse({ ...defaultPreferences, studyField: ' Tasarım ' }).studyField, 'Tasarım');
   assert.equal(preferencesPatchSchema.safeParse({ studyField: 'x'.repeat(61) }).success, false);
 });
+
+it('keeps preferences stored before the week start field valid and resolves it to Monday', () => {
+  const { resolveWeekStart, daysSinceWeekStart, registerSchema } = require('../dist/cjs');
+  const legacy = { ...defaultPreferences };
+  delete legacy.weekStartsOn;
+  assert.equal(preferencesSchema.safeParse(legacy).success, true);
+  assert.equal(resolveWeekStart(legacy), 1);
+  assert.equal(resolveWeekStart({ weekStartsOn: 0 }), 0);
+  assert.equal(preferencesPatchSchema.safeParse({ weekStartsOn: 6 }).success, true);
+  assert.equal(preferencesPatchSchema.safeParse({ weekStartsOn: 3 }).success, false);
+  // Wednesday (3) is 2 days after Monday, 3 after Sunday, 4 after Saturday.
+  assert.deepEqual([1, 0, 6].map((start) => daysSinceWeekStart(3, start)), [2, 3, 4]);
+  const base = { username: 'fixture', email: 'a@example.com', password: 'fixture-password', firstName: 'Ada', lastName: 'Kaya' };
+  assert.equal(registerSchema.parse({ ...base, timezone: 'Asia/Tokyo' }).timezone, 'Asia/Tokyo');
+  assert.equal(registerSchema.safeParse({ ...base, timezone: 'Mars/Base' }).success, false);
+  assert.equal(registerSchema.parse(base).timezone, undefined);
+});

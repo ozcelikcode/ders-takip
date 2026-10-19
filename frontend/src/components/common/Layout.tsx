@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { Brand } from './Brand';
+import TimezoneNotice from './TimezoneNotice';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 
@@ -32,6 +33,7 @@ const Layout = () => {
       <div className="lg:pl-[232px]">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         <main id="main-content" tabIndex={-1} className="mx-auto max-w-[1440px] px-4 py-7 outline-none sm:px-7 lg:px-10 lg:py-9">
+          <TimezoneNotice />
           <Outlet />
         </main>
       </div>

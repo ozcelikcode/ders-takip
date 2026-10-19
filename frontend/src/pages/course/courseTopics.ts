@@ -1,3 +1,4 @@
+import { appLocale } from '../../lib/locale';
 import type { TopicProgressStatus } from '@study-tracker/contracts';
 import type { CatalogTopic as Topic } from '../../types/catalog';
 
@@ -33,7 +34,7 @@ export const sortTopics = (
         comparison = a.order - b.order;
         break;
       case 'name':
-        comparison = a.name.localeCompare(b.name, 'tr');
+        comparison = a.name.localeCompare(b.name, appLocale);
         break;
       case 'difficulty':
         comparison = difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];

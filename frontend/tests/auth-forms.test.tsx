@@ -27,6 +27,7 @@ vi.mock('react-hot-toast', () => ({ default: { success: vi.fn() } }));
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.restoreAllMocks();
 });
 const fill = (label: string, value: string) =>
   fireEvent.change(screen.getByLabelText(label), { target: { value } });
@@ -49,6 +50,11 @@ it('allows existing short login passwords while validating email through the sha
   );
 });
 it('blocks registration identifiers that the API rejects and submits normalized valid names', async () => {
+  // The browser's zone travels with the registration so new accounts start in local time.
+  vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
+    ...new Intl.DateTimeFormat().resolvedOptions(),
+    timeZone: 'America/New_York',
+  });
   render(
     <MemoryRouter>
       <RegisterPage />
@@ -77,6 +83,7 @@ it('blocks registration identifiers that the API rejects and submits normalized 
       username: 'fixture',
       email: 'fixture@example.com',
       password: 'fixture-password',
+      timezone: 'America/New_York',
     }),
   );
 });

@@ -54,6 +54,7 @@ Tasarım paketi kapanışında: 22 backend + 8 frontend = 30 test (tarihsel), st
 
 ## Frontend
 
+- Yerel ayar `lib/locale.ts` tek kaynaktır (appLocale, date-fns locale, hafta günü etiketleri, tarayıcı saat dilimi). Hafta başlangıcı `useWeekStart()` / `resolveWeekStart` ile okunur; kayıt sırasında tarayıcı saat dilimi gönderilir.
 - Görünen ana kavram kelimeleri (ders/konu/seans) `terminologyPreset` site ayarından, `useTerms()` ile türetilir; kelime/ek mantığı `packages/contracts/src/terminology.ts`'tedir. Ekranlara sabit ders/konu/seans yazılmaz; backend mesajları nötr "kayıt" ifadesi kullanır.
 
 - App sayfaları lazy import ve Suspense ile yükler. ErrorBoundary kökte; hata halinde Türkçe kurtarma ekranı gösterir, iç hata detayını kullanıcıya açmaz. Source map build'de kapalı.

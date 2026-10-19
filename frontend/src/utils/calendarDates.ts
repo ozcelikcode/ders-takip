@@ -1,13 +1,18 @@
-import { CalendarDate, calendarViewDate } from '@study-tracker/contracts';
+import { CalendarDate, calendarViewDate, daysSinceWeekStart, defaultWeekStart, type WeekStart } from '@study-tracker/contracts';
 import { DateTime } from 'luxon';
+import { appLocale } from '../lib/locale';
 
 const fromView = (date: Date) => DateTime.fromMillis(date.getTime(), { zone: 'UTC' });
-export const format = (date: Date, pattern: string, _options?: unknown) => fromView(date).setLocale('tr').toFormat(pattern.replace('EEEE', 'cccc'));
+export const format = (date: Date, pattern: string, _options?: unknown) => fromView(date).setLocale(appLocale).toFormat(pattern.replace('EEEE', 'cccc'));
 export const addDays = (date: Date, days: number) => new CalendarDate(fromView(date).plus({ days }).toMillis());
-export const startOfWeek = (date: Date, _options?: unknown) => new CalendarDate(fromView(date).startOf('week').toMillis());
+export const startOfWeek = (date: Date, weekStart: WeekStart = defaultWeekStart) => {
+  const day = fromView(date).startOf('day');
+  return new CalendarDate(day.minus({ days: daysSinceWeekStart(day.weekday % 7, weekStart) }).toMillis());
+};
 export const startOfMonth = (date: Date) => new CalendarDate(fromView(date).startOf('month').toMillis());
 export const endOfMonth = (date: Date) => new CalendarDate(fromView(date).endOf('month').toMillis());
-export const endOfWeek = (date: Date, _options?: unknown) => new CalendarDate(fromView(date).endOf('week').toMillis());
+export const endOfWeek = (date: Date, weekStart: WeekStart = defaultWeekStart) =>
+  new CalendarDate(fromView(startOfWeek(date, weekStart)).plus({ days: 6 }).endOf('day').toMillis());
 export const addMonths = (date: Date, months: number) => new CalendarDate(fromView(date).plus({ months }).toMillis());
 export const subMonths = (date: Date, months: number) => addMonths(date, -months);
 export const isSameMonth = (a: Date, b: Date) => fromView(a).hasSame(fromView(b), 'month');

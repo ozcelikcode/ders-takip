@@ -1,3 +1,4 @@
+import { browserTimezone } from '../../lib/locale';
 import { Brand } from '../../components/common/Brand';
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
@@ -36,7 +37,8 @@ const RegisterPage = () => {
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     try {
-      await registerUser(data);
+      const timezone = browserTimezone();
+      await registerUser(timezone ? { ...data, timezone } : data);
       toast.success('Hesap başarıyla oluşturuldu');
     } catch {
       // The auth store presents a safe error without logging credentials.

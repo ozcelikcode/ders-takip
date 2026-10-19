@@ -1,3 +1,5 @@
+import { useWeekStart } from '../../hooks/useWeekStart';
+import { orderedWeekdays, weekdayLabel } from '../../lib/locale';
 export interface StudyPreferencesDraft {
   defaultPomodoroDuration: number;
   defaultShortBreak: number;
@@ -27,17 +29,10 @@ const FIELDS: { name: NumericField; label: string; fallback: number; min: number
   { name: 'dailyStudyGoal', label: 'Günlük Çalışma Hedefi (saat)', fallback: 4, min: 1, max: 24 },
 ];
 
-const DAYS = [
-  { id: 1, name: 'Pzt' },
-  { id: 2, name: 'Sal' },
-  { id: 3, name: 'Çar' },
-  { id: 4, name: 'Per' },
-  { id: 5, name: 'Cum' },
-  { id: 6, name: 'Cmt' },
-  { id: 0, name: 'Paz' },
-];
 
-const StudyTab = ({ studyPrefs, setStudyPrefs, pending, onSave, onReset }: StudyTabProps) => (
+const StudyTab = ({ studyPrefs, setStudyPrefs, pending, onSave, onReset }: StudyTabProps) => {
+  const weekStart = useWeekStart();
+  return (
   <section className="space-y-6">
     <h2 className="text-base font-medium">Çalışma tercihleri</h2>
     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -58,9 +53,13 @@ const StudyTab = ({ studyPrefs, setStudyPrefs, pending, onSave, onReset }: Study
         </div>
       ))}
       <div className="md:col-span-2">
-        <p className="mb-2 text-sm font-medium">Aktif Çalışma Günleri</p>
+        <p className="text-sm font-medium">Aktif Çalışma Günleri</p>
+        <p className="mb-2 mt-1 text-xs text-[var(--muted)]">
+          Günlük hedef yalnız bu günlerde uygulanır; panodaki hedef göstergesi ve haftalık grafik bu ayarları kullanır.
+        </p>
         <div className="flex flex-wrap gap-2">
-          {DAYS.map((day) => {
+          {orderedWeekdays(weekStart).map((id) => {
+            const day = { id, name: weekdayLabel(id) };
             const isActive = studyPrefs.activeStudyDays.includes(day.id);
             return (
               <button
@@ -98,6 +97,7 @@ const StudyTab = ({ studyPrefs, setStudyPrefs, pending, onSave, onReset }: Study
       </button>
     </div>
   </section>
-);
+  );
+};
 
 export default StudyTab;
