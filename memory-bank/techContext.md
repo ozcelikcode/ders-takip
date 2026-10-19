@@ -55,6 +55,7 @@ Tasarım paketi kapanışında: 22 backend + 8 frontend = 30 test (tarihsel), st
 ## Frontend
 
 - Yerel ayar `lib/locale.ts` tek kaynaktır (appLocale, date-fns locale, hafta günü etiketleri, tarayıcı saat dilimi). Hafta başlangıcı `useWeekStart()` / `resolveWeekStart` ile okunur; kayıt sırasında tarayıcı saat dilimi gönderilir.
+- Paketleme: contracts ESM `sideEffects:false`; luxon yalnız `zonedTime.ts`'te (şema modülleri luxon'suz); Vite `icons` manualChunk; Layout ve grafik lazy. Üretim sunucusu JS/CSS'i gzip/brotli ile sunmalı (ölçüm fixture'ı gzip kullanır). React Router 7.
 - Şifre sıfırlama: `services/passwordReset.ts` + `services/mailer.ts` (nodemailer, opsiyonel SMTP env); SMTP yoksa admin tek kullanımlık bağlantı üretir. Schema artık 007'dir.
 - Görünen ana kavram kelimeleri (ders/konu/seans) `terminologyPreset` site ayarından, `useTerms()` ile türetilir; kelime/ek mantığı `packages/contracts/src/terminology.ts`'tedir. Ekranlara sabit ders/konu/seans yazılmaz; backend mesajları nötr "kayıt" ifadesi kullanır.
 
