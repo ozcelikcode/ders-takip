@@ -1,4 +1,4 @@
-import { Brand } from '../../components/common/Brand';
+import AuthCard from '../../components/auth/AuthCard';
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -6,7 +6,6 @@ import { contractResolver } from '../../lib/contractResolver';
 import { loginSchema, type LoginInput } from '@study-tracker/contracts';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -46,31 +45,12 @@ const LoginPage = () => {
   };
 
   return (
-    <main className="min-h-screen bg-[var(--canvas)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-md w-full space-y-8"
-      >
-        <div className="text-center">
-          <div className="flex justify-center">
-            <Brand />
-          </div>
-          <h1 className="mt-6 text-[28px] font-semibold tracking-tight text-gray-900 dark:text-white">
-            Giriş Yap
-          </h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Hesabınızla çalışma alanınıza giriş yapın
-          </p>
-        </div>
-
-        <div className="panel p-6 sm:p-8">
+    <AuthCard title="Giriş Yap" description="Hesabınızla çalışma alanınıza giriş yapın">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium"
               >
                 E-posta Adresi
               </label>
@@ -95,7 +75,7 @@ const LoginPage = () => {
               <div className="flex items-center justify-between">
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  className="block text-sm font-medium"
                 >
                   Şifre
                 </label>
@@ -122,9 +102,9 @@ const LoginPage = () => {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
+                    <EyeOff className="h-5 w-5 text-[var(--muted)]" />
                   ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
+                    <Eye className="h-5 w-5 text-[var(--muted)]" />
                   )}
                 </button>
                 {errors.password && (
@@ -154,7 +134,7 @@ const LoginPage = () => {
 
             {allowRegistration && (
               <div className="text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-[var(--muted)]">
                   Hesabınız yok mu?{' '}
                   <Link
                     to="/register"
@@ -166,9 +146,7 @@ const LoginPage = () => {
               </div>
             )}
           </form>
-        </div>
-      </motion.div>
-    </main>
+    </AuthCard>
   );
 };
 

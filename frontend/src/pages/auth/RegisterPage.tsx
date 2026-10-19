@@ -1,4 +1,5 @@
 import { browserTimezone } from '../../lib/locale';
+import AuthCard from '../../components/auth/AuthCard';
 import { Brand } from '../../components/common/Brand';
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
@@ -7,7 +8,6 @@ import { contractResolver } from '../../lib/contractResolver';
 import { registerSchema, type RegisterInput } from '@study-tracker/contracts';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -57,10 +57,10 @@ const RegisterPage = () => {
           <div className="flex justify-center">
             <Brand />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-[28px] font-semibold tracking-tight">
             Kayıtlar kapalı
           </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-[var(--muted)]">
             Yeni hesap oluşturma şu anda kapalı. Mevcut hesabınızla giriş
             yapabilirsiniz.
           </p>
@@ -73,32 +73,13 @@ const RegisterPage = () => {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--canvas)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-md w-full space-y-8"
-      >
-        <div className="text-center">
-          <div className="flex justify-center">
-            <Brand />
-          </div>
-          <h1 className="mt-6 text-[28px] font-semibold tracking-tight text-gray-900 dark:text-white">
-            Kayıt Ol
-          </h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Yeni hesap oluştur
-          </p>
-        </div>
-
-        <div className="panel p-6 sm:p-8">
+    <AuthCard title="Kayıt Ol" description="Yeni hesap oluştur">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="firstName"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  className="block text-sm font-medium"
                 >
                   Ad
                 </label>
@@ -121,7 +102,7 @@ const RegisterPage = () => {
               <div>
                 <label
                   htmlFor="lastName"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  className="block text-sm font-medium"
                 >
                   Soyad
                 </label>
@@ -145,7 +126,7 @@ const RegisterPage = () => {
             <div>
               <label
                 htmlFor="username"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium"
               >
                 Kullanıcı Adı
               </label>
@@ -168,7 +149,7 @@ const RegisterPage = () => {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium"
               >
                 E-posta Adresi
               </label>
@@ -192,7 +173,7 @@ const RegisterPage = () => {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium"
               >
                 Şifre
               </label>
@@ -212,9 +193,9 @@ const RegisterPage = () => {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
+                    <EyeOff className="h-5 w-5 text-[var(--muted)]" />
                   ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
+                    <Eye className="h-5 w-5 text-[var(--muted)]" />
                   )}
                 </button>
                 {errors.password && (
@@ -243,7 +224,7 @@ const RegisterPage = () => {
             </div>
 
             <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-[var(--muted)]">
                 Zaten hesabınız var mı?{' '}
                 <Link
                   to="/login"
@@ -254,9 +235,7 @@ const RegisterPage = () => {
               </p>
             </div>
           </form>
-        </div>
-      </motion.div>
-    </main>
+    </AuthCard>
   );
 };
 
