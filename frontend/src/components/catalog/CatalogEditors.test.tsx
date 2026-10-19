@@ -95,7 +95,7 @@ beforeEach(() => {
   vi.mocked(categoriesAPI.getCategories).mockResolvedValue({
     data: {
       success: true,
-      data: { categories: [{ id: 2, name: 'TYT', color: '#123456' }] },
+      data: { categories: [{ id: 2, name: 'TYT', color: '#123456', userId: null }] },
     },
   } as unknown as Awaited<ReturnType<typeof categoriesAPI.getCategories>>);
 });
@@ -452,4 +452,31 @@ it('does not overwrite a draft when the catalog refetches while editing', async 
   expect(coursesAPI.updateCourse).toHaveBeenCalledWith('10', {
     description: 'Unsaved draft',
   });
+});
+it('offers personal categories only for the owner\'s own non-shared records', async () => {
+  vi.mocked(categoriesAPI.getCategories).mockResolvedValue({
+    data: {
+      success: true,
+      data: {
+        categories: [
+          { id: 2, name: 'TYT', color: '#123456', userId: null },
+          { id: 3, name: 'Kendi', color: '#123456', userId: 1 },
+          { id: 4, name: 'Başkası', color: '#123456', userId: 9 },
+        ],
+      },
+    },
+  } as unknown as Awaited<ReturnType<typeof categoriesAPI.getCategories>>);
+  mount(<CourseEditorModal isOpen onClose={vi.fn()} />);
+  await screen.findByRole('option', { name: 'Kendi (kişisel)' });
+  expect(screen.queryByRole('option', { name: /Başkası/ })).toBeNull();
+  cleanup();
+  auth.user = { id: 1, role: 'admin' };
+  mount(<CourseEditorModal isOpen onClose={vi.fn()} defaultGlobal />);
+  await screen.findByRole('option', { name: 'TYT' });
+  expect(screen.queryByRole('option', { name: /Kendi/ })).toBeNull();
+  fireEvent.click(screen.getByLabelText('Tüm kullanıcılara açık'));
+  fireEvent.change(screen.getByLabelText('Kategori'), { target: { value: '3' } });
+  fireEvent.click(screen.getByLabelText('Tüm kullanıcılara açık'));
+  expect(screen.queryByRole('option', { name: /Kendi/ })).toBeNull();
+  expect((screen.getByLabelText('Kategori') as HTMLSelectElement).value).toBe('');
 });

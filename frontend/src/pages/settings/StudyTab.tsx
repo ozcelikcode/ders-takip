@@ -1,5 +1,5 @@
 import { useWeekStart } from '../../hooks/useWeekStart';
-import { orderedWeekdays, weekdayLabel } from '../../lib/locale';
+import WeekdayPicker from '../../components/settings/WeekdayPicker';
 export interface StudyPreferencesDraft {
   defaultPomodoroDuration: number;
   defaultShortBreak: number;
@@ -16,6 +16,7 @@ interface StudyTabProps {
   pending: number;
   onSave: () => void;
   onReset: () => void;
+  onRestartOnboarding: () => void;
 }
 
 type NumericField = Exclude<keyof StudyPreferencesDraft, 'activeStudyDays'>;
@@ -30,7 +31,7 @@ const FIELDS: { name: NumericField; label: string; fallback: number; min: number
 ];
 
 
-const StudyTab = ({ studyPrefs, setStudyPrefs, pending, onSave, onReset }: StudyTabProps) => {
+const StudyTab = ({ studyPrefs, setStudyPrefs, pending, onSave, onReset, onRestartOnboarding }: StudyTabProps) => {
   const weekStart = useWeekStart();
   return (
   <section className="space-y-6">
@@ -57,34 +58,12 @@ const StudyTab = ({ studyPrefs, setStudyPrefs, pending, onSave, onReset }: Study
         <p className="mb-2 mt-1 text-xs text-[var(--muted)]">
           Günlük hedef yalnız bu günlerde uygulanır; panodaki hedef göstergesi ve haftalık grafik bu ayarları kullanır.
         </p>
-        <div className="flex flex-wrap gap-2">
-          {orderedWeekdays(weekStart).map((id) => {
-            const day = { id, name: weekdayLabel(id) };
-            const isActive = studyPrefs.activeStudyDays.includes(day.id);
-            return (
-              <button
-                key={day.id}
-                type="button"
-                aria-pressed={isActive}
-                onClick={() =>
-                  setStudyPrefs({
-                    ...studyPrefs,
-                    activeStudyDays: isActive
-                      ? studyPrefs.activeStudyDays.filter((id) => id !== day.id)
-                      : [...studyPrefs.activeStudyDays, day.id],
-                  })
-                }
-                className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
-                  isActive
-                    ? 'border-[var(--solid)] bg-[var(--solid)] text-[var(--solid-text)]'
-                    : 'border-[var(--line)] text-[var(--muted)] hover:bg-[var(--subtle)] hover:text-[var(--text)]'
-                }`}
-              >
-                {day.name}
-              </button>
-            );
-          })}
-        </div>
+        <WeekdayPicker
+          label="Aktif çalışma günleri"
+          value={studyPrefs.activeStudyDays}
+          weekStart={weekStart}
+          onChange={(activeStudyDays) => setStudyPrefs({ ...studyPrefs, activeStudyDays })}
+        />
       </div>
     </div>
 
@@ -94,6 +73,16 @@ const StudyTab = ({ studyPrefs, setStudyPrefs, pending, onSave, onReset }: Study
       </button>
       <button type="button" onClick={onReset} className="btn btn-secondary text-red-600">
         Tüm Tercihleri Sıfırla
+      </button>
+    </div>
+
+    <div className="space-y-2 border-t border-[var(--line)] pt-5">
+      <h3 className="text-sm font-medium">Kurulum sihirbazı</h3>
+      <p className="text-sm text-[var(--muted)]">
+        Kullanım amacını, hedeflerini ve ilk kayıtlarını baştan seç. Mevcut kayıtların silinmez.
+      </p>
+      <button type="button" onClick={onRestartOnboarding} className="btn btn-secondary" disabled={pending > 0}>
+        Kurulumu yeniden başlat
       </button>
     </div>
   </section>

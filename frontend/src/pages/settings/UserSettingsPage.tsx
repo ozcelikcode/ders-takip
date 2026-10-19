@@ -64,7 +64,7 @@ const UserSettingsPage = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Ayarlar" description="Görünümü, bölge ayarlarını ve çalışma tercihlerini yönet." />
+      <PageHeader title="Ayarlar" description="Görünümü, kelimeleri, bölge ayarlarını ve çalışma tercihlerini yönet." />
       <p className="text-sm text-[var(--muted)]">
         Ad, kullanıcı adı, profil resmi ve şifre{' '}
         <Link to="/profile" className="font-medium text-[var(--text)] underline underline-offset-4">Profil</Link> sayfasındadır.
@@ -94,8 +94,10 @@ const UserSettingsPage = () => {
           <AppearanceTab
             preferences={preferences}
             sitePrimaryColor={siteSettings.primaryColor}
+            siteTerminologyPreset={siteSettings.terminologyPreset}
             onThemeChange={handleThemeChange}
             onColorChange={handleColorChange}
+            onTerminologyChange={(terminologyPreset) => void savePreferences({ terminologyPreset })}
           />
         )}
         {activeTab === 'region' && (
@@ -108,6 +110,7 @@ const UserSettingsPage = () => {
             pending={pending}
             onSave={() => { void savePreferences(studyPrefs); }}
             onReset={resetStudyPreferences}
+            onRestartOnboarding={() => void savePreferences({ onboarding: 'pending' })}
           />
         )}
       </div>

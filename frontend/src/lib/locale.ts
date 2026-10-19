@@ -15,6 +15,8 @@ export const orderedWeekdays = (weekStart: WeekStart) =>
 
 export const weekdayLabel = (jsWeekday: number) => shortWeekdayLabels[jsWeekday % 7]!;
 
+export const weekStartLabels: Record<WeekStart, string> = { 1: 'Pazartesi', 0: 'Pazar', 6: 'Cumartesi' };
+
 /** The browser's IANA time zone when it is one the server also accepts. */
 export const browserTimezone = (): string | null => {
   try {

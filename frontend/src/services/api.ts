@@ -63,6 +63,7 @@ import {
   type PasswordResetLink,
   type ResetPasswordInput,
   type SearchResult,
+  type CompleteOnboardingInput,
 } from '@study-tracker/contracts';
 import { api, authTransport } from './httpClient';
 
@@ -366,6 +367,11 @@ export const topicsAPI = {
 };
 
 // Settings API
+export const onboardingAPI = {
+  complete: (input: CompleteOnboardingInput): Promise<AxiosResponse<ApiResponse<{ user: User }>>> =>
+    api.post<unknown>('/onboarding', input).then(parseProfileResponse),
+};
+
 export const searchAPI = {
   search: async (q: string): Promise<SearchResult> =>
     searchResultSchema.parse((await api.get<{ data: unknown }>('/search', { params: { q } })).data.data),

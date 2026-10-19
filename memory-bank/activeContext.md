@@ -1,6 +1,10 @@
 # Ders Takip Sistemi — Aktif Bağlam
 
-Son güncelleme: 18 Ekim 2026, A22 otomatik erişilebilirlik ve Lighthouse. Tarihsel paketler progress.md / implementation/ altında; bu dosya güncel çalışma devridir.
+Son güncelleme: 20 Ekim 2026, R12 ilk kurulum sihirbazı. Tarihsel paketler progress.md / implementation/ altında; bu dosya güncel çalışma devridir.
+
+## R12 ilk kurulum sihirbazı (20 Ekim 2026)
+
+Yeni hesaplar ilk girişte `/welcome` sihirbazını görür (Amaç, Zaman, Ritim, İlk kayıtlar, Özet); cevaplar kişisel kelime setini, hedefleri, aktif günleri, hafta başını, saat dilimini, odak ritmini ve kişisel kategori + en fazla 3 ilk kaydı hazırlar. Atlanabilir, Ayarlar'dan yeniden başlatılır. Kişisel kategoriler için migration 008 eklendi ve gerçek DB'de yedek alındıktan sonra uygulandı (pre-008 yedeği backend/backups altında). Ayrıntı ve kanıt: progress.md R12 notları. Sıradaki adaylar: R12b kişisel kategori yönetimi, R13 Türkçe arama, R14 hesap verisi, R15 belge tutarlılığı.
 
 ## Temizlik paketi tamamlandı (19 Ekim 2026)
 

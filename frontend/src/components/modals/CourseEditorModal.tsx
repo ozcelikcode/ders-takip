@@ -10,7 +10,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useCatalogMutation } from '../../hooks/useCatalogMutation';
 import { canManageCourse } from '../../lib/catalogAccess';
-import type { CatalogCategory, CatalogCourse } from '../../types/catalog';
+import type { CatalogCategory, CatalogCategoryRecord, CatalogCourse } from '../../types/catalog';
 import EditorDialog from '../common/EditorDialog';
 import { catalogIcons, catalogIcon } from '../catalog/catalogIcons';
 
@@ -48,9 +48,19 @@ function CourseEditor({
     queryKey: keys.catalog('categories'),
     queryFn: () => categoriesAPI.getCategories(),
   });
-  const activeCategories: CatalogCategory[] =
-    categoriesQuery.data?.data.data?.categories ?? [];
-  const categories =
+  // A personal category holds only its owner's own, non-shared records.
+  const ownerId = course ? course.userId : user?.id;
+  const activeCategories: CatalogCategoryRecord[] = (
+    categoriesQuery.data?.data.data?.categories ?? []
+  ).filter(
+    (category) =>
+      category.userId === null ||
+      (!form.isGlobal && category.userId === Number(ownerId)),
+  );
+  const personalIds = new Set(
+    activeCategories.filter((category) => category.userId !== null).map((category) => category.id),
+  );
+  const categories: CatalogCategory[] =
     course?.category &&
     !activeCategories.some((category) => category.id === course.categoryId)
       ? [course.category, ...activeCategories]
@@ -180,7 +190,7 @@ function CourseEditor({
           <option value="">Kategori seçin</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
-              {category.name}
+              {personalIds.has(category.id) ? `${category.name} (kişisel)` : category.name}
             </option>
           ))}
         </select>
@@ -284,7 +294,17 @@ function CourseEditor({
             <input
               type="checkbox"
               checked={form.isGlobal}
-              onChange={(e) => setForm({ ...form, isGlobal: e.target.checked })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  isGlobal: e.target.checked,
+                  // Shared records cannot sit in a personal category.
+                  categoryId:
+                    e.target.checked && personalIds.has(Number(form.categoryId))
+                      ? ''
+                      : form.categoryId,
+                })
+              }
             />
             Tüm kullanıcılara açık
           </label>

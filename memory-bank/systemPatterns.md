@@ -23,7 +23,8 @@ Okuma controller'ları ORM sorgularını yürütür; yazma iş kuralları ilgili
 
 - User → Plan, StudySession; kullanıcı silinince bu kayıtlar cascade.
 - User → Course; kullanıcı silinince course.userId SET NULL.
-- Category → Course; kategori silme RESTRICT.
+- Category → Course; kategori silme RESTRICT. Kategori `userId` null ise ortaktır (admin yönetir), doluysa kişiseldir (yalnız sahibinin kendi, ortak olmayan kayıtları; ad tekilliği ortaklarda ve sahip başına). Görünürlük tek tanım: `visibleCategoryWhere` (services/catalog.ts).
+- İlk kurulum: tercihlerde isteğe bağlı `onboarding` (`pending` yalnız kayıt ve admin'in açtığı hesaplarda; alan yok = tamamlanmış) ve kişisel `terminologyPreset` (null/yok = site seti, `resolveTerminologyPreset`). `POST /api/onboarding` tercihleri, kişisel kategoriyi ve ilk kayıtları tek transaction'da yazar.
 - Course → Topic; ders silmede ilişki CASCADE; konu controller'ı normal konu silmede isActive=false uygular.
 - Plan/Course/Topic → StudySession; ilişkiler silinince ilgili FK SET NULL.
 - Category global; Course kişisel veya global; Topic üst Course erişimini miras almalı.

@@ -5,7 +5,8 @@ import toast from 'react-hot-toast';
 import { isAxiosError } from 'axios';
 import { create } from 'zustand';
 import { queryClient } from '../lib/queryClient';
-import { authAPI } from '../services/api';
+import { authAPI, onboardingAPI } from '../services/api';
+import type { CompleteOnboardingInput } from '@study-tracker/contracts';
 import type { LoginCredentials, RegisterData, User } from '../types/auth';
 
 interface AuthState {
@@ -18,6 +19,7 @@ interface AuthState {
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   updateProfile: (data: ProfileUpdate) => Promise<void>;
+  completeOnboarding: (input: CompleteOnboardingInput) => Promise<void>;
   initializeAuth: () => Promise<void>;
   refreshSession: () => Promise<string>;
   clearAuth: () => void;
@@ -110,6 +112,13 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     // Profile writes are serialized; an acknowledged explicit preference patch is authoritative.
     const hasPreferencePatch = Object.keys(data.preferences ?? {}).length > 0;
     set({ user: user ? (hasPreferencePatch ? user : acceptUserSnapshot(user, preferenceRevision)) : null });
+  },
+  completeOnboarding: async input => {
+    const epoch = get().epoch;
+    const response = await onboardingAPI.complete(input);
+    if (get().epoch !== epoch) throw new Error('Account changed while finishing onboarding');
+    const user = response.data.data?.user;
+    if (user) set({ user });
   },
   isAdmin: () => get().user?.role === 'admin',
 }));

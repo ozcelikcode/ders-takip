@@ -108,8 +108,10 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
     queryKey: keys.catalog('categories'),
     queryFn: () => categoriesAPI.getCategories(),
   });
-  const categories: CatalogCategoryRecord[] =
-    query.data?.data.data?.categories ?? [];
+  // Shared categories only: personal ones belong to their owners.
+  const categories: CatalogCategoryRecord[] = (
+    query.data?.data.data?.categories ?? []
+  ).filter((category) => category.userId === null);
   const filtered = categories.filter((category) =>
     category.name
       .toLocaleLowerCase(appLocale)

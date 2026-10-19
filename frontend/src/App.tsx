@@ -7,6 +7,7 @@ import { useUserPreferencesStore } from './store/userPreferencesStore';
 
 // Components
 import AdminRoute from './components/auth/AdminRoute';
+import OnboardingGate from './components/auth/OnboardingGate';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import LoadingScreen from './components/common/LoadingScreen';
 
@@ -31,6 +32,7 @@ const SearchPage = lazy(() => import('./pages/search/SearchPage'));
 const PomodoroPage = lazy(() => import('./pages/pomodoro/PomodoroPage'));
 const ProfilePage = lazy(() => import('./pages/profile/ProfilePage'));
 const UserSettingsPage = lazy(() => import('./pages/settings/UserSettingsPage'));
+const WelcomePage = lazy(() => import('./pages/onboarding/WelcomePage'));
 
 function App() {
   const { user, isLoading, initializeAuth } = useAuthStore();
@@ -71,7 +73,8 @@ function App() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Protected routes */}
-      <Route path="/" element={<ProtectedRoute><Layout key={user?.id} /></ProtectedRoute>}>
+      <Route path="/welcome" element={<ProtectedRoute><WelcomePage /></ProtectedRoute>} />
+      <Route path="/" element={<ProtectedRoute><OnboardingGate><Layout key={user?.id} /></OnboardingGate></ProtectedRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="courses" element={<CoursesPage />} />

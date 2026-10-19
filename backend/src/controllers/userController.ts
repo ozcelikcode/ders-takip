@@ -1,6 +1,6 @@
 import { userResponse } from '../services/userResponses';
 import { getAllTimeSummaries, getStudyStats } from '../services/studyTracking';
-import { preferencesSchema } from '@study-tracker/contracts';
+import { defaultPreferences, preferencesSchema } from '@study-tracker/contracts';
 import { Op, Transaction, type WhereOptions } from 'sequelize';
 import { sequelize } from '../config/database';
 import { revokeUserSessions } from '../services/authSessions';
@@ -132,6 +132,7 @@ export const createUser = async (
             lastName,
             role,
             isActive,
+            preferences: { ...defaultPreferences, onboarding: 'pending' },
           },
           { transaction },
         );

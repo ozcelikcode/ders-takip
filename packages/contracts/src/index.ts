@@ -14,6 +14,7 @@ export * from './backups.js';
 export * from './plans.js';
 export * from './terminology.js';
 export * from './search.js';
+export * from './onboarding.js';
 import { defaultTerminologyPreset, terminologyPresetSchema } from './terminology.js';
 
 export const brandIconNames = [

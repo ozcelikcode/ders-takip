@@ -3,15 +3,17 @@ import { sequelize } from '../config/database';
 import { migrateStoredPreferences } from './preferenceMigration';
 import { AuthSession, RefreshCredential, SessionInterval, PomodoroClock, UserTopicProgress, PasswordResetToken } from '../models';
 
-export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1', '004-session-activity-intervals', '005-pomodoro-clocks', '006-user-topic-progress', '007-password-reset-tokens'];
-async function validateExistingTables(pendingTracking = false) {
+export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1', '004-session-activity-intervals', '005-pomodoro-clocks', '006-user-topic-progress', '007-password-reset-tokens', '008-personal-categories'];
+const personalCategoriesMigration = '008-personal-categories';
+// Columns that a still-pending migration adds itself, as `table.column`.
+async function validateExistingTables(addedByPendingMigrations: readonly string[] = []) {
   const query = sequelize.getQueryInterface();
   const tables = await query.showAllTables();
   for (const model of Object.values(sequelize.models) as ModelStatic<Model>[]) {
     const table = model.getTableName();
     if (typeof table !== 'string' || !tables.includes(table)) continue;
     const columns = await query.describeTable(table);
-    const missing = Object.entries(model.getAttributes()).filter(([name, attribute]) => !columns[attribute.field ?? name] && !(pendingTracking && table === 'study_sessions' && name === 'trackingCoverage')).map(([name]) => name);
+    const missing = Object.entries(model.getAttributes()).filter(([name, attribute]) => !columns[attribute.field ?? name] && !addedByPendingMigrations.includes(`${table}.${name}`)).map(([name]) => name);
     if (missing.length) throw new Error(`Existing table ${table} requires a dedicated migration for: ${missing.join(', ')}`);
   }
 }
@@ -27,9 +29,14 @@ export async function applyMigrations(): Promise<void> {
   await sequelize.transaction(async transaction => {
     await sequelize.query('CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY NOT NULL)', { transaction });
     const completed = await sequelize.query<{ name: string }>('SELECT name FROM schema_migrations', { type: QueryTypes.SELECT, transaction });
-    await validateExistingTables(!completed.some(row => row.name === '004-session-activity-intervals'));
-    for (const name of requiredMigrations) {
-      if (completed.some(row => row.name === name)) continue;
+    const pending = requiredMigrations.filter(name => !completed.some(row => row.name === name));
+    await validateExistingTables([
+      ...(pending.includes('004-session-activity-intervals') ? ['study_sessions.trackingCoverage'] : []),
+      ...(pending.includes(personalCategoriesMigration) ? ['categories.userId'] : []),
+    ]);
+    for (const name of pending) {
+      // The categories rebuild cannot run inside this transaction; it follows below.
+      if (name === personalCategoriesMigration) break;
       const options: SyncOptions & Transactionable = { transaction };
       if (name === '001-initial-schema') await sequelize.sync(options);
       else if (name === '002-auth-sessions') { await AuthSession.sync(options); await RefreshCredential.sync(options); }
@@ -53,5 +60,53 @@ export async function applyMigrations(): Promise<void> {
       await sequelize.query('INSERT INTO schema_migrations (name) VALUES (:name)', { replacements: { name }, transaction });
     }
   });
+  const completed = await sequelize.query<{ name: string }>('SELECT name FROM schema_migrations WHERE name = :name', { replacements: { name: personalCategoriesMigration }, type: QueryTypes.SELECT });
+  if (!completed.length) await addCategoryOwners();
   await assertDatabaseReady();
+}
+
+const categoryIndexes = [
+  'CREATE INDEX IF NOT EXISTS `categories_name` ON `categories` (`name`)',
+  'CREATE INDEX IF NOT EXISTS `categories_order` ON `categories` (`order`)',
+  'CREATE INDEX IF NOT EXISTS `categories_is_active` ON `categories` (`isActive`)',
+  'CREATE INDEX IF NOT EXISTS `categories_user_id` ON `categories` (`userId`)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS `categories_shared_name` ON `categories` (`name`) WHERE `userId` IS NULL',
+  'CREATE UNIQUE INDEX IF NOT EXISTS `categories_owner_name` ON `categories` (`userId`, `name`) WHERE `userId` IS NOT NULL',
+];
+
+/**
+ * 008: categories gain an optional owner and per-owner name uniqueness.
+ * SQLite cannot drop the original column-level UNIQUE(name), so a legacy table is rebuilt following
+ * https://sqlite.org/lang_altertable.html#otheralter. The swap needs foreign keys off, which SQLite ignores
+ * inside a transaction, and Sequelize gives each transaction its own connection; so this runs on the shared
+ * connection with an explicit IMMEDIATE transaction and checks every foreign key before committing.
+ */
+async function addCategoryOwners(): Promise<void> {
+  const run = (sql: string, replacements?: Record<string, unknown>) => sequelize.query(sql, replacements ? { replacements } : {});
+  await run('PRAGMA foreign_keys = OFF');
+  try {
+    await run('BEGIN IMMEDIATE');
+    try {
+      const columns = await sequelize.getQueryInterface().describeTable('categories');
+      if (!columns.userId) {
+        const [sequence] = await sequelize.query<{ seq: number }>("SELECT seq FROM sqlite_sequence WHERE name = 'categories'", { type: QueryTypes.SELECT });
+        await run('CREATE TABLE `categories_008` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `name` VARCHAR(100) NOT NULL, `description` TEXT, `color` VARCHAR(7) NOT NULL DEFAULT \'#3b82f6\', `icon` VARCHAR(50), `order` INTEGER NOT NULL, `isActive` TINYINT(1) NOT NULL DEFAULT 1, `userId` INTEGER REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL)');
+        await run('INSERT INTO `categories_008` (`id`, `name`, `description`, `color`, `icon`, `order`, `isActive`, `userId`, `createdAt`, `updatedAt`) SELECT `id`, `name`, `description`, `color`, `icon`, `order`, `isActive`, NULL, `createdAt`, `updatedAt` FROM `categories`');
+        await run('DROP TABLE `categories`');
+        await run('ALTER TABLE `categories_008` RENAME TO `categories`');
+        // Keep the AUTOINCREMENT high-water mark so ids of deleted categories are never reused.
+        if (sequence) await run("UPDATE sqlite_sequence SET seq = max(seq, :seq) WHERE name = 'categories'", { seq: sequence.seq });
+      }
+      for (const statement of categoryIndexes) await run(statement);
+      const violations = await sequelize.query('PRAGMA foreign_key_check', { type: QueryTypes.SELECT });
+      if (violations.length) throw new Error('Foreign key check failed after rebuilding categories');
+      await run('INSERT INTO schema_migrations (name) VALUES (:name)', { name: personalCategoriesMigration });
+      await run('COMMIT');
+    } catch (error) {
+      await run('ROLLBACK');
+      throw error;
+    }
+  } finally {
+    await run('PRAGMA foreign_keys = ON');
+  }
 }

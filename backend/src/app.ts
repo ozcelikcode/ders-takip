@@ -12,6 +12,7 @@ import './models'; // Initialize models and associations
 import authRoutes from './routes/auth';
 import backupRoutes from './routes/backupRoutes';
 import searchRoutes from './routes/searchRoutes';
+import onboardingRoutes from './routes/onboardingRoutes';
 import categoryRoutes from './routes/categories';
 import courseRoutes from './routes/courses';
 import planRoutes from './routes/planRoutes';
@@ -58,6 +59,7 @@ app.use('/api/study-sessions', studySessionRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/onboarding', onboardingRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

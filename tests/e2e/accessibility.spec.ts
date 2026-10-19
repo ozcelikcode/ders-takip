@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { writeFile } from 'node:fs/promises';
 import type { Page, TestInfo } from '@playwright/test';
-import { test, expect, login, dailyPlanner, openMove } from './fixtures';
+import { test, expect, login, dailyPlanner, openMove, registerAccount } from './fixtures';
 
 async function scan(page: Page, info: TestInfo, name: string) {
   await expect(page.getByRole('alert')).toHaveCount(0);
@@ -130,6 +130,16 @@ for (const theme of ['light', 'dark'] as const) {
       await scan(page, info, 'pomodoro-editor');
       await page.getByLabel('Döngü Sayısı').scrollIntoViewIfNeeded();
       await scan(page, info, 'pomodoro-settings');
+    });
+    test('welcome wizard steps', async ({ page }, info) => {
+      test.setTimeout(120_000);
+      page.setDefaultTimeout(15_000);
+      await registerAccount(page, `welcome${theme}`);
+      await page.getByRole('radio', { name: /Okul ve sınavlar/ }).check();
+      for (const step of ['purpose', 'time', 'rhythm', 'records', 'summary']) {
+        await scan(page, info, `welcome-${step}`);
+        if (step !== 'summary') await page.getByRole('button', { name: 'İleri' }).click();
+      }
     });
     test('admin pages and settings sections', async ({ page }, info) => {
       test.setTimeout(180_000);

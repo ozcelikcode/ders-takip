@@ -1,11 +1,8 @@
 import { useTerms } from '../../hooks/useTerms';
 import {
   brandIconNames,
-  createTerms,
   siteSettingsSchema,
   settingsPatchSchema,
-  terminologyPresetIds,
-  terminologyPresets,
   type SiteSettings,
 } from '@study-tracker/contracts';
 import { useQueryClient } from '@tanstack/react-query';
@@ -14,6 +11,7 @@ import BackupPanel, {
   type MaintenanceAction,
 } from '../../components/admin/BackupPanel';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import TerminologyPresetPicker from '../../components/settings/TerminologyPresetPicker';
 import PageHeader from '../../components/common/PageHeader';
 import { useAccountMutation } from '../../hooks/useAccountMutation';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
@@ -332,36 +330,13 @@ function SettingsForm({
                 Arayüzdeki ana kavramların adı seçtiğiniz sete göre değişir. Kayıtlı veriler ve
                 yetkiler etkilenmez; yalnızca görünen kelimeler değişir.
               </p>
-              <div role="radiogroup" aria-label="Kelime seti" className="space-y-3">
-                {terminologyPresetIds.map((id) => {
-                  const preset = terminologyPresets[id];
-                  const terms = createTerms(id);
-                  return (
-                    <label
-                      key={id}
-                      className="flex items-start gap-3 rounded-lg border border-[var(--line)] p-4"
-                    >
-                      <input
-                        type="radio"
-                        name={`${prefix}-terminologyPreset`}
-                        className="mt-1"
-                        checked={draft.terminologyPreset === id}
-                        onChange={() => setDraft({ ...draft, terminologyPreset: id })}
-                      />
-                      <span>
-                        <span className="block text-sm font-medium">{preset.label}</span>
-                        <span className="mt-1 block text-sm text-[var(--muted)]">
-                          {preset.description}
-                        </span>
-                        <span className="mt-1 block text-xs text-[var(--muted)]">
-                          Örnek: {terms.course({ capitalize: true })} →{' '}
-                          {terms.topic({ capitalize: true })} · {terms.session({ capitalize: true })}
-                        </span>
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
+              <TerminologyPresetPicker
+                name={`${prefix}-terminologyPreset`}
+                value={draft.terminologyPreset}
+                onChange={(terminologyPreset) => {
+                  if (terminologyPreset) setDraft({ ...draft, terminologyPreset });
+                }}
+              />
             </>
           )}
           {section === 'backup' && (

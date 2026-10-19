@@ -9,6 +9,8 @@ export interface CatalogCategoryRecord extends CatalogCategory {
   description?: string | null;
   order: number;
   isActive: boolean;
+  /** Owner of a personal category; null for shared categories. */
+  userId: number | null;
 }
 
 export interface CatalogTopic {

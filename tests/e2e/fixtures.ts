@@ -137,3 +137,16 @@ export async function openMove(page: Page, title = 'Movable session') {
     page.getByRole('heading', { name: 'Görevi Taşı', exact: true }),
   ).toBeVisible();
 }
+
+/** Registers a fresh account through the public form; new accounts land on the welcome wizard. */
+export async function registerAccount(page: Page, username: string) {
+  await page.goto('/register');
+  await page.getByLabel('Ad', { exact: true }).fill('Yeni');
+  await page.getByLabel('Soyad').fill('Kullanıcı');
+  await page.getByLabel('Kullanıcı Adı').fill(username);
+  await page.getByLabel('E-posta Adresi').fill(`${username}@example.test`);
+  await page.getByLabel('Şifre', { exact: true }).fill('fixture-password-2026');
+  await page.getByRole('button', { name: 'Kayıt Ol', exact: true }).click();
+  await expect(page).toHaveURL(/\/welcome$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Hoş geldin, Yeni');
+}

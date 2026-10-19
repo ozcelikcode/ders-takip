@@ -1,4 +1,6 @@
-import type { UserPreferences } from '@study-tracker/contracts';
+import type { TerminologyPresetId, UserPreferences } from '@study-tracker/contracts';
+import { useId } from 'react';
+import TerminologyPresetPicker from '../../components/settings/TerminologyPresetPicker';
 import { Check, Monitor, Moon, Sun } from 'lucide-react';
 import type { ThemeMode } from '../../store/userPreferencesStore';
 
@@ -32,16 +34,21 @@ const isLightColor = (hexColor: string): boolean => {
 interface AppearanceTabProps {
   preferences: UserPreferences;
   sitePrimaryColor: string;
+  siteTerminologyPreset: TerminologyPresetId;
   onThemeChange: (theme: ThemeMode) => void;
   onColorChange: (color: string | null) => void;
+  onTerminologyChange: (preset: TerminologyPresetId | null) => void;
 }
 
 const AppearanceTab = ({
   preferences,
   sitePrimaryColor,
+  siteTerminologyPreset,
   onThemeChange,
   onColorChange,
+  onTerminologyChange,
 }: AppearanceTabProps) => {
+  const prefix = useId();
   const currentColor = preferences.customPrimaryColor || sitePrimaryColor;
   return (
     <div className="space-y-8">
@@ -143,6 +150,21 @@ const AppearanceTab = ({
             )}
           </div>
         </div>
+      </section>
+
+      <section className="space-y-4 border-t border-[var(--line)] pt-6">
+        <div>
+          <h2 className="text-base font-medium">Kelimeler</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Ana kavramların sana nasıl görüneceğini seç. Kayıtların değişmez; yalnızca görünen kelimeler değişir.
+          </p>
+        </div>
+        <TerminologyPresetPicker
+          name={`${prefix}-terminologyPreset`}
+          value={preferences.terminologyPreset ?? null}
+          siteDefault={siteTerminologyPreset}
+          onChange={onTerminologyChange}
+        />
       </section>
     </div>
   );

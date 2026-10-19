@@ -66,7 +66,7 @@ export const register = async (
       password,
       firstName,
       lastName,
-      ...(timezone ? { preferences: { ...defaultPreferences, timezone } } : {}),
+      preferences: { ...defaultPreferences, ...(timezone ? { timezone } : {}), onboarding: 'pending' },
     });
 
     const session = await createAuthSession(user);

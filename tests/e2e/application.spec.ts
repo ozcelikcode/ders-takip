@@ -5,6 +5,7 @@ import {
   logout,
   dailyPlanner,
   openMove,
+  registerAccount,
 } from './fixtures';
 
 test('restores cookie authentication on reload and isolates the next account', async ({
@@ -357,4 +358,43 @@ test('lets an administrator hand over a one-time reset link that signs the user 
   await page.getByLabel('Yeni Şifre (Tekrar)').fill('another-fixture-password');
   await page.getByRole('button', { name: 'Şifreyi güncelle' }).click();
   await expect(page.getByRole('alert')).toContainText('Bağlantı geçersiz veya süresi dolmuş');
+});
+
+test('welcomes a new account with a setup that shapes its pages and can be restarted', async ({ page }) => {
+  await registerAccount(page, 'newcomer');
+  const next = () => page.getByRole('button', { name: 'İleri' }).click();
+  const heading = page.getByRole('heading', { level: 1 });
+  await page.getByRole('radio', { name: /Beceri ve hobiler/ }).check();
+  await next();
+  await expect(heading).toHaveText('Zamanını planlayalım');
+  await expect(heading).toBeFocused();
+  await page.getByLabel('Günlük hedef (saat)').fill('1.5');
+  await next();
+  await page.getByRole('radio', { name: /Uzun odak/ }).check();
+  await next();
+  await expect(heading).toHaveText('İlk beceriler');
+  await page.getByLabel('Beceri 1').fill('Gitar');
+  await page.getByLabel('Beceri 2').fill('İspanyolca');
+  await next();
+  await expect(page.getByText('Becerilerim: Gitar, İspanyolca')).toBeVisible();
+  await page.getByRole('button', { name: 'Kurulumu bitir' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+
+  // The account's own words and first records survive a reload; the wizard does not come back.
+  await page.goto('/courses');
+  await expect(heading).toHaveText('Beceriler');
+  await expect(page.getByText('Gitar', { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page).toHaveURL(/\/courses$/);
+  await expect(page.getByText('İspanyolca', { exact: true })).toBeVisible();
+
+  await page.goto('/settings');
+  await page.getByRole('navigation', { name: 'Ayar bölümleri' }).getByRole('button', { name: 'Çalışma Tercihleri' }).click();
+  await expect(page.getByLabel('Varsayılan Pomodoro Süresi (dk)')).toHaveValue('50');
+  await page.getByRole('button', { name: 'Kurulumu yeniden başlat' }).click();
+  await expect(page).toHaveURL(/\/welcome$/);
+  await page.getByRole('button', { name: 'Şimdilik atla' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.reload();
+  await expect(page).toHaveURL(/\/dashboard$/);
 });

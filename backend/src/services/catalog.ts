@@ -1,4 +1,4 @@
-import { Op, Transaction, type Includeable } from 'sequelize';
+import { Op, Transaction, type Includeable, type WhereOptions } from 'sequelize';
 import type { CreateCategoryInput, UpdateCategoryInput, DeleteCategoryInput, CreateCourseInput, UpdateCourseInput, CreateTopicInput, UpdateTopicInput, ReorderTopicsInput } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
 import { Category, Course, Topic, StudySession } from '../models';
@@ -15,9 +15,19 @@ async function writableCourse(actor: Actor, id: number, transaction: Transaction
   if (actor.role !== 'admin' && (course.isGlobal || course.userId !== actor.id)) fail(403, 'Bu kaydı değiştirme yetkiniz yok');
   return course;
 }
-async function categoryById(id: number, transaction: Transaction) {
-  const category = await Category.findByPk(id, { transaction });
+/** Categories a user may list and file records under: shared ones plus their own personal ones. */
+export const visibleCategoryWhere = (actor: Actor): WhereOptions => ({ [Op.or]: [{ userId: null }, { userId: actor.id }] });
+// Admin category management covers shared categories only; personal ones belong to their owner.
+async function sharedCategoryById(id: number, transaction: Transaction) {
+  const category = await Category.findOne({ where: { id, userId: null }, transaction });
   if (!category) fail(404, 'Kategori bulunamadı');
+  return category;
+}
+// Someone else's personal category reads as missing so its existence does not leak.
+async function categoryForCourse(id: number, course: { userId?: number | null | undefined; isGlobal: boolean }, transaction: Transaction) {
+  const category = await Category.findByPk(id, { transaction });
+  if (!category || (category.userId !== null && category.userId !== course.userId)) fail(404, 'Kategori bulunamadı');
+  if (category.userId !== null && course.isGlobal) fail(400, 'Ortak kayıtlar yalnız ortak kategorilerde yer alabilir');
   return category;
 }
 async function writableTopic(actor: Actor, id: number, transaction: Transaction) {
@@ -49,7 +59,7 @@ async function appendTopicOrder(courseId: number, transaction: Transaction) {
 export async function createCategory(actor: Actor, input: CreateCategoryInput) {
   requireAdmin(actor);
   return write(async transaction => {
-    const category = Category.build({ name: input.name, color: input.color ?? '#3b82f6', order: input.order ?? 1 });
+    const category = Category.build({ name: input.name, color: input.color ?? '#3b82f6', order: input.order ?? 1, userId: null });
     for (const field of ['description', 'icon', 'isActive'] as const) {
       if (input[field] !== undefined) category.set(field, input[field]);
     }
@@ -59,7 +69,7 @@ export async function createCategory(actor: Actor, input: CreateCategoryInput) {
 export async function updateCategory(actor: Actor, id: number, input: UpdateCategoryInput) {
   requireAdmin(actor);
   return write(async transaction => {
-    const category = await categoryById(id, transaction);
+    const category = await sharedCategoryById(id, transaction);
     for (const field of ['name', 'description', 'color', 'icon', 'order', 'isActive'] as const) {
       if (input[field] !== undefined) category.set(field, input[field]);
     }
@@ -70,9 +80,9 @@ export async function updateCategory(actor: Actor, id: number, input: UpdateCate
 export async function deleteCategory(actor: Actor, id: number, input: DeleteCategoryInput) {
   requireAdmin(actor);
   return write(async transaction => {
-    const category = await categoryById(id, transaction);
+    const category = await sharedCategoryById(id, transaction);
     if (input.migrateToCategoryId === id) fail(400, 'Hedef kategori silinen kategoriyle aynı olamaz');
-    if (input.migrateToCategoryId !== undefined) await categoryById(input.migrateToCategoryId, transaction);
+    if (input.migrateToCategoryId !== undefined) await sharedCategoryById(input.migrateToCategoryId, transaction);
     const courses = await Course.findAll({ where: { categoryId: id }, transaction });
     if (courses.length && input.migrateToCategoryId === undefined) fail(409, 'Bu kategoride kayıtlar var. Önce bir hedef kategori seçin');
     for (const course of courses) {
@@ -87,7 +97,7 @@ export async function deleteCategory(actor: Actor, id: number, input: DeleteCate
 export async function createCourse(actor: Actor, input: CreateCourseInput) {
   return write(async transaction => {
     if (input.isGlobal && actor.role !== 'admin') fail(403, 'Ortak kayıt oluşturma yetkiniz yok');
-    await categoryById(input.categoryId, transaction);
+    await categoryForCourse(input.categoryId, { userId: actor.id, isGlobal: input.isGlobal ?? false }, transaction);
     await assertCourseName({ name: input.name, categoryId: input.categoryId, userId: actor.id, isGlobal: input.isGlobal ?? false }, transaction);
     const course = Course.build({ name: input.name, categoryId: input.categoryId, userId: actor.id, isGlobal: input.isGlobal ?? false, color: input.color ?? '#3b82f6', order: input.order ?? 1 });
     for (const field of ['description', 'icon', 'isActive'] as const) {
@@ -101,10 +111,10 @@ export async function updateCourse(actor: Actor, id: number, input: UpdateCourse
   return write(async transaction => {
     const course = await writableCourse(actor, id, transaction);
     if (input.isGlobal !== undefined && input.isGlobal !== course.isGlobal && actor.role !== 'admin') fail(403, 'Ortak kayıt ayarını değiştirme yetkiniz yok');
-    if (input.categoryId !== undefined) await categoryById(input.categoryId, transaction);
     for (const field of ['name', 'description', 'color', 'icon', 'order', 'isActive', 'categoryId', 'isGlobal'] as const) {
       if (input[field] !== undefined) course.set(field, input[field]);
     }
+    if (course.changed('categoryId') || course.changed('isGlobal')) await categoryForCourse(course.categoryId, course, transaction);
     await assertCourseName(course, transaction);
     if (course.changed()) await course.save({ transaction });
     return course.reload({ include: [categoryInclude], transaction });

@@ -47,6 +47,7 @@ const categories: CatalogCategoryRecord[] = [
     color: '#123456',
     order: 2,
     isActive: true,
+    userId: null,
   },
   {
     id: 2,
@@ -54,6 +55,7 @@ const categories: CatalogCategoryRecord[] = [
     description: null,
     icon: 'Briefcase',
     color: '#52525b',
+    userId: null,
     order: 8,
     isActive: false,
   },
@@ -427,4 +429,12 @@ it('ignores late mutation acknowledgements after the account boundary changes', 
   await act(async () => finish(response()));
   expect(invalidate).not.toHaveBeenCalled();
   expect(toast.success).not.toHaveBeenCalled();
+});
+it('manages shared categories only, leaving personal ones to their owners', async () => {
+  vi.mocked(categoriesAPI.getCategories).mockResolvedValue(
+    response([...categories, { ...categories[0]!, id: 9, name: 'Kişisel', userId: 1 }]) as never,
+  );
+  mount();
+  await screen.findByRole('button', { name: 'Eğitim kategorisini düzenle' });
+  expect(screen.queryByRole('button', { name: 'Kişisel kategorisini düzenle' })).toBeNull();
 });

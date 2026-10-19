@@ -1,5 +1,8 @@
 import { z } from 'zod';
 import { timezoneSchema, weekStartSchema, defaultWeekStart, type WeekStart } from './time.js';
+import { terminologyPresetSchema, type TerminologyPresetId } from './terminology.js';
+
+export const onboardingStateSchema = z.enum(['pending', 'done']);
 
 export const colorSchema = z.string().regex(/^#[0-9a-f]{6}$/i);
 export const preferencesSchema = z.object({
@@ -26,6 +29,10 @@ export const preferencesSchema = z.object({
   weekStartsOn: weekStartSchema.optional(),
   // Free-text focus area; the earlier fixed exam-track values remain valid.
   studyField: z.string().trim().max(60).nullable(),
+  // Absent means the account finished onboarding or predates it; only new accounts start as pending.
+  onboarding: onboardingStateSchema.optional(),
+  // Personal vocabulary; null or absent follows the site-wide preset.
+  terminologyPreset: terminologyPresetSchema.nullable().optional(),
 });
 export type UserPreferences = z.infer<typeof preferencesSchema>;
 export type ThemeMode = UserPreferences['theme'];
@@ -49,6 +56,13 @@ export const defaultPreferences: UserPreferences = {
   timezone: 'Europe/Istanbul',
   weekStartsOn: defaultWeekStart,
   studyField: null,
+  terminologyPreset: null,
 };
 export const resolveWeekStart = (preferences: Pick<UserPreferences, 'weekStartsOn'>): WeekStart =>
   preferences.weekStartsOn ?? defaultWeekStart;
+export const needsOnboarding = (preferences: Pick<UserPreferences, 'onboarding'>): boolean =>
+  preferences.onboarding === 'pending';
+export const resolveTerminologyPreset = (
+  preferences: Pick<UserPreferences, 'terminologyPreset'>,
+  sitePreset: TerminologyPresetId,
+): TerminologyPresetId => preferences.terminologyPreset ?? sitePreset;

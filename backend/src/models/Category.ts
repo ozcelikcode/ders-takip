@@ -9,11 +9,13 @@ interface CategoryAttributes {
   icon?: string;
   order: number;
   isActive: boolean;
+  /** Owner of a personal category; null marks a shared category managed by admins. */
+  userId: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-interface CategoryCreationAttributes extends Optional<CategoryAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description' | 'icon' | 'isActive'> {}
+interface CategoryCreationAttributes extends Optional<CategoryAttributes, 'id' | 'createdAt' | 'updatedAt' | 'description' | 'icon' | 'isActive' | 'userId'> {}
 
 export class Category extends Model<CategoryAttributes, CategoryCreationAttributes> implements CategoryAttributes {
   public id!: number;
@@ -23,6 +25,7 @@ export class Category extends Model<CategoryAttributes, CategoryCreationAttribut
   public icon?: string;
   public order!: number;
   public isActive!: boolean;
+  public userId!: number | null;
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -38,7 +41,6 @@ Category.init(
     name: {
       type: DataTypes.STRING(100),
       allowNull: false,
-      unique: true,
       validate: {
         len: [1, 100],
       },
@@ -71,6 +73,13 @@ Category.init(
       allowNull: false,
       defaultValue: true,
     },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: { model: 'users', key: 'id' },
+      onDelete: 'CASCADE',
+      onUpdate: 'CASCADE',
+    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -84,8 +93,9 @@ Category.init(
     sequelize,
     modelName: 'Category',
     tableName: 'categories',
+    // Name uniqueness is per owner; migration 008 creates the partial unique indexes.
     indexes: [
-      { fields: ['name'], unique: true },
+      { fields: ['userId'] },
       { fields: ['order'] },
       { fields: ['isActive'] },
     ],
