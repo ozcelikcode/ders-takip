@@ -118,7 +118,7 @@ it('renders server-wide totals and measured time rather than a loaded user count
 it('names every session status and localizes session types without collapsing paused or cancelled', async () => {
   mount();
   const list = await screen.findByRole('region', {
-    name: 'Son çalışma seansları',
+    name: 'Son seanslar',
   });
   await within(list).findByText('Planlandı');
   for (const label of [
@@ -143,7 +143,7 @@ it('keeps pending data separate from genuine zero and empty values', async () =>
   );
   mount();
   expect(screen.getByText('Yönetim özeti yükleniyor…')).toBeTruthy();
-  expect(screen.queryByText('Henüz çalışma seansı yok.')).toBeNull();
+  expect(screen.queryByText('Henüz seans yok.')).toBeNull();
   expect(screen.queryByText('0')).toBeNull();
   await act(() => resolve(response({ overview })));
   await screen.findByText('142');
@@ -156,7 +156,7 @@ it('recovers overview errors without hiding a separately loaded user list', asyn
   await screen.findByText('Yönetim özeti alınamadı.');
   expect(await screen.findByText('ece@example.com')).toBeTruthy();
   expect(screen.queryByText('0')).toBeNull();
-  expect(screen.queryByText('Henüz çalışma seansı yok.')).toBeNull();
+  expect(screen.queryByText('Henüz seans yok.')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Özeti tekrar yükle' }));
   await screen.findByText('142');
 });
@@ -196,7 +196,7 @@ it('shows genuine empty collections and zero totals only after successful reads'
   );
   mount();
   await screen.findByText('Henüz kullanıcı yok.');
-  await screen.findByText('Henüz çalışma seansı yok.');
+  await screen.findByText('Henüz seans yok.');
   expect(screen.getByText('0 sn')).toBeTruthy();
 });
 it('rejects missing response data rather than inventing a healthy empty overview', async () => {

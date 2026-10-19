@@ -1,11 +1,12 @@
+import { useTerms } from '../../hooks/useTerms';
 import { BookOpen, Coffee, Target } from 'lucide-react';
 
 export type SessionCategory = 'course' | 'break' | 'custom';
 
 const CATEGORIES = [
-  { value: 'course', label: 'Ders Çalışması', Icon: BookOpen },
-  { value: 'break', label: 'Mola', Icon: Coffee },
-  { value: 'custom', label: 'Özel Görev', Icon: Target },
+  { value: 'course', Icon: BookOpen },
+  { value: 'break', Icon: Coffee },
+  { value: 'custom', Icon: Target },
 ] as const;
 
 interface SessionCategoryPickerProps {
@@ -13,13 +14,20 @@ interface SessionCategoryPickerProps {
   onChange: (value: SessionCategory) => void;
 }
 
-const SessionCategoryPicker = ({ value, onChange }: SessionCategoryPickerProps) => (
+const SessionCategoryPicker = ({ value, onChange }: SessionCategoryPickerProps) => {
+  const t = useTerms();
+  const labels: Record<SessionCategory, string> = {
+    course: `${t.course({ capitalize: true })} çalışması`,
+    break: 'Mola',
+    custom: 'Özel',
+  };
+  return (
   <div>
     <label className="block text-sm font-medium mb-3">
       Çalışma Türü *
     </label>
     <div className="grid grid-cols-3 gap-3">
-      {CATEGORIES.map(({ value: category, label, Icon }) => (
+      {CATEGORIES.map(({ value: category, Icon }) => (
         <button
           key={category}
           type="button"
@@ -35,12 +43,13 @@ const SessionCategoryPicker = ({ value, onChange }: SessionCategoryPickerProps) 
             <Icon
               className={`w-6 h-6 ${value === category ? ' ' : 'text-[var(--muted)]'}`}
             />
-            <span className="font-medium text-xs">{label}</span>
+            <span className="font-medium text-xs">{labels[category]}</span>
           </div>
         </button>
       ))}
     </div>
   </div>
-);
+  );
+};
 
 export default SessionCategoryPicker;

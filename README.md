@@ -82,7 +82,7 @@ Otomatik yedek kontrolü her 5 dakikada çalışır. Son başarılı otomatik ye
 
 Admin hesabıyla [Site ayarları](http://localhost:3000/admin/settings) → Genel bölümünü açın. Site adı, açıklama, logo URL'si ve ikon seçimini kaydedin. Aynı ad giriş/kayıt, menü, yükleme ekranı ve tarayıcı başlığında; açıklama/ikon ilgili metadata ve favicon'da kullanılır. Türkçe veya başka bir marka adı seçilebilir. Kod/dosya adlarının İngilizce oluşu bu görünen adı sınırlamaz. Repo/paket adı ve hosting domain'i bu ayarla değişmez.
 
-Site kimliği kaydı mevcut ekranda hemen uygulanır; diğer açık ekranlar açılış/focus veya görünürken 60 saniyelik yenilemeyle alır. Gerçek siteye yeni bir ad atanmadı; ekran görüntülerindeki “Odak Atlası” geçici test verisidir.
+Yönetim ayarlarındaki **Kelimeler** bölümü ders/konu/seans kavramlarının görünen adını değiştiren hazır setler sunar (Genel: proje/görev/seans, Eğitim, Hedef, Beceri). Varsayılan nötr Genel setidir; yalnız görünen kelimeler değişir, kayıtlı veri ve yetkiler değişmez. Site kimliği kaydı mevcut ekranda hemen uygulanır; diğer açık ekranlar açılış/focus veya görünürken 60 saniyelik yenilemeyle alır. Gerçek siteye yeni bir ad atanmadı; ekran görüntülerindeki “Odak Atlası” geçici test verisidir.
 
 `GET /api/settings` yalnız public kimlik alanlarını döndürür. Private ayarlar `GET /api/settings/admin` ile admin yetkisi gerektirir; genel okuma ve kalıcı browser cache'inde admin e-postası/güvenlik ayarları bulunmaz. Güncellemeler izinli alan/tip şeması ve tek transaction kullanır. Eski public category ayar okuma yolu kaldırıldı. Kayıt izni/bakım/sessionTimeout gibi kalan ayarların sunucuda uygulanması hâlâ backlog'dadır.
 

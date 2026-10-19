@@ -3,6 +3,8 @@ import { Dialog } from '@headlessui/react';
 import { NavLink, Link } from 'react-router-dom';
 import { X, Home, BookOpen, Calendar, User, Users, Settings, LayoutDashboard, Timer, Sliders, ArrowUpRight, type LucideIcon } from 'lucide-react';
 import { clsx } from 'clsx';
+import type { Terms } from '@study-tracker/contracts';
+import { useTerms } from '../../hooks/useTerms';
 import { useAuthStore } from '../../store/authStore';
 
 interface SidebarProps {
@@ -16,16 +18,16 @@ interface NavigationItem {
   icon: LucideIcon;
 }
 
-const navigation: NavigationItem[] = [
+const navigation = (t: Terms): NavigationItem[] => [
   { name: 'Genel bakış', href: '/dashboard', icon: Home },
   { name: 'Planlayıcı', href: '/planner', icon: Calendar },
-  { name: 'Dersler', href: '/courses', icon: BookOpen },
+  { name: t.course({ capitalize: true, plural: true }), href: '/courses', icon: BookOpen },
   { name: 'Pomodoro', href: '/pomodoro', icon: Timer },
 ];
-const adminNavigation: NavigationItem[] = [
+const adminNavigation = (t: Terms): NavigationItem[] => [
   { name: 'Yönetim özeti', href: '/admin', icon: LayoutDashboard },
   { name: 'Kullanıcılar', href: '/admin/users', icon: Users },
-  { name: 'Ders yönetimi', href: '/admin/courses', icon: BookOpen },
+  { name: `${t.course({ capitalize: true })} yönetimi`, href: '/admin/courses', icon: BookOpen },
   { name: 'Site ayarları', href: '/admin/settings', icon: Sliders },
 ];
 const accountNavigation: NavigationItem[] = [
@@ -35,6 +37,7 @@ const accountNavigation: NavigationItem[] = [
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const user = useAuthStore(state => state.user);
+  const t = useTerms();
 
   const renderLinks = (items: NavigationItem[]) => items.map(item => (
     <NavLink key={item.href} to={item.href} end={item.href === '/admin'} onClick={onClose}
@@ -54,13 +57,13 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       </div>
       <nav aria-label="Ana gezinme" className="flex-1 overflow-y-auto px-3 py-6">
         <p className="nav-label">Çalışma alanı</p>
-        <div className="space-y-1">{renderLinks(navigation)}</div>
-        {user?.role === 'admin' && <div className="mt-7"><p className="nav-label">Yönetim</p><div className="space-y-1">{renderLinks(adminNavigation)}</div></div>}
+        <div className="space-y-1">{renderLinks(navigation(t))}</div>
+        {user?.role === 'admin' && <div className="mt-7"><p className="nav-label">Yönetim</p><div className="space-y-1">{renderLinks(adminNavigation(t))}</div></div>}
         <div className="mt-7"><p className="nav-label">Hesap</p><div className="space-y-1">{renderLinks(accountNavigation)}</div></div>
       </nav>
       <div className="mx-3 mb-4 rounded-lg border bg-[var(--surface)] p-3.5">
         <div className="mb-2 flex items-center gap-2 text-xs font-medium"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Odaklanmaya hazır</div>
-        <p className="text-xs leading-5 text-[var(--muted)]">Bir seans, tek bir hedef.</p>
+        <p className="text-xs leading-5 text-[var(--muted)]">Bir {t.session()}, tek bir odak.</p>
         <Link to="/pomodoro" onClick={onClose} className="mt-3 flex items-center justify-between text-xs font-medium">Odaklanmaya başla<ArrowUpRight className="h-3.5 w-3.5" /></Link>
       </div>
       <div className="flex items-center gap-2 border-t px-5 py-4 text-xs text-[var(--muted)]"><span className="avatar h-7 w-7 text-[10px]">{user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}</span><span className="truncate">{user?.fullName}</span></div>

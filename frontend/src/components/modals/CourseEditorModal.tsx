@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import { useId, useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -25,6 +26,7 @@ function CourseEditor({
   course,
   defaultGlobal = false,
 }: Omit<Props, 'isOpen'>) {
+  const t = useTerms();
   const { user } = useAuthStore();
   const admin = user?.role === 'admin';
   const keys = useAccountQueryKeys();
@@ -93,7 +95,7 @@ function CourseEditor({
     });
     if (!result.success) {
       const messages: Record<string, string> = {
-        name: 'Ders adı 1–100 karakter olmalıdır.',
+        name: `${t.course({ capitalize: true })} adı 1–100 karakter olmalıdır.`,
         categoryId: 'Bir kategori seçin.',
         color: 'Geçerli bir HEX renk kodu girin.',
         icon: 'Simge adı en fazla 50 karakter olabilir.',
@@ -137,14 +139,14 @@ function CourseEditor({
         course
           ? coursesAPI.updateCourse(String(course.id), patch)
           : coursesAPI.createCourse(payload),
-      course ? 'Ders güncellendi.' : 'Ders oluşturuldu.',
+      course ? `${t.course({ capitalize: true })} güncellendi.` : `${t.course({ capitalize: true })} oluşturuldu.`,
     );
     if (saved) onClose();
   };
   return (
     <EditorDialog
-      title={course ? 'Dersi düzenle' : 'Ders ekle'}
-      description="Dersin adını, kategorisini ve görünümünü belirleyin."
+      title={course ? `${t.course({ case: 'acc', capitalize: true })} düzenle` : `${t.course({ capitalize: true })} ekle`}
+      description={`${t.course({ case: 'gen', capitalize: true })} adını, kategorisini ve görünümünü belirleyin.`}
       pending={mutation.isPending}
       error={mutation.errorMessage}
       onClose={onClose}
@@ -156,7 +158,7 @@ function CourseEditor({
       }
     >
       <div>
-        {label('name', 'Ders adı')}
+        {label('name', `${t.course({ capitalize: true })} adı`)}
         <input
           {...field('name')}
           className="input"
@@ -292,7 +294,7 @@ function CourseEditor({
               checked={form.isActive}
               onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
             />
-            Aktif ders
+            Aktif {t.course()}
           </label>
         </div>
       )}

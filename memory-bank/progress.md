@@ -2,6 +2,28 @@
 
 Son güncelleme: 18 Ekim 2026, A22 otomatik erişilebilirlik/Lighthouse; yerel schema 006.
 
+## Ürün yönü ve yol haritası (19 Ekim 2026)
+
+**Karar (kullanıcı, 19 Ekim 2026):** Ürün TYT/AYT'ye veya yalnızca öğrencilere özel değildir. Alan/kitle bağımsız, global ve değişken odaklı bir çalışma/görev takip sistemidir; her kesime uyacak şekilde yapılandırılabilir olmalıdır. Hiçbir ekran, tip, varsayılan veya metin tek bir sınav/kitleye bağlanmaz. Bu karar projectbrief/productContext'teki eski "öğrenci/TYT-AYT" anlatımının yerine geçer. Her adım küçük, doğrulanabilir ve geriye dönük uyumludur; kalıcı veri sözleşmesi migration olmadan daraltılmaz.
+
+Sıra (öncelik: önce yanlış varsayımları kaldır, sonra yapılandırılabilirlik, sonra eksik özellikler):
+
+| # | Paket | Durum | Kabul ölçütü |
+|---|---|---|---|
+| R1 | Kitle bağımsız dil ve alanlar | **Yapıldı (19 Ekim)** | UI/kodda TYT/AYT enum'u ve "Öğrenci" etiketi yok; tek `roleLabel`; `studyField` serbest metin (eski değerler geçerli, migration yok); çift `Topic` tipi birleşti. check + E2E yeşil |
+| R2 | Yapılandırılabilir terminoloji | **R2a–R2c yapıldı (19 Ekim); R2d serbest özelleştirme bekliyor** | Admin ayarıyla site genelinde "Ders/Konu/Çalışma seansı" sözlüğü (örn. Proje/Görev/Oturum, Ders/Konu); tek `terms` modülü, sabit yazılmış kelime yok; varsayılan nötr. Önce tasarım notu, public ayar DTO'su genişler (migration gerekmez, settings key/value). Karar gerek: hazır set mi, serbest metin mi |
+| R3 | Global varsayılanlar | Bekliyor | `timezone` varsayılanı tarayıcıdan (şu an Europe/Istanbul sabit), tarih/hafta başlangıcı yerel ayardan; `language` tercihi gerçek mi (i18n altyapısı) yoksa kaldırılsın mı — karar gerek |
+| R4 | Çalışmayan tercihleri bağla | Bekliyor | Günlük/haftalık hedef panoda gerçek ölçülen süreyle karşılaştırılır; aktif günler hedef/özetlerde kullanılır; bildirim anahtarları ya gerçek teslimata bağlanır ya ekrandan kaldırılır (çalışmayan seçenek gösterilmez) |
+| R5 | Profil/Ayarlar tekrarı | Bekliyor | Ad ve parola tek yerde; diğer sayfa yönlendirir |
+| R6 | Genel istatistik | Bekliyor | Kategori/ders bazlı dağılım, aralık seçimi, hedefle gerçekleşen; ölçülmemiş eski süre hariç |
+| R7 | Global arama | Bekliyor | Header araması ders/konu/seans başlığı ve not içinde arar, yetki kapsamına uyar |
+| R8 | Hesap kurtarma | Bekliyor | Şifre sıfırlama akışı; e-posta altyapısı kararı gerekir (SMTP/sağlayıcı) |
+| R9 | Sağlamlaştırma | Bekliyor | Major bağımlılıklar + audit, mobil ilk yük (Lighthouse 90+), LICENSE kararı, giriş/kayıt sayfalarının nötr token'a taşınması |
+
+R2 notları: `packages/contracts/src/terminology.ts` tek kaynaktır: dört hazır set (Genel=proje/görev/seans varsayılan, Eğitim=ders/konu/seans, Hedef=hedef/adım/seans, Beceri=beceri/alıştırma/seans) ve Türkçe ek/ünlü uyumu yapan `inflect` (hâl: nom/acc/dat/gen/loc/abl, çoğul); yumuşama (kitap→kitabı) bilinçli yok, serbest metin eklenmeden önce istisna listesi şart. Ayar `terminologyPreset` site ayarları key/value'sundadır (public DTO'da zorunlu alan; schema `.default` KULLANILMAZ çünkü `.partial()` yamasına varsayılanı enjekte edip her kaydı sıfırlıyordu — testle kanıtlandı). Frontend `useTerms()` ile ~35 dosyada ders/konu/seans kelimeleri türetilir; kalıp: ek gerektiren yerde terim hâl biçimiyle, ad sonda (`"{ad}"` iki nokta sonrası) veya birleşik isimlerde ikinci ad sahiplik eki gerektirdiği için "çalışma seansı" yerine yalın terim kullanılır. Vitest tüm test dosyalarında Eğitim setini önbellekten yükler (tests/setup-terminology.ts); varsayılan ve geçiş testleri tests/terminology.test.tsx içindedir. **R2c (yapıldı):** backend/contracts mesajlarındaki ders/konu/seans kelimeleri (≈40) nötr "kayıt/alt kayıt" ifadesine çevrildi (ürün adı da `API çalışıyor` sağlık mesajından çıktı); testler mesaj metnine bağlı değildi. **R2d (bekliyor):** serbest özelleştirme (admin kendi kelimesini yazar; ünlü yumuşaması istisna listesi + önizleme).
+
+R1 notları: roller kalıcı değeri `student` olarak kalır (yeniden adlandırma migration ister); görünen ad "Kullanıcı". `studyField` anahtarı kalıcı sözleşmedir; anlamı "odak alanı" serbest metin (en çok 60 karakter) olarak genişletildi. Backend/seed zaten genel kategoriler içerir.
+
 ## Kod tabanı temizliği (19 Ekim 2026)
 
 Faz 1–4 uygulandı: ölü kod/CSS/Tailwind yapılandırması/export, kullanılmayan dört uç, 18 `any` (kural artık `error`), kök `eslint-plugin-react-hooks`, README ve `.env.example` düzeltmeleri. `npm run check` yeşil (18/141/200), `npm run test:e2e` 36/36; üretim CSS hash'i değişmedi. Aynı gün Faz 5 büyük dosya bölme de yapıldı (CreateSessionModal, PlannerCalendar, api.ts/httpClient, Ayarlar/Profil/Ders detay sayfaları; check 18/141/216, E2E 36/36). Major bağımlılıklar ve LICENSE kararı bekliyor. Ayrıntı: implementation/2026-10-19-cleanup.md.

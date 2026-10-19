@@ -38,7 +38,6 @@
     "test:lighthouse": "node tests/e2e/run.mjs --config playwright.lighthouse.config.ts"
   },
   "keywords": [
-    "education",
     "study-tracker",
     "planning",
     "react",

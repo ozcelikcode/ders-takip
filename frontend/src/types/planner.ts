@@ -63,25 +63,5 @@ export type UpdateStudySessionRequest = Omit<
   'expectedUpdatedAt'
 >;
 
-export interface Topic {
-  id: number;
-  name: string;
-  courseId: number;
-  description?: string;
-  estimatedTime: number;
-  difficulty: 'Kolay' | 'Orta' | 'Zor';
-  order: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  course?: {
-    id: number;
-    name: string;
-    category: 'TYT' | 'AYT';
-    color: string;
-    icon: string;
-  };
-}
-
 export type CreateTopicRequest = CreateTopicInput;
 export type UpdateTopicRequest = UpdateTopicInput;

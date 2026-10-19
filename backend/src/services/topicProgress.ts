@@ -24,7 +24,7 @@ export async function setTopicProgress(actor: Actor, topicId: number, status: To
       include: [{ model: Course, as: 'course', required: true, where: visibleCourseWhere(actor), attributes: [] }],
       transaction,
     });
-    if (!topic) throw Object.assign(new Error('Konu bulunamadı'), { statusCode: 404 });
+    if (!topic) throw Object.assign(new Error('Kayıt bulunamadı'), { statusCode: 404 });
     if (status === 'not_started') await UserTopicProgress.destroy({ where: { userId: actor.id, topicId }, transaction });
     else await UserTopicProgress.upsert({ userId: actor.id, topicId, status }, { transaction });
     return { topicId, courseId: topic.courseId, status };

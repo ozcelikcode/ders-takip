@@ -1,3 +1,5 @@
+import { useTerms } from '../../hooks/useTerms';
+import { roleLabel } from '../../lib/roleLabels';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, BookOpen, Settings, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -13,6 +15,7 @@ import {
 
 function AdminOverview() {
   const keys = useAccountQueryKeys();
+  const t = useTerms();
   const overview = useQuery({
     queryKey: keys.resource('admin-overview'),
     queryFn: async () => {
@@ -40,12 +43,12 @@ function AdminOverview() {
           detail: `${data.users.active} aktif hesap`,
         },
         {
-          label: 'Dersler',
+          label: t.course({ plural: true, capitalize: true }),
           value: data.courses.total,
-          detail: `${data.courses.active} aktif ders`,
+          detail: `${data.courses.active} aktif ${t.course()}`,
         },
         {
-          label: 'Seanslar',
+          label: t.session({ plural: true, capitalize: true }),
           value: data.sessions.totalSessions,
           detail: `${data.sessions.completedSessions} tamamlanan`,
         },
@@ -64,8 +67,8 @@ function AdminOverview() {
       icon: Users,
     },
     {
-      title: 'Ders yönetimi',
-      detail: 'Ortak ve kişisel dersler',
+      title: `${t.course({ capitalize: true })} yönetimi`,
+      detail: `Ortak ve kişisel ${t.course({ plural: true })}`,
       href: '/admin/courses',
       icon: BookOpen,
     },
@@ -80,7 +83,7 @@ function AdminOverview() {
     <div className="space-y-6">
       <PageHeader
         title="Yönetim özeti"
-        description="Tüm kullanıcıların hesap, ders ve çalışma verilerine genel bakış."
+        description={`Tüm kullanıcıların hesap, ${t.course()} ve çalışma verilerine genel bakış.`}
       />
       <section aria-label="Sistem özeti" aria-busy={overview.isFetching}>
         {overview.isPending ? (
@@ -201,7 +204,7 @@ function AdminOverview() {
                       </span>
                     </span>
                     <span className="badge shrink-0">
-                      {user.role === 'admin' ? 'Yönetici' : 'Öğrenci'}
+                      {roleLabel(user.role)}
                     </span>
                   </li>
                 ))}
@@ -215,21 +218,21 @@ function AdminOverview() {
         >
           <div className="panel-heading">
             <h2 id="recent-admin-sessions" className="text-sm font-medium">
-              Son çalışma seansları
+              Son {t.session({ plural: true })}
             </h2>
           </div>
           <div className="p-5">
             {overview.isPending ? (
               <p role="status" className="text-sm text-[var(--muted)]">
-                Seanslar yükleniyor…
+                {t.session({ plural: true, capitalize: true })} yükleniyor…
               </p>
             ) : overview.isError ? (
               <p role="status" className="text-sm text-[var(--muted)]">
-                Seanslar için yönetim özetini tekrar yükleyin.
+                {t.session({ plural: true, capitalize: true })} için yönetim özetini tekrar yükleyin.
               </p>
             ) : data?.recentSessions.length === 0 ? (
               <p className="text-sm text-[var(--muted)]">
-                Henüz çalışma seansı yok.
+                Henüz {t.session()} yok.
               </p>
             ) : (
               <ul className="divide-y divide-[var(--line)]">

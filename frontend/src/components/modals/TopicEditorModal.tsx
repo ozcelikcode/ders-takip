@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import { useId, useState, type FormEvent } from 'react';
 import {
   createTopicSchema,
@@ -18,6 +19,7 @@ interface Props {
 }
 
 function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
+  const t = useTerms();
   const mutation = useCatalogMutation();
   const prefix = useId();
   const [initial] = useState(() => ({
@@ -57,7 +59,7 @@ function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
     });
     if (!result.success) {
       const messages: Record<string, string> = {
-        name: 'Konu adı 1–200 karakter olmalıdır.',
+        name: `${t.topic({ capitalize: true })} adı 1–200 karakter olmalıdır.`,
         estimatedTime: 'Süre 5–480 arasında bir tam sayı olmalıdır.',
         difficulty: 'Bir zorluk seviyesi seçin.',
       };
@@ -91,17 +93,17 @@ function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
         topic
           ? topicsAPI.updateTopic(String(topic.id), patch)
           : topicsAPI.createTopic(result.data),
-      topic ? 'Konu güncellendi.' : 'Konu oluşturuldu.',
+      topic ? `${t.topic({ capitalize: true })} güncellendi.` : `${t.topic({ capitalize: true })} oluşturuldu.`,
     );
     if (saved) onClose();
   };
   return (
     <EditorDialog
-      title={topic ? 'Konuyu düzenle' : 'Konu ekle'}
+      title={topic ? `${t.topic({ case: 'acc', capitalize: true })} düzenle` : `${t.topic({ capitalize: true })} ekle`}
       description={
         topic?.isActive === false
-          ? 'Arşivdeki konuyu düzenliyorsunuz. Değişiklikler konuyu aktif hale getirmez.'
-          : `${course.name} dersine ait konu bilgilerini belirleyin.`
+          ? `Arşivdeki ${t.topic({ case: 'acc' })} düzenliyorsunuz. Değişiklikler aktif hale getirmez.`
+          : `${course.name} ${t.course({ case: 'dat' })} ait ${t.topic()} bilgilerini belirleyin.`
       }
       pending={mutation.isPending}
       error={mutation.errorMessage}
@@ -109,7 +111,7 @@ function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
       onSubmit={(event) => void submit(event)}
     >
       <div>
-        {label('name', 'Konu adı')}
+        {label('name', `${t.topic({ capitalize: true })} adı`)}
         <input
           {...field('name')}
           className="input"

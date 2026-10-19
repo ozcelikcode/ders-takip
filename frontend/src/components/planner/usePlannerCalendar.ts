@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import { useEffect, useRef, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -29,6 +30,7 @@ const errorMessage = (error: unknown) =>
       : 'İşlem tamamlanamadı.';
 
 export function usePlannerCalendar(mode: CalendarMode) {
+  const t = useTerms();
   const timezone = useUserPreferencesStore(
     (state) => state.preferences.timezone,
   );
@@ -176,7 +178,7 @@ export function usePlannerCalendar(mode: CalendarMode) {
     }
     await perform(
       () => studySessionsAPI.startSession(session),
-      'Çalışma seansı başlatıldı',
+      `${t.session({ capitalize: true })} başlatıldı`,
     );
   };
   const confirm = async () => {
@@ -191,10 +193,10 @@ export function usePlannerCalendar(mode: CalendarMode) {
     const success = await perform(
       operation,
       action === 'pause'
-        ? 'Seans duraklatıldı'
+        ? `${t.session({ capitalize: true })} duraklatıldı`
         : action === 'complete'
-          ? 'Seans tamamlandı'
-          : 'Seans silindi',
+          ? `${t.session({ capitalize: true })} tamamlandı`
+          : `${t.session({ capitalize: true })} silindi`,
     );
     if (success) setConfirmation(null);
     return success;

@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import { Dialog } from '@headlessui/react';
 import {
   calendarViewDate,
@@ -47,6 +48,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
   sourceUnavailable = false,
   onReload,
 }) => {
+  const t = useTerms();
   const timezone = useUserPreferencesStore(
     (state) => state.preferences.timezone,
   );
@@ -165,7 +167,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
               className="space-y-2 border-b border-[var(--line)] p-4 text-sm"
             >
               <p>
-                Güncel seans okunamadı veya bu takvim aralığında bulunamadı.
+                Güncel {t.session()} okunamadı veya bu takvim aralığında bulunamadı.
                 Kaydetmeden önce yeniden yükleyin.
               </p>
               <button
@@ -174,7 +176,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
                 onClick={onReload}
                 className="btn btn-secondary"
               >
-                Seansı yeniden yükle
+                {t.session({ case: 'acc', capitalize: true })} yeniden yükle
               </button>
             </div>
           )}

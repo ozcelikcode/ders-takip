@@ -8,7 +8,7 @@ const totalKey = (kind: SessionInterval['kind']) => kind === 'study' ? 'studySec
 
 export async function recordActivity(session: StudySession, nextStatus: SessionStatus, activityKind: ActivityKind | undefined, transaction: Transaction, at = new Date(Date.now())) {
   if (nextStatus === session.status && activityKind === undefined) return;
-  if (activityKind !== undefined && nextStatus !== 'in_progress') throw Object.assign(new Error('Etkinlik türü yalnız çalışan seansta değiştirilebilir'), { statusCode: 409 });
+  if (activityKind !== undefined && nextStatus !== 'in_progress') throw Object.assign(new Error('Etkinlik türü yalnız çalışan kayıtta değiştirilebilir'), { statusCode: 409 });
   const intervals = await SessionInterval.findAll({ where: { sessionId: session.id }, order: [['startedAt', 'ASC'], ['id', 'ASC']], transaction });
   const open = intervals.find(interval => !interval.endedAt);
   const lastActive = [...intervals].reverse().find(interval => interval.kind !== 'pause');

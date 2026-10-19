@@ -1,3 +1,5 @@
+import { useTerms } from '../../hooks/useTerms';
+import { roleLabel } from '../../lib/roleLabels';
 import { Popover } from '@headlessui/react';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -17,6 +19,7 @@ interface HeaderProps {
 }
 export default function Header({ onMenuClick }: HeaderProps) {
   const { user } = useAuthStore();
+  const t = useTerms();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const sectionName = pathname.startsWith('/admin')
@@ -24,7 +27,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     : {
         dashboard: 'Genel bakış',
         planner: 'Planlayıcı',
-        courses: 'Dersler',
+        courses: t.course({ capitalize: true, plural: true }),
         pomodoro: 'Pomodoro',
         profile: 'Profil',
         settings: 'Ayarlar',
@@ -64,11 +67,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 className="pointer-events-none absolute left-3 top-2 h-4 w-4 text-[var(--muted)]"
               />
               <input
-                aria-label="Ders veya konu ara"
+                aria-label={`${t.course({ capitalize: true })} veya ${t.topic()} ara`}
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Ders veya konu ara…"
+                placeholder={`${t.course({ capitalize: true })} veya ${t.topic()} ara…`}
                 className="input h-8 pl-9 pr-12 text-xs"
               />
               <button
@@ -112,7 +115,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       </span>
                       {' '}
                       <span className="block text-xs text-[var(--muted)]">
-                        {user?.role === 'admin' ? 'Yönetici' : 'Öğrenci'}
+                        {user ? roleLabel(user.role) : ''}
                       </span>
                     </span>
                   </Popover.Button>

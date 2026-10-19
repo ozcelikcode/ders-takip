@@ -1,3 +1,4 @@
+import { useTerms } from './../../hooks/useTerms';
 import type { UseFormRegister, UseFormSetValue } from 'react-hook-form';
 import type { CreateSessionForm } from './sessionForm';
 
@@ -23,7 +24,9 @@ interface SessionColorPickerProps {
   setValue: UseFormSetValue<CreateSessionForm>;
 }
 
-const SessionColorPicker = ({ selected, register, setValue }: SessionColorPickerProps) => (
+const SessionColorPicker = ({ selected, register, setValue }: SessionColorPickerProps) => {
+  const t = useTerms();
+  return (
   <div>
     <label className="block text-sm font-medium mb-3">
       Renk Seçimi
@@ -47,12 +50,13 @@ const SessionColorPicker = ({ selected, register, setValue }: SessionColorPicker
           }`}
           style={{ backgroundColor: color.value }}
           title={color.name}
-          aria-label={`${color.name} seans rengi`}
+          aria-label={`${color.name} ${t.session()} rengi`}
           aria-pressed={selected === color.value}
         />
       ))}
     </div>
   </div>
-);
+  );
+};
 
 export default SessionColorPicker;

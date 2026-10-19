@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, BookOpen, Calendar, Clock, CheckCircle, Layers, Plus, Timer } from 'lucide-react';
@@ -15,6 +16,7 @@ import { useAuthStore } from '../../store/authStore';
 
 const DashboardPage = () => {
   const accountKeys = useAccountQueryKeys();
+  const t = useTerms();
   const timezone = useUserPreferencesStore(state => state.preferences.timezone);
   const firstName = useAuthStore(state => state.user?.firstName);
   const { data: courses, isLoading: coursesLoading, isError: coursesError } = useQuery({
@@ -28,15 +30,15 @@ const DashboardPage = () => {
   });
 
   const stats = [
-    { label: 'Dersler', value: courses?.length || 0, detail: 'Çalışma alanındaki dersler', icon: BookOpen, loading: coursesLoading, error: coursesError },
-    { label: 'Konular', value: courses?.reduce((sum, course) => sum + (course.topics?.length || 0), 0) || 0, detail: 'Derslere bağlı konular', icon: Layers, loading: coursesLoading, error: coursesError },
-    { label: 'Tamamlanan seans', value: statsData?.completedSessions || 0, detail: 'Tüm zamanlar', icon: CheckCircle, loading: sessionsLoading, error: sessionsError },
+    { label: t.course({ plural: true, capitalize: true }), value: courses?.length || 0, detail: `Çalışma alanındaki ${t.course({ plural: true })}`, icon: BookOpen, loading: coursesLoading, error: coursesError },
+    { label: t.topic({ plural: true, capitalize: true }), value: courses?.reduce((sum, course) => sum + (course.topics?.length || 0), 0) || 0, detail: `${t.course({ case: 'dat', plural: true, capitalize: true })} bağlı ${t.topic({ plural: true })}`, icon: Layers, loading: coursesLoading, error: coursesError },
+    { label: `Tamamlanan ${t.session()}`, value: statsData?.completedSessions || 0, detail: 'Tüm zamanlar', icon: CheckCircle, loading: sessionsLoading, error: sessionsError },
     { label: 'Ölçülen çalışma', value: formatMeasuredTime(statsData?.studySeconds ?? 0), detail: statsData?.untrackedSessions || statsData?.partialSessions ? 'Ölçülmemiş eski süreler toplama dahil değil' : 'Mola ve duraklama hariç', icon: Clock, loading: sessionsLoading, error: sessionsError },
   ];
   const shortcuts = [
     { title: 'Haftanı planla', description: 'Çalışmalarına takvimde yer aç.', href: '/planner', icon: Calendar },
-    { title: 'Derslerine göz at', description: 'Konularını ve kaynaklarını düzenle.', href: '/courses', icon: BookOpen },
-    { title: 'Odağını topla', description: 'Pomodoro ile bir seansa başla.', href: '/pomodoro', icon: Timer },
+    { title: `${t.course({ case: 'dat', plural: true, capitalize: true })} göz at`, description: `${t.topic({ case: 'acc', plural: true, capitalize: true })} ve kaynakları düzenle.`, href: '/courses', icon: BookOpen },
+    { title: 'Odağını topla', description: `Pomodoro ile bir ${t.session({ case: 'dat' })} başla.`, href: '/pomodoro', icon: Timer },
   ];
 
   return (
@@ -44,7 +46,7 @@ const DashboardPage = () => {
       <PageHeader eyebrow={format(calendarViewDate(new Date(), timezone), 'd MMMM yyyy, EEEE', { locale: tr })}
         title={`Merhaba${firstName ? `, ${firstName}` : ''}.`}
         description="Çalışmalarına bir adım uzaktan bak. Sıradaki adımını planla."
-        actions={<Link to="/planner" className="btn btn-primary"><Plus className="h-4 w-4" />Seans planla</Link>} />
+        actions={<Link to="/planner" className="btn btn-primary"><Plus className="h-4 w-4" />{t.session({ capitalize: true })} planla</Link>} />
 
       <section aria-label="Çalışma özeti" className="panel grid grid-cols-2 divide-x divide-[var(--line)] lg:grid-cols-4">
         {stats.map((stat, index) => <div key={stat.label} className={`p-5 sm:p-6 ${index > 1 ? 'border-t lg:border-t-0' : ''}`}>

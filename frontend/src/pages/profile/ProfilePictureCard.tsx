@@ -1,3 +1,4 @@
+import { roleLabel } from '../../lib/roleLabels';
 import { Camera, Upload, User as UserIcon, X } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import type { User } from '../../types/auth';
@@ -49,7 +50,7 @@ const ProfilePictureCard = ({
           <h2 className="text-base font-medium">{user?.fullName}</h2>
           <p className="text-sm text-[var(--muted)]">@{user?.username}</p>
           <p className="mt-1 text-xs text-[var(--muted)]">
-            {user?.role === 'admin' ? 'Yönetici' : 'Öğrenci'}
+            {user ? roleLabel(user.role) : ''}
           </p>
         </div>
 

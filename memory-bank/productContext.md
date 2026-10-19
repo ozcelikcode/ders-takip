@@ -4,7 +4,7 @@
 
 Mevcut ürünün güvenilirliği, gerçek çalışma süresinin doğru ölçülmesi, kullanıcılar arasında veri gizliliği ve veri kaybetmeden devam edebilmek yeni özelliklerden önce gelir. Teknik açıklar `audits/2026-10-15-project-audit.md`, kalıcı çalışma disiplini `workingPrinciples.md` içinde kayıtlıdır.
 
-Aşağıdaki kullanıcı yolculukları ve gelecek vizyonu ürün hedefleridir; uygulanmış/ölçülmüş davranış değildir. Kısa/orta/uzun vade süreleri tarihsel vizyon olarak okunmalı, güncel teslim taahhüdü sayılmamalıdır. AI, sosyal, PWA/offline ve takım özellikleri şu anda aktif iş kapsamına alınmadı. Eğitim odağı ile genel iş/görev takibi arasındaki ürün yönü yeni özellik öncesi netleştirilecektir.
+Aşağıdaki kullanıcı yolculukları ve gelecek vizyonu ürün hedefleridir; uygulanmış/ölçülmüş davranış değildir. Kısa/orta/uzun vade süreleri tarihsel vizyon olarak okunmalı, güncel teslim taahhüdü sayılmamalıdır. AI, sosyal, PWA/offline ve takım özellikleri şu anda aktif iş kapsamına alınmadı. Ürün yönü 19 Ekim 2026'da netleşti: alan/kitle bağımsız, global ve değişken odaklı sistem (TYT/AYT zorunluluğu yok); aşağıdaki öğrenci/TYT örnekleri tarihsel senaryodur ve yol haritası progress.md'dedir.
 
 İlk iyileştirme paketi geliştirme tabanını ve temel erişim/veri güvenliğini ele aldı. Kullanıcıya görünen Türkçe içerik korundu; yanıltıcı sabit demo hesap bilgileri kaldırıldı. Yeni özellik veya ürün yönü kararı alınmadı.
 

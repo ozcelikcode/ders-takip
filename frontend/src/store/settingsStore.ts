@@ -23,9 +23,11 @@ interface SettingsState {
 localStorage.removeItem('settings-storage');
 const initial = () => {
   try {
-    return publicSettingsSchema.parse(
-      JSON.parse(localStorage.getItem('site-branding') || 'null'),
-    );
+    // Defaults first so a cache written before a field existed still loads.
+    return publicSettingsSchema.parse({
+      ...defaultSiteSettings,
+      ...JSON.parse(localStorage.getItem('site-branding') || 'null'),
+    });
   } catch {
     return publicSettingsSchema.parse(defaultSiteSettings);
   }

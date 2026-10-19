@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import { useId, useState, type FormEvent } from 'react';
 import {
   createCategorySchema,
@@ -107,11 +108,12 @@ export default function CategoryEditorModal({
     );
     if (saved) onClose();
   };
+  const t = useTerms();
   if (user?.role !== 'admin') return null;
   return (
     <EditorDialog
       title={category ? 'Kategoriyi düzenle' : 'Kategori ekle'}
-      description="Kategoriler tüm kullanıcıların derslerini gruplar. Değişiklikler ortak kataloğa uygulanır."
+      description={`Kategoriler tüm kullanıcıların ${t.course({ case: 'acc', plural: true })} gruplar. Değişiklikler ortak kataloğa uygulanır.`}
       pending={mutation.isPending}
       error={mutation.errorMessage}
       onClose={onClose}

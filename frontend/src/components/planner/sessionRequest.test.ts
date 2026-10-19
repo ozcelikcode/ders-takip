@@ -46,10 +46,10 @@ describe('resolveSessionTitle', () => {
   });
 
   it('falls back by category', () => {
-    expect(resolveSessionTitle(form({ courseId: '99' }), [course()])).toBe('Ders Çalışması');
+    expect(resolveSessionTitle(form({ courseId: '99' }), [course()])).toBe('Çalışma');
     expect(resolveSessionTitle(form({ sessionCategory: 'break' }), [])).toBe('Mola');
     expect(resolveSessionTitle(form({ sessionCategory: 'custom', customTitle: 'Okuma' }), [])).toBe('Okuma');
-    expect(resolveSessionTitle(form({ sessionCategory: 'custom' }), [])).toBe('Çalışma Seansı');
+    expect(resolveSessionTitle(form({ sessionCategory: 'custom' }), [])).toBe('Çalışma');
   });
 });
 

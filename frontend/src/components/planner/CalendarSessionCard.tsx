@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import type { DragEvent, MouseEvent, PointerEvent, Ref } from 'react';
 import { CheckCircle, MoreHorizontal, Pause, Play, Timer } from 'lucide-react';
 import { formatZonedTime } from '@study-tracker/contracts';
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export default function CalendarSessionCard(props: Props) {
+  const t = useTerms();
   const { session, timezone, top, height, pending } = props;
   const compact = height < 68;
   const canStart = canStartSession(session);
@@ -95,7 +97,7 @@ export default function CalendarSessionCard(props: Props) {
                 aria-label={
                   session.sessionType === 'pomodoro'
                     ? 'Pomodoro sayacını aç'
-                    : 'Seansı başlat'
+                    : `${t.session({ case: 'acc', capitalize: true })} başlat`
                 }
                 onClick={props.onStart}
                 className="inline-flex min-h-6 min-w-6 items-center justify-center rounded hover:bg-[var(--subtle)] disabled:opacity-40"
@@ -117,7 +119,7 @@ export default function CalendarSessionCard(props: Props) {
                 )}
                 <button
                   disabled={pending}
-                  aria-label="Seansı duraklat"
+                  aria-label={`${t.session({ case: 'acc', capitalize: true })} duraklat`}
                   onClick={props.onPause}
                   className="inline-flex min-h-6 min-w-6 items-center justify-center rounded hover:bg-[var(--subtle)]"
                 >
@@ -125,7 +127,7 @@ export default function CalendarSessionCard(props: Props) {
                 </button>
                 <button
                   disabled={pending}
-                  aria-label="Seansı tamamla"
+                  aria-label={`${t.session({ case: 'acc', capitalize: true })} tamamla`}
                   onClick={props.onComplete}
                   className="inline-flex min-h-6 min-w-6 items-center justify-center rounded hover:bg-[var(--subtle)]"
                 >

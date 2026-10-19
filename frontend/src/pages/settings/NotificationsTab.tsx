@@ -3,7 +3,7 @@ import type { UserPreferences } from '@study-tracker/contracts';
 const OPTIONS = [
   { key: 'emailNotifications', label: 'E-posta Bildirimleri', description: 'Önemli güncellemeler için e-posta al' },
   { key: 'pushNotifications', label: 'Push Bildirimleri', description: 'Tarayıcı bildirimlerini etkinleştir' },
-  { key: 'taskReminders', label: 'Görev Hatırlatmaları', description: 'Yaklaşan çalışma seansları için hatırlatma al' },
+  { key: 'taskReminders', label: 'Hatırlatmalar', description: 'Yaklaşan planlar için hatırlatma al' },
 ] as const;
 
 interface NotificationsTabProps {

@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import { Pencil, Trash2 } from 'lucide-react';
 import { catalogIcon } from '../../components/catalog/catalogIcons';
 import type { CatalogCourse } from '../../types/catalog';
@@ -20,6 +21,7 @@ const CourseHeader = ({
   onEdit,
   onDelete,
 }: CourseHeaderProps) => {
+  const t = useTerms();
   const Icon = catalogIcon(course.icon);
   return (
       <section className="panel p-5 sm:p-6">
@@ -34,7 +36,7 @@ const CourseHeader = ({
             <div className="min-w-0">
               <p className="text-xs text-[var(--muted)]">
                 {course.category?.name}
-                {course.isGlobal ? ' · Ortak ders' : ''}
+                {course.isGlobal ? ` · Ortak ${t.course()}` : ''}
               </p>
               <h1 className="mt-1 break-words text-2xl font-medium tracking-tight">
                 {course.name}
@@ -53,21 +55,21 @@ const CourseHeader = ({
                 onClick={onEdit}
               >
                 <Pencil className="h-4 w-4" />
-                Dersi düzenle
+                {t.course({ case: 'acc', capitalize: true })} düzenle
               </button>
               <button
                 className="btn btn-secondary text-red-600"
                 onClick={onDelete}
               >
                 <Trash2 className="h-4 w-4" />
-                Dersi sil
+                {t.course({ case: 'acc', capitalize: true })} sil
               </button>
             </div>
           )}
         </div>
         <div className="mt-6 grid grid-cols-2 gap-4 border-t pt-5 sm:grid-cols-4">
           {[
-            [stats.total, 'Toplam Konu'],
+            [stats.total, `Toplam ${t.topic({ capitalize: true })}`],
             [stats.completed, 'Tamamlandı'],
             [stats.inProgress, 'Devam Ediyor'],
             [stats.notStarted, 'Başlanmadı'],
@@ -80,12 +82,12 @@ const CourseHeader = ({
         </div>
         <div className="mt-5">
           <div className="mb-2 flex justify-between text-xs text-[var(--muted)]">
-            <span>Aktif konularda ilerleme</span>
+            <span>Aktif {t.topic({ case: 'loc', plural: true })} ilerleme</span>
             <span>{progressPercentage}%</span>
           </div>
           <div
             role="progressbar"
-            aria-label="Konu ilerlemesi"
+            aria-label={`${t.topic({ capitalize: true })} ilerlemesi`}
             aria-valuenow={progressPercentage}
             aria-valuemin={0}
             aria-valuemax={100}

@@ -49,7 +49,6 @@ import type {
   CreateStudySessionRequest,
   CreateTopicRequest,
   StudySession,
-  Topic,
   UpdateStudySessionRequest,
   UpdateTopicRequest,
 } from '../types/planner';
@@ -305,13 +304,13 @@ export const studySessionsAPI = {
 export const topicsAPI = {
   createTopic: (
     data: CreateTopicRequest,
-  ): Promise<AxiosResponse<ApiResponse<{ topic: Topic }>>> =>
+  ): Promise<AxiosResponse<ApiResponse<{ topic: CatalogTopic }>>> =>
     api.post('/topics', data),
 
   updateTopic: (
     id: string,
     data: UpdateTopicRequest,
-  ): Promise<AxiosResponse<ApiResponse<{ topic: Topic }>>> =>
+  ): Promise<AxiosResponse<ApiResponse<{ topic: CatalogTopic }>>> =>
     api.put(`/topics/${id}`, data),
 
   deleteTopic: (id: string): Promise<AxiosResponse<ApiResponse>> =>
@@ -339,7 +338,7 @@ export const topicsAPI = {
   reorderTopics: (
     courseId: string,
     data: ReorderTopicsInput,
-  ): Promise<AxiosResponse<ApiResponse<{ topics: Topic[] }>>> =>
+  ): Promise<AxiosResponse<ApiResponse<{ topics: CatalogTopic[] }>>> =>
     api.put(`/topics/course/${courseId}/reorder`, data),
 };
 

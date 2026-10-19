@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import { Dialog } from '@headlessui/react';
 import { Clock, Edit, MoveRight, Timer, Trash2, X } from 'lucide-react';
 import type { StudySession } from '../../types/planner';
@@ -29,6 +30,7 @@ export default function SessionActionsMenu({
   onMove,
   onDelete,
 }: SessionActionsMenuProps) {
+  const t = useTerms();
   const run = (action: (session: StudySession) => void) => () => {
     if (!anchor) return;
     action(anchor.session);
@@ -43,7 +45,7 @@ export default function SessionActionsMenu({
           style={{ top: anchor.y, left: anchor.x }}
         >
           <Dialog.Title className="px-2 py-1 text-xs text-[var(--muted)]">
-            Seans işlemleri
+            {t.session({ capitalize: true })} işlemleri
           </Dialog.Title>
           <button className={itemClass} onClick={run(onEdit)}>
             <Edit className="h-4 w-4" />

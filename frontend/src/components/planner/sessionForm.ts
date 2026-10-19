@@ -30,14 +30,14 @@ export const sessionFormSchema = z
     if (data.sessionCategory === 'course' && !data.courseId) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Ders seçimi gereklidir',
+        message: 'Seçim gereklidir',
         path: ['courseId'],
       });
     }
     if (data.sessionCategory === 'custom' && !data.customTitle) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Özel görev başlığı gereklidir',
+        message: 'Başlık gereklidir',
         path: ['customTitle'],
       });
     }

@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Pencil, Plus, Search, Tag, Trash2 } from 'lucide-react';
@@ -14,6 +15,7 @@ import PageHeader from '../../components/common/PageHeader';
 
 export default function AdminCoursesPage() {
   const keys = useAccountQueryKeys();
+  const t = useTerms();
   const [search, setSearch] = useState('');
   const [editor, setEditor] = useState<{ course: CatalogCourse | null } | null>(
     null,
@@ -36,8 +38,8 @@ export default function AdminCoursesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Ders yönetimi"
-        description={`${courses.length} ders · Ortak ve kişisel dersleri yönetin.`}
+        title={`${t.course({ capitalize: true })} yönetimi`}
+        description={`${courses.length} ${t.course()} · Ortak ve kişisel ${t.course({ case: 'acc', plural: true })} yönetin.`}
         actions={
           <>
             <button
@@ -52,14 +54,14 @@ export default function AdminCoursesPage() {
               onClick={() => setEditor({ course: null })}
             >
               <Plus className="h-4 w-4" />
-              Ortak ders ekle
+              Ortak {t.course()} ekle
             </button>
           </>
         }
       />
       <div className="relative max-w-lg">
         <label htmlFor="admin-course-search" className="sr-only">
-          Ders veya kategori ara
+          {t.course({ capitalize: true })} veya kategori ara
         </label>
         <Search className="absolute left-3 top-3 h-4 w-4 text-[var(--muted)]" />
         <input
@@ -67,16 +69,16 @@ export default function AdminCoursesPage() {
           className="input pl-9"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Ders veya kategori ara…"
+          placeholder={`${t.course({ capitalize: true })} veya kategori ara…`}
         />
       </div>
       {query.isPending ? (
         <p role="status" className="text-sm text-[var(--muted)]">
-          Dersler yükleniyor…
+          {t.course({ plural: true, capitalize: true })} yükleniyor…
         </p>
       ) : query.isError ? (
         <div role="alert" className="panel p-6">
-          Dersler yüklenemedi.{' '}
+          {t.course({ plural: true, capitalize: true })} yüklenemedi.{' '}
           <button
             className="btn btn-secondary ml-2"
             onClick={() => void query.refetch()}
@@ -94,7 +96,7 @@ export default function AdminCoursesPage() {
                   <Icon className="h-5 w-5" style={{ color: course.color }} />
                   <div className="flex gap-2">
                     <span className="badge">
-                      {course.isGlobal ? 'Ortak ders' : 'Kişisel ders'}
+                      {course.isGlobal ? `Ortak ${t.course()}` : `Kişisel ${t.course()}`}
                     </span>
                     {!course.isActive && <span className="badge">Pasif</span>}
                   </div>
@@ -114,7 +116,7 @@ export default function AdminCoursesPage() {
                 <div className="mt-auto flex justify-end gap-2 border-t border-[var(--line)] pt-4">
                   <button
                     className="btn btn-secondary"
-                    aria-label={`${course.name} dersini düzenle`}
+                    aria-label={`${t.course({ case: 'acc', capitalize: true })} düzenle: ${course.name}`}
                     onClick={() => setEditor({ course })}
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -122,7 +124,7 @@ export default function AdminCoursesPage() {
                   </button>
                   <button
                     className="btn btn-secondary text-red-600"
-                    aria-label={`${course.name} dersini sil`}
+                    aria-label={`${t.course({ case: 'acc', capitalize: true })} sil: ${course.name}`}
                     onClick={() =>
                       setDeleting({
                         kind: 'course',
@@ -141,8 +143,8 @@ export default function AdminCoursesPage() {
           {filtered.length === 0 && (
             <p className="panel col-span-full p-8 text-center text-sm text-[var(--muted)]">
               {term
-                ? 'Aramaya uygun ders bulunamadı.'
-                : 'Henüz ders eklenmedi.'}
+                ? `Aramaya uygun ${t.course()} bulunamadı.`
+                : `Henüz ${t.course()} eklenmedi.`}
             </p>
           )}
         </div>

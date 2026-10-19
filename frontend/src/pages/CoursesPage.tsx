@@ -1,3 +1,4 @@
+import { useTerms } from '../hooks/useTerms';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -26,6 +27,7 @@ import PageHeader from '../components/common/PageHeader';
 
 export default function CoursesPage() {
   const keys = useAccountQueryKeys();
+  const t = useTerms();
   const { user } = useAuthStore();
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
@@ -57,8 +59,8 @@ export default function CoursesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Dersler"
-        description="Derslerinizi ve konularınızı tek yerde yönetin."
+        title={t.course({ plural: true, capitalize: true })}
+        description={`${t.course({ case: 'acc', plural: true, capitalize: true })} ve ${t.topic({ case: 'acc', plural: true })} tek yerde yönetin.`}
         actions={
           <>
             {user?.role === 'admin' && (
@@ -75,14 +77,14 @@ export default function CoursesPage() {
               onClick={() => setEditor({ course: null })}
             >
               <Plus className="h-4 w-4" />
-              Ders ekle
+              {t.course({ capitalize: true })} ekle
             </button>
           </>
         }
       />
       <div className="relative max-w-lg">
         <label htmlFor="course-search" className="sr-only">
-          Ders ve konu ara
+          {t.course({ capitalize: true })} ve {t.topic()} ara
         </label>
         <Search
           className="absolute left-3 top-3 h-4 w-4 text-[var(--muted)]"
@@ -91,7 +93,7 @@ export default function CoursesPage() {
         <input
           id="course-search"
           className="input pl-9 pr-10"
-          placeholder="Ders, kategori veya konu ara…"
+          placeholder={`${t.course({ capitalize: true })}, kategori veya ${t.topic()} ara…`}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
@@ -107,11 +109,11 @@ export default function CoursesPage() {
       </div>
       {query.isPending ? (
         <p role="status" className="text-sm text-[var(--muted)]">
-          Dersler yükleniyor…
+          {t.course({ plural: true, capitalize: true })} yükleniyor…
         </p>
       ) : query.isError ? (
         <div className="panel p-6" role="alert">
-          Dersler yüklenemedi.{' '}
+          {t.course({ plural: true, capitalize: true })} yüklenemedi.{' '}
           <button
             className="btn btn-secondary ml-2"
             onClick={() => void query.refetch()}
@@ -122,7 +124,7 @@ export default function CoursesPage() {
       ) : (
         <>
           <p className="text-sm text-[var(--muted)]">
-            {filtered.length} ders{term && ` / ${courses.length} toplam`}
+            {filtered.length} {t.course()}{term && ` / ${courses.length} toplam`}
           </p>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((course) => {
@@ -144,7 +146,7 @@ export default function CoursesPage() {
                         <Icon className="h-5 w-5" />
                       </div>
                       {course.isGlobal && (
-                        <span className="badge">Ortak ders</span>
+                        <span className="badge">Ortak {t.course()}</span>
                       )}
                     </div>
                     <div>
@@ -159,9 +161,9 @@ export default function CoursesPage() {
                       )}
                     </div>
                     <div className="mt-auto flex items-center justify-between text-sm text-[var(--muted)]">
-                      <span>{course.topics?.length ?? 0} konu</span>
+                      <span>{course.topics?.length ?? 0} {t.topic()}</span>
                       <span className="flex items-center gap-1">
-                        Konuları görüntüle
+                        {t.topic({ case: 'acc', plural: true, capitalize: true })} görüntüle
                         <ArrowUpRight className="h-4 w-4" />
                       </span>
                     </div>
@@ -170,7 +172,7 @@ export default function CoursesPage() {
                     <div className="flex items-center justify-end gap-2 border-t border-[var(--line)] px-4 py-2">
                       <button
                         className="btn btn-secondary"
-                        aria-label={`${course.name} dersini düzenle`}
+                        aria-label={`${t.course({ case: 'acc', capitalize: true })} düzenle: ${course.name}`}
                         onClick={() => setEditor({ course })}
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -178,7 +180,7 @@ export default function CoursesPage() {
                       </button>
                       <button
                         className="btn btn-secondary text-red-600"
-                        aria-label={`${course.name} dersini sil`}
+                        aria-label={`${t.course({ case: 'acc', capitalize: true })} sil: ${course.name}`}
                         onClick={() =>
                           setDeleting({
                             kind: 'course',
@@ -201,13 +203,13 @@ export default function CoursesPage() {
               <BookOpen className="mx-auto mb-3 h-8 w-8 text-[var(--muted)]" />
               <h2 className="font-medium">
                 {term
-                  ? 'Aramanıza uygun ders bulunamadı'
-                  : 'Henüz ders eklenmedi'}
+                  ? `Aramanıza uygun ${t.course()} bulunamadı`
+                  : `Henüz ${t.course()} eklenmedi`}
               </h2>
               <p className="mt-2 text-sm text-[var(--muted)]">
                 {term
-                  ? 'Başka bir ders veya konu adı deneyin.'
-                  : 'İlk dersinizi ekleyerek konularınızı planlamaya başlayın.'}
+                  ? `Başka bir ${t.course()} veya ${t.topic()} adı deneyin.`
+                  : `Bir ${t.course()} ekleyerek ${t.topic({ case: 'acc', plural: true })} planlamaya başlayın.`}
               </p>
             </div>
           )}

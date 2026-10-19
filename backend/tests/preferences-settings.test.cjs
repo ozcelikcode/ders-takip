@@ -80,6 +80,16 @@ it('exposes complete branding publicly and keeps administrator configuration pri
  const adminRead=await auth('get','/api/settings/admin',admin).expect(200);assert.equal(adminRead.body.data.adminEmail,'private@example.com');assert.equal(adminRead.body.data.internalKey,undefined);
  await request(app).get('/api/settings/category/security').expect(404);
 });
+it('serves the terminology preset publicly, validates it, and keeps it when other settings change',async()=>{
+ assert.equal((await request(app).get('/api/settings').expect(200)).body.data.terminologyPreset,'general');
+ await auth('put','/api/settings',admin).send({terminologyPreset:'education'}).expect(200);
+ await auth('put','/api/settings',admin).send({siteName:'Başka ayar'}).expect(200);
+ assert.equal((await request(app).get('/api/settings').expect(200)).body.data.terminologyPreset,'education');
+ await auth('put','/api/settings',admin).send({terminologyPreset:'astronomy'}).expect(400);
+ await auth('put','/api/settings',owner).send({terminologyPreset:'goals'}).expect(403);
+ assert.equal((await auth('get','/api/settings/admin',admin).expect(200)).body.data.terminologyPreset,'education');
+ await Settings.destroy({where:{key:'terminologyPreset'}});
+});
 it('validates all settings before writing and denies student updates',async()=>{
  const before=await Settings.findOne({where:{key:'siteName'}});
  await auth('put','/api/settings',owner).send({siteName:'Forbidden'}).expect(403);

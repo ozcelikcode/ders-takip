@@ -40,7 +40,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.get('/api/health', (req, res) => {
   res.status(isDatabaseUnavailable() ? 503 : 200).json({
     status: isDatabaseUnavailable() ? 'MAINTENANCE' : 'OK',
-    message: isDatabaseUnavailable() ? 'Veritabanı bakım modunda' : 'Ders Takip Sistemi API çalışıyor',
+    message: isDatabaseUnavailable() ? 'Veritabanı bakım modunda' : 'API çalışıyor',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
   });

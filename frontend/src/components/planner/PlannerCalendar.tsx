@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import {
   useEffect,
   useId,
@@ -50,6 +51,7 @@ type Resize = {
 };
 
 export default function PlannerCalendar({ mode, onCreateSession }: Props) {
+  const t = useTerms();
   const planner = usePlannerCalendar(mode);
   const { days, timezone, query, pending } = planner;
   const weekly = mode === 'weekly';
@@ -311,8 +313,8 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
       />
       {onCreateSession && (
         <p id={slotHelpId} className="text-xs text-[var(--muted)]">
-          Boş saatlerde ok tuşlarıyla gezinip Enter veya boşlukla seans ekleyin.
-          Home/End günün ilk/son boş saatine gider. Seans işlemlerinden tarih,
+          Boş saatlerde ok tuşlarıyla gezinip Enter veya boşlukla {t.session()} ekleyin.
+          Home/End günün ilk/son boş saatine gider. {t.session({ capitalize: true })} işlemlerinden tarih,
           saat ve süre değiştirilebilir.
         </p>
       )}
@@ -416,7 +418,7 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
                               navigateSlot(event, index, hour)
                             }
                             disabled={pending}
-                            aria-label={`${format(day, 'd MMMM')} ${String(hour).padStart(2, '0')}:00 seans ekle`}
+                            aria-label={`${format(day, 'd MMMM')} ${String(hour).padStart(2, '0')}:00 ${t.session()} ekle`}
                             className="absolute inset-0 flex items-center justify-center text-[var(--muted)] opacity-100 sm:opacity-0 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px]"
                             style={{ scrollMarginTop: 56 }}
                             onClick={() => create(index, hour)}
@@ -606,14 +608,14 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
         onConfirm={planner.confirm}
         title={
           planner.confirmation?.action === 'pause'
-            ? 'Seansı duraklat'
+            ? `${t.session({ case: 'acc', capitalize: true })} duraklat`
             : planner.confirmation?.action === 'complete'
-              ? 'Seansı tamamla'
-              : 'Seansı sil'
+              ? `${t.session({ case: 'acc', capitalize: true })} tamamla`
+              : `${t.session({ case: 'acc', capitalize: true })} sil`
         }
         message={
           planner.confirmation?.action === 'delete'
-            ? `“${planner.confirmation.session.title}” ve bu seansın ölçüm kayıtları silinecek. Bu işlem geri alınamaz.`
+            ? `“${planner.confirmation.session.title}” ve bu ${t.session({ case: 'gen' })} ölçüm kayıtları silinecek. Bu işlem geri alınamaz.`
             : 'Bu işlemi onaylıyor musunuz?'
         }
         type={planner.confirmation?.action === 'delete' ? 'danger' : 'info'}

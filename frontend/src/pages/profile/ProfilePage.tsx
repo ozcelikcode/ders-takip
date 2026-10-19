@@ -187,15 +187,6 @@ const ProfilePage = () => {
     reader.readAsDataURL(file);
   };
 
-  const studyFieldOptions = [
-    { value: '', label: 'Seçiniz' },
-    { value: 'TYT', label: 'TYT' },
-    { value: 'AYT', label: 'AYT' },
-    { value: 'SAY', label: 'Sayısal' },
-    { value: 'EA', label: 'Eşit Ağırlık' },
-    { value: 'SOZ', label: 'Sözel' },
-    { value: 'DIL', label: 'Dil' },
-  ];
 
   return (
     <div className="space-y-6">
@@ -325,10 +316,13 @@ const ProfilePage = () => {
 
                 <div>
                   <label htmlFor="profile-studyField" className="mb-2 block text-sm font-medium">
-                    Alan Bilgisi
+                    Odak alanı
                   </label>
                   {isEditingProfile ? (
-                    <select id="profile-studyField"
+                    <input
+                      id="profile-studyField"
+                      type="text"
+                      maxLength={60}
                       value={profileForm.studyField}
                       onChange={(e) =>
                         setProfileForm({
@@ -336,21 +330,12 @@ const ProfilePage = () => {
                           studyField: e.target.value,
                         })
                       }
+                      placeholder="Örn. Yazılım, tasarım, sınav hazırlığı"
                       className="input"
-                    >
-                      {studyFieldOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   ) : (
                     <p className="py-2">
-                      {user?.preferences?.studyField
-                        ? studyFieldOptions.find(
-                            (opt) => opt.value === user.preferences.studyField,
-                          )?.label
-                        : 'Belirtilmemiş'}
+                      {user?.preferences?.studyField || 'Belirtilmemiş'}
                     </p>
                   )}
                 </div>

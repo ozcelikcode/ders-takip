@@ -126,10 +126,10 @@ async function editable(onClose = vi.fn(), source = session) {
   const view = mount(
     <CreateSessionModal isOpen editSession={source} onClose={onClose} />,
   );
-  await screen.findByLabelText('Özel Görev Başlığı *');
+  await screen.findByLabelText('Özel Başlık *');
   return { ...view, onClose };
 }
-const title = () => screen.getByLabelText('Özel Görev Başlığı *');
+const title = () => screen.getByLabelText('Özel Başlık *');
 const submit = () =>
   fireEvent.submit(document.getElementById('create-session-form')!);
 beforeEach(() => {
@@ -187,7 +187,7 @@ it('keeps a failed daily confirmation open, then retries with a refreshed snapsh
   mount(<TodaysPlans />);
   await expand();
   fireEvent.click(
-    screen.getByRole('button', { name: 'Fixture session seansını duraklat' }),
+    screen.getByRole('button', { name: 'Seansı duraklat: Fixture session' }),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Onayla' }));
   await screen.findByText('Seans değişti. Yeniden kontrol edin.');
@@ -210,7 +210,7 @@ it('blocks daily duplicate writes, editing and dismissal while a command is pend
   mount(<TodaysPlans />);
   await expand();
   fireEvent.click(
-    screen.getByRole('button', { name: 'Fixture session seansını tamamla' }),
+    screen.getByRole('button', { name: 'Seansı tamamla: Fixture session' }),
   );
   const confirm = screen.getByRole('button', { name: 'Onayla' });
   act(() => {
@@ -247,7 +247,7 @@ it('reopens terminal daily sessions explicitly without starting work or discardi
   await expand();
   fireEvent.click(
     screen.getByRole('button', {
-      name: 'Fixture session seansını yeniden planla',
+      name: 'Seansı yeniden planla: Fixture session',
     }),
   );
   expect(
@@ -282,7 +282,7 @@ it('ignores a late daily command after account change', async () => {
   await expand();
   const invalidate = vi.spyOn(client, 'invalidateQueries');
   fireEvent.click(
-    screen.getByRole('button', { name: 'Fixture session seansını duraklat' }),
+    screen.getByRole('button', { name: 'Seansı duraklat: Fixture session' }),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Onayla' }));
   context.epoch++;
@@ -404,7 +404,7 @@ it('closes only the delete confirmation on Escape and returns focus to its trigg
     expect(screen.queryByRole('dialog', { name: 'Seansı sil' })).toBeNull(),
   );
   expect(
-    screen.getByRole('dialog', { name: 'Çalışma Seansını Düzenle' }),
+    screen.getByRole('dialog', { name: 'Seansı düzenle' }),
   ).toBeTruthy();
   await waitFor(() =>
     expect(document.activeElement).toBe(
@@ -442,7 +442,7 @@ it('keeps current inactive course and stored title on a metadata edit, and suppo
   };
   const onClose = vi.fn();
   mount(<CreateSessionModal isOpen editSession={original} onClose={onClose} />);
-  await screen.findByLabelText('Ders Seçimi *');
+  await screen.findByLabelText('Ders seçimi *');
   await screen.findByRole('option', { name: 'Archived course' });
   fireEvent.change(screen.getByLabelText('Açıklama'), {
     target: { value: '' },
@@ -480,11 +480,11 @@ it('ignores editor completion after unmount or account replacement', async () =>
 it('keeps personal Pomodoro defaults for newly opened editors', async () => {
   context.preferences.defaultPomodoroDuration = 35;
   mount(<CreateSessionModal isOpen onClose={vi.fn()} />);
-  fireEvent.click(screen.getByRole('button', { name: 'Özel Görev' }));
-  fireEvent.change(await screen.findByLabelText('Özel Görev Başlığı *'), {
+  fireEvent.click(screen.getByRole('button', { name: 'Özel' }));
+  fireEvent.change(await screen.findByLabelText('Özel Başlık *'), {
     target: { value: 'Custom timer' },
   });
-  fireEvent.change(screen.getByLabelText('Seans Türü *'), {
+  fireEvent.change(screen.getByLabelText('Seans türü *'), {
     target: { value: 'pomodoro' },
   });
   expect(defaultPreferences.defaultPomodoroDuration).toBe(25);

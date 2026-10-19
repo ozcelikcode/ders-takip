@@ -1,3 +1,5 @@
+import { useTerms } from '../../hooks/useTerms';
+import { roleLabel } from '../../lib/roleLabels';
 import { Menu } from '@headlessui/react';
 import { useQuery } from '@tanstack/react-query';
 import type { ManagedUser } from '@study-tracker/contracts';
@@ -23,8 +25,6 @@ import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 
 type UserAction = { user: ManagedUser; kind: 'delete' | 'role' | 'status' };
-const roleLabel = (role: ManagedUser['role']) =>
-  role === 'admin' ? 'Yönetici' : 'Öğrenci';
 
 function UserActionDialog({
   action,
@@ -33,6 +33,7 @@ function UserActionDialog({
   action: UserAction;
   onClose: () => void;
 }) {
+  const t = useTerms();
   const keys = useAccountQueryKeys();
   const mutation = useAccountMutation([keys.resource()]);
   const { user, kind } = action;
@@ -48,7 +49,7 @@ function UserActionDialog({
           : 'Hesabı aktifleştir';
   const message =
     kind === 'delete'
-      ? `“${name}” hesabı, bu hesaba ait özel dersler, konular, planlar, seanslar ve ilerleme kayıtları kalıcı olarak silinecek. Ortak dersler korunur. Bu işlem geri alınamaz.`
+      ? `“${name}” hesabı, bu hesaba ait özel ${t.course({ plural: true })}, ${t.topic({ plural: true })}, planlar, ${t.session({ plural: true })} ve ilerleme kayıtları kalıcı olarak silinecek. Ortak ${t.course({ plural: true })} korunur. Bu işlem geri alınamaz.`
       : kind === 'role'
         ? `“${name}” hesabının yeni rolü: ${roleLabel(nextRole)}. ${nextRole === 'admin' ? 'Yönetim paneline ve sistem ayarlarına erişebilecek.' : 'Yönetim paneline erişimi kaldırılacak.'} Rol değişikliği mevcut oturumlarını kapatır.`
         : `“${name}” hesabı ${user.isActive ? 'pasifleştirilecek ve giriş yapamayacak' : 'aktifleştirilecek ve yeniden giriş yapabilecek'}. Verileri korunur. Hesap durumu değişikliği mevcut oturumlarını kapatır.`;
@@ -88,6 +89,7 @@ function UserActionDialog({
 }
 
 function UserManagement() {
+  const t = useTerms();
   const { user: currentUser } = useAuthStore();
   const keys = useAccountQueryKeys();
   const timezone = useUserPreferencesStore(
@@ -261,7 +263,7 @@ function UserManagement() {
                                 kind: 'role',
                                 label:
                                   user.role === 'admin'
-                                    ? 'Öğrenci yap'
+                                    ? 'Kullanıcı yap'
                                     : 'Yönetici yap',
                                 icon: UserRound,
                               },
@@ -301,7 +303,7 @@ function UserManagement() {
                     </div>
                     <dl className="mt-5 grid grid-cols-2 gap-4 border-t pt-4 sm:grid-cols-4">
                       {[
-                        ['Toplam seans', user.stats?.totalSessions ?? '—'],
+                        [`Toplam ${t.session()}`, user.stats?.totalSessions ?? '—'],
                         ['Tamamlanan', user.stats?.completedSessions ?? '—'],
                         [
                           'Ölçülen çalışma',

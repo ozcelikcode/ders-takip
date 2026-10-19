@@ -15,7 +15,6 @@
     "prebuild": "npm run build --workspace @study-tracker/contracts"
   },
   "keywords": [
-    "education",
     "study-tracker",
     "planning",
     "api"

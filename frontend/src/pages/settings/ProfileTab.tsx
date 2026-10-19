@@ -1,3 +1,4 @@
+import { roleLabel } from '../../lib/roleLabels';
 import { Eye, EyeOff } from 'lucide-react';
 import type { User } from '../../types/auth';
 import type { useProfileSettings } from './useProfileSettings';
@@ -56,7 +57,7 @@ const ProfileTab = ({ user, form }: ProfileTabProps) => {
             <input
               id="settings-role"
               type="text"
-              value={user?.role === 'admin' ? 'Yönetici' : 'Öğrenci'}
+              value={user ? roleLabel(user.role) : ''}
               className="input bg-[var(--subtle)] text-[var(--muted)]"
               disabled
             />

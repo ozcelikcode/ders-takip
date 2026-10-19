@@ -11,8 +11,8 @@ function fail(statusCode: number, message: string): never { throw Object.assign(
 function requireAdmin(actor: Actor) { if (actor.role !== 'admin') fail(403, 'Bu işlem için yönetici yetkisi gereklidir'); }
 async function writableCourse(actor: Actor, id: number, transaction: Transaction) {
   const course = await Course.findByPk(id, { transaction });
-  if (!course) fail(404, 'Ders bulunamadı');
-  if (actor.role !== 'admin' && (course.isGlobal || course.userId !== actor.id)) fail(403, 'Bu dersi değiştirme yetkiniz yok');
+  if (!course) fail(404, 'Kayıt bulunamadı');
+  if (actor.role !== 'admin' && (course.isGlobal || course.userId !== actor.id)) fail(403, 'Bu kaydı değiştirme yetkiniz yok');
   return course;
 }
 async function categoryById(id: number, transaction: Transaction) {
@@ -22,7 +22,7 @@ async function categoryById(id: number, transaction: Transaction) {
 }
 async function writableTopic(actor: Actor, id: number, transaction: Transaction) {
   const topic = await Topic.findByPk(id, { transaction });
-  if (!topic) fail(404, 'Konu bulunamadı');
+  if (!topic) fail(404, 'Kayıt bulunamadı');
   await writableCourse(actor, topic.courseId, transaction);
   return topic;
 }
@@ -32,17 +32,17 @@ async function assertCourseName(values: { id?: number; name: string; categoryId:
     ...(values.id === undefined ? {} : { id: { [Op.ne]: values.id } }),
     ...(values.isGlobal ? {} : { [Op.or]: [{ userId: values.userId ?? null }, { isGlobal: true }] }),
   }, transaction });
-  if (conflict) fail(409, 'Bu kategoride aynı isimde erişilebilir bir ders zaten mevcut');
+  if (conflict) fail(409, 'Bu kategoride aynı isimde erişilebilir bir kayıt zaten mevcut');
 }
 async function assertTopicName(courseId: number, name: string, transaction: Transaction, excludeId?: number) {
   if (await Topic.findOne({ where: { courseId, name, isActive: true, ...(excludeId === undefined ? {} : { id: { [Op.ne]: excludeId } }) }, transaction })) {
-    fail(409, 'Bu derste aynı isimde bir konu zaten mevcut');
+    fail(409, 'Bu kayıtta aynı isimde bir alt kayıt zaten mevcut');
   }
 }
 async function appendTopicOrder(courseId: number, transaction: Transaction) {
   const maximum = await Topic.max<number, Topic>('order', { where: { courseId, isActive: true }, transaction });
   const order = (maximum || 0) + 1;
-  if (!Number.isSafeInteger(order)) fail(409, 'Konu sıra numarası sınırı aşıldı');
+  if (!Number.isSafeInteger(order)) fail(409, 'Sıra numarası sınırı aşıldı');
   return order;
 }
 
@@ -74,7 +74,7 @@ export async function deleteCategory(actor: Actor, id: number, input: DeleteCate
     if (input.migrateToCategoryId === id) fail(400, 'Hedef kategori silinen kategoriyle aynı olamaz');
     if (input.migrateToCategoryId !== undefined) await categoryById(input.migrateToCategoryId, transaction);
     const courses = await Course.findAll({ where: { categoryId: id }, transaction });
-    if (courses.length && input.migrateToCategoryId === undefined) fail(409, 'Bu kategoride dersler var. Önce bir hedef kategori seçin');
+    if (courses.length && input.migrateToCategoryId === undefined) fail(409, 'Bu kategoride kayıtlar var. Önce bir hedef kategori seçin');
     for (const course of courses) {
       const categoryId = input.migrateToCategoryId!;
       await assertCourseName({ id: course.id, name: course.name, categoryId, userId: course.userId, isGlobal: course.isGlobal }, transaction);
@@ -86,7 +86,7 @@ export async function deleteCategory(actor: Actor, id: number, input: DeleteCate
 }
 export async function createCourse(actor: Actor, input: CreateCourseInput) {
   return write(async transaction => {
-    if (input.isGlobal && actor.role !== 'admin') fail(403, 'Ortak ders oluşturma yetkiniz yok');
+    if (input.isGlobal && actor.role !== 'admin') fail(403, 'Ortak kayıt oluşturma yetkiniz yok');
     await categoryById(input.categoryId, transaction);
     await assertCourseName({ name: input.name, categoryId: input.categoryId, userId: actor.id, isGlobal: input.isGlobal ?? false }, transaction);
     const course = Course.build({ name: input.name, categoryId: input.categoryId, userId: actor.id, isGlobal: input.isGlobal ?? false, color: input.color ?? '#3b82f6', order: input.order ?? 1 });
@@ -100,7 +100,7 @@ export async function createCourse(actor: Actor, input: CreateCourseInput) {
 export async function updateCourse(actor: Actor, id: number, input: UpdateCourseInput) {
   return write(async transaction => {
     const course = await writableCourse(actor, id, transaction);
-    if (input.isGlobal !== undefined && input.isGlobal !== course.isGlobal && actor.role !== 'admin') fail(403, 'Ortak ders ayarını değiştirme yetkiniz yok');
+    if (input.isGlobal !== undefined && input.isGlobal !== course.isGlobal && actor.role !== 'admin') fail(403, 'Ortak kayıt ayarını değiştirme yetkiniz yok');
     if (input.categoryId !== undefined) await categoryById(input.categoryId, transaction);
     for (const field of ['name', 'description', 'color', 'icon', 'order', 'isActive', 'categoryId', 'isGlobal'] as const) {
       if (input[field] !== undefined) course.set(field, input[field]);
@@ -149,7 +149,7 @@ export async function updateTopic(actor: Actor, id: number, input: UpdateTopicIn
       if (input[field] !== undefined) topic.set(field, input[field]);
     }
     if (topic.isActive && (input.order !== undefined || reactivating) && await Topic.findOne({ where: { courseId: topic.courseId, isActive: true, order: topic.order, id: { [Op.ne]: id } }, transaction })) {
-      if (!reactivating || input.order !== undefined) fail(409, 'Bu sıra numarası başka bir aktif konu tarafından kullanılıyor');
+      if (!reactivating || input.order !== undefined) fail(409, 'Bu sıra numarası başka bir aktif kayıt tarafından kullanılıyor');
       topic.order = await appendTopicOrder(topic.courseId, transaction);
     }
     if (topic.changed()) await topic.save({ transaction });
@@ -168,7 +168,7 @@ export async function reorderTopics(actor: Actor, courseId: number, input: Reord
     const topics = await Topic.findAll({ where: { courseId, isActive: true }, transaction });
     const expected = new Map(input.expectedTopics.map(topic => [topic.id, new Date(topic.updatedAt).getTime()]));
     if (topics.length !== expected.size || topics.some(topic => expected.get(topic.id) !== topic.updatedAt.getTime())) {
-      fail(409, 'Konu listesi değişti. Güncel listeyi yükleyip tekrar sıralayın');
+      fail(409, 'Liste değişti. Güncel listeyi yükleyip tekrar sıralayın');
     }
     const orders = new Map(input.topicOrders.map(topic => [topic.id, topic.order]));
     for (const topic of topics) {

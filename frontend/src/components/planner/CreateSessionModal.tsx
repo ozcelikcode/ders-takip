@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import {
   calendarViewDate,
   sessionDurationLimits,
@@ -47,6 +48,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
 ) => {
   const [{ selectedDate, selectedHour = 9, editSession }] = useState(props);
   const { onClose } = props;
+  const t = useTerms();
   const accountKeys = useAccountQueryKeys();
   const livePreferences = useUserPreferencesStore((state) => state.preferences);
   const [preferences] = useState(livePreferences);
@@ -185,7 +187,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
     if (!request.success) {
       setError('title', {
         type: 'validate',
-        message: 'Başlık, ders ve seans ayarlarını kontrol edin.',
+        message: `Başlık, ${t.course()} ve ${t.session()} ayarlarını kontrol edin.`,
       });
       return;
     }
@@ -197,8 +199,8 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
               createSessionRequestSchema.parse(request.data),
             ),
       isEditMode
-        ? 'Çalışma seansı güncellendi.'
-        : 'Çalışma seansı oluşturuldu.',
+        ? `${t.session({ capitalize: true })} güncellendi.`
+        : `${t.session({ capitalize: true })} oluşturuldu.`,
     );
     if (saved) onClose();
   };
@@ -220,7 +222,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
     if (!writeSnapshot || needsRefresh) return false;
     const saved = await perform(
       () => studySessionsAPI.deleteSession(writeSnapshot),
-      'Çalışma seansı silindi.',
+      `${t.session({ capitalize: true })} silindi.`,
     );
     if (saved) {
       setShowDeleteConfirm(false);
@@ -363,7 +365,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
         >
           <div className="flex items-center justify-between p-5 border-b border-[var(--line)]">
             <Dialog.Title className="text-lg font-medium ">
-              {isEditMode ? 'Çalışma Seansını Düzenle' : 'Yeni Çalışma Seansı'}
+              {isEditMode ? `${t.session({ case: 'acc', capitalize: true })} düzenle` : `Yeni ${t.session({ capitalize: true })}`}
             </Dialog.Title>
             <button
               onClick={handleClose}
@@ -389,13 +391,13 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
               </p>
               {coursesQuery.isError && (
                 <div role="alert">
-                  <p>Dersler yüklenemedi.</p>
+                  <p>{t.course({ plural: true, capitalize: true })} yüklenemedi.</p>
                   <button
                     type="button"
                     className="btn btn-secondary"
                     onClick={() => void coursesQuery.refetch()}
                   >
-                    Dersleri tekrar yükle
+                    {t.course({ case: 'acc', plural: true, capitalize: true })} tekrar yükle
                   </button>
                 </div>
               )}
@@ -407,13 +409,13 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
               )}
               {needsRefresh && (
                 <div role="alert">
-                  <p>Güncel seans okunmadan işlem yapılamaz.</p>
+                  <p>Güncel {t.session()} okunmadan işlem yapılamaz.</p>
                   <button
                     type="button"
                     className="btn btn-secondary"
                     onClick={() => void reloadSnapshot()}
                   >
-                    Güncel seansı yeniden yükle
+                    Güncel {t.session({ case: 'acc' })} yeniden yükle
                   </button>
                 </div>
               )}
@@ -439,14 +441,14 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                     htmlFor="courseId"
                     className="block text-sm font-medium mb-2"
                   >
-                    Ders Seçimi *
+                    {t.course({ capitalize: true })} seçimi *
                   </label>
                   <select
                     {...register('courseId')}
                     id="courseId"
                     className="input"
                   >
-                    <option value="">Ders seçin</option>
+                    <option value="">{t.course({ capitalize: true })} seçin</option>
                     {coursesData?.map((course) => (
                       <option key={course.id} value={course.id.toString()}>
                         {course.name}{' '}
@@ -468,7 +470,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 <div className="rounded-lg border border-[var(--line)] bg-[var(--subtle)] p-3">
                   <p className="flex items-center gap-2 text-sm text-[var(--muted)]">
                     <Coffee className="w-4 h-4" />
-                    Mola seansı oluşturuyorsunuz. Süreyi ve zamanı ayarlayın.
+                    Mola oluşturuyorsunuz. Süreyi ve zamanı ayarlayın.
                   </p>
                 </div>
               )}
@@ -479,14 +481,14 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                     htmlFor="customTitle"
                     className="block text-sm font-medium mb-2"
                   >
-                    Özel Görev Başlığı *
+                    Özel Başlık *
                   </label>
                   <input
                     {...register('customTitle')}
                     type="text"
                     id="customTitle"
                     className="input"
-                    placeholder="Özel görevinizi tanımlayın"
+                    placeholder="Başlığı yazın"
                   />
                   {errors.customTitle && (
                     <p className="mt-1 text-sm text-red-600">
@@ -509,7 +511,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                   id="description"
                   rows={3}
                   className="input"
-                  placeholder="Çalışma seansı açıklaması"
+                  placeholder={`${t.session({ capitalize: true })} açıklaması`}
                 />
               </div>
 
@@ -568,7 +570,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                     htmlFor="sessionType"
                     className="block text-sm font-medium mb-2"
                   >
-                    Seans Türü *
+                    {t.session({ capitalize: true })} türü *
                   </label>
                   <select
                     {...register('sessionType')}
@@ -672,8 +674,8 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={confirmDelete}
-        title="Seansı sil"
-        message={`“${editSession?.title}” seansı ve bu seansa ait ölçüm kayıtları kalıcı olarak silinecek. Bu işlem geri alınamaz.`}
+        title={`${t.session({ case: 'acc', capitalize: true })} sil`}
+        message={`“${editSession?.title}” ${t.session()} ve bu ${t.session({ case: 'dat' })} ait ölçüm kayıtları kalıcı olarak silinecek. Bu işlem geri alınamaz.`}
         type="danger"
       >
         {mutation.errorMessage && (
@@ -683,7 +685,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
         )}
         {needsRefresh && (
           <p role="alert">
-            Güncel seans okunamadı. Bu onayı kapatıp seansı yeniden yükleyin.
+            Güncel {t.session()} okunamadı. Bu onayı kapatıp {t.session({ case: 'acc' })} yeniden yükleyin.
           </p>
         )}
       </ConfirmDialog>

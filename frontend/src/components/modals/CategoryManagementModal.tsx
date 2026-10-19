@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import { Dialog } from '@headlessui/react';
 import { useQuery } from '@tanstack/react-query';
 import { Pencil, Plus, Search, Tag, Trash2, X } from 'lucide-react';
@@ -25,6 +26,7 @@ function CategoryDeleteDialog({
   categories: CatalogCategoryRecord[];
   onClose: () => void;
 }) {
+  const t = useTerms();
   const [targetId, setTargetId] = useState('');
   const mutation = useCatalogMutation();
   const inputId = useId();
@@ -38,7 +40,7 @@ function CategoryDeleteDialog({
       title="Kategoriyi sil"
       confirmText="Kategoriyi sil"
       type="danger"
-      message={`“${category.name}” kategorisi kalıcı olarak silinecek. Kategori doluysa bütün kullanıcıların aktif ve pasif derslerini taşıyacağınız hedefi seçin. Dersler, konular, seanslar ve ilerleme kayıtları korunur.`}
+      message={`“${category.name}” kategorisi kalıcı olarak silinecek. Kategori doluysa bütün kullanıcıların aktif ve pasif ${t.course({ case: 'acc', plural: true })} taşıyacağınız hedefi seçin. ${t.course({ plural: true, capitalize: true })}, ${t.topic({ plural: true })}, ${t.session({ plural: true })} ve ilerleme kayıtları korunur.`}
       onConfirm={() =>
         validTarget
           ? mutation.save(
@@ -47,14 +49,14 @@ function CategoryDeleteDialog({
                   String(category.id),
                   targetId ? Number(targetId) : undefined,
                 ),
-              'Kategori silindi. Dersler ve çalışma geçmişi korundu.',
+              `Kategori silindi. ${t.course({ plural: true, capitalize: true })} ve çalışma geçmişi korundu.`,
             )
           : false
       }
     >
       <div className="space-y-2">
         <label htmlFor={inputId} className="block text-sm font-medium">
-          Derslerin taşınacağı kategori
+          {t.course({ case: 'gen', plural: true, capitalize: true })} taşınacağı kategori
         </label>
         <select
           id={inputId}
@@ -93,6 +95,7 @@ function CategoryDeleteDialog({
 }
 
 function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
+  const t = useTerms();
   const keys = useAccountQueryKeys();
   const searchId = useId();
   const [search, setSearch] = useState('');
@@ -126,7 +129,7 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                   Kategori yönetimi
                 </Dialog.Title>
                 <Dialog.Description className="mt-2 text-sm text-[var(--muted)]">
-                  Tüm kullanıcıların derslerini gruplandıran ortak kategorileri
+                  Tüm kullanıcıların {t.course({ case: 'acc', plural: true })} gruplandıran ortak kategorileri
                   yönetin.
                 </Dialog.Description>
               </div>

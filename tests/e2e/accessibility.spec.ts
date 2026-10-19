@@ -117,8 +117,8 @@ for (const theme of ['light', 'dark'] as const) {
       await page
         .getByRole('button', { name: 'Movable session', exact: true })
         .click();
-      await expect(page.getByLabel('Seans Türü')).toBeVisible();
-      await page.getByLabel('Seans Türü').selectOption('pomodoro');
+      await expect(page.getByLabel('Seans türü')).toBeVisible();
+      await page.getByLabel('Seans türü').selectOption('pomodoro');
       await expect(
         page.getByText('Pomodoro Ayarları', { exact: true }),
       ).toBeVisible();

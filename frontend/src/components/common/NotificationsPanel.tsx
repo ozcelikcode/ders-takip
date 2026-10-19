@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import { Popover } from '@headlessui/react';
 import { useQuery } from '@tanstack/react-query';
 import { Bell, Check, CheckCheck, X } from 'lucide-react';
@@ -15,6 +16,7 @@ import {
 } from '../../utils/sessionHelpers';
 
 export default function NotificationsPanel() {
+  const t = useTerms();
   const { user, epoch } = useAuthStore();
   const keys = useAccountQueryKeys();
   const headingId = useId();
@@ -89,7 +91,7 @@ export default function NotificationsPanel() {
               {announcement}
             </p>
             <p className="px-4 pt-3 text-xs text-[var(--muted)]">
-              Son 5 tamamlanan seans. Okundu bilgisi bu tarayıcıda saklanır.
+              Son 5 tamamlanan {t.session()}. Okundu bilgisi bu tarayıcıda saklanır.
             </p>
             <div
               className="max-h-80 overflow-y-auto"

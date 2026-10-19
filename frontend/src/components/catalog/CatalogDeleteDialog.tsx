@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { useCatalogMutation } from '../../hooks/useCatalogMutation';
 import { coursesAPI, topicsAPI } from '../../services/api';
@@ -17,19 +18,20 @@ function DeleteConfirmation({
   onClose: () => void;
   onDeleted?: () => void;
 }) {
+  const t = useTerms();
   const mutation = useCatalogMutation();
   const course = target.kind === 'course';
   return (
     <ConfirmDialog
       isOpen
       onClose={onClose}
-      title={course ? 'Dersi sil' : 'Konuyu arşivle'}
+      title={course ? `${t.course({ case: 'acc', capitalize: true })} sil` : `${t.topic({ case: 'acc', capitalize: true })} arşivle`}
       message={
         course
-          ? `“${target.name}” dersi, konuları ve konu ilerleme kayıtları kalıcı olarak silinecek. Seanslar, notlar ve ölçülen çalışma süreleri korunacak; ders ve konu bağlantıları kaldırılacak.`
-          : `“${target.name}” aktif konu listesinden kaldırılacak. İlerleme kayıtları ve çalışma geçmişi korunacak. Konuyu arşivden geri alabilirsiniz.`
+          ? `“${target.name}” ${t.course()}, ${t.topic({ plural: true })} ve ${t.topic()} ilerleme kayıtları kalıcı olarak silinecek. ${t.session({ plural: true, capitalize: true })}, notlar ve ölçülen çalışma süreleri korunacak; ${t.course()} ve ${t.topic()} bağlantıları kaldırılacak.`
+          : `“${target.name}” aktif ${t.topic()} listesinden kaldırılacak. İlerleme kayıtları ve çalışma geçmişi korunacak. Arşivden geri alabilirsiniz.`
       }
-      confirmText={course ? 'Dersi sil' : 'Arşivle'}
+      confirmText={course ? `${t.course({ case: 'acc', capitalize: true })} sil` : 'Arşivle'}
       type={course ? 'danger' : 'warning'}
       onConfirm={async () => {
         const saved = await mutation.save(
@@ -38,8 +40,8 @@ function DeleteConfirmation({
               ? coursesAPI.deleteCourse(String(target.id))
               : topicsAPI.deleteTopic(String(target.id)),
           course
-            ? 'Ders silindi. Çalışma geçmişi korundu.'
-            : 'Konu arşivlendi.',
+            ? `${t.course({ capitalize: true })} silindi. Çalışma geçmişi korundu.`
+            : `${t.topic({ capitalize: true })} arşivlendi.`,
         );
         if (saved) onDeleted?.();
         return saved;

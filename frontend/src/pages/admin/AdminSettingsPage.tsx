@@ -1,7 +1,11 @@
+import { useTerms } from '../../hooks/useTerms';
 import {
   brandIconNames,
+  createTerms,
   siteSettingsSchema,
   settingsPatchSchema,
+  terminologyPresetIds,
+  terminologyPresets,
   type SiteSettings,
 } from '@study-tracker/contracts';
 import { useQueryClient } from '@tanstack/react-query';
@@ -22,6 +26,7 @@ const sections = [
   ['security', 'Güvenlik'],
   ['notifications', 'Bildirimler'],
   ['appearance', 'Görünüm'],
+  ['terminology', 'Kelimeler'],
   ['backup', 'Yedekleme ve sıfırlama'],
 ] as const;
 type Section = (typeof sections)[number][0];
@@ -191,12 +196,13 @@ function SettingsForm({
     if (current()) await onReset();
     return true;
   };
+  const t = useTerms();
   const message =
     action?.kind === 'restore'
       ? 'Mevcut verinin güvenlik yedeği alınacak. Seçilen yedekteki hesaplar, parolalar, ayarlar ve çalışma verileri geri gelecek; sonradan yapılan değişiklikler yerini yedekteki verilere bırakacak. Bütün oturumlar kapanacak ve yeniden giriş gerekecek.'
       : action?.kind === 'reset' && action.mode === 'all'
-        ? 'Öğrenci hesapları, bütün dersler, konular, planlar, seanslar, ölçülen çalışma geçmişi, konu ilerlemeleri ve site ayarları silinecek. Yönetici hesapları ve yedekler korunacak. Önce güvenlik yedeği alınır; geri dönüş yedeği geri yüklemeyi gerektirir.'
-        : 'Yalnızca site ayarları varsayılanlara dönecek. Hesaplar, dersler, konular ve çalışma geçmişi korunacak. Önce güvenlik yedeği alınır.';
+        ? `Kullanıcı hesapları, bütün ${t.course({ plural: true })}, ${t.topic({ plural: true })}, planlar, ${t.session({ plural: true })}, ölçülen çalışma geçmişi, ${t.topic()} ilerlemeleri ve site ayarları silinecek. Yönetici hesapları ve yedekler korunacak. Önce güvenlik yedeği alınır; geri dönüş yedeği geri yüklemeyi gerektirir.`
+        : `Yalnızca site ayarları varsayılanlara dönecek. Hesaplar, ${t.course({ plural: true })}, ${t.topic({ plural: true })} ve çalışma geçmişi korunacak. Önce güvenlik yedeği alınır.`;
   return (
     <>
       <nav
@@ -342,6 +348,45 @@ function SettingsForm({
               </div>
             </>
           )}
+          {section === 'terminology' && (
+            <>
+              <h2 className="text-base font-medium">Kelime seti</h2>
+              <p className="text-sm text-[var(--muted)]">
+                Arayüzdeki ana kavramların adı seçtiğiniz sete göre değişir. Kayıtlı veriler ve
+                yetkiler etkilenmez; yalnızca görünen kelimeler değişir.
+              </p>
+              <div role="radiogroup" aria-label="Kelime seti" className="space-y-3">
+                {terminologyPresetIds.map((id) => {
+                  const preset = terminologyPresets[id];
+                  const terms = createTerms(id);
+                  return (
+                    <label
+                      key={id}
+                      className="flex items-start gap-3 rounded-lg border border-[var(--line)] p-4"
+                    >
+                      <input
+                        type="radio"
+                        name={`${prefix}-terminologyPreset`}
+                        className="mt-1"
+                        checked={draft.terminologyPreset === id}
+                        onChange={() => setDraft({ ...draft, terminologyPreset: id })}
+                      />
+                      <span>
+                        <span className="block text-sm font-medium">{preset.label}</span>
+                        <span className="mt-1 block text-sm text-[var(--muted)]">
+                          {preset.description}
+                        </span>
+                        <span className="mt-1 block text-xs text-[var(--muted)]">
+                          Örnek: {terms.course({ capitalize: true })} →{' '}
+                          {terms.topic({ capitalize: true })} · {terms.session({ capitalize: true })}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </>
+          )}
           {section === 'backup' && (
             <>
               <h2 className="text-base font-medium">Otomatik yedekleme</h2>
@@ -459,7 +504,7 @@ function SettingsForm({
             action.kind === 'restore'
               ? `Yedeği geri yükle (#${action.backup.id})`
               : action.mode === 'all'
-                ? 'Öğrenci ve çalışma verilerini temizle'
+                ? 'Kullanıcı ve çalışma verilerini temizle'
                 : 'Site ayarlarını sıfırla'
           }
           message={message}

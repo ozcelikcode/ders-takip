@@ -24,7 +24,7 @@ function fail(statusCode: number, message: string): never {
 function scheduledDuration(start: Date, end: Date): number {
   const milliseconds = end.getTime() - start.getTime();
   if (!isSessionDurationValid(milliseconds)) {
-    fail(400, 'Seans bitişi başlangıcından sonra olmalı; süre 1 dakika ile 24 saat arasında olmalıdır');
+    fail(400, 'Bitiş, başlangıçtan sonra olmalı; süre 1 dakika ile 24 saat arasında olmalıdır');
   }
   return Math.round(milliseconds / 60_000);
 }
@@ -49,13 +49,13 @@ async function validateRelations(
       ],
       transaction,
     });
-    if (!topic || (courseId !== undefined && courseId !== topic.courseId)) fail(400, 'Geçersiz ders veya konu seçimi');
+    if (!topic || (courseId !== undefined && courseId !== topic.courseId)) fail(400, 'Geçersiz üst kayıt seçimi');
     courseId = topic.courseId;
   }
   if (courseId !== undefined) {
     const requireActiveCourse = existing?.courseId !== courseId;
     if (!await Course.findOne({ where: { ...visibleCourseWhere(actor), id: courseId, ...(requireActiveCourse ? { isActive: true } : {}) }, transaction })) {
-      fail(400, 'Geçersiz ders veya konu seçimi');
+      fail(400, 'Geçersiz üst kayıt seçimi');
     }
   }
   return courseId;
@@ -67,14 +67,14 @@ async function assertAvailable(userId: number, startTime: Date, endTime: Date, t
     ...(excludeId === undefined ? {} : { id: { [Op.ne]: excludeId } }),
     startTime: { [Op.lt]: endTime }, endTime: { [Op.gt]: startTime },
   }, transaction });
-  if (conflict) fail(409, 'Bu zaman aralığında başka bir çalışma seansı mevcut');
+  if (conflict) fail(409, 'Bu zaman aralığında başka bir kayıt mevcut');
 }
 
 async function loadOwned(actor: Actor, id: number, expectedUpdatedAt: string, transaction: Transaction) {
   const session = await StudySession.findOne({ where: { id, userId: actor.id }, transaction });
-  if (!session) fail(404, 'Çalışma seansı bulunamadı');
+  if (!session) fail(404, 'Kayıt bulunamadı');
   if (session.updatedAt.getTime() !== new Date(expectedUpdatedAt).getTime()) {
-    fail(409, 'Seans başka bir işlemde değiştirildi. Güncel veriyi yükleyip tekrar deneyin');
+    fail(409, 'Kayıt başka bir işlemde değiştirildi. Güncel veriyi yükleyip tekrar deneyin');
   }
   return session;
 }
@@ -100,16 +100,16 @@ export async function updateSession(actor: Actor, id: number, input: UpdateSessi
   return sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
     const session = await loadOwned(actor, id, input.expectedUpdatedAt, transaction);
     let clock = await PomodoroClock.findByPk(id, { transaction });
-    if (timerCommand && session.sessionType !== 'pomodoro') fail(409, 'Bu seans Pomodoro türünde değil');
+    if (timerCommand && session.sessionType !== 'pomodoro') fail(409, 'Bu kayıt Pomodoro türünde değil');
     if (clock) await settlePomodoroClock(session, clock, transaction);
     if (input.sessionType && input.sessionType !== session.sessionType && clock) {
-      if ((input.status ?? session.status) !== 'planned') fail(409, 'Sayaç türünü değiştirmeden önce seansı sıfırlayın');
+      if ((input.status ?? session.status) !== 'planned') fail(409, 'Sayaç türünü değiştirmeden önce kaydı sıfırlayın');
       await clock.destroy({ transaction }); clock = null;
     }
     const nextStatus = input.status ?? session.status;
     if (timerCommand?.command === 'configure' && (session.status === 'completed' || session.status === 'cancelled')) fail(409, 'Tamamlanan veya iptal edilen sayaç değiştirilemez');
     if (clock && input.pomodoroSettings && (session.status !== 'planned' || nextStatus !== 'planned')) fail(409, 'Süreleri değiştirmeden önce sayacı sıfırlayın');
-    if (!canTransitionSession(session.status, nextStatus)) fail(409, 'Bu seans durum geçişine izin verilmiyor');
+    if (!canTransitionSession(session.status, nextStatus)) fail(409, 'Bu durum geçişine izin verilmiyor');
     const startTime = input.startTime === undefined ? session.startTime : new Date(input.startTime);
     const endTime = input.endTime === undefined ? session.endTime : new Date(input.endTime);
     const scheduleChanged = startTime.getTime() !== session.startTime.getTime() || endTime.getTime() !== session.endTime.getTime();
@@ -119,9 +119,9 @@ export async function updateSession(actor: Actor, id: number, input: UpdateSessi
       await assertAvailable(actor.id, startTime, endTime, transaction, session.id);
     }
     if (nextStatus === 'in_progress' && session.status !== 'in_progress') {
-      if (endTime.getTime() <= Date.now()) fail(409, 'Bu seansın planlanan bitişi geçmiş. Önce saatini güncelleyin');
+      if (endTime.getTime() <= Date.now()) fail(409, 'Planlanan bitiş geçmiş. Önce saatini güncelleyin');
       const active = await StudySession.findOne({ where: { userId: actor.id, status: 'in_progress', id: { [Op.ne]: id } }, transaction });
-      if (active) fail(409, 'Önce devam eden seansı duraklatın veya tamamlayın');
+      if (active) fail(409, 'Önce devam eden çalışmayı duraklatın veya tamamlayın');
     }
     if (input.planId !== undefined || input.courseId !== undefined || input.topicId !== undefined) {
       const nextPlanId = input.planId === undefined ? (session.planId ?? undefined) : (input.planId ?? undefined);

@@ -6,7 +6,7 @@ Kullanıcı projeye mevcut koddan devam edilmesini, önce ileri düzey teknik de
 
 Bu belgedeki gereksinimler ürün hedefidir; tamamlanmışlık kanıtı değildir. Kaynakla doğrulanmış mevcut durum `techContext.md`, açık işler `progress.md`, 15 Ekim teknik değerlendirmesi `audits/2026-10-15-project-audit.md` içindedir. Öncelik mevcut ürünün güvenlik, veri bütünlüğü, derleme ve işlevsel doğruluğudur.
 
-İlk ürün odağı öğrenciler/TYT-AYT idi. Mevcut README ve seed genel görev/iş takibine de açılmıştır; kapsam genişlemesi yeni özelliklerden önce netleştirilmelidir. Kullanıcı adına yeni ürün yönü kararı alınmamıştır.
+**Ürün yönü (19 Ekim 2026, kullanıcı kararı):** İlk odak TYT/AYT öğrencileriydi; bu geçersizdir. Ürün alan/kitle bağımsız, global ve değişken odaklı bir çalışma/görev takip sistemidir ve her kesime uyacak şekilde yapılandırılabilir olmalıdır. Aşağıdaki öğrenci/TYT-AYT anlatımları tarihsel başlangıç hedefidir; güncel sıra progress.md'deki yol haritasındadır.
 
 ## Proje Adı
 Ders Takip ve Planlama Sistemi (ders-takip)
@@ -69,8 +69,7 @@ Aşağıdaki liste projenin tarihsel başlangıç stack'idir. Güncel kaynak env
 - Tek dil desteği (Türkçe)
 
 ## Hedef Kitle
-- TYT/AYT sınavına hazırlanan öğrenciler
-- Üniversite öğrencileri
+- Çalışma, proje veya görevlerini planlayıp ölçmek isteyen herkes (öğrenci, çalışan, serbest çalışan, ekip); kitleye özel zorunluluk yoktur
 - Kendi öğrenme sürecini takip etmek isteyen herkes
 
 ## Güncel görsel gereksinim — 15 Ekim 2026

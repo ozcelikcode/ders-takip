@@ -46,10 +46,10 @@ test('creates a session, changes its time and duration, and preserves it on relo
   await login(page);
   await dailyPlanner(page);
   await page.getByRole('button', { name: 'Yeni seans', exact: true }).click();
-  const editor = page.getByRole('dialog', { name: 'Yeni Çalışma Seansı' });
-  await editor.getByRole('button', { name: 'Özel Görev', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Yeni Seans' });
+  await editor.getByRole('button', { name: 'Özel', exact: true }).click();
   await editor
-    .getByLabel('Özel Görev Başlığı *', { exact: true })
+    .getByLabel('Özel Başlık *', { exact: true })
     .fill('Created browser session');
   await editor.getByLabel('Tarih', { exact: true }).fill(application.day);
   await editor.getByLabel('Saat', { exact: true }).fill('16:00');
@@ -208,7 +208,7 @@ test('keeps short card targets separate and supports keyboard creation and day-e
   await expect(firstHour).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(
-    page.getByRole('heading', { name: 'Yeni Çalışma Seansı', exact: true }),
+    page.getByRole('heading', { name: 'Yeni Seans', exact: true }),
   ).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(firstHour).toBeFocused();

@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import type { DraggableProvided, DraggableStateSnapshot } from '@hello-pangea/dnd';
 import { Archive, CheckCircle2, Circle, Clock, Pencil, RotateCcw } from 'lucide-react';
 import type { CatalogTopic as Topic } from '../../types/catalog';
@@ -34,6 +35,7 @@ const TopicCard = ({
   onArchive,
   onRestore,
 }: TopicCardProps) => {
+  const t = useTerms();
   return (
     <article
       ref={provided.innerRef}
@@ -43,7 +45,7 @@ const TopicCard = ({
       {canReorder && (
         <div
           {...provided.dragHandleProps}
-          aria-label={`${topic.name} konusunu sırala`}
+          aria-label={`${t.topic({ case: 'acc', capitalize: true })} sırala: ${topic.name}`}
           className="cursor-grab text-[var(--muted)]"
         >
           <svg
@@ -117,7 +119,7 @@ const TopicCard = ({
           <>
             <button
               className="icon-button"
-              aria-label={`${topic.name} konusunu düzenle`}
+              aria-label={`${t.topic({ case: 'acc', capitalize: true })} düzenle: ${topic.name}`}
               onClick={onEdit}
             >
               <Pencil className="h-4 w-4" />
@@ -134,7 +136,7 @@ const TopicCard = ({
             ) : (
               <button
                 className="icon-button"
-                aria-label={`${topic.name} konusunu arşivle`}
+                aria-label={`${t.topic({ case: 'acc', capitalize: true })} arşivle: ${topic.name}`}
                 onClick={onArchive}
               >
                 <Archive className="h-4 w-4" />

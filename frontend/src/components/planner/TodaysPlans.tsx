@@ -1,3 +1,4 @@
+import { useTerms } from '../../hooks/useTerms';
 import { calendarViewDate, formatZonedTime } from '@study-tracker/contracts';
 import { useQuery } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
@@ -33,6 +34,7 @@ type Confirmation = {
   action: 'pause' | 'complete' | 'reopen';
 };
 export default function TodaysPlans() {
+  const t = useTerms();
   const timezone = useUserPreferencesStore(
     (state) => state.preferences.timezone,
   );
@@ -94,7 +96,7 @@ export default function TodaysPlans() {
     }
     await perform(
       () => studySessionsAPI.startSession(session),
-      'Çalışma seansı başlatıldı.',
+      `${t.session({ capitalize: true })} başlatıldı.`,
     );
   };
   const requestConfirmation = (
@@ -118,10 +120,10 @@ export default function TodaysPlans() {
             ? studySessionsAPI.completeSession(current)
             : studySessionsAPI.updateSession(current, { status: 'planned' }),
       action === 'reopen'
-        ? 'Seans yeniden planlandı; çalışma geçmişi korundu.'
+        ? `${t.session({ capitalize: true })} yeniden planlandı; çalışma geçmişi korundu.`
         : action === 'pause'
-          ? 'Seans duraklatıldı.'
-          : 'Seans tamamlandı.',
+          ? `${t.session({ capitalize: true })} duraklatıldı.`
+          : `${t.session({ capitalize: true })} tamamlandı.`,
     );
     if (saved) setConfirmation(null);
     return saved;
@@ -157,7 +159,7 @@ export default function TodaysPlans() {
           }
         >
           <Plus className="h-4 w-4" />
-          Yeni seans
+          Yeni {t.session()}
         </button>
       </div>
       {query.isPending ? (
@@ -190,7 +192,7 @@ export default function TodaysPlans() {
           >
             {sessions.length === 0 ? (
               <p className="px-4 py-6 text-sm text-[var(--muted)]">
-                Bugün için planlanmış seans yok.
+                Bugün için planlanmış {t.session()} yok.
               </p>
             ) : (
               <ul className="divide-y divide-[var(--line)]">
@@ -229,7 +231,7 @@ export default function TodaysPlans() {
                       <button
                         className="icon-button"
                         disabled={busy}
-                        aria-label={`${session.title} seansını düzenle`}
+                        aria-label={`${t.session({ case: 'acc', capitalize: true })} düzenle: ${session.title}`}
                         onClick={() =>
                           setEditor({
                             date: calendarViewDate(session.startTime, timezone),
@@ -258,7 +260,7 @@ export default function TodaysPlans() {
                           <button
                             className="icon-button"
                             disabled={busy}
-                            aria-label={`${session.title} seansını duraklat`}
+                            aria-label={`${t.session({ case: 'acc', capitalize: true })} duraklat: ${session.title}`}
                             onClick={() =>
                               requestConfirmation(session, 'pause')
                             }
@@ -268,7 +270,7 @@ export default function TodaysPlans() {
                           <button
                             className="icon-button"
                             disabled={busy}
-                            aria-label={`${session.title} seansını tamamla`}
+                            aria-label={`${t.session({ case: 'acc', capitalize: true })} tamamla: ${session.title}`}
                             onClick={() =>
                               requestConfirmation(session, 'complete')
                             }
@@ -292,7 +294,7 @@ export default function TodaysPlans() {
                         <button
                           className="icon-button"
                           disabled={busy}
-                          aria-label={`${session.title} seansını yeniden planla`}
+                          aria-label={`${t.session({ case: 'acc', capitalize: true })} yeniden planla: ${session.title}`}
                           onClick={() => requestConfirmation(session, 'reopen')}
                         >
                           <RotateCcw className="h-4 w-4" />
@@ -316,10 +318,10 @@ export default function TodaysPlans() {
           isOpen
           title={
             confirmation.action === 'pause'
-              ? 'Seansı duraklat'
+              ? `${t.session({ case: 'acc', capitalize: true })} duraklat`
               : confirmation.action === 'complete'
-                ? 'Seansı tamamla'
-                : 'Seansı yeniden planla'
+                ? `${t.session({ case: 'acc', capitalize: true })} tamamla`
+                : `${t.session({ case: 'acc', capitalize: true })} yeniden planla`
           }
           message={`“${confirmation.session.title}” ${confirmation.action === 'pause' ? 'duraklatılacak.' : confirmation.action === 'complete' ? 'tamamlandı olarak işaretlenecek.' : 'planlandı durumuna dönecek. Notlar ve ölçülen çalışma geçmişi korunur; çalışma kendiliğinden başlamaz.'}`}
           onClose={() => setConfirmation(null)}
@@ -332,13 +334,13 @@ export default function TodaysPlans() {
           )}
           {!current && (
             <p role="alert">
-              Bu seans artık listede bulunmuyor. Pencereyi kapatıp listeyi
+              Bu {t.session()} artık listede bulunmuyor. Pencereyi kapatıp listeyi
               yenileyin.
             </p>
           )}
           {query.isError && (
             <p role="alert">
-              Güncel seanslar alınamadı. Önce listeyi yeniden yükleyin.
+              Güncel {t.session({ plural: true })} alınamadı. Önce listeyi yeniden yükleyin.
             </p>
           )}
         </ConfirmDialog>

@@ -2,6 +2,9 @@ import {
   defaultSiteSettings,
   siteSettingsSchema,
 } from '@study-tracker/contracts';
+
+// These tests read the education vocabulary; the settings payload must carry that preset.
+const educationSettings = { ...defaultSiteSettings, terminologyPreset: 'education' as const };
 import { AxiosError, AxiosHeaders } from 'axios';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -11,6 +14,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import toast from 'react-hot-toast';
@@ -126,10 +130,10 @@ beforeEach(() => {
     },
   );
   vi.mocked(settingsAPI.getAdminSettings).mockResolvedValue(
-    response({ ...defaultSiteSettings }),
+    response({ ...educationSettings }),
   );
   vi.mocked(settingsAPI.updateSettings).mockImplementation(async (patch) =>
-    response(siteSettingsSchema.parse({ ...defaultSiteSettings, ...patch })),
+    response(siteSettingsSchema.parse({ ...educationSettings, ...patch })),
   );
   vi.mocked(backupAPI.getBackups).mockResolvedValue(response([backup]));
   vi.mocked(backupAPI.resetData).mockResolvedValue(
@@ -172,7 +176,7 @@ it('does not write an unchanged form and preserves a draft during refetch', asyn
   });
   vi.mocked(settingsAPI.getAdminSettings).mockResolvedValue(
     response({
-      ...defaultSiteSettings,
+      ...educationSettings,
       adminEmail: 'remote@example.com',
       siteName: 'Remote name',
     }),
@@ -205,7 +209,7 @@ it('can discard a draft explicitly to the latest server settings', async () => {
   });
   act(() =>
     useSettingsStore.setState({
-      adminSettings: { ...defaultSiteSettings, siteName: 'Latest' },
+      adminSettings: { ...educationSettings, siteName: 'Latest' },
     }),
   );
   fireEvent.click(
@@ -219,7 +223,7 @@ it('can discard a draft explicitly to the latest server settings', async () => {
 it('validates hidden section fields and keeps the draft on a rejected save for retry', async () => {
   vi.mocked(settingsAPI.updateSettings)
     .mockRejectedValueOnce(denied())
-    .mockResolvedValue(response({ ...defaultSiteSettings, siteName: 'Valid' }));
+    .mockResolvedValue(response({ ...educationSettings, siteName: 'Valid' }));
   mount();
   await ready();
   fireEvent.change(screen.getByLabelText('Site URL'), {
@@ -269,7 +273,7 @@ it('locks form sections and duplicate writes until acknowledgement', async () =>
     ).disabled,
   ).toBe(true);
   await act(() =>
-    pending.resolve(response({ ...defaultSiteSettings, siteName: 'Saved' })),
+    pending.resolve(response({ ...educationSettings, siteName: 'Saved' })),
   );
   await screen.findByText('Kaydedilmemiş değişiklik yok.');
 });
@@ -405,10 +409,10 @@ it('shows the full reset scope and lets an administrator cancel without writing'
   await backups();
   fireEvent.click(
     screen.getByRole('button', {
-      name: 'Öğrenci ve çalışma verilerini temizle',
+      name: 'Kullanıcı ve çalışma verilerini temizle',
     }),
   );
-  expect(screen.getByText(/Öğrenci hesapları, bütün dersler/)).toBeTruthy();
+  expect(screen.getByText(/Kullanıcı hesapları, bütün dersler/)).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'İptal' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   expect(backupAPI.resetData).not.toHaveBeenCalled();
@@ -479,7 +483,7 @@ it('suppresses late settings success and retains the new account boundary', asyn
   useSettingsStore.getState().clearAdminSettings();
   await act(() =>
     pending.resolve(
-      response({ ...defaultSiteSettings, siteName: 'Old draft' }),
+      response({ ...educationSettings, siteName: 'Old draft' }),
     ),
   );
   expect(useSettingsStore.getState().adminSettings).toBeNull();
@@ -505,7 +509,7 @@ it('clears a cancelled action error before confirming a different reset scope', 
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   fireEvent.click(
     screen.getByRole('button', {
-      name: 'Öğrenci ve çalışma verilerini temizle',
+      name: 'Kullanıcı ve çalışma verilerini temizle',
     }),
   );
   expect(screen.queryByText('Başka bir bakım işlemi sürüyor')).toBeNull();
@@ -515,6 +519,22 @@ it('clears a cancelled action error before confirming a different reset scope', 
   expect(screen.getByRole('dialog')).toBeTruthy();
 });
 it('refreshes untouched settings without overwriting a later edited draft',async()=>{
- mount();await ready();vi.mocked(settingsAPI.getAdminSettings).mockResolvedValue(response({...defaultSiteSettings,siteName:'Updated elsewhere'}));await act(()=>useSettingsStore.getState().fetchAdminSettings());expect((screen.getByLabelText('Site adı') as HTMLInputElement).value).toBe('Updated elsewhere');expect((screen.getByRole('button',{name:'Değişiklikleri kaydet'}) as HTMLButtonElement).disabled).toBe(true);
- fireEvent.change(screen.getByLabelText('Site adı'),{target:{value:'Local edit'}});vi.mocked(settingsAPI.getAdminSettings).mockResolvedValue(response({...defaultSiteSettings,siteName:'New remote edit'}));await act(()=>useSettingsStore.getState().fetchAdminSettings());expect((screen.getByLabelText('Site adı') as HTMLInputElement).value).toBe('Local edit');
+ mount();await ready();vi.mocked(settingsAPI.getAdminSettings).mockResolvedValue(response({...educationSettings,siteName:'Updated elsewhere'}));await act(()=>useSettingsStore.getState().fetchAdminSettings());expect((screen.getByLabelText('Site adı') as HTMLInputElement).value).toBe('Updated elsewhere');expect((screen.getByRole('button',{name:'Değişiklikleri kaydet'}) as HTMLButtonElement).disabled).toBe(true);
+ fireEvent.change(screen.getByLabelText('Site adı'),{target:{value:'Local edit'}});vi.mocked(settingsAPI.getAdminSettings).mockResolvedValue(response({...educationSettings,siteName:'New remote edit'}));await act(()=>useSettingsStore.getState().fetchAdminSettings());expect((screen.getByLabelText('Site adı') as HTMLInputElement).value).toBe('Local edit');
+});
+
+it('offers the vocabulary presets and saves only the chosen preset', async () => {
+  mount();
+  await ready();
+  fireEvent.click(screen.getByRole('button', { name: 'Kelimeler' }));
+  const group = screen.getByRole('radiogroup', { name: 'Kelime seti' });
+  expect(within(group).getAllByRole('radio')).toHaveLength(4);
+  expect((within(group).getByRole('radio', { name: /Eğitim/ }) as HTMLInputElement).checked).toBe(true);
+  expect(within(group).getByText('Örnek: Hedef → Adım · Seans')).toBeTruthy();
+  fireEvent.click(within(group).getByRole('radio', { name: /Hedef/ }));
+  save();
+  await waitFor(() =>
+    expect(settingsAPI.updateSettings).toHaveBeenCalledWith({ terminologyPreset: 'goals' }),
+  );
+  await waitFor(() => expect(useSettingsStore.getState().settings.terminologyPreset).toBe('goals'));
 });

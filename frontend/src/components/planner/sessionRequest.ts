@@ -53,13 +53,13 @@ export const resolveSessionTitle = (
         ? selectedCourse.name
         : `${selectedCourse.name}${categoryName ? ` (${categoryName})` : ''}`;
     }
-    return 'Ders Çalışması';
+    return 'Çalışma';
   }
   if (data.sessionCategory === 'break') return 'Mola';
   if (data.sessionCategory === 'custom' && data.customTitle) {
     return data.customTitle;
   }
-  return 'Çalışma Seansı';
+  return 'Çalışma';
 };
 
 export const buildSessionPayload = (

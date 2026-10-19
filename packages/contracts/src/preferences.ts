@@ -21,7 +21,8 @@ export const preferencesSchema = z.object({
     .refine((days) => new Set(days).size === days.length),
   language: z.enum(['tr', 'en']),
   timezone: timezoneSchema,
-  studyField: z.enum(['', 'TYT', 'AYT', 'SAY', 'EA', 'SOZ', 'DIL']).nullable(),
+  // Free-text focus area; the earlier fixed exam-track values remain valid.
+  studyField: z.string().trim().max(60).nullable(),
 });
 export type UserPreferences = z.infer<typeof preferencesSchema>;
 export type ThemeMode = UserPreferences['theme'];

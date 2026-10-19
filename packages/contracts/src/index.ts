@@ -11,6 +11,8 @@ export * from './preferences.js';
 export * from './auth.js';
 export * from './backups.js';
 export * from './plans.js';
+export * from './terminology.js';
+import { defaultTerminologyPreset, terminologyPresetSchema } from './terminology.js';
 
 export const brandIconNames = [
   'GraduationCap',
@@ -41,6 +43,7 @@ export const publicSettingsSchema = z.object({
   secondaryColor: colorSchema,
   allowRegistration: z.boolean(),
   maintenanceMode: z.boolean(),
+  terminologyPreset: terminologyPresetSchema,
 });
 export const siteSettingsSchema = publicSettingsSchema.extend({
   adminEmail: z.email(),
@@ -64,6 +67,7 @@ export const defaultSiteSettings: SiteSettings = {
   adminEmail: 'admin@example.com',
   allowRegistration: true,
   maintenanceMode: false,
+  terminologyPreset: defaultTerminologyPreset,
   sessionTimeout: 60,
   emailNotifications: true,
   pushNotifications: true,

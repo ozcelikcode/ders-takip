@@ -15,3 +15,10 @@ it('allows localized site names and exposes only public branding fields', () => 
   assert.equal(publicSettings.adminEmail,undefined); assert.equal(publicSettings.backup_interval,undefined);
   for (const patch of [{siteName:'  '},{siteName:'x'.repeat(101)},{siteLogo:'javascript:alert(1)'},{internalKey:'test'},{backup_interval:'3'}]) assert.equal(settingsPatchSchema.safeParse(patch).success,false);
 });
+
+it('keeps the focus area audience-neutral: free text up to 60 characters, legacy exam codes still valid', () => {
+  for (const studyField of [null, '', 'TYT', 'SAY', 'Yazılım geliştirme', ' Tasarım '])
+    assert.equal(preferencesSchema.safeParse({ ...defaultPreferences, studyField }).success, true, String(studyField));
+  assert.equal(preferencesSchema.parse({ ...defaultPreferences, studyField: ' Tasarım ' }).studyField, 'Tasarım');
+  assert.equal(preferencesPatchSchema.safeParse({ studyField: 'x'.repeat(61) }).success, false);
+});

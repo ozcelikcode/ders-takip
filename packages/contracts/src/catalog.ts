@@ -33,7 +33,7 @@ export const reorderTopicsSchema = z.object({
   if (new Set(ids).size !== ids.length || expectedSet.size !== expectedIds.length ||
       new Set(orders).size !== orders.length || orders.some(position => position > ids.length) ||
       ids.length !== expectedIds.length || ids.some(id => !expectedSet.has(id))) {
-    context.addIssue({ code: 'custom', message: 'Tam ve tekil konu listesi ile 1..N sıralaması gereklidir' });
+    context.addIssue({ code: 'custom', message: 'Tam ve tekil liste ile 1..N sıralaması gereklidir' });
   }
 });
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;

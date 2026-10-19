@@ -1,3 +1,4 @@
+import { roleLabel } from '../../lib/roleLabels';
 import { useId, useState, type FormEvent } from 'react';
 import {
   createManagedUserSchema,
@@ -177,7 +178,7 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
             })
           }
         >
-          <option value="student">Öğrenci</option>
+          <option value="student">{roleLabel('student')}</option>
           <option value="admin">Yönetici</option>
         </select>
         {form.role === 'admin' && (

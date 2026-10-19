@@ -14,7 +14,7 @@ Linux CI'da browser sistem bağımlılıkları için `npx playwright install --w
 ## İzolasyon ve yaşam döngüsü
 
 - `run.mjs` önce contracts/backend/frontend build ve E2E strict typecheck yapar. Build sırasında `VITE_API_BASE_URL=/api` açıkça atanır; dış API'ye derleme yapılmaz.
-- Her test kendi boş `mkdtemp` dizini, SQLite dosyası, rastgele JWT, sentetik iki öğrenci ve bir admin ve loopback üzerinde işletim sisteminin seçtiği portu alır. Açık geliştirme sunucusu yeniden kullanılmaz. Harici base URL veya DB yolu seçeneği yoktur.
+- Her test kendi boş `mkdtemp` dizini, SQLite dosyası, rastgele JWT, sentetik iki kullanıcı ve bir admin ve loopback üzerinde işletim sisteminin seçtiği portu alır. Açık geliştirme sunucusu yeniden kullanılmaz. Harici base URL veya DB yolu seçeneği yoktur.
 - Child yalnız kontrollü çevreyi alır. Backend `NODE_ENV=test` sırasında `.env` yüklemez. Gerçek admin parolası, kullanıcı DB'si, snapshot veya yedekler okunmaz. Normal seed/reset/restore komutları çağrılmaz; migration yalnız yeni temp DB'ye uygulanır.
 - Gerçek auth formundan giriş yapılır; localStorage token veya uygulama state enjeksiyonu yoktur. Browser context yalnız fixture origin'ine istek gönderebilir; dış adresler engellenir.
 - Başarı ve hata sonunda süreç kapanır. SQLite integrity/FK, değişmemesi gereken beş seans, not ve 300 saniyelik ölçüm geçmişi karşılaştırılır; cleanup başarısızsa test de başarısızdır. Kapanış gecikirse yalnız test child'ı sonlandırılır; sahip olunan temp dizin finally içinde kaldırılır. İşletim sistemi veya test runner bootstrap sırasında süreci zorla keserse finally güvencesi yoktur; dizin yine yalnız temp test verisi içerir.

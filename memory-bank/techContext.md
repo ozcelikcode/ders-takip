@@ -54,6 +54,8 @@ Tasarım paketi kapanışında: 22 backend + 8 frontend = 30 test (tarihsel), st
 
 ## Frontend
 
+- Görünen ana kavram kelimeleri (ders/konu/seans) `terminologyPreset` site ayarından, `useTerms()` ile türetilir; kelime/ek mantığı `packages/contracts/src/terminology.ts`'tedir. Ekranlara sabit ders/konu/seans yazılmaz; backend mesajları nötr "kayıt" ifadesi kullanır.
+
 - App sayfaları lazy import ve Suspense ile yükler. ErrorBoundary kökte; hata halinde Türkçe kurtarma ekranı gösterir, iç hata detayını kullanıcıya açmaz. Source map build'de kapalı.
 - QueryClient `src/lib/queryClient.ts` altında. Auth store kimlik değişiminde cache'i ve eski sorguları temizler; late response izolasyonu testlidir. Tüm kaynaklar account factory'den key alır; session görünümleri timezone/tarih de taşır. Güncel gün 30 saniye/focus ile yenilenir, yazmalar ilgili bütün özetleri prefix ile invalidate eder. Tercihler yalnız mevcut kullanıcı belleği/sunucuda, readNotifications hesap anahtarlı saklanır.
 - Auth tek bellek kaynağı/refresh promise ve epoch ile yürür; geç yanıtlar bitmiş veya değişmiş hesabı geri getiremez. Geç 401 güncel token ile tekrar edilir. Cookie değişiklikleri ayrı Axios transport ve Web Locks ile sıraya konur; BroadcastChannel diğer sekmelerin cache/kimliğini temizler. Çevrimdışı logout için gizli bilgi taşımayan pending niyeti tutulur; reload bu durumda refresh yapmaz. Eski auth-storage temizlenir.

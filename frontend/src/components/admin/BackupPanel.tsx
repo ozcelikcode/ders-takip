@@ -169,7 +169,7 @@ export default function BackupPanel({
             disabled={busy || dirty}
             onClick={() => onAction({ kind: 'reset', mode: 'all' })}
           >
-            Öğrenci ve çalışma verilerini temizle
+            Kullanıcı ve çalışma verilerini temizle
           </button>
         </div>
       </div>

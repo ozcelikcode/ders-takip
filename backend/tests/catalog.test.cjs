@@ -295,7 +295,7 @@ it('rejects an archived-name collision on restore atomically and restores preser
   const before = await databaseSnapshot();
   const progressBefore = (await UserTopicProgress.findOne({ where: { topicId: archivedId } })).toJSON();
   const collision = await auth('put', `/api/topics/${archivedId}`).send({ isActive: true }).expect(409);
-  assert.match(collision.body.error.message, /konu/i);
+  assert.match(collision.body.error.message, /aynı isimde/);
   assert.deepEqual(await databaseSnapshot(), before);
   assert.deepEqual((await UserTopicProgress.findOne({ where: { topicId: archivedId } })).toJSON(), progressBefore);
   const restored = (await auth('put', `/api/topics/${archivedId}`).send({ isActive: true, name: 'Restored topic' }).expect(200)).body.data.topic;

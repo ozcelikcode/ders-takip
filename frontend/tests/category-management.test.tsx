@@ -328,7 +328,7 @@ it('requires an explicit migration choice, preserves it on failure, and waits fo
   const { client } = mount();
   const dialog = await openDelete();
   expect(
-    within(dialog).getByText(/bütün kullanıcıların aktif ve pasif derslerini/),
+    within(dialog).getByText(/bütün kullanıcıların aktif ve pasif dersleri/),
   ).toBeTruthy();
   const target = screen.getByLabelText(
     'Derslerin taşınacağı kategori',

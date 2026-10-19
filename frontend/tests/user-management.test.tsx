@@ -232,7 +232,7 @@ it('disables self role, status and deletion actions and explains the restriction
       'Kendi yönetici erişiminizi buradan değiştiremezsiniz.',
     ),
   ).toBeTruthy();
-  for (const name of ['Pasifleştir', 'Öğrenci yap', 'Kullanıcıyı sil'])
+  for (const name of ['Pasifleştir', 'Kullanıcı yap', 'Kullanıcıyı sil'])
     expect(
       (within(actions).getByRole('menuitem', { name }) as HTMLButtonElement)
         .disabled,
