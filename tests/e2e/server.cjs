@@ -132,6 +132,21 @@ process.once('disconnect', shutdown);
   site.use((request, response, next) =>
     request.path.startsWith('/api/') ? app(request, response, next) : next(),
   );
+  // Production servers compress text assets; serving them raw would make Lighthouse measure an
+  // uncompressed deployment nobody runs. Node's zlib keeps this dependency-free.
+  const compressed = new Map();
+  const assetTypes = { '.js': 'text/javascript', '.css': 'text/css' };
+  site.use('/assets', (request, response, next) => {
+    const type = assetTypes[path.extname(request.path)];
+    if (!type || !/\bgzip\b/.test(request.headers['accept-encoding'] || '')) return next();
+    const file = path.resolve(__dirname, '../../frontend/dist/assets', path.basename(request.path));
+    if (!fs.existsSync(file)) return next();
+    if (!compressed.has(file)) compressed.set(file, require('node:zlib').gzipSync(fs.readFileSync(file)));
+    response.setHeader('Content-Type', type);
+    response.setHeader('Content-Encoding', 'gzip');
+    response.setHeader('Vary', 'Accept-Encoding');
+    response.end(compressed.get(file));
+  });
   site.use(express.static(path.resolve(__dirname, '../../frontend/dist')));
   site.get('*', (_request, response) =>
     response.sendFile(
