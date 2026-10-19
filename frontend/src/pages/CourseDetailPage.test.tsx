@@ -123,7 +123,6 @@ async function mount() {
     <QueryClientProvider client={client}>
       <MemoryRouter
         initialEntries={['/courses/10']}
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
         <Routes>
           <Route path="/courses/:id" element={<CourseDetailPage />} />

@@ -13,7 +13,7 @@ it('recovers an unfinished session from a previous day and renders the shared ti
   const session = { id: 1, userId: 1, title: 'Previous day', startTime: '2026-10-15T23:00:00Z', endTime: '2026-10-16T02:00:00Z', duration: 180, status: 'paused' as const, sessionType: 'pomodoro' as const, updatedAt: '2026-10-16T09:00:00Z', createdAt: '2026-10-15T09:00:00Z', pomodoroClock: { phase: 'short_break' as const, cycle: 2, remainingMilliseconds: 44000, deadlineAt: null, autoStartBreaks: false, completedWorkCycles: 1 } };
   vi.mocked(studySessionsAPI.getSessions).mockResolvedValue({ data: { success: true, data: { sessions: [session] } }, status: 200, statusText: 'OK', headers: {}, config: { headers: new AxiosHeaders() } });
   vi.mocked(studySessionsAPI.getSession).mockResolvedValue({ data: { success: true, data: { session } }, status: 200, statusText: 'OK', headers: {}, config: { headers: new AxiosHeaders() } });
-  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><PomodoroPage /></MemoryRouter></QueryClientProvider>);
+  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><PomodoroPage /></MemoryRouter></QueryClientProvider>);
   const timer = await screen.findByRole('region', { name: 'Pomodoro sayacı' });
   expect(within(timer).getByRole('status').textContent).toBe('Kısa mola'); expect(within(timer).getByRole('timer').textContent).toBe('00:44');
   expect(studySessionsAPI.getSessions).toHaveBeenCalledWith({ sessionType: 'pomodoro' });
