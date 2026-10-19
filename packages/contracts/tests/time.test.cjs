@@ -21,3 +21,16 @@ it('keeps API boundaries and calendar fields independent of the server or browse
   const precise = calendarViewDate('2026-10-15T21:30:42.123Z', 'Europe/Istanbul');
   assert.equal(calendarViewInstant(precise, 'Europe/Istanbul').toISOString(), '2026-10-15T21:30:42.123Z');
 });
+
+it('derives local day keys with Intl exactly as luxon does across zones, DST edges and year ends', () => {
+  const { DateTime } = require('luxon');
+  const zones = ['UTC', 'Europe/Istanbul', 'America/New_York', 'Pacific/Apia', 'Asia/Kolkata', 'Pacific/Kiritimati', 'America/St_Johns'];
+  const start = Date.parse('2025-12-30T00:00:00Z');
+  for (let step = 0; step < 24 * 12; step++) {
+    const instant = start + step * 37 * 60 * 1000 + 13 * 24 * 3600 * 1000 * (step % 30);
+    for (const zone of zones)
+      assert.equal(dateKeyInZone(instant, zone), DateTime.fromMillis(instant, { zone }).toISODate(), `${zone} ${new Date(instant).toISOString()}`);
+  }
+  assert.throws(() => dateKeyInZone('not a date', 'UTC'));
+  assert.throws(() => dateKeyInZone(Date.now(), 'Mars/Base'));
+});

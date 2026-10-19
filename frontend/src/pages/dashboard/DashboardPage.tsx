@@ -1,19 +1,28 @@
+import { lazy, Suspense } from 'react';
 import { useTerms } from '../../hooks/useTerms';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, BookOpen, Calendar, Clock, CheckCircle, Layers, Plus, Timer } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { format } from '../../utils/calendarDates';
-import { dateFnsLocale } from '../../lib/locale';
+import { appLocale } from '../../lib/locale';
 import RecentActivities from '../../components/dashboard/RecentActivities';
-import WeeklyProgressChart from '../../components/dashboard/WeeklyProgressChart';
 import PageHeader from '../../components/common/PageHeader';
 import { coursesAPI, studySessionsAPI } from '../../services/api';
 import { formatMeasuredTime } from '../../utils/sessionHelpers';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
-import { calendarViewDate } from '@study-tracker/contracts';
 import { useAuthStore } from '../../store/authStore';
 import GoalProgress from '../../components/dashboard/GoalProgress';
+
+/** "19 Ekim 2026, Pazartesi" in the user's zone, via Intl so the dashboard does not need luxon. */
+const todayLabel = (timeZone: string) => {
+  const now = new Date();
+  const day = new Intl.DateTimeFormat(appLocale, { timeZone, day: 'numeric', month: 'long', year: 'numeric' }).format(now);
+  const weekday = new Intl.DateTimeFormat(appLocale, { timeZone, weekday: 'long' }).format(now);
+  return `${day}, ${weekday}`;
+};
+
+// The chart library is the largest dependency; loading it after the summary keeps it off the first paint.
+const WeeklyProgressChart = lazy(() => import('../../components/dashboard/WeeklyProgressChart'));
 
 const DashboardPage = () => {
   const accountKeys = useAccountQueryKeys();
@@ -44,7 +53,7 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-7">
-      <PageHeader eyebrow={format(calendarViewDate(new Date(), timezone), 'd MMMM yyyy, EEEE', { locale: dateFnsLocale })}
+      <PageHeader eyebrow={todayLabel(timezone)}
         title={`Merhaba${firstName ? `, ${firstName}` : ''}.`}
         description="Çalışmalarına bir adım uzaktan bak. Sıradaki adımını planla."
         actions={<Link to="/planner" className="btn btn-primary"><Plus className="h-4 w-4" />{t.session({ capitalize: true })} planla</Link>} />
@@ -62,7 +71,7 @@ const DashboardPage = () => {
       <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
         <section className="panel min-w-0">
           <div className="panel-heading"><div><h2 className="text-sm font-medium">Haftalık ilerleme</h2><p className="mt-1 text-xs text-[var(--muted)]">Günlere bölünmüş ölçülen çalışma; molalar hariç</p></div><span className="badge badge-gray">Bu hafta</span></div>
-          <div className="h-[300px] px-5 pb-5 pt-7"><WeeklyProgressChart /></div>
+          <div className="h-[300px] px-5 pb-5 pt-7"><Suspense fallback={<p role="status" className="text-sm text-[var(--muted)]">Grafik yükleniyor…</p>}><WeeklyProgressChart /></Suspense></div>
         </section>
         <section className="panel min-w-0">
           <div className="panel-heading"><div><h2 className="text-sm font-medium">Son aktiviteler</h2><p className="mt-1 text-xs text-[var(--muted)]">Tamamladığın son çalışmalar</p></div><Link to="/planner" className="icon-button" aria-label="Planlayıcıya git"><ArrowRight className="h-4 w-4" /></Link></div>

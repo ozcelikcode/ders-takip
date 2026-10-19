@@ -1,30 +1,20 @@
-import { motion } from 'framer-motion';
 import { useSettingsStore } from '../../store/settingsStore';
 
+// Plain CSS keeps the first paint free of the animation library; reduced motion is honoured by index.css.
 const LoadingScreen = () => {
   const { settings } = useSettingsStore();
 
   return (
-    <div className="min-h-screen bg-[var(--canvas)] flex items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--canvas)]">
       <div className="text-center">
-        <motion.div
-          className="inline-block h-8 w-8 rounded-full border-2 border-[var(--line)] border-t-[var(--solid)]"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        <div
+          aria-hidden="true"
+          className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--solid)]"
         />
-        <motion.div
-          className="mt-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <h1 className="mb-1 text-base font-medium">
-            {settings.siteName}
-          </h1>
-          <p className="text-sm text-[var(--muted)]">
-            Sistem yükleniyor...
-          </p>
-        </motion.div>
+        <div className="mt-4">
+          <h1 className="mb-1 text-base font-medium">{settings.siteName}</h1>
+          <p className="text-sm text-[var(--muted)]">Sistem yükleniyor...</p>
+        </div>
       </div>
     </div>
   );

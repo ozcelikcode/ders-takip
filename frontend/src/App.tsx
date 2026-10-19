@@ -8,11 +8,12 @@ import { useUserPreferencesStore } from './store/userPreferencesStore';
 // Components
 import AdminRoute from './components/auth/AdminRoute';
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import Layout from './components/common/Layout';
 import LoadingScreen from './components/common/LoadingScreen';
 
 
 // Pages
+// The authenticated shell stays out of the public pages' first load.
+const Layout = lazy(() => import('./components/common/Layout'));
 const AdminCoursesPage = lazy(() => import('./pages/admin/AdminCoursesPage'));
 const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage'));
@@ -30,7 +31,6 @@ const SearchPage = lazy(() => import('./pages/search/SearchPage'));
 const PomodoroPage = lazy(() => import('./pages/pomodoro/PomodoroPage'));
 const ProfilePage = lazy(() => import('./pages/profile/ProfilePage'));
 const UserSettingsPage = lazy(() => import('./pages/settings/UserSettingsPage'));
-
 
 function App() {
   const { user, isLoading, initializeAuth } = useAuthStore();

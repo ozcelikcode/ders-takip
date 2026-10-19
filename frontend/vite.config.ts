@@ -26,5 +26,11 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        // Icons are tiny and shared by many routes; one chunk avoids dozens of round trips.
+        manualChunks: (id: string) => (id.includes('/lucide-react/') ? 'icons' : undefined),
+      },
+    },
   },
 });

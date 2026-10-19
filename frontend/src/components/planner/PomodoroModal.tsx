@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog } from '@headlessui/react';
 import { X, Maximize2, Minimize2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { StudySession } from '../../types/planner';
 import PomodoroTimer from './PomodoroTimer';
 
@@ -23,6 +23,7 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
   if (!session) return null;
 
   return (
+    <MotionConfig reducedMotion="user">
     <AnimatePresence>
       {isOpen && (
         <Dialog
@@ -100,6 +101,7 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
         </Dialog>
       )}
     </AnimatePresence>
+    </MotionConfig>
   );
 };
 

@@ -11,7 +11,7 @@ import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Dialog } from '@headlessui/react';
 import { contractResolver } from '../../lib/contractResolver';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { Coffee, Trash2, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -335,6 +335,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
   ]);
 
   return (
+    <MotionConfig reducedMotion="user">
     <Dialog
       key="create-session-modal"
       as={motion.div}
@@ -681,6 +682,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
         )}
       </ConfirmDialog>
     </Dialog>
+    </MotionConfig>
   );
 };
 

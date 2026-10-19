@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { colorSchema, type UserPreferences } from './preferences.js';
 export * from './studySessions.js';
 export * from './time.js';
+export * from './zonedTime.js';
 export * from './studyTracking.js';
 export * from './catalog.js';
 export * from './pomodoro.js';
