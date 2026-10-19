@@ -14,13 +14,15 @@ Sıra (öncelik: önce yanlış varsayımları kaldır, sonra yapılandırılabi
 | R2 | Yapılandırılabilir terminoloji | **R2a–R2c yapıldı (19 Ekim); R2d serbest özelleştirme bekliyor** | Admin ayarıyla site genelinde "Ders/Konu/Çalışma seansı" sözlüğü (örn. Proje/Görev/Oturum, Ders/Konu); tek `terms` modülü, sabit yazılmış kelime yok; varsayılan nötr. Önce tasarım notu, public ayar DTO'su genişler (migration gerekmez, settings key/value). Karar gerek: hazır set mi, serbest metin mi |
 | R3 | Global varsayılanlar | **Yapıldı (19 Ekim)** | Kayıtta tarayıcı saat dilimi; Ayarlar › Bölge (saat dilimi seçimi, tarayıcı önerisi, hafta başlangıcı); farklı tarayıcı dilimi için kapatılabilir öneri; dil kararı kayıtlı (R10) |
 | R4 | Çalışmayan tercihleri bağla | **Yapıldı (19 Ekim)** | Günlük/haftalık hedef panoda gerçek ölçülen süreyle karşılaştırılır; aktif günler hedef/özetlerde kullanılır; bildirim anahtarları ya gerçek teslimata bağlanır ya ekrandan kaldırılır (çalışmayan seçenek gösterilmez) |
-| R5 | Profil/Ayarlar tekrarı | Bekliyor | Ad ve parola tek yerde; diğer sayfa yönlendirir |
+| R5 | Profil/Ayarlar tekrarı | **Yapıldı (19 Ekim)** | Ad ve parola tek yerde; diğer sayfa yönlendirir |
 | R6 | Genel istatistik | Bekliyor | Kategori/ders bazlı dağılım, aralık seçimi, hedefle gerçekleşen; ölçülmemiş eski süre hariç |
 | R7 | Global arama | Bekliyor | Header araması ders/konu/seans başlığı ve not içinde arar, yetki kapsamına uyar |
 | R8 | Hesap kurtarma | Bekliyor | Şifre sıfırlama akışı; e-posta altyapısı kararı gerekir (SMTP/sağlayıcı) |
 | R11 | Bildirim teslimatı | Bekliyor | E-posta (R8 SMTP kararıyla) ve tarayıcı bildirimi/hatırlatma; teslimat kurulana dek kullanıcı ve admin ekranında bildirim anahtarı gösterilmez |
 | R10 | Arayüz çevirisi (i18n) | Bekliyor | Metin kataloğu + `language` tercihinin gerçek etkisi; biçimlendirme `lib/locale.ts` tek kaynağından değişir. Hazır olana dek dil seçici gösterilmez |
 | R9 | Sağlamlaştırma | Bekliyor | Major bağımlılıklar + audit, mobil ilk yük (Lighthouse 90+), LICENSE kararı, giriş/kayıt sayfalarının nötr token'a taşınması |
+
+R5 notları: Ad, kullanıcı adı, profil resmi, odak alanı ve şifre yalnız Profil sayfasındadır (ortak `profilePatchSchema`/`changePasswordSchema`, sunucu hata mesajı). Ayarlar'ın ikinci profil/şifre sekmesi ve `useProfileSettings`/`ProfileTab` silindi; Ayarlar Görünüm/Bölge/Çalışma Tercihleri'dir ve Profil'e bağlantı verir. Profil şifre formu ayarlardaki göster/gizle düğmelerini (32 px) aldı. 2 yeni ekran testi; E2E Ayarlar taraması şifre adımı yerine sekmeleri tarar, şifre formu Profil taramasında kalır. Kanıt: check yeşil, E2E 36/36.
 
 R4 notları: Günlük/haftalık hedef ve aktif günler artık çalışır: panoda "Hedefler" paneli bugünkü ve bu haftaki ölçülen süreyi hedefle karşılaştırır (günlük hedef yalnız aktif günlerde; hedef 0 ise "hedef yok"; dinlenme gününde açıkça söylenir), haftalık grafikte günlük hedef çizgisi var. Saf mantık `utils/studyGoals.ts`, grafik ve panel aynı `useWeeklyStats` sorgusunu paylaşır (tek istek). Bildirim anahtarları (kullanıcı e-posta/push/hatırlatma, admin e-posta/push) teslimat altyapısı olmadığı için ekrandan kaldırıldı; kalıcı alanlar sözleşmede kalır, R11'e ayrıldı. E2E erişilebilirlik taraması kaldırılan sekmeler yerine yeni Bölge ve Kelimeler bölümlerini tarar. Kanıt: check 24/143/231, E2E 36/36.
 

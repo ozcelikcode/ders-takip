@@ -90,10 +90,6 @@ for (const theme of ['light', 'dark'] as const) {
           await scan(page, info, 'profile-image-url');
         }
         if (route === 'settings') {
-          await page
-            .getByRole('button', { name: 'Şifremi Değiştir', exact: true })
-            .click();
-          await scan(page, info, 'settings-password');
           for (const [name, id] of [
             ['Görünüm', 'appearance'],
             ['Bölge', 'region'],

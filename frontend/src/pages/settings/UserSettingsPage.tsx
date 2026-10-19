@@ -2,21 +2,18 @@ import { defaultPreferences } from '@study-tracker/contracts';
 import type { PreferencesPatch } from '@study-tracker/contracts';
 import PageHeader from '../../components/common/PageHeader';
 import { useEffect, useState } from 'react';
-import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore, ThemeMode } from '../../store/userPreferencesStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { User, Settings, Clock, Globe } from 'lucide-react';
+import { Settings, Clock, Globe } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AppearanceTab from './AppearanceTab';
 import RegionTab from './RegionTab';
-import ProfileTab from './ProfileTab';
 import StudyTab, { type StudyPreferencesDraft } from './StudyTab';
-import { useProfileSettings } from './useProfileSettings';
 
-type TabType = 'profile' | 'appearance' | 'region' | 'study';
+type TabType = 'appearance' | 'region' | 'study';
 
 const tabs = [
-  { id: 'profile', label: 'Profil', icon: User },
   { id: 'appearance', label: 'Görünüm', icon: Settings },
   { id: 'region', label: 'Bölge', icon: Globe },
   { id: 'study', label: 'Çalışma Tercihleri', icon: Clock },
@@ -33,11 +30,9 @@ const studyDraftFrom = (preferences: typeof defaultPreferences): StudyPreference
 });
 
 const UserSettingsPage = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('profile');
-  const { user } = useAuthStore();
+  const [activeTab, setActiveTab] = useState<TabType>('appearance');
   const { preferences, updatePreferences, resetPreferences, pending, error: preferencesError } = useUserPreferencesStore();
   const { settings: siteSettings } = useSettingsStore();
-  const profileForm = useProfileSettings();
 
   // Study preferences stay local until saved to prevent instant updates.
   const [studyPrefs, setStudyPrefs] = useState(() => studyDraftFrom(preferences));
@@ -69,7 +64,11 @@ const UserSettingsPage = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Ayarlar" description="Hesabını, görünümü ve çalışma tercihlerini yönet." />
+      <PageHeader title="Ayarlar" description="Görünümü, bölge ayarlarını ve çalışma tercihlerini yönet." />
+      <p className="text-sm text-[var(--muted)]">
+        Ad, kullanıcı adı, profil resmi ve şifre{' '}
+        <Link to="/profile" className="font-medium text-[var(--text)] underline underline-offset-4">Profil</Link> sayfasındadır.
+      </p>
       <div role="status" aria-live="polite" className="text-xs text-[var(--muted)]">{pending ? 'Tercihler kaydediliyor…' : preferencesError || 'Tercihler hesabınızda saklanır'}</div>
 
       <nav aria-label="Ayar bölümleri" className="flex flex-wrap gap-1 border-b border-[var(--line)] pb-3">
@@ -91,7 +90,6 @@ const UserSettingsPage = () => {
       </nav>
 
       <div className="panel p-5 sm:p-6">
-        {activeTab === 'profile' && <ProfileTab user={user} form={profileForm} />}
         {activeTab === 'appearance' && (
           <AppearanceTab
             preferences={preferences}
