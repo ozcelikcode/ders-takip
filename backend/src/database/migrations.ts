@@ -1,9 +1,9 @@
 import { DataTypes, Model, QueryTypes, type ModelStatic, type SyncOptions, type Transactionable } from 'sequelize';
 import { sequelize } from '../config/database';
 import { migrateStoredPreferences } from './preferenceMigration';
-import { AuthSession, RefreshCredential, SessionInterval, PomodoroClock, UserTopicProgress } from '../models';
+import { AuthSession, RefreshCredential, SessionInterval, PomodoroClock, UserTopicProgress, PasswordResetToken } from '../models';
 
-export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1', '004-session-activity-intervals', '005-pomodoro-clocks', '006-user-topic-progress'];
+export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1', '004-session-activity-intervals', '005-pomodoro-clocks', '006-user-topic-progress', '007-password-reset-tokens'];
 async function validateExistingTables(pendingTracking = false) {
   const query = sequelize.getQueryInterface();
   const tables = await query.showAllTables();
@@ -49,6 +49,7 @@ export async function applyMigrations(): Promise<void> {
       }
       else if (name === '005-pomodoro-clocks') await PomodoroClock.sync(options);
       else if (name === '006-user-topic-progress') await UserTopicProgress.sync(options);
+      else if (name === '007-password-reset-tokens') await PasswordResetToken.sync(options);
       await sequelize.query('INSERT INTO schema_migrations (name) VALUES (:name)', { replacements: { name }, transaction });
     }
   });

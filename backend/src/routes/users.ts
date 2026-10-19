@@ -15,6 +15,7 @@ import {
   userListQuerySchema,
   catalogPathIdSchema,
 } from '@study-tracker/contracts';
+import { issuePasswordResetLink } from '../controllers/passwordResetController';
 import { validate } from '../middleware/validate';
 
 const router = express.Router();
@@ -44,6 +45,13 @@ router.put(
   authorize('admin'),
   validate(z.object({ params, body: managedUserPatchSchema })),
   updateUser,
+);
+
+router.post(
+  '/:id/password-reset-link',
+  authorize('admin'),
+  validate(z.object({ params })),
+  issuePasswordResetLink,
 );
 
 router.delete(

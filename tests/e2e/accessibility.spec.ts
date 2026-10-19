@@ -61,6 +61,12 @@ for (const theme of ['light', 'dark'] as const) {
         page.getByRole('button', { name: 'Kayıt Ol', exact: true }),
       ).toBeVisible();
       await scan(page, info, 'register');
+      await page.goto('/forgot-password');
+      await expect(page.getByLabel('E-posta Adresi')).toBeVisible();
+      await scan(page, info, 'forgot-password');
+      await page.goto(`/reset-password?token=${'a'.repeat(43)}`);
+      await expect(page.getByLabel('Yeni Şifre', { exact: true })).toBeVisible();
+      await scan(page, info, 'reset-password');
       await login(page);
       if (theme === 'dark')
         await expect(page.locator('html')).toHaveClass(/dark/);

@@ -326,3 +326,35 @@ test('finds a session by its notes and opens the planner on that day without exp
   await page.goto('/search?q=Movable');
   await expect(page.getByRole('region', { name: 'Seanslar' }).getByText('Eşleşme yok.')).toBeVisible();
 });
+
+test('lets an administrator hand over a one-time reset link that signs the user in with a new password', async ({
+  page,
+}) => {
+  await login(page, 'manager@example.test');
+  await page.goto('/admin/users');
+  await page.getByRole('button', { name: 'First Student için işlemler' }).click();
+  await page.getByRole('menuitem', { name: 'Şifre sıfırlama bağlantısı' }).click();
+  await page.getByRole('button', { name: 'Bağlantı oluştur' }).click();
+  const field = page.getByLabel('Bağlantı', { exact: true });
+  await expect(field).toHaveValue(/reset-password/);
+  const url = await field.inputValue();
+  expect(url).toMatch(/\/reset-password\?token=[\w-]{43}$/);
+  await page.getByRole('button', { name: 'Kapat' }).click();
+  await logout(page);
+  await page.goto(new URL(url).pathname + new URL(url).search);
+  await page.getByLabel('Yeni Şifre', { exact: true }).fill('fresh-fixture-password');
+  await page.getByLabel('Yeni Şifre (Tekrar)').fill('fresh-fixture-password');
+  await page.getByRole('button', { name: 'Şifreyi güncelle' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.getByLabel('E-posta Adresi').fill('owner@example.test');
+  await page.getByLabel('Şifre', { exact: true }).fill('fresh-fixture-password');
+  await page.getByRole('button', { name: 'Giriş Yap', exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  // The link is single-use.
+  await logout(page);
+  await page.goto(new URL(url).pathname + new URL(url).search);
+  await page.getByLabel('Yeni Şifre', { exact: true }).fill('another-fixture-password');
+  await page.getByLabel('Yeni Şifre (Tekrar)').fill('another-fixture-password');
+  await page.getByRole('button', { name: 'Şifreyi güncelle' }).click();
+  await expect(page.getByRole('alert')).toContainText('Bağlantı geçersiz veya süresi dolmuş');
+});

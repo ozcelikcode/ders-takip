@@ -1,9 +1,11 @@
+import PasswordResetLinkDialog from '../../components/admin/PasswordResetLinkDialog';
 import { useTerms } from '../../hooks/useTerms';
 import { roleLabel } from '../../lib/roleLabels';
 import { Menu } from '@headlessui/react';
 import { useQuery } from '@tanstack/react-query';
 import type { ManagedUser } from '@study-tracker/contracts';
 import {
+  KeyRound,
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
@@ -99,6 +101,7 @@ function UserManagement() {
   const [filters, setFilters] = useState({ search: '', page: 1 });
   const [creating, setCreating] = useState(false);
   const [action, setAction] = useState<UserAction | null>(null);
+  const [resetTarget, setResetTarget] = useState<{ id: string; name: string } | null>(null);
   const params = { ...filters, limit: 20, includeStats: true };
   const query = useQuery({
     queryKey: keys.resource('admin-users', params),
@@ -292,6 +295,18 @@ function UserManagement() {
                               )}
                             </Menu.Item>
                           ))}
+                          <Menu.Item disabled={self || !user.isActive}>
+                            {({ active, disabled }) => (
+                              <button
+                                disabled={disabled}
+                                onClick={() => setResetTarget({ id: String(user.id), name })}
+                                className={`flex w-full items-center gap-2 border-t px-4 py-2 text-left text-sm disabled:opacity-40 ${active ? 'bg-[var(--subtle)]' : ''}`}
+                              >
+                                <KeyRound className="h-4 w-4" />
+                                Şifre sıfırlama bağlantısı
+                              </button>
+                            )}
+                          </Menu.Item>
                           {self && (
                             <p className="border-t px-4 py-2 text-xs text-[var(--muted)]">
                               Kendi yönetici erişiminizi buradan
@@ -381,6 +396,13 @@ function UserManagement() {
         )
       )}
       <CreateUserModal isOpen={creating} onClose={() => setCreating(false)} />
+      {resetTarget && (
+        <PasswordResetLinkDialog
+          userId={resetTarget.id}
+          name={resetTarget.name}
+          onClose={() => setResetTarget(null)}
+        />
+      )}
       {action && (
         <UserActionDialog
           key={`${action.user.id}:${action.kind}`}

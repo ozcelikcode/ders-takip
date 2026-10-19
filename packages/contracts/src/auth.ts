@@ -77,3 +77,19 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type ProfilePatch = z.infer<typeof profilePatchSchema>;
+
+/** 32 random bytes in base64url. */
+export const passwordResetTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'Bağlantı geçersiz');
+export const forgotPasswordSchema = z
+  .object({ email: z.email({ error: 'Geçerli bir e-posta adresi giriniz' }) })
+  .strict();
+export const resetPasswordSchema = z
+  .object({ token: passwordResetTokenSchema, password: newPasswordSchema })
+  .strict();
+/** How a reset link reaches the user; the same answer is given whether or not the account exists. */
+export const forgotPasswordResponseSchema = z.object({ delivery: z.enum(['email', 'admin']) });
+export const passwordResetLinkSchema = z.object({ url: z.url(), expiresAt: z.iso.datetime() });
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type ForgotPasswordResponse = z.infer<typeof forgotPasswordResponseSchema>;
+export type PasswordResetLink = z.infer<typeof passwordResetLinkSchema>;

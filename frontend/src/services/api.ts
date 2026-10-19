@@ -54,7 +54,16 @@ import type {
 } from '../types/planner';
 import { useUserPreferencesStore } from '../store/userPreferencesStore';
 
-import { searchResultSchema, type SearchResult } from '@study-tracker/contracts';
+import {
+  forgotPasswordResponseSchema,
+  passwordResetLinkSchema,
+  searchResultSchema,
+  type ForgotPasswordInput,
+  type ForgotPasswordResponse,
+  type PasswordResetLink,
+  type ResetPasswordInput,
+  type SearchResult,
+} from '@study-tracker/contracts';
 import { api, authTransport } from './httpClient';
 
 const parseAuthResponse = (
@@ -115,6 +124,14 @@ export const authAPI = {
     withAuthLock(() =>
       authTransport.post('/auth/register', data).then(parseAuthResponse),
     ),
+
+  // Public reset endpoints use the cookie-free auth transport; neither touches the session.
+  forgotPassword: async (input: ForgotPasswordInput): Promise<ForgotPasswordResponse> =>
+    forgotPasswordResponseSchema.parse(
+      (await authTransport.post<{ data: unknown }>('/auth/forgot-password', input)).data.data,
+    ),
+  resetPassword: (input: ResetPasswordInput): Promise<AxiosResponse<ApiResponse>> =>
+    authTransport.post('/auth/reset-password', input),
 
   logout: (): Promise<AxiosResponse<ApiResponse>> =>
     withAuthLock(() => authTransport.post('/auth/logout')),
@@ -190,6 +207,11 @@ export const categoriesAPI = {
 
 // Users API (Admin)
 export const usersAPI = {
+  createPasswordResetLink: async (id: string): Promise<PasswordResetLink> =>
+    passwordResetLinkSchema.parse(
+      (await api.post<{ data: unknown }>(`/users/${id}/password-reset-link`)).data.data,
+    ),
+
   getAdminOverview: (): Promise<
     AxiosResponse<ApiResponse<{ overview: AdminOverview }>>
   > =>

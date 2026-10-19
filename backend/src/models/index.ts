@@ -10,9 +10,11 @@ import { Topic } from './Topic';
 import { User } from './User';
 import { PomodoroClock } from './PomodoroClock';
 import { UserTopicProgress } from './UserTopicProgress';
+import { PasswordResetToken } from './PasswordResetToken';
 
 UserTopicProgress.belongsTo(Topic, { foreignKey: 'topicId', as: 'topic' });
 User.hasMany(UserTopicProgress, { foreignKey: 'userId', onDelete: 'CASCADE' });
+User.hasMany(PasswordResetToken, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Topic.hasMany(UserTopicProgress, { foreignKey: 'topicId', onDelete: 'CASCADE' });
 
 StudySession.hasOne(PomodoroClock, { foreignKey: 'sessionId', as: 'pomodoroClock', onDelete: 'CASCADE' });
@@ -120,4 +122,4 @@ StudySession.belongsTo(Topic, {
   as: 'topic',
 });
 
-export { AuthSession, RefreshCredential, Backup,Category,Course,Plan,Settings,StudySession,SessionInterval,Topic,User,PomodoroClock,UserTopicProgress };
+export { AuthSession, RefreshCredential, Backup,Category,Course,Plan,Settings,StudySession,SessionInterval,Topic,User,PomodoroClock,UserTopicProgress,PasswordResetToken };

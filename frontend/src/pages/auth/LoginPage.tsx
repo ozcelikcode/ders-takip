@@ -92,12 +92,20 @@ const LoginPage = () => {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Şifre
-              </label>
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Şifre
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-[var(--muted)] underline underline-offset-4 hover:text-[var(--text)]"
+                >
+                  Şifremi unuttum
+                </Link>
+              </div>
               <div className="mt-1 relative">
                 <input
                   {...register('password')}

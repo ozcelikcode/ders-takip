@@ -27,7 +27,11 @@ npm run dev
 - API: [localhost:5002/api/health](http://localhost:5002/api/health).
 - Frontend `/api` çağrılarını Vite proxy üzerinden backend'e iletir.
 - Sunucu açılışı şema oluşturmaz, değiştirmez veya tablo silmez. Bekleyen migration ya da uyumsuz şema varsa başlangıç durur.
-- İlk migration mevcut uyumlu tabloları ve kayıtlarını koruyarak baseline oluşturur; `002-auth-sessions` iptal edilebilir oturum tablolarını, `003-user-preferences-v1` ortak tercih JSON sözleşmesini, `004-session-activity-intervals` gerçek çalışma aralıklarını, `005-pomodoro-clocks` kalıcı sunucu sayacını, `006-user-topic-progress` kullanıcıya özel konu ilerlemesini ekler. Eksik kolon içeren eski şema otomatik onarılmaz; bunun için ayrı migration gerekir.
+- İlk migration mevcut uyumlu tabloları ve kayıtlarını koruyarak baseline oluşturur; `002-auth-sessions` iptal edilebilir oturum tablolarını, `003-user-preferences-v1` ortak tercih JSON sözleşmesini, `004-session-activity-intervals` gerçek çalışma aralıklarını, `005-pomodoro-clocks` kalıcı sunucu sayacını, `006-user-topic-progress` kullanıcıya özel konu ilerlemesini, `007-password-reset-tokens` tek kullanımlık şifre sıfırlama kayıtlarını ekler. Eksik kolon içeren eski şema otomatik onarılmaz; bunun için ayrı migration gerekir.
+
+## Şifre sıfırlama
+
+Giriş ekranındaki **Şifremi unuttum** bağlantısı e-posta ile tek kullanımlık, 30 dakika geçerli bir sıfırlama bağlantısı gönderir. Gönderim için `backend/.env` içinde `SMTP_HOST` ve `MAIL_FROM` (gerekirse `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`) tanımlanır; herhangi bir SMTP sağlayıcısı (Gmail uygulama şifresi, Brevo, Mailgun, kendi sunucunuz) kullanılabilir, yerel denemede Mailpit yeterlidir. SMTP tanımlı değilse ekran bunu açıkça söyler ve yönetici, **Kullanıcılar** listesindeki işlemlerden **Şifre sıfırlama bağlantısı** oluşturup kullanıcıya güvenli bir kanaldan iletir. Yanıt, hesabın var olup olmadığını belli etmez; token yalnız hash olarak saklanır, yeni bağlantı eskileri geçersiz kılar ve sıfırlama bütün oturumları kapatır.
 
 ## Yapılandırma
 

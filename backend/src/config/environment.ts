@@ -23,6 +23,14 @@ const environmentSchema = z.object({
   FRONTEND_URL: z.url({ protocol: /^https?$/ }).default('http://localhost:3000'),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
+  // Optional SMTP delivery for password reset mail; without SMTP_HOST and MAIL_FROM an
+  // administrator issues reset links from the user list instead.
+  SMTP_HOST: z.string().min(1).optional(),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+  SMTP_SECURE: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
+  SMTP_USER: z.string().min(1).optional(),
+  SMTP_PASS: z.string().min(1).optional(),
+  MAIL_FROM: z.string().min(3).max(200).optional(),
 }).refine(value => value.NODE_ENV !== 'production' || new URL(value.FRONTEND_URL).protocol === 'https:', { path: ['FRONTEND_URL'], message: 'Production browser origin must use HTTPS' });
 
 export const parseEnvironment = (source: NodeJS.ProcessEnv) => environmentSchema.parse(source);
