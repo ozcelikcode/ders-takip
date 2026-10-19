@@ -67,6 +67,7 @@ for (const theme of ['light', 'dark'] as const) {
       else await expect(page.locator('html')).not.toHaveClass(/dark/);
       for (const route of [
         'dashboard',
+        'stats',
         'courses',
         'pomodoro',
         'profile',

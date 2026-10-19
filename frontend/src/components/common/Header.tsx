@@ -27,6 +27,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     : {
         dashboard: 'Genel bakış',
         planner: 'Planlayıcı',
+        stats: 'İstatistikler',
         courses: t.course({ capitalize: true, plural: true }),
         pomodoro: 'Pomodoro',
         profile: 'Profil',

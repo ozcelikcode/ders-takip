@@ -1,5 +1,5 @@
 import { Op, type Transaction, type WhereOptions } from 'sequelize';
-import { addDateDays, dayBounds, type ActivityKind, type SessionQuery, type SessionStats, type StudyTotals, type SessionStatus, type UserStudySummary } from '@study-tracker/contracts';
+import { addDateDays, dayBounds, defaultPreferences, type ActivityKind, type SessionQuery, type SessionStats, type StudyTotals, type SessionStatus, type UserStudySummary } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
 import { SessionInterval, StudySession, PomodoroClock } from '../models';
 
@@ -55,7 +55,8 @@ export async function getStudyStats(userId: number, timezone: string, query: Ses
     const where: WhereOptions = { userId, ...(query.planId === undefined ? {} : { planId: query.planId }), ...(query.sessionType === undefined ? {} : { sessionType: query.sessionType }), ...(query.status === undefined ? {} : { status: query.status }) };
     const sessions = await StudySession.findAll({ where, include: [{ model: SessionInterval, as: 'activityIntervals' }, { model: PomodoroClock, as: 'pomodoroClock' }], transaction });
     const asOf = new Date(sessions.reduce((value, session) => (session.activityIntervals ?? []).reduce((latest, interval) => Math.max(latest, interval.endedAt?.getTime() ?? interval.startedAt.getTime()), value), Date.now()));
-    const result: SessionStats = { ...emptyTotals(), days, asOf: asOf.toISOString(), timezone, totalSessions: 0, lastActivity: null, completedSessions: 0, partialSessions: 0, untrackedSessions: 0 };
+    const result: SessionStats = { ...emptyTotals(), days, courses: [], asOf: asOf.toISOString(), timezone, totalSessions: 0, lastActivity: null, completedSessions: 0, partialSessions: 0, untrackedSessions: 0 };
+    const byCourse = new Map<number | null, SessionStats['courses'][number]>();
     for (const session of sessions) {
       const intervals = session.activityIntervals ?? [];
       const total = measuredTotals(intervals, asOf, start, end, session.pomodoroClock?.deadlineAt);
@@ -74,9 +75,17 @@ export async function getStudyStats(userId: number, timezone: string, query: Ses
         const latest = new Date(Math.max(...activity)).toISOString();
         if (!result.lastActivity || latest > result.lastActivity) result.lastActivity = latest;
       }
+      if (total.studySeconds > 0) {
+        const courseId = session.courseId ?? null;
+        const entry = byCourse.get(courseId) ?? { courseId, studySeconds: 0, sessions: 0 };
+        entry.studySeconds += total.studySeconds;
+        entry.sessions++;
+        byCourse.set(courseId, entry);
+      }
       if (inScope && session.trackingCoverage === 'untracked') result.untrackedSessions++;
       if (inScope && session.trackingCoverage === 'partial') result.partialSessions++;
     }
+    result.courses = [...byCourse.values()].sort((a, b) => b.studySeconds - a.studySeconds);
     return result;
   });
 }
@@ -109,4 +118,4 @@ export function scheduledRange(query: SessionQuery, timezone: string): WhereOpti
   return where;
 }
 
-export const sessionTimezone = (actor: { preferences?: { timezone?: string } }, query: SessionQuery) => query.timezone ?? actor.preferences?.timezone ?? 'Europe/Istanbul';
+export const sessionTimezone = (actor: { preferences?: { timezone?: string } }, query: SessionQuery) => query.timezone ?? actor.preferences?.timezone ?? defaultPreferences.timezone;

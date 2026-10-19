@@ -15,12 +15,14 @@ Sıra (öncelik: önce yanlış varsayımları kaldır, sonra yapılandırılabi
 | R3 | Global varsayılanlar | **Yapıldı (19 Ekim)** | Kayıtta tarayıcı saat dilimi; Ayarlar › Bölge (saat dilimi seçimi, tarayıcı önerisi, hafta başlangıcı); farklı tarayıcı dilimi için kapatılabilir öneri; dil kararı kayıtlı (R10) |
 | R4 | Çalışmayan tercihleri bağla | **Yapıldı (19 Ekim)** | Günlük/haftalık hedef panoda gerçek ölçülen süreyle karşılaştırılır; aktif günler hedef/özetlerde kullanılır; bildirim anahtarları ya gerçek teslimata bağlanır ya ekrandan kaldırılır (çalışmayan seçenek gösterilmez) |
 | R5 | Profil/Ayarlar tekrarı | **Yapıldı (19 Ekim)** | Ad ve parola tek yerde; diğer sayfa yönlendirir |
-| R6 | Genel istatistik | Bekliyor | Kategori/ders bazlı dağılım, aralık seçimi, hedefle gerçekleşen; ölçülmemiş eski süre hariç |
+| R6 | Genel istatistik | **Yapıldı (19 Ekim)** | Kategori/ders bazlı dağılım, aralık seçimi, hedefle gerçekleşen; ölçülmemiş eski süre hariç |
 | R7 | Global arama | Bekliyor | Header araması ders/konu/seans başlığı ve not içinde arar, yetki kapsamına uyar |
 | R8 | Hesap kurtarma | Bekliyor | Şifre sıfırlama akışı; e-posta altyapısı kararı gerekir (SMTP/sağlayıcı) |
 | R11 | Bildirim teslimatı | Bekliyor | E-posta (R8 SMTP kararıyla) ve tarayıcı bildirimi/hatırlatma; teslimat kurulana dek kullanıcı ve admin ekranında bildirim anahtarı gösterilmez |
 | R10 | Arayüz çevirisi (i18n) | Bekliyor | Metin kataloğu + `language` tercihinin gerçek etkisi; biçimlendirme `lib/locale.ts` tek kaynağından değişir. Hazır olana dek dil seçici gösterilmez |
 | R9 | Sağlamlaştırma | Bekliyor | Major bağımlılıklar + audit, mobil ilk yük (Lighthouse 90+), LICENSE kararı, giriş/kayıt sayfalarının nötr token'a taşınması |
+
+R6 notları: `/stats` İstatistikler sayfası (sidebar'da): Bu hafta/Bu ay/Son 30/Son 90/Özel aralık (en fazla 366 gün, istemcide doğrulanır), özet şeridi (ölçülen, günlük ortalama, tamamlanan, mola), hedefle karşılaştırma (aralıktaki aktif günlerin günlük hedef toplamı + hedefe ulaşılan gün sayısı), günlük grafik, kategori ve ders/proje bazında dağılım. Backend `SessionStats.courses` (ders başına ölçülen çalışma, büyükten küçüğe; ders yoksa `null` = "Atanmamış") eklendi; kategori eşleme istemcide paylaşılan `useAllCourses` önbelleğiyle yapılır (seans editörü de aynı hook'a taşındı). Grafik `components/charts/DailyStudyChart` olarak ortaklaştı; pano grafiği onu kullanır. Saf model `pages/stats/statsModel.ts` (4 test), ekran testi, backend kırılım testi; E2E axe taraması `stats` sayfasını da tarar. Kanıt: check 24/144/frontend yeşil, E2E 39/39.
 
 R5 notları: Ad, kullanıcı adı, profil resmi, odak alanı ve şifre yalnız Profil sayfasındadır (ortak `profilePatchSchema`/`changePasswordSchema`, sunucu hata mesajı). Ayarlar'ın ikinci profil/şifre sekmesi ve `useProfileSettings`/`ProfileTab` silindi; Ayarlar Görünüm/Bölge/Çalışma Tercihleri'dir ve Profil'e bağlantı verir. Profil şifre formu ayarlardaki göster/gizle düğmelerini (32 px) aldı. 2 yeni ekran testi; E2E Ayarlar taraması şifre adımı yerine sekmeleri tarar, şifre formu Profil taramasında kalır. Kanıt: check yeşil, E2E 36/36.
 

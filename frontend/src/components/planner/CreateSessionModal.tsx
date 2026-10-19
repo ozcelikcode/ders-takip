@@ -11,16 +11,15 @@ import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Dialog } from '@headlessui/react';
 import { contractResolver } from '../../lib/contractResolver';
-import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Coffee, Trash2, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { isAxiosError } from 'axios';
 import { useAccountMutation } from '../../hooks/useAccountMutation';
-import type { CatalogCourse } from '../../types/catalog';
+import { useAllCourses } from '../../hooks/useAllCourses';
 import { sessionFormSchema, type CreateSessionForm } from './sessionForm';
-import { coursesAPI, studySessionsAPI } from '../../services/api';
+import { studySessionsAPI } from '../../services/api';
 import type { StudySession } from '../../types/planner';
 import ConfirmDialog from '../common/ConfirmDialog';
 import PomodoroSettingsFields from './PomodoroSettingsFields';
@@ -71,15 +70,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
   const [conflicted, setConflicted] = useState(false);
   const isEditMode = !!editSession;
 
-  const coursesQuery = useQuery({
-    queryKey: accountKeys.catalog('courses', { isActive: 'all' }),
-    queryFn: async () => {
-      const response = await coursesAPI.getCourses({ isActive: 'all' });
-      if (!response.data.data?.courses)
-        throw new Error('Course list response is missing');
-      return response.data.data.courses as CatalogCourse[];
-    },
-  });
+  const coursesQuery = useAllCourses();
 
   const coursesData = coursesQuery.data?.filter(
     (course) => course.isActive || course.id === editSession?.courseId,

@@ -10,7 +10,7 @@ Object.assign(process.env, { NODE_ENV: 'test', JWT_SECRET: randomBytes(48).toStr
 const app = require('../dist/app').default;
 const { sequelize } = require('../dist/config/database');
 const { applyMigrations, assertDatabaseReady } = require('../dist/database/migrations');
-const { User, StudySession, SessionInterval, Plan } = require('../dist/models');
+const { User, StudySession, SessionInterval, Plan, Category, Course } = require('../dist/models');
 const { createAuthSession } = require('../dist/services/authSessions');
 const { generateAccessToken } = require('../dist/utils/jwt');
 let owner, other, admin;
@@ -142,4 +142,23 @@ it('migrates existing data without inventing measurements and preserves the orig
   assert.equal((await stats()).untrackedSessions, 1);
   let reopened = (await auth('put', `/api/study-sessions/${session.id}`).send({ expectedUpdatedAt: saved.updatedAt, status: 'planned' }).expect(200)).body.data.session;
   reopened = await action(reopened, 'start'); assert.equal(reopened.trackingCoverage, 'partial');
+});
+
+it('breaks measured study down per course, largest first, with unassigned sessions grouped as null', async t => {
+  let now = Date.now(); t.mock.method(Date, 'now', () => now);
+  const category = await Category.create({ name: 'Breakdown category', color: '#123456', icon: 'Book', order: 1 });
+  const course = await Course.create({ name: 'Breakdown course', categoryId: category.id, userId: owner.id, color: '#123456', icon: 'Book', order: 1 });
+  const timed = async (extra, seconds, slot) => {
+    let session = await create({ startTime: `2099-01-0${slot}T09:00:00Z`, endTime: `2099-01-0${slot}T10:00:00Z`, ...extra });
+    session = await action(session, 'start'); now += seconds * 1000; await action(session, 'complete');
+  };
+  await timed({ courseId: course.id }, 120, 1);
+  await timed({ courseId: course.id }, 60, 2);
+  await timed({}, 300, 3);
+  await create({ courseId: course.id, startTime: '2099-01-04T09:00:00Z', endTime: '2099-01-04T10:00:00Z' });
+  assert.deepEqual((await stats()).courses, [
+    { courseId: null, studySeconds: 300, sessions: 1 },
+    { courseId: course.id, studySeconds: 180, sessions: 2 },
+  ]);
+  await Course.destroy({ where: { id: course.id } }); await category.destroy();
 });

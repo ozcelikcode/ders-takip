@@ -1,7 +1,7 @@
 import { Brand } from './Brand';
 import { Dialog } from '@headlessui/react';
 import { NavLink, Link } from 'react-router-dom';
-import { X, Home, BookOpen, Calendar, User, Users, Settings, LayoutDashboard, Timer, Sliders, ArrowUpRight, type LucideIcon } from 'lucide-react';
+import { X, Home, BarChart3, BookOpen, Calendar, User, Users, Settings, LayoutDashboard, Timer, Sliders, ArrowUpRight, type LucideIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { Terms } from '@study-tracker/contracts';
 import { useTerms } from '../../hooks/useTerms';
@@ -21,6 +21,7 @@ interface NavigationItem {
 const navigation = (t: Terms): NavigationItem[] => [
   { name: 'Genel bakış', href: '/dashboard', icon: Home },
   { name: 'Planlayıcı', href: '/planner', icon: Calendar },
+  { name: 'İstatistikler', href: '/stats', icon: BarChart3 },
   { name: t.course({ capitalize: true, plural: true }), href: '/courses', icon: BookOpen },
   { name: 'Pomodoro', href: '/pomodoro', icon: Timer },
 ];

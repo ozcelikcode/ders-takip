@@ -23,6 +23,7 @@ const CourseDetailPage = lazy(() => import('./pages/CourseDetailPage'));
 const CoursesPage = lazy(() => import('./pages/CoursesPage'));
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
 const PlannerPage = lazy(() => import('./pages/planner/PlannerPage'));
+const StatsPage = lazy(() => import('./pages/stats/StatsPage'));
 const PomodoroPage = lazy(() => import('./pages/pomodoro/PomodoroPage'));
 const ProfilePage = lazy(() => import('./pages/profile/ProfilePage'));
 const UserSettingsPage = lazy(() => import('./pages/settings/UserSettingsPage'));
@@ -71,6 +72,7 @@ function App() {
         <Route path="courses" element={<CoursesPage />} />
         <Route path="courses/:id" element={<CourseDetailPage />} />
         <Route path="planner" element={<PlannerPage />} />
+        <Route path="stats" element={<StatsPage />} />
         <Route path="pomodoro" element={<PomodoroPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="settings" element={<UserSettingsPage />} />

@@ -26,6 +26,8 @@ export interface SessionStats extends StudyTotals {
   untrackedSessions: number;
   partialSessions: number;
   days: (StudyTotals & { date: string })[];
+  /** Measured study per course in range, largest first; null groups sessions without a course. */
+  courses: { courseId: number | null; studySeconds: number; sessions: number }[];
 }
 export const userStudySummarySchema = z.object({
   totalSessions: z.number().int().nonnegative(),
