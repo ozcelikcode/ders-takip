@@ -4,7 +4,7 @@ Son güncelleme: 18 Ekim 2026, A22 otomatik erişilebilirlik/Lighthouse; yerel s
 
 ## Kod tabanı temizliği (19 Ekim 2026)
 
-Faz 1–4 uygulandı: ölü kod/CSS/Tailwind yapılandırması/export, kullanılmayan dört uç, 18 `any` (kural artık `error`), kök `eslint-plugin-react-hooks`, README ve `.env.example` düzeltmeleri. `npm run check` yeşil (18/141/200), `npm run test:e2e` 36/36; üretim CSS hash'i değişmedi. Faz 5 (büyük dosya bölme) ve major bağımlılıklar yapılmadı; commit yok. Ayrıntı: implementation/2026-10-19-cleanup.md.
+Faz 1–4 uygulandı: ölü kod/CSS/Tailwind yapılandırması/export, kullanılmayan dört uç, 18 `any` (kural artık `error`), kök `eslint-plugin-react-hooks`, README ve `.env.example` düzeltmeleri. `npm run check` yeşil (18/141/200), `npm run test:e2e` 36/36; üretim CSS hash'i değişmedi. Aynı gün Faz 5 büyük dosya bölme de yapıldı (CreateSessionModal, PlannerCalendar, api.ts/httpClient, Ayarlar/Profil/Ders detay sayfaları; check 18/141/216, E2E 36/36). Major bağımlılıklar ve LICENSE kararı bekliyor. Ayrıntı: implementation/2026-10-19-cleanup.md.
 
 ## Kod tabanı temizliği — Faz 4 (18 Ekim 2026)
 

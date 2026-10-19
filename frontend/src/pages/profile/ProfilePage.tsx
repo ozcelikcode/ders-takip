@@ -6,20 +6,16 @@ import {
 } from '@study-tracker/contracts';
 import { isAxiosError } from 'axios';
 import { useMutation } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import {
-  Camera,
-  Lock,
-  Mail,
-  Save,
-  Upload,
-  User as UserIcon,
-  X,
-} from 'lucide-react';
+import { Mail, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { authAPI } from '../../services/api';
+import PageHeader from '../../components/common/PageHeader';
 import { useAuthStore } from '../../store/authStore';
+import AccountInfoCard from './AccountInfoCard';
+import PasswordCard from './PasswordCard';
+import ProfilePictureCard from './ProfilePictureCard';
+import type { PasswordFormState, ProfileFormState } from './profileForm';
 
 const ProfilePage = () => {
   const { user } = useAuthStore();
@@ -28,7 +24,7 @@ const ProfilePage = () => {
   const [imageInputType, setImageInputType] = useState<'url' | 'file'>('url');
 
   // Profile form state
-  const [profileForm, setProfileForm] = useState({
+  const [profileForm, setProfileForm] = useState<ProfileFormState>({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     username: user?.username || '',
@@ -37,7 +33,7 @@ const ProfilePage = () => {
   });
 
   // Password form state
-  const [passwordForm, setPasswordForm] = useState({
+  const [passwordForm, setPasswordForm] = useState<PasswordFormState>({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
@@ -202,201 +198,30 @@ const ProfilePage = () => {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Profil
-        </h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          Profil bilgilerinizi ve ayarlarınızı yönetin
-        </p>
-      </motion.div>
+    <div className="space-y-6">
+      <PageHeader title="Profil" description="Profil bilgilerinizi ve ayarlarınızı yönetin" />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Profile Picture & Account Info */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          className="lg:col-span-1 space-y-6"
-        >
-          {/* Profile Picture Card */}
-          <div className="card">
-            <div className="card-body text-center">
-              <div className="relative inline-block">
-                <div className="h-32 w-32 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden mx-auto">
-                  {profileForm.profileImage ? (
-                    <img
-                      src={profileForm.profileImage}
-                      alt="Profile"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <UserIcon className="h-16 w-16 text-white" />
-                  )}
-                </div>
-                {isEditingProfile && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      document.getElementById('file-upload')?.click()
-                    }
-                    aria-label="Profil resmi seç"
-                    className="absolute bottom-0 right-0 p-2 bg-white dark:bg-gray-700 rounded-full shadow-lg border-2 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
-                  >
-                    <Camera className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-                  </button>
-                )}
-              </div>
-
-              <h2 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
-                {user?.fullName}
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                @{user?.username}
-              </p>
-              <p className="text-xs text-[var(--muted)] mt-1">
-                {user?.role === 'admin' ? 'Yönetici' : 'Öğrenci'}
-              </p>
-
-              {isEditingProfile && (
-                <div className="mt-4 space-y-3">
-                  <input
-                    type="file"
-                    id="file-upload"
-                    accept=".webp,.jpg,.jpeg,.png,.bmp,image/webp,image/jpeg,image/png,image/bmp"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setImageInputType('file')}
-                      aria-pressed={imageInputType === 'file'}
-                      className={`flex-1 px-3 py-1.5 text-xs rounded transition-colors ${
-                        imageInputType === 'file'
-                          ? 'bg-[var(--solid)] text-[var(--solid-text)]'
-                          : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      }`}
-                    >
-                      <Upload className="h-3 w-3 inline mr-1" />
-                      Dosya
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImageInputType('url')}
-                      aria-pressed={imageInputType === 'url'}
-                      className={`flex-1 px-3 py-1.5 text-xs rounded transition-colors ${
-                        imageInputType === 'url'
-                          ? 'bg-[var(--solid)] text-[var(--solid-text)]'
-                          : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      }`}
-                    >
-                      URL
-                    </button>
-                  </div>
-
-                  {imageInputType === 'file' && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        document.getElementById('file-upload')?.click()
-                      }
-                      className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-500 dark:hover:border-primary-500 transition-colors text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
-                    >
-                      <Upload className="h-4 w-4 inline mr-2" />
-                      Resim Seç veya Yükle
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        WebP, JPG, JPEG, PNG, BMP (Max 5MB)
-                      </p>
-                    </button>
-                  )}
-
-                  {imageInputType === 'url' && (
-                    <input
-                      type="url"
-                      aria-label="Profil resmi URL adresi"
-                      value={profileForm.profileImage}
-                      onChange={(e) =>
-                        setProfileForm({
-                          ...profileForm,
-                          profileImage: e.target.value,
-                        })
-                      }
-                      placeholder="https://example.com/image.jpg"
-                      className="input text-sm"
-                    />
-                  )}
-
-                  {profileForm.profileImage && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setProfileForm({ ...profileForm, profileImage: '' })
-                      }
-                      className="text-xs text-red-600 hover:text-red-700 dark:text-red-400 flex items-center gap-1"
-                    >
-                      <X className="h-3 w-3" /> Resmi Kaldır
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Account Info Card */}
-          <div className="card">
-            <div className="card-header">
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-                Hesap Bilgileri
-              </h2>
-            </div>
-            <div className="card-body space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Durum:</span>
-                <span
-                  className={`font-medium ${user?.isActive ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
-                >
-                  {user?.isActive ? 'Aktif' : 'Pasif'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Kayıt:</span>
-                <span className="text-gray-900 dark:text-white">
-                  {user?.createdAt
-                    ? new Date(user.createdAt).toLocaleDateString('tr-TR')
-                    : '-'}
-                </span>
-              </div>
-              {user?.lastLogin && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">
-                    Son Giriş:
-                  </span>
-                  <span className="text-gray-900 dark:text-white text-xs">
-                    {new Date(user.lastLogin).toLocaleDateString('tr-TR')}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </motion.div>
+        <div className="lg:col-span-1 space-y-6">
+          <ProfilePictureCard
+            user={user}
+            profileForm={profileForm}
+            setProfileForm={setProfileForm}
+            isEditingProfile={isEditingProfile}
+            imageInputType={imageInputType}
+            setImageInputType={setImageInputType}
+            onFileUpload={handleFileUpload}
+          />
+          <AccountInfoCard user={user} />
+        </div>
 
         {/* Right Column - Profile & Password Forms */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="lg:col-span-2 space-y-6"
-        >
+        <div className="lg:col-span-2 space-y-6">
           {/* Profile Information */}
-          <div className="card">
-            <div className="card-header flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+          <div className="panel">
+            <div className="panel-heading">
+              <h2 className="text-base font-medium">
                 Profil Bilgileri
               </h2>
               {!isEditingProfile && (
@@ -408,11 +233,11 @@ const ProfilePage = () => {
                 </button>
               )}
             </div>
-            <div className="card-body">
+            <div className="p-5">
               <form onSubmit={handleProfileSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="profile-firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label htmlFor="profile-firstName" className="mb-2 block text-sm font-medium">
                       Ad *
                     </label>
                     {isEditingProfile ? (
@@ -429,13 +254,13 @@ const ProfilePage = () => {
                         className="input"
                       />
                     ) : (
-                      <p className="text-gray-900 dark:text-white py-2">
+                      <p className="py-2">
                         {user?.firstName}
                       </p>
                     )}
                   </div>
                   <div>
-                    <label htmlFor="profile-lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label htmlFor="profile-lastName" className="mb-2 block text-sm font-medium">
                       Soyad *
                     </label>
                     {isEditingProfile ? (
@@ -452,7 +277,7 @@ const ProfilePage = () => {
                         className="input"
                       />
                     ) : (
-                      <p className="text-gray-900 dark:text-white py-2">
+                      <p className="py-2">
                         {user?.lastName}
                       </p>
                     )}
@@ -460,7 +285,7 @@ const ProfilePage = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="profile-username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label htmlFor="profile-username" className="mb-2 block text-sm font-medium">
                     Kullanıcı Adı *
                   </label>
                   {isEditingProfile ? (
@@ -477,29 +302,29 @@ const ProfilePage = () => {
                       className="input"
                     />
                   ) : (
-                    <p className="text-gray-900 dark:text-white py-2">
+                    <p className="py-2">
                       {user?.username}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="mb-2 block text-sm font-medium">
                     E-posta
                   </label>
                   <div className="flex items-center gap-2 py-2">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <p className="text-gray-900 dark:text-white">
+                    <Mail className="h-4 w-4 text-[var(--muted)]" />
+                    <p>
                       {user?.email}
                     </p>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                    <span className="text-xs text-[var(--muted)]">
                       (değiştirilemez)
                     </span>
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="profile-studyField" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label htmlFor="profile-studyField" className="mb-2 block text-sm font-medium">
                     Alan Bilgisi
                   </label>
                   {isEditingProfile ? (
@@ -520,7 +345,7 @@ const ProfilePage = () => {
                       ))}
                     </select>
                   ) : (
-                    <p className="text-gray-900 dark:text-white py-2">
+                    <p className="py-2">
                       {user?.preferences?.studyField
                         ? studyFieldOptions.find(
                             (opt) => opt.value === user.preferences.studyField,
@@ -556,114 +381,15 @@ const ProfilePage = () => {
             </div>
           </div>
 
-          {/* Change Password */}
-          <div className="card">
-            <div className="card-header flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-                  Şifre Değiştir
-                </h2>
-              </div>
-              {!isEditingPassword && (
-                <button
-                  onClick={() => setIsEditingPassword(true)}
-                  className="btn btn-secondary text-sm py-1.5 px-3"
-                >
-                  Değiştir
-                </button>
-              )}
-            </div>
-            {isEditingPassword && (
-              <div className="card-body">
-                <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                  <div>
-                    <label htmlFor="profile-currentPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Mevcut Şifre *
-                    </label>
-                    <input id="profile-currentPassword"
-                      type="password"
-                      value={passwordForm.currentPassword}
-                      onChange={(e) =>
-                        setPasswordForm({
-                          ...passwordForm,
-                          currentPassword: e.target.value,
-                        })
-                      }
-                      required
-                      className="input"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="profile-newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Yeni Şifre *
-                    </label>
-                    <input id="profile-newPassword"
-                      type="password"
-                      value={passwordForm.newPassword}
-                      onChange={(e) =>
-                        setPasswordForm({
-                          ...passwordForm,
-                          newPassword: e.target.value,
-                        })
-                      }
-                      required
-                      minLength={12}
-                      className="input"
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      En az 12 karakter olmalıdır
-                    </p>
-                  </div>
-                  <div>
-                    <label htmlFor="profile-confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Yeni Şifre (Tekrar) *
-                    </label>
-                    <input id="profile-confirmPassword"
-                      type="password"
-                      value={passwordForm.confirmPassword}
-                      onChange={(e) =>
-                        setPasswordForm({
-                          ...passwordForm,
-                          confirmPassword: e.target.value,
-                        })
-                      }
-                      required
-                      className="input"
-                    />
-                  </div>
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      type="submit"
-                      disabled={changePasswordMutation.isPending}
-                      className="btn btn-primary flex items-center gap-2"
-                    >
-                      <Lock className="h-4 w-4" />
-                      {changePasswordMutation.isPending
-                        ? 'Değiştiriliyor...'
-                        : 'Şifreyi Değiştir'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPasswordForm({
-                          currentPassword: '',
-                          newPassword: '',
-                          confirmPassword: '',
-                        });
-                        setIsEditingPassword(false);
-                      }}
-                      disabled={changePasswordMutation.isPending}
-                      className="btn btn-secondary"
-                    >
-                      İptal
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-          </div>
-        </motion.div>
+          <PasswordCard
+            isEditingPassword={isEditingPassword}
+            setIsEditingPassword={setIsEditingPassword}
+            passwordForm={passwordForm}
+            setPasswordForm={setPasswordForm}
+            isPending={changePasswordMutation.isPending}
+            onSubmit={handlePasswordSubmit}
+          />
+        </div>
       </div>
     </div>
   );

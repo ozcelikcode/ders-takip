@@ -2,6 +2,10 @@ import { CalendarDate } from '@study-tracker/contracts';
 import { describe, expect, it } from 'vitest';
 import type { StudySession } from '../../types/planner';
 import {
+  buildDaySegments,
+  dayMinWidths,
+  occupiedSlotKeys,
+  slotNavigationTarget,
   calendarSegment,
   calendarCardMinHeight,
   layoutCalendarCards,
@@ -203,5 +207,51 @@ describe('shared calendar geometry', () => {
     expect(canRepositionSession({ ...session, status: 'completed' })).toBe(
       false,
     );
+  });
+});
+
+describe('calendar day layout helpers', () => {
+  // Istanbul is UTC+3 all year, so 06:00Z is 09:00 local.
+  const days = [new CalendarDate(Date.UTC(2026, 9, 16)), new CalendarDate(Date.UTC(2026, 9, 17))];
+  const hourHeight = 48;
+
+  it('assigns segments to the matching day and applies the live resize preview', () => {
+    const resized = buildDaySegments(days, [session], { sessionId: 1, minutes: 120 }, 'Europe/Istanbul', hourHeight);
+    expect(resized[0]).toHaveLength(1);
+    expect(resized[1]).toHaveLength(0);
+    expect(resized[0]![0]!.preview.duration).toBe(120);
+    expect(resized[0]![0]!.session.duration).toBe(60);
+    expect(resized[0]![0]!.segment.hour).toBe(9);
+  });
+
+  it('keeps empty weekly days narrow and widens busy days by lane count', () => {
+    const segments = buildDaySegments(days, [session], null, 'Europe/Istanbul', hourHeight);
+    expect(dayMinWidths(segments, true)).toEqual([160, 104]);
+    expect(dayMinWidths(segments, false)).toEqual([160, 160]);
+  });
+
+  it('marks only slots overlapped by non-cancelled sessions as occupied', () => {
+    const planned = occupiedSlotKeys(buildDaySegments(days, [session], null, 'Europe/Istanbul', hourHeight), hourHeight);
+    // 09:00–10:00:00.7 local: the sub-second tail still overlaps the 10:00 slot.
+    expect([...planned].sort()).toEqual(['0:10', '0:9']);
+    expect(planned.has('0:9')).toBe(true);
+    expect(planned.has('0:8')).toBe(false);
+    const cancelled = occupiedSlotKeys(
+      buildDaySegments(days, [{ ...session, status: 'cancelled' }], null, 'Europe/Istanbul', hourHeight),
+      hourHeight,
+    );
+    expect(cancelled.size).toBe(0);
+  });
+
+  it('resolves keyboard navigation between free slots', () => {
+    const free = ['0:8', '0:11', '1:8', '1:11'];
+    expect(slotNavigationTarget(free, 'ArrowDown', false, 0, 8)).toBe('0:11');
+    expect(slotNavigationTarget(free, 'ArrowUp', false, 0, 8)).toBeNull();
+    expect(slotNavigationTarget(free, 'ArrowRight', false, 0, 8)).toBe('1:8');
+    expect(slotNavigationTarget(free, 'Home', false, 1, 11)).toBe('1:8');
+    expect(slotNavigationTarget(free, 'End', false, 0, 8)).toBe('0:11');
+    expect(slotNavigationTarget(free, 'Home', true, 1, 11)).toBe('0:8');
+    expect(slotNavigationTarget(free, 'End', true, 0, 8)).toBe('1:11');
+    expect(slotNavigationTarget(free, 'Enter', false, 0, 8)).toBeUndefined();
   });
 });

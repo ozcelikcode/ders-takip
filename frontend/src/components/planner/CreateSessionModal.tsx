@@ -1,9 +1,6 @@
 import {
   calendarViewDate,
-  wallTimeToInstant,
-  formatZonedTime,
   sessionDurationLimits,
-  isSessionDurationValid,
   createSessionSchema as createSessionRequestSchema,
   updateSessionSchema as updateSessionRequestSchema,
 } from '@study-tracker/contracts';
@@ -14,17 +11,8 @@ import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Dialog } from '@headlessui/react';
 import { contractResolver } from '../../lib/contractResolver';
 import { useQuery } from '@tanstack/react-query';
-import { differenceInMinutes } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  BookOpen,
-  Calendar,
-  Coffee,
-  Target,
-  Timer,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { Coffee, Trash2, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { isAxiosError } from 'axios';
@@ -32,28 +20,19 @@ import { useAccountMutation } from '../../hooks/useAccountMutation';
 import type { CatalogCourse } from '../../types/catalog';
 import { sessionFormSchema, type CreateSessionForm } from './sessionForm';
 import { coursesAPI, studySessionsAPI } from '../../services/api';
-import {
-  CreateStudySessionRequest,
-  StudySession,
-  UpdateStudySessionRequest,
-} from '../../types/planner';
+import type { StudySession } from '../../types/planner';
 import ConfirmDialog from '../common/ConfirmDialog';
-
-// Session identity colors are independent of the neutral dialog surfaces.
-const SESSION_COLORS = [
-  { name: 'Gök Mavisi', value: '#60A5FA' },
-  { name: 'Nane Yeşili', value: '#34D399' },
-  { name: 'Lavanta', value: '#A78BFA' },
-  { name: 'Mercan', value: '#F87171' },
-  { name: 'Kayısı', value: '#FBBF24' },
-  { name: 'Şakayık', value: '#F472B6' },
-  { name: 'Safir', value: '#818CF8' },
-  { name: 'Deniz', value: '#2DD4BF' },
-  { name: 'Beton', value: '#9CA3AF' },
-  { name: 'Ayçiçeği', value: '#FCD34D' },
-  { name: 'Okyanus', value: '#38BDF8' },
-  { name: 'Çimen', value: '#4ADE80' },
-];
+import PomodoroSettingsFields from './PomodoroSettingsFields';
+import SessionCategoryPicker, { type SessionCategory } from './SessionCategoryPicker';
+import SessionColorPicker from './SessionColorPicker';
+import SessionDurationFields, { EndTimeSummary } from './SessionDurationFields';
+import {
+  buildSessionPayload,
+  resolveSessionRange,
+  resolveSessionTitle,
+  wallTimeMinutes,
+  type DurationMode,
+} from './sessionRequest';
 
 interface CreateSessionModalProps {
   isOpen: boolean;
@@ -80,12 +59,9 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
       preferences.pomodorosUntilLongBreak,
     ],
   );
-  const [sessionCategory, setSessionCategory] = useState<
-    'course' | 'break' | 'custom'
-  >('course');
-  const [durationMode, setDurationMode] = useState<'minutes' | 'timeRange'>(
-    'minutes',
-  );
+  const [sessionCategory, setSessionCategory] =
+    useState<SessionCategory>('course');
+  const [durationMode, setDurationMode] = useState<DurationMode>('minutes');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const mutation = useAccountMutation([accountKeys.sessions()]);
   const [writeSnapshot, setWriteSnapshot] = useState(editSession);
@@ -180,24 +156,9 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
       sessionCategory: sessionCategory,
     };
 
-    let startTime: Date;
-    let endTime: Date;
+    let range: { startTime: Date; endTime: Date };
     try {
-      startTime = wallTimeToInstant(
-        correctedData.startDate,
-        correctedData.startTime,
-        preferences.timezone,
-      );
-      endTime =
-        durationMode === 'timeRange' && correctedData.endTime
-          ? wallTimeToInstant(
-              correctedData.startDate,
-              correctedData.endTime,
-              preferences.timezone,
-            )
-          : new Date(startTime.getTime() + correctedData.duration * 60000);
-      if (!isSessionDurationValid(endTime.getTime() - startTime.getTime()))
-        throw new Error('Invalid session duration');
+      range = resolveSessionRange(correctedData, durationMode, preferences.timezone);
     } catch {
       setError('startTime', {
         type: 'validate',
@@ -207,68 +168,12 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
       return;
     }
 
-    // Determine title based on session category
-    let finalTitle: string;
-    if (correctedData.sessionCategory === 'course' && correctedData.courseId) {
-      const selectedCourse = coursesData?.find(
-        (course) => course.id.toString() === correctedData.courseId,
-      );
-      if (editSession?.courseId === selectedCourse?.id && editSession) {
-        finalTitle = editSession.title;
-      } else if (selectedCourse) {
-        // Check if course name already contains category to prevent duplication
-        const categoryName = selectedCourse.category?.name || '';
-        const hasCategory =
-          selectedCourse.name.includes(`(${categoryName})`) ||
-          selectedCourse.name.includes(`(${categoryName.toLowerCase()})`);
-        finalTitle = hasCategory
-          ? selectedCourse.name
-          : `${selectedCourse.name}${categoryName ? ` (${categoryName})` : ''}`;
-      } else {
-        finalTitle = 'Ders Çalışması';
-      }
-    } else if (correctedData.sessionCategory === 'break') {
-      finalTitle = 'Mola';
-    } else if (
-      correctedData.sessionCategory === 'custom' &&
-      correctedData.customTitle
-    ) {
-      finalTitle = correctedData.customTitle;
-    } else {
-      finalTitle = 'Çalışma Seansı'; // fallback
-    }
-
-    const effectiveSessionType =
-      correctedData.sessionCategory === 'break'
-        ? 'break'
-        : correctedData.sessionType === 'break'
-          ? 'study'
-          : correctedData.sessionType;
-
-    const sessionData: CreateStudySessionRequest | UpdateStudySessionRequest = {
-      title: finalTitle,
-      description: correctedData.description ?? '',
-      ...(correctedData.sessionCategory === 'course' && correctedData.courseId
-        ? { courseId: parseInt(correctedData.courseId, 10) }
-        : isEditMode
-          ? { courseId: null, topicId: null }
-          : {}),
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      sessionType: effectiveSessionType,
-      color: correctedData.color || '#3B82F6',
-      ...(effectiveSessionType === 'pomodoro' &&
-        correctedData.pomodoroSettings && {
-          pomodoroSettings: {
-            workDuration: correctedData.pomodoroSettings.workDuration || 25,
-            shortBreak: correctedData.pomodoroSettings.shortBreak || 5,
-            longBreak: correctedData.pomodoroSettings.longBreak || 15,
-            cyclesBeforeLongBreak:
-              correctedData.pomodoroSettings.cyclesBeforeLongBreak || 4,
-            currentCycle: 0,
-          },
-        }),
-    };
+    const sessionData = buildSessionPayload(
+      correctedData,
+      resolveSessionTitle(correctedData, coursesData, editSession),
+      range,
+      isEditMode,
+    );
 
     const request =
       isEditMode && writeSnapshot
@@ -331,7 +236,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
       const durationInMinutes = editSession.duration;
 
       // Determine session category
-      let category: 'course' | 'break' | 'custom';
+      let category: SessionCategory;
       if (editSession.sessionType === 'break') {
         category = 'break';
       } else if (editSession.courseId) {
@@ -409,6 +314,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
   const watchedEndTime = watch('endTime');
   const watchedStartDate = watch('startDate');
   const watchedStartTime = watch('startTime');
+  const watchedDuration = watch('duration');
 
   React.useEffect(() => {
     if (
@@ -417,23 +323,14 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
       watchedStartDate &&
       watchedStartTime
     ) {
-      try {
-        const start = wallTimeToInstant(
-          watchedStartDate,
-          watchedStartTime,
-          preferences.timezone,
-        );
-        const end = wallTimeToInstant(
-          watchedStartDate,
-          watchedEndTime,
-          preferences.timezone,
-        );
-        const minutes = differenceInMinutes(end, start);
-        if (minutes > 0 && minutes <= sessionDurationLimits.maxMinutes)
-          setValue('duration', minutes, { shouldValidate: true });
-      } catch {
-        /* Submission reports ambiguous or missing wall times. */
-      }
+      const minutes = wallTimeMinutes(
+        watchedStartDate,
+        watchedStartTime,
+        watchedEndTime,
+        preferences.timezone,
+      );
+      if (minutes !== null && minutes > 0 && minutes <= sessionDurationLimits.maxMinutes)
+        setValue('duration', minutes, { shouldValidate: true });
     }
   }, [
     watchedEndTime,
@@ -464,15 +361,15 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
           className="panel mx-auto my-8 flex max-h-[90vh] w-full max-w-lg flex-col shadow-xl"
           aria-busy={mutation.isPending}
         >
-          <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700/50">
-            <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="flex items-center justify-between p-5 border-b border-[var(--line)]">
+            <Dialog.Title className="text-lg font-medium ">
               {isEditMode ? 'Çalışma Seansını Düzenle' : 'Yeni Çalışma Seansı'}
             </Dialog.Title>
             <button
               onClick={handleClose}
               disabled={mutation.isPending}
               aria-label="Pencereyi kapat"
-              className="p-2 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+              className="p-2 rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--subtle)] transition-all"
             >
               <X className="w-5 h-5" />
             </button>
@@ -530,76 +427,17 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                   {errors.title.message}
                 </p>
               )}
-              {/* Study Category Selection */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                  Çalışma Türü *
-                </label>
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    type="button"
-                    aria-pressed={sessionCategory === 'course'}
-                    onClick={() => setSessionCategory('course')}
-                    className={`p-4 rounded-md border transition-colors duration-150 ${
-                      sessionCategory === 'course'
-                        ? 'border-[var(--solid)] bg-[var(--subtle)] text-[var(--text)]'
-                        : 'border-[var(--line)] text-[var(--muted)] hover:bg-[var(--subtle)]'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <BookOpen
-                        className={`w-6 h-6 ${sessionCategory === 'course' ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}
-                      />
-                      <span className="font-medium text-xs">
-                        Ders Çalışması
-                      </span>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    aria-pressed={sessionCategory === 'break'}
-                    onClick={() => setSessionCategory('break')}
-                    className={`p-4 rounded-md border transition-colors duration-150 ${
-                      sessionCategory === 'break'
-                        ? 'border-[var(--solid)] bg-[var(--subtle)] text-[var(--text)]'
-                        : 'border-[var(--line)] text-[var(--muted)] hover:bg-[var(--subtle)]'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <Coffee
-                        className={`w-6 h-6 ${sessionCategory === 'break' ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}
-                      />
-                      <span className="font-medium text-xs">Mola</span>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    aria-pressed={sessionCategory === 'custom'}
-                    onClick={() => setSessionCategory('custom')}
-                    className={`p-4 rounded-md border transition-colors duration-150 ${
-                      sessionCategory === 'custom'
-                        ? 'border-[var(--solid)] bg-[var(--subtle)] text-[var(--text)]'
-                        : 'border-[var(--line)] text-[var(--muted)] hover:bg-[var(--subtle)]'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <Target
-                        className={`w-6 h-6 ${sessionCategory === 'custom' ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}
-                      />
-                      <span className="font-medium text-xs">Özel Görev</span>
-                    </div>
-                  </button>
-                </div>
-              </div>
+              <SessionCategoryPicker
+                value={sessionCategory}
+                onChange={setSessionCategory}
+              />
 
               {/* Course Selection, Break, or Custom Title */}
               {sessionCategory === 'course' && (
                 <div>
                   <label
                     htmlFor="courseId"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                    className="block text-sm font-medium mb-2"
                   >
                     Ders Seçimi *
                   </label>
@@ -639,7 +477,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 <div>
                   <label
                     htmlFor="customTitle"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                    className="block text-sm font-medium mb-2"
                   >
                     Özel Görev Başlığı *
                   </label>
@@ -662,7 +500,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
               <div>
                 <label
                   htmlFor="description"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  className="block text-sm font-medium mb-2"
                 >
                   Açıklama
                 </label>
@@ -677,14 +515,14 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
 
               {/* Start Date and Time */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                <label className="block text-sm font-medium mb-3">
                   Plan Başlangıç Tarihi ve Saati *
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label
                       htmlFor="startDate"
-                      className="block text-xs text-gray-600 dark:text-gray-400 mb-1"
+                      className="block text-xs text-[var(--muted)] mb-1"
                     >
                       Tarih
                     </label>
@@ -698,7 +536,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                   <div>
                     <label
                       htmlFor="startTime"
-                      className="block text-xs text-gray-600 dark:text-gray-400 mb-1"
+                      className="block text-xs text-[var(--muted)] mb-1"
                     >
                       Saat
                     </label>
@@ -712,145 +550,23 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 </div>
               </div>
 
-              {/* Duration Selection Mode */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Süre Seçim Tipi
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setDurationMode('minutes')}
-                    className={`p-3 rounded-md border transition-colors duration-150 ${
-                      durationMode === 'minutes'
-                        ? 'border-[var(--solid)] bg-[var(--subtle)] text-[var(--text)]'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <Timer
-                        className={`w-4 h-4 ${durationMode === 'minutes' ? 'text-primary-500' : 'text-gray-400'}`}
-                      />
-                      <span className="font-medium text-sm">Dakika</span>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setDurationMode('timeRange')}
-                    className={`p-3 rounded-md border transition-colors duration-150 ${
-                      durationMode === 'timeRange'
-                        ? 'border-[var(--solid)] bg-[var(--subtle)] text-[var(--text)]'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <Calendar
-                        className={`w-4 h-4 ${durationMode === 'timeRange' ? 'text-purple-500' : 'text-gray-400'}`}
-                      />
-                      <span className="font-medium text-sm">Saat Aralığı</span>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Duration Input - Minutes Mode */}
-              {durationMode === 'minutes' && (
-                <div>
-                  <label
-                    htmlFor="duration"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >
-                    Süre (dakika) *
-                  </label>
-                  <input
-                    {...register('duration', { valueAsNumber: true })}
-                    type="number"
-                    id="duration"
-                    min={sessionDurationLimits.minMinutes}
-                    max={sessionDurationLimits.maxMinutes}
-                    step="any"
-                    className="input"
-                  />
-                  {errors.duration && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {errors.duration.message}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Duration Input - Time Range Mode */}
-              {durationMode === 'timeRange' && (
-                <div className="space-y-3">
-                  <div>
-                    <label
-                      htmlFor="endTime"
-                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                    >
-                      Bitiş Saati *
-                    </label>
-                    <input
-                      {...register('endTime')}
-                      type="time"
-                      id="endTime"
-                      className="input"
-                    />
-                  </div>
-
-                  {/* Auto-calculated duration display */}
-                  <div className="bg-[var(--subtle)] rounded-lg p-3 border border-purple-200 dark:border-purple-800">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        ⏱️ Toplam Süre:
-                      </span>
-                      <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                        {(() => {
-                          const startDateValue = watch('startDate');
-                          const startTimeValue = watch('startTime');
-                          const endTimeValue = watch('endTime');
-
-                          if (
-                            !startDateValue ||
-                            !startTimeValue ||
-                            !endTimeValue
-                          )
-                            return '0 dakika';
-
-                          try {
-                            const start = wallTimeToInstant(
-                              startDateValue,
-                              startTimeValue,
-                              preferences.timezone,
-                            );
-                            const end = wallTimeToInstant(
-                              startDateValue,
-                              endTimeValue,
-                              preferences.timezone,
-                            );
-                            const duration = differenceInMinutes(end, start);
-                            return duration > 0
-                              ? `${duration} dakika`
-                              : '0 dakika';
-                          } catch {
-                            return 'Geçersiz saat';
-                          }
-                        })()}
-                      </span>
-                    </div>
-                    <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                      Başlangıç ve bitiş saatine göre otomatik hesaplanır
-                    </p>
-                  </div>
-                </div>
-              )}
+              <SessionDurationFields
+                mode={durationMode}
+                onModeChange={setDurationMode}
+                register={register}
+                errors={errors}
+                timezone={preferences.timezone}
+                startDate={watchedStartDate}
+                startTime={watchedStartTime}
+                endTime={watchedEndTime}
+              />
 
               {/* Session Type */}
               {sessionCategory !== 'break' && (
                 <div>
                   <label
                     htmlFor="sessionType"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                    className="block text-sm font-medium mb-2"
                   >
                     Seans Türü *
                   </label>
@@ -866,45 +582,15 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 </div>
               )}
 
-              {/* End Time Display - Only for Minutes Mode */}
               {durationMode === 'minutes' && (
-                <div className="bg-[var(--subtle)] rounded-lg p-3 border border-primary-200 dark:border-primary-800">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Bitiş saati:
-                    </span>
-                    <span className="text-lg font-bold text-[var(--text)]">
-                      {(() => {
-                        const duration = watch('duration') || 60;
-                        const startDateValue = watch('startDate');
-                        const startTimeValue = watch('startTime');
-
-                        if (!startDateValue || !startTimeValue) return '--:--';
-
-                        try {
-                          const start = wallTimeToInstant(
-                            startDateValue,
-                            startTimeValue,
-                            preferences.timezone,
-                          );
-                          return formatZonedTime(
-                            new Date(start.getTime() + duration * 60000),
-                            preferences.timezone,
-                          );
-                        } catch {
-                          return 'Geçersiz saat';
-                        }
-                      })()}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1.5 flex items-center gap-1">
-                    <Timer className="w-3 h-3" />
-                    Başlangıç + {watch('duration') || 60} dakika
-                  </p>
-                </div>
+                <EndTimeSummary
+                  timezone={preferences.timezone}
+                  startDate={watchedStartDate}
+                  startTime={watchedStartTime}
+                  duration={watchedDuration}
+                />
               )}
 
-              {/* Pomodoro Settings */}
               <AnimatePresence>
                 {showPomodoroSettings && (
                   <motion.div
@@ -914,167 +600,16 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="rounded-lg border border-[var(--line)] bg-[var(--subtle)] p-4 space-y-3">
-                      <div className="flex items-center gap-2 text-[var(--text)]">
-                        <Timer className="w-5 h-5" />
-                        <span className="font-medium">Pomodoro Ayarları</span>
-                      </div>
-
-                      {/* Preset Buttons */}
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-[var(--muted)]">
-                          Hazır Ayarlar:
-                        </p>
-                        <div className="grid grid-cols-3 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setValue('pomodoroSettings.workDuration', 25);
-                              setValue('pomodoroSettings.shortBreak', 5);
-                              setValue('pomodoroSettings.longBreak', 15);
-                              setValue(
-                                'pomodoroSettings.cyclesBeforeLongBreak',
-                                4,
-                              );
-                            }}
-                            className="btn btn-secondary text-xs"
-                          >
-                            Klasik (25dk)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setValue('pomodoroSettings.workDuration', 45);
-                              setValue('pomodoroSettings.shortBreak', 10);
-                              setValue('pomodoroSettings.longBreak', 20);
-                              setValue(
-                                'pomodoroSettings.cyclesBeforeLongBreak',
-                                3,
-                              );
-                            }}
-                            className="btn btn-secondary text-xs"
-                          >
-                            Uzun (45dk)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setValue('pomodoroSettings.workDuration', 60);
-                              setValue('pomodoroSettings.shortBreak', 10);
-                              setValue('pomodoroSettings.longBreak', 30);
-                              setValue(
-                                'pomodoroSettings.cyclesBeforeLongBreak',
-                                2,
-                              );
-                            }}
-                            className="btn btn-secondary text-xs"
-                          >
-                            Maksimum (60dk)
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label htmlFor="workDuration" className="block text-xs font-medium text-[var(--muted)] mb-1">
-                            Çalışma (dk)
-                          </label>
-                          <input
-                            id="workDuration"
-                            {...register('pomodoroSettings.workDuration', {
-                              valueAsNumber: true,
-                            })}
-                            type="number"
-                            min="5"
-                            max="90"
-                            className="input text-sm"
-                          />
-                        </div>
-
-                        <div>
-                          <label htmlFor="shortBreak" className="block text-xs font-medium text-[var(--muted)] mb-1">
-                            Kısa Mola (dk)
-                          </label>
-                          <input
-                            id="shortBreak"
-                            {...register('pomodoroSettings.shortBreak', {
-                              valueAsNumber: true,
-                            })}
-                            type="number"
-                            min="1"
-                            max="30"
-                            className="input text-sm"
-                          />
-                        </div>
-
-                        <div>
-                          <label htmlFor="longBreak" className="block text-xs font-medium text-[var(--muted)] mb-1">
-                            Uzun Mola (dk)
-                          </label>
-                          <input
-                            id="longBreak"
-                            {...register('pomodoroSettings.longBreak', {
-                              valueAsNumber: true,
-                            })}
-                            type="number"
-                            min="10"
-                            max="60"
-                            className="input text-sm"
-                          />
-                        </div>
-
-                        <div>
-                          <label htmlFor="cyclesBeforeLongBreak" className="block text-xs font-medium text-[var(--muted)] mb-1">
-                            Döngü Sayısı
-                          </label>
-                          <input
-                            id="cyclesBeforeLongBreak"
-                            {...register(
-                              'pomodoroSettings.cyclesBeforeLongBreak',
-                              { valueAsNumber: true },
-                            )}
-                            type="number"
-                            min="2"
-                            max="8"
-                            className="input text-sm"
-                          />
-                        </div>
-                      </div>
-                    </div>
+                    <PomodoroSettingsFields register={register} setValue={setValue} />
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* Color Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Renk Seçimi
-                </label>
-                <input type="hidden" {...register('color')} />
-                <div className="grid grid-cols-6 gap-2">
-                  {SESSION_COLORS.map((color) => (
-                    <button
-                      key={color.value}
-                      type="button"
-                      onClick={() =>
-                        setValue('color', color.value, {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        })
-                      }
-                      className={`w-10 h-10 rounded-full border-2 transition-all duration-200 ${
-                        watch('color') === color.value
-                          ? 'border-gray-800 dark:border-gray-200 scale-110 shadow-lg ring-2 ring-offset-2 ring-primary-500'
-                          : 'border-gray-300 dark:border-gray-600 hover:scale-105 hover:border-gray-400'
-                      }`}
-                      style={{ backgroundColor: color.value }}
-                      title={color.name}
-                      aria-label={`${color.name} seans rengi`}
-                      aria-pressed={watch('color') === color.value}
-                    />
-                  ))}
-                </div>
-              </div>
+              <SessionColorPicker
+                selected={watch('color')}
+                register={register}
+                setValue={setValue}
+              />
             </fieldset>
             {/* Buttons */}
           </form>
@@ -1088,7 +623,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                   type="button"
                   onClick={(e) => handleDelete(e)}
                   disabled={mutation.isPending || needsRefresh}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn btn-secondary text-red-600"
                 >
                   <Trash2 className="w-4 h-4" />
                   Sil
@@ -1102,7 +637,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 type="button"
                 onClick={handleClose}
                 disabled={mutation.isPending}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                className="btn btn-secondary"
               >
                 İptal
               </button>

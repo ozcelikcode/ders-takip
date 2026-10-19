@@ -1,0 +1,46 @@
+import { BookOpen, Coffee, Target } from 'lucide-react';
+
+export type SessionCategory = 'course' | 'break' | 'custom';
+
+const CATEGORIES = [
+  { value: 'course', label: 'Ders Çalışması', Icon: BookOpen },
+  { value: 'break', label: 'Mola', Icon: Coffee },
+  { value: 'custom', label: 'Özel Görev', Icon: Target },
+] as const;
+
+interface SessionCategoryPickerProps {
+  value: SessionCategory;
+  onChange: (value: SessionCategory) => void;
+}
+
+const SessionCategoryPicker = ({ value, onChange }: SessionCategoryPickerProps) => (
+  <div>
+    <label className="block text-sm font-medium mb-3">
+      Çalışma Türü *
+    </label>
+    <div className="grid grid-cols-3 gap-3">
+      {CATEGORIES.map(({ value: category, label, Icon }) => (
+        <button
+          key={category}
+          type="button"
+          aria-pressed={value === category}
+          onClick={() => onChange(category)}
+          className={`p-4 rounded-md border transition-colors duration-150 ${
+            value === category
+              ? 'border-[var(--solid)] bg-[var(--subtle)] text-[var(--text)]'
+              : 'border-[var(--line)] text-[var(--muted)] hover:bg-[var(--subtle)]'
+          }`}
+        >
+          <div className="flex flex-col items-center gap-2">
+            <Icon
+              className={`w-6 h-6 ${value === category ? ' ' : 'text-[var(--muted)]'}`}
+            />
+            <span className="font-medium text-xs">{label}</span>
+          </div>
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
+export default SessionCategoryPicker;

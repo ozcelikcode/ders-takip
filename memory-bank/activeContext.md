@@ -4,7 +4,7 @@ Son güncelleme: 18 Ekim 2026, A22 otomatik erişilebilirlik ve Lighthouse. Tari
 
 ## Temizlik paketi tamamlandı (19 Ekim 2026)
 
-Faz 1–4 uygulandı (implementation/2026-10-19-cleanup.md): check yeşil 18/141/200, E2E 36/36, kaynakta 0 `any`, `no-explicit-any` açık. Faz 5 büyük dosya bölme ve major bağımlılıklar açık; commit yok.
+Faz 1–4 uygulandı (implementation/2026-10-19-cleanup.md): check yeşil 18/141/200, E2E 36/36, kaynakta 0 `any`, `no-explicit-any` açık. Faz 5 büyük dosya bölme de uygulandı (216 frontend testi). Açık: major bağımlılıklar, LICENSE, mobil ilk yük, Profil/Ayarlar işlev tekrarı (ürün kararı).
 
 ## Temizlik paketi — Faz 4 (18 Ekim 2026)
 

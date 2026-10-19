@@ -8,7 +8,7 @@ import type { StudySession } from '../../types/planner';
 
 export const calendarHours = Array.from({ length: 24 }, (_, hour) => hour);
 export const calendarCardMinHeight = 28;
-export const calendarLaneMinWidth = 160;
+const calendarLaneMinWidth = 160;
 
 interface CardBounds {
   id: number;
@@ -134,4 +134,133 @@ export function calendarSegment(
         1,
       ).getTime(),
   };
+}
+
+/** Segments for every visible day, with the optional live resize preview applied and lanes assigned. */
+export function buildDaySegments(
+  days: readonly Date[],
+  sessions: readonly StudySession[],
+  resizePreview: { sessionId: number; minutes: number } | null,
+  timezone: string,
+  hourHeight: number,
+) {
+  return days.map((day) => {
+    const segments = sessions
+      .map((session) => {
+        const preview =
+          resizePreview?.sessionId === session.id
+            ? {
+                ...session,
+                endTime: new Date(
+                  Date.parse(session.startTime) + resizePreview.minutes * 60000,
+                ).toISOString(),
+                duration: resizePreview.minutes,
+              }
+            : session;
+        return {
+          session,
+          preview,
+          segment: calendarSegment(preview, day, timezone, hourHeight),
+        };
+      })
+      .filter(({ segment }) => segment.minutes > 0)
+      .sort(
+        (a, b) =>
+          a.segment.hour - b.segment.hour ||
+          a.segment.top - b.segment.top ||
+          a.session.id - b.session.id,
+      );
+    const placements = layoutCalendarCards(
+      segments.map(({ session, segment }) => ({
+        id: session.id,
+        top: segment.hour * hourHeight + segment.top,
+        height: segment.height,
+      })),
+    );
+    return segments.map((entry) => ({
+      ...entry,
+      placement: placements.get(entry.session.id)!,
+    }));
+  });
+}
+
+/** Minimum column width per day: empty weekly days stay narrow, busy days widen with their lane count. */
+export const dayMinWidths = (
+  daySegments: ReturnType<typeof buildDaySegments>,
+  weekly: boolean,
+) =>
+  daySegments.map((segments) =>
+    segments.length === 0 && weekly
+      ? 104
+      : Math.max(1, ...segments.map(({ placement }) => placement.laneCount)) *
+        calendarLaneMinWidth,
+  );
+
+/** `${dayIndex}:${hour}` keys of hour slots overlapped by a non-cancelled session. */
+export function occupiedSlotKeys(
+  daySegments: ReturnType<typeof buildDaySegments>,
+  hourHeight: number,
+) {
+  const occupied = new Set<string>();
+  daySegments.forEach((segments, day) =>
+    calendarHours.forEach((hour) => {
+      if (
+        segments.some(
+          ({ session, segment }) =>
+            session.status !== 'cancelled' &&
+            segment.hour * 60 + (segment.top / hourHeight) * 60 <
+              (hour + 1) * 60 &&
+            segment.hour * 60 +
+              (segment.top / hourHeight) * 60 +
+              segment.minutes >
+              hour * 60,
+        )
+      )
+        occupied.add(`${day}:${hour}`);
+    }),
+  );
+  return occupied;
+}
+
+/**
+ * Next focus target for keyboard navigation between free slots.
+ * Returns undefined when the key is not a navigation key and null when there is nowhere to go.
+ */
+export function slotNavigationTarget(
+  availableSlots: readonly string[],
+  key: string,
+  ctrlKey: boolean,
+  day: number,
+  hour: number,
+): string | null | undefined {
+  const coordinate = (slot: string) =>
+    slot.split(':').map(Number) as [number, number];
+  let candidates: string[];
+  if (key === 'ArrowUp' || key === 'ArrowDown')
+    candidates = availableSlots
+      .filter((slot) => {
+        const [d, h] = coordinate(slot);
+        return d === day && (key === 'ArrowUp' ? h < hour : h > hour);
+      })
+      .sort(
+        (a, b) =>
+          Math.abs(coordinate(a)[1] - hour) - Math.abs(coordinate(b)[1] - hour),
+      );
+  else if (key === 'ArrowLeft' || key === 'ArrowRight')
+    candidates = availableSlots
+      .filter((slot) => {
+        const [d, h] = coordinate(slot);
+        return h === hour && (key === 'ArrowLeft' ? d < day : d > day);
+      })
+      .sort(
+        (a, b) =>
+          Math.abs(coordinate(a)[0] - day) - Math.abs(coordinate(b)[0] - day),
+      );
+  else if (key === 'Home' || key === 'End') {
+    candidates = availableSlots.filter(
+      (slot) => ctrlKey || coordinate(slot)[0] === day,
+    );
+    if (key === 'End') candidates.reverse();
+  } else return undefined;
+  return candidates[0] ?? null;
 }

@@ -140,12 +140,12 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
           aria-busy={pending}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between p-4 border-b border-[var(--line)]">
             <div>
               <Dialog.Title className="text-base font-medium">
                 Görevi Taşı
               </Dialog.Title>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-sm text-[var(--muted)] mt-1">
                 {sessionTitle} · Taşınacak saat: {format(currentDate, 'HH:mm')}
               </p>
             </div>
@@ -153,7 +153,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
               disabled={pending}
               onClick={onClose}
               aria-label="Kapat"
-              className="p-2 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="p-2 text-[var(--muted)] hover:text-[var(--text)] rounded-lg hover:bg-[var(--subtle)]"
             >
               <X className="h-5 w-5" />
             </button>
@@ -186,20 +186,20 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
                 disabled={pending}
                 onClick={handlePrevMonth}
                 aria-label="Önceki ay"
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-2 rounded-lg hover:bg-[var(--subtle)]"
               >
-                <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                <ChevronLeft className="h-5 w-5 text-[var(--muted)]" />
               </button>
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-base font-semibold ">
                 {format(selectedMonth, 'MMMM yyyy', { locale: tr })}
               </h3>
               <button
                 disabled={pending}
                 onClick={handleNextMonth}
                 aria-label="Sonraki ay"
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-2 rounded-lg hover:bg-[var(--subtle)]"
               >
-                <ChevronRight className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                <ChevronRight className="h-5 w-5 text-[var(--muted)]" />
               </button>
             </div>
 
@@ -208,7 +208,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
               {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map((day) => (
                 <div
                   key={day}
-                  className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2"
+                  className="text-center text-xs font-medium text-[var(--muted)] py-2"
                 >
                   {day}
                 </div>
@@ -232,9 +232,9 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
                     aria-pressed={!!isSelected}
                     className={`
                     relative p-2 text-sm rounded-lg transition-colors
-                    ${!isCurrentMonth ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : ''}
-                    ${isCurrentMonth && !isSelected && !isTodayDate ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' : ''}
-                    ${isTodayDate && !isSelected ? 'bg-primary-100 dark:bg-primary-900/30 text-[var(--text)] font-semibold' : ''}
+                    ${!isCurrentMonth ? 'text-[var(--muted)] cursor-not-allowed' : ''}
+                    ${isCurrentMonth && !isSelected && !isTodayDate ? 'hover:bg-[var(--subtle)]' : ''}
+                    ${isTodayDate && !isSelected ? 'bg-[var(--subtle)] text-[var(--text)] font-medium' : ''}
                     ${isSelected ? 'bg-primary-600 text-white font-semibold' : ''}
                     ${isCurrentDateDay && !isSelected ? 'ring-1 ring-[var(--muted)]' : ''}
                   `}
@@ -250,8 +250,8 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
 
             {/* Selected Date Info */}
             {selectedDate && (
-              <div className="mt-4 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+              <div className="mt-4 p-3 bg-[var(--subtle)] rounded-lg">
+                <p className="text-sm">
                   Seçilen tarih:{' '}
                   <span className="font-semibold">
                     {format(selectedDate, 'd MMMM yyyy, EEEE', { locale: tr })}
@@ -314,7 +314,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
             </div>
           )}
           {/* Footer */}
-          <div className="flex gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex gap-3 p-4 border-t border-[var(--line)]">
             <button
               disabled={pending}
               onClick={onClose}

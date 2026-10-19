@@ -10,10 +10,10 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, { faile
   override render() {
     if (this.state.failed) {
       return (
-        <main role="alert" className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-white">
-          <h1 className="text-xl font-semibold">Sayfa görüntülenirken bir sorun oluştu</h1>
-          <p>Lütfen sayfayı yeniden yükleyin.</p>
-          <button type="button" className="rounded-xl bg-blue-600 px-4 py-2 text-white" onClick={() => window.location.reload()}>Yeniden yükle</button>
+        <main role="alert" className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[var(--canvas)] p-6 text-center text-[var(--text)]">
+          <h1 className="text-lg font-medium">Sayfa görüntülenirken bir sorun oluştu</h1>
+          <p className="text-sm text-[var(--muted)]">Lütfen sayfayı yeniden yükleyin.</p>
+          <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>Yeniden yükle</button>
         </main>
       );
     }

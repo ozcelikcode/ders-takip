@@ -7,36 +7,28 @@ import {
   type MouseEvent,
   type PointerEvent,
 } from 'react';
-import { Dialog } from '@headlessui/react';
 import { CalendarDate, calendarViewDate } from '@study-tracker/contracts';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Edit,
-  MoveRight,
-  Plus,
-  Timer,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { Clock, Plus } from 'lucide-react';
 import { addDays, format } from '../../utils/calendarDates';
 import type { StudySession } from '../../types/planner';
 import { initializeCalendarViewport } from './calendarViewport';
 import {
   calendarHours,
   calendarCardMinHeight,
-  calendarLaneMinWidth,
-  calendarSegment,
+  buildDaySegments,
+  dayMinWidths,
+  occupiedSlotKeys,
+  slotNavigationTarget,
   canRepositionSession,
   resizedDuration,
   sessionMinutes,
   snappedDropMinute,
-  layoutCalendarCards,
   type CalendarMode,
 } from './calendarGeometry';
 import { usePlannerCalendar } from './usePlannerCalendar';
 import CalendarSessionCard from './CalendarSessionCard';
+import CalendarToolbar from './CalendarToolbar';
+import SessionActionsMenu, { type SessionActionsAnchor } from './SessionActionsMenu';
 import CreateSessionModal from './CreateSessionModal';
 import MoveSessionModal from './MoveSessionModal';
 import PomodoroModal from './PomodoroModal';
@@ -65,11 +57,7 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [drop, setDrop] = useState<Drop | null>(null);
   const [resize, setResize] = useState<Resize | null>(null);
-  const [actions, setActions] = useState<{
-    session: StudySession;
-    x: number;
-    y: number;
-  } | null>(null);
+  const [actions, setActions] = useState<SessionActionsAnchor | null>(null);
   const [hoverDirection, setHoverDirection] = useState<number | null>(null);
   const suppressClickUntil = useRef(0);
   const dateKey = format(days[0]!, 'yyyy-MM-dd');
@@ -95,69 +83,16 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
   const slotRefs = useRef(new Map<string, HTMLButtonElement>());
   const [focusedSlot, setFocusedSlot] = useState('0:8');
   const sessions = query.data ?? [];
-  const daySegments = days.map((day) => {
-    const segments = sessions
-      .map((session) => {
-        const preview =
-          resize?.session.id === session.id
-            ? {
-                ...session,
-                endTime: new Date(
-                  Date.parse(session.startTime) + resize.preview * 60000,
-                ).toISOString(),
-                duration: resize.preview,
-              }
-            : session;
-        return {
-          session,
-          preview,
-          segment: calendarSegment(preview, day, timezone, hourHeight),
-        };
-      })
-      .filter(({ segment }) => segment.minutes > 0)
-      .sort(
-        (a, b) =>
-          a.segment.hour - b.segment.hour ||
-          a.segment.top - b.segment.top ||
-          a.session.id - b.session.id,
-      );
-    const placements = layoutCalendarCards(
-      segments.map(({ session, segment }) => ({
-        id: session.id,
-        top: segment.hour * hourHeight + segment.top,
-        height: segment.height,
-      })),
-    );
-    return segments.map((entry) => ({
-      ...entry,
-      placement: placements.get(entry.session.id)!,
-    }));
-  });
-  const dayMinWidths = daySegments.map((segments) =>
-    segments.length === 0 && weekly
-      ? 104
-      : Math.max(1, ...segments.map(({ placement }) => placement.laneCount)) *
-        calendarLaneMinWidth,
+  const daySegments = buildDaySegments(
+    days,
+    sessions,
+    resize ? { sessionId: resize.session.id, minutes: resize.preview } : null,
+    timezone,
+    hourHeight,
   );
-  const gridTemplateColumns = `64px ${dayMinWidths.map((width) => `minmax(${width}px, 1fr)`).join(' ')}`;
-  const occupiedSlots = new Set<string>();
-  daySegments.forEach((segments, day) =>
-    calendarHours.forEach((hour) => {
-      if (
-        segments.some(
-          ({ session, segment }) =>
-            session.status !== 'cancelled' &&
-            segment.hour * 60 + (segment.top / hourHeight) * 60 <
-              (hour + 1) * 60 &&
-            segment.hour * 60 +
-              (segment.top / hourHeight) * 60 +
-              segment.minutes >
-              hour * 60,
-        )
-      )
-        occupiedSlots.add(`${day}:${hour}`);
-    }),
-  );
+  const minWidths = dayMinWidths(daySegments, weekly);
+  const gridTemplateColumns = `64px ${minWidths.map((width) => `minmax(${width}px, 1fr)`).join(' ')}`;
+  const occupiedSlots = occupiedSlotKeys(daySegments, hourHeight);
   const availableSlots = calendarHours.flatMap((hour) =>
     days.flatMap((_, day) =>
       occupiedSlots.has(`${day}:${hour}`) ? [] : [`${day}:${hour}`],
@@ -171,38 +106,16 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
     day: number,
     hour: number,
   ) => {
-    let candidates: string[];
-    const coordinate = (key: string) =>
-      key.split(':').map(Number) as [number, number];
-    if (event.key === 'ArrowUp' || event.key === 'ArrowDown')
-      candidates = availableSlots
-        .filter((key) => {
-          const [d, h] = coordinate(key);
-          return d === day && (event.key === 'ArrowUp' ? h < hour : h > hour);
-        })
-        .sort(
-          (a, b) =>
-            Math.abs(coordinate(a)[1] - hour) -
-            Math.abs(coordinate(b)[1] - hour),
-        );
-    else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight')
-      candidates = availableSlots
-        .filter((key) => {
-          const [d, h] = coordinate(key);
-          return h === hour && (event.key === 'ArrowLeft' ? d < day : d > day);
-        })
-        .sort(
-          (a, b) =>
-            Math.abs(coordinate(a)[0] - day) - Math.abs(coordinate(b)[0] - day),
-        );
-    else if (event.key === 'Home' || event.key === 'End') {
-      candidates = availableSlots.filter(
-        (key) => event.ctrlKey || coordinate(key)[0] === day,
-      );
-      if (event.key === 'End') candidates.reverse();
-    } else return;
+    const target = slotNavigationTarget(
+      availableSlots,
+      event.key,
+      event.ctrlKey,
+      day,
+      hour,
+    );
+    if (target === undefined) return;
     event.preventDefault();
-    const node = slotRefs.current.get(candidates[0] ?? '');
+    const node = slotRefs.current.get(target ?? '');
     node?.focus();
     node?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   };
@@ -385,58 +298,17 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
 
   return (
     <div className="space-y-4" aria-busy={pending}>
-      <div className="calendar-toolbar">
-        <div className="calendar-toolbar-title">
-          <h2 className="text-sm font-medium">
-            {weekly ? 'Haftalık Planlayıcı' : 'Günlük Planlayıcı'}
-          </h2>
-          <p className="text-xs text-[var(--muted)]">
-            {weekly
-              ? `${format(days[0]!, 'd MMMM')} – ${format(days[6]!, 'd MMMM yyyy')}`
-              : format(days[0]!, 'd MMMM yyyy, EEEE')}
-          </p>
-        </div>
-        <div className="date-navigation">
-          {[-1, 0, 1].map((direction) => (
-            <button
-              key={direction}
-              ref={direction === 0 ? todayButtonRef : undefined}
-              disabled={pending}
-              className="btn btn-secondary"
-              aria-label={
-                direction
-                  ? `${direction < 0 ? 'Önceki' : 'Sonraki'} ${weekly ? 'hafta' : 'gün'}`
-                  : 'Bugün'
-              }
-              onClick={() =>
-                direction
-                  ? planner.navigate(direction)
-                  : planner.setDate(planner.today())
-              }
-              onDragOver={(event) => {
-                if (drag && direction) {
-                  event.preventDefault();
-                  setHoverDirection(direction);
-                }
-              }}
-              onDragLeave={() => setHoverDirection(null)}
-              onDrop={(event) => {
-                event.preventDefault();
-                if (direction) planner.navigate(direction);
-                clearDrag();
-              }}
-            >
-              {direction === -1 ? (
-                <ChevronLeft className="h-4 w-4" />
-              ) : direction === 1 ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                'Bugün'
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
+      <CalendarToolbar
+        weekly={weekly}
+        days={days}
+        pending={pending}
+        dragging={!!drag}
+        todayButtonRef={todayButtonRef}
+        onNavigate={planner.navigate}
+        onToday={() => planner.setDate(planner.today())}
+        onHoverDirection={setHoverDirection}
+        onDropOnNavigation={clearDrag}
+      />
       {onCreateSession && (
         <p id={slotHelpId} className="text-xs text-[var(--muted)]">
           Boş saatlerde ok tuşlarıyla gezinip Enter veya boşlukla seans ekleyin.
@@ -470,7 +342,7 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
             <div
               style={{
                 minWidth:
-                  64 + dayMinWidths.reduce((total, width) => total + width, 0),
+                  64 + minWidths.reduce((total, width) => total + width, 0),
                 paddingBottom: calendarCardMinHeight + 8,
               }}
             >
@@ -665,87 +537,16 @@ export default function PlannerCalendar({ mode, onCreateSession }: Props) {
           ))}
         </div>
       )}
-      <Dialog
-        open={!!actions}
+      <SessionActionsMenu
+        anchor={actions}
         onClose={() => setActions(null)}
-        className="relative z-50"
-      >
-        <div className="fixed inset-0" />
-        {actions && (
-          <Dialog.Panel
-            className="panel fixed w-56 p-2 shadow-lg"
-            style={{ top: actions.y, left: actions.x }}
-          >
-            <Dialog.Title className="px-2 py-1 text-xs text-[var(--muted)]">
-              Seans işlemleri
-            </Dialog.Title>
-            <button
-              className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-[var(--subtle)]"
-              onClick={() => {
-                planner.setEditing(actions.session);
-                setActions(null);
-              }}
-            >
-              <Edit className="h-4 w-4" />
-              Düzenle
-            </button>
-            {actions.session.sessionType === 'pomodoro' && (
-              <button
-                className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-[var(--subtle)]"
-                onClick={() => {
-                  planner.openTimer(actions.session);
-                  setActions(null);
-                }}
-              >
-                <Timer className="h-4 w-4" />
-                Sayacı aç
-              </button>
-            )}
-            <button
-              disabled={!canRepositionSession(actions.session)}
-              className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-[var(--subtle)] disabled:opacity-40"
-              onClick={() => {
-                planner.setMoving(actions.session);
-                setActions(null);
-              }}
-            >
-              <MoveRight className="h-4 w-4" />
-              Tarihe taşı
-            </button>
-            <button
-              disabled={!canRepositionSession(actions.session)}
-              className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-[var(--subtle)] disabled:opacity-40"
-              onClick={() => {
-                planner.setMoving(actions.session);
-                setActions(null);
-              }}
-            >
-              <Clock className="h-4 w-4" />
-              Saat ve süreyi değiştir
-            </button>
-            <button
-              className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm text-red-600 hover:bg-[var(--subtle)]"
-              onClick={() => {
-                planner.setConfirmation({
-                  session: actions.session,
-                  action: 'delete',
-                });
-                setActions(null);
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-              Sil
-            </button>
-            <button
-              className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-[var(--subtle)]"
-              onClick={() => setActions(null)}
-            >
-              <X className="h-4 w-4" />
-              Kapat
-            </button>
-          </Dialog.Panel>
-        )}
-      </Dialog>
+        onEdit={planner.setEditing}
+        onOpenTimer={planner.openTimer}
+        onMove={planner.setMoving}
+        onDelete={(session) =>
+          planner.setConfirmation({ session, action: 'delete' })
+        }
+      />
       <PomodoroModal
         isOpen={!!planner.timer}
         onClose={() => {
