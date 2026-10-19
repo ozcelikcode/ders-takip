@@ -305,3 +305,24 @@ test('supports responsive navigation without page overflow and closes its mobile
     ),
   ).toBe(true);
 });
+
+test('finds a session by its notes and opens the planner on that day without exposing other accounts', async ({
+  page,
+}) => {
+  await login(page);
+  await page.goto('/search?q=Movable');
+  const sessions = page.getByRole('region', { name: 'Seanslar' });
+  const result = sessions.getByRole('link', { name: /Movable session/ });
+  await expect(result).toBeVisible();
+  await page.goto('/search?q=fixture%20notes');
+  await expect(sessions.getByRole('link')).toHaveCount(6);
+  await expect(sessions.getByText(/notlarda/).first()).toBeVisible();
+  await page.goto('/search?q=Movable');
+  await result.click();
+  await expect(page).toHaveURL(/\/planner\?date=\d{4}-\d{2}-\d{2}$/);
+  await expect(page.getByRole('button', { name: /Movable session/ }).first()).toBeVisible();
+  await logout(page);
+  await login(page, 'other@example.test');
+  await page.goto('/search?q=Movable');
+  await expect(page.getByRole('region', { name: 'Seanslar' }).getByText('Eşleşme yok.')).toBeVisible();
+});

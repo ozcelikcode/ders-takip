@@ -68,6 +68,7 @@ for (const theme of ['light', 'dark'] as const) {
       for (const route of [
         'dashboard',
         'stats',
+        'search',
         'courses',
         'pomodoro',
         'profile',

@@ -54,6 +54,7 @@ import type {
 } from '../types/planner';
 import { useUserPreferencesStore } from '../store/userPreferencesStore';
 
+import { searchResultSchema, type SearchResult } from '@study-tracker/contracts';
 import { api, authTransport } from './httpClient';
 
 const parseAuthResponse = (
@@ -343,6 +344,11 @@ export const topicsAPI = {
 };
 
 // Settings API
+export const searchAPI = {
+  search: async (q: string): Promise<SearchResult> =>
+    searchResultSchema.parse((await api.get<{ data: unknown }>('/search', { params: { q } })).data.data),
+};
+
 export const settingsAPI = {
   getSettings: (): Promise<AxiosResponse<ApiResponse<PublicSettings>>> =>
     api.get('/settings'),

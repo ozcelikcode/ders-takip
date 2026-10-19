@@ -2,7 +2,7 @@ import { useTerms } from '../../hooks/useTerms';
 import { useEffect, useRef, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { calendarViewDate } from '@study-tracker/contracts';
+import { CalendarDate, calendarViewDate } from '@study-tracker/contracts';
 import toast from 'react-hot-toast';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useAuthStore } from '../../store/authStore';
@@ -30,7 +30,7 @@ const errorMessage = (error: unknown) =>
       ? error.message
       : 'İşlem tamamlanamadı.';
 
-export function usePlannerCalendar(mode: CalendarMode) {
+export function usePlannerCalendar(mode: CalendarMode, initialDate?: string) {
   const weekStart = useWeekStart();
   const t = useTerms();
   const timezone = useUserPreferencesStore(
@@ -39,7 +39,10 @@ export function usePlannerCalendar(mode: CalendarMode) {
   const keys = useAccountQueryKeys();
   const client = useQueryClient();
   const today = () => calendarViewDate(new Date(), timezone);
-  const [date, setDate] = useState(today);
+  const [date, setDate] = useState(() =>
+    initialDate ? new CalendarDate(Date.parse(`${initialDate}T00:00:00Z`)) : today(),
+  );
+  const firstTimezone = useRef(timezone);
   const [now, setNow] = useState(today);
   const [pending, setPending] = useState(false);
   const busy = useRef(false);
@@ -49,6 +52,9 @@ export function usePlannerCalendar(mode: CalendarMode) {
   const [minimized, setMinimized] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   useEffect(() => {
+    // Keep a deep-linked day on mount; a later time zone change returns to today.
+    if (firstTimezone.current === timezone) return;
+    firstTimezone.current = timezone;
     setDate(today());
     setNow(today());
   }, [timezone]);

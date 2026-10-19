@@ -37,6 +37,8 @@ import ConfirmDialog from '../common/ConfirmDialog';
 
 export interface PlannerCalendarProps {
   onCreateSession?: ((date: Date, hour: number) => void) | undefined;
+  /** Calendar day (YYYY-MM-DD) to open instead of today, e.g. from a search result. */
+  initialDate?: string | undefined;
 }
 interface Props extends PlannerCalendarProps {
   mode: CalendarMode;
@@ -50,9 +52,9 @@ type Resize = {
   preview: number;
 };
 
-export default function PlannerCalendar({ mode, onCreateSession }: Props) {
+export default function PlannerCalendar({ mode, onCreateSession, initialDate }: Props) {
   const t = useTerms();
-  const planner = usePlannerCalendar(mode);
+  const planner = usePlannerCalendar(mode, initialDate);
   const { days, timezone, query, pending } = planner;
   const weekly = mode === 'weekly';
   const hourHeight = weekly ? 48 : 64;

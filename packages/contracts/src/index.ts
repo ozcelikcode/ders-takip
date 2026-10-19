@@ -12,6 +12,7 @@ export * from './auth.js';
 export * from './backups.js';
 export * from './plans.js';
 export * from './terminology.js';
+export * from './search.js';
 import { defaultTerminologyPreset, terminologyPresetSchema } from './terminology.js';
 
 export const brandIconNames = [

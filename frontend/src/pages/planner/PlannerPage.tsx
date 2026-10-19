@@ -1,5 +1,7 @@
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { calendarDateSchema } from '@study-tracker/contracts';
 import WeeklyPlanner from '../../components/planner/WeeklyPlanner';
 import DailyCalendar from '../../components/planner/DailyCalendar';
 import CreateSessionModal from '../../components/planner/CreateSessionModal';
@@ -13,6 +15,8 @@ const PlannerPage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedHour, setSelectedHour] = useState(9);
+  const requested = useSearchParams()[0].get('date');
+  const initialDate = calendarDateSchema.safeParse(requested).success ? requested ?? undefined : undefined;
 
   const handleCreateSession = (date: Date, hour: number) => {
     setSelectedDate(date);
@@ -26,7 +30,7 @@ const PlannerPage = () => {
         actions={<PlannerNavigation activeView={activeView} onViewChange={setActiveView} />} />
       <TodaysPlans />
       <section aria-label={activeView === 'weekly' ? 'Haftalık takvim' : 'Günlük takvim'}>
-        {activeView === 'weekly' ? <WeeklyPlanner key={timezone} onCreateSession={handleCreateSession} /> : <DailyCalendar key={timezone} onCreateSession={handleCreateSession} />}
+        {activeView === 'weekly' ? <WeeklyPlanner key={`${timezone}:${initialDate}`} initialDate={initialDate} onCreateSession={handleCreateSession} /> : <DailyCalendar key={`${timezone}:${initialDate}`} initialDate={initialDate} onCreateSession={handleCreateSession} />}
       </section>
       <CreateSessionModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} selectedDate={selectedDate} selectedHour={selectedHour} />
     </div>

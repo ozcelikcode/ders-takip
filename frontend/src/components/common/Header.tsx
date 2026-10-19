@@ -28,6 +28,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         dashboard: 'Genel bakış',
         planner: 'Planlayıcı',
         stats: 'İstatistikler',
+        search: 'Arama',
         courses: t.course({ capitalize: true, plural: true }),
         pomodoro: 'Pomodoro',
         profile: 'Profil',
@@ -59,7 +60,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 event.preventDefault();
                 if (searchTerm.trim())
                   navigate(
-                    `/courses?search=${encodeURIComponent(searchTerm.trim())}`,
+                    `/search?q=${encodeURIComponent(searchTerm.trim())}`,
                   );
               }}
             >
@@ -68,11 +69,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 className="pointer-events-none absolute left-3 top-2 h-4 w-4 text-[var(--muted)]"
               />
               <input
-                aria-label={`${t.course({ capitalize: true })} veya ${t.topic()} ara`}
+                aria-label="Çalışma alanında ara"
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder={`${t.course({ capitalize: true })} veya ${t.topic()} ara…`}
+                placeholder={`${t.course({ capitalize: true })}, ${t.topic()} veya ${t.session()} ara…`}
                 className="input h-8 pl-9 pr-12 text-xs"
               />
               <button
@@ -84,6 +85,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
             </form>
           </div>
           <Popover.Group className="flex items-center gap-2">
+            <Link to="/search" className="icon-button md:hidden" aria-label="Ara">
+              <Search className="h-4 w-4" />
+            </Link>
             <NotificationsPanel key={`${user?.id ?? 'anonymous'}`} />
             <Popover
               key={`account-${user?.id ?? 'anonymous'}`}

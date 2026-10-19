@@ -50,4 +50,4 @@ Yerel schema 006 korunur. Önceki normal003/004/005/006 yükseltmeleri native ö
 2. A22 manual incomplete/ekran okuyucu, grafik metinsel veri alternatifi, fiziksel touch, DST fold, admin/Pomodoro/native drag-resize E2E kapsamı; uzak CI ve bootstrap interrupt cleanup.
 3. A04 offsite/saklama/kapasite/yük/kurtarma operasyonları ve kalan güvenlik/major bağımlılıklar. React18/Recharts2/Router6/Tailwind3 zincirinin bütün major geçişleri yapılmış değildir.
 
-**Ürün yönü kararlaştırıldı (19 Ekim 2026):** alan/kitle bağımsız, global ve değişken odaklı sistem; TYT/AYT veya yalnız öğrenci zorunluluğu yoktur. Sıralı yol haritası progress.md'nin başındadır (R1–R6 yapıldı; sıradaki R7 global arama). AI/sosyal/offline aktif öncelik değildir.
+**Ürün yönü kararlaştırıldı (19 Ekim 2026):** alan/kitle bağımsız, global ve değişken odaklı sistem; TYT/AYT veya yalnız öğrenci zorunluluğu yoktur. Sıralı yol haritası progress.md'nin başındadır (R1–R7 yapıldı; sıradaki R8 hesap kurtarma — e-posta altyapısı kararı gerekiyor). AI/sosyal/offline aktif öncelik değildir.
