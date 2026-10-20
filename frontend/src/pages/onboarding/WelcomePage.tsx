@@ -5,14 +5,16 @@ import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type React
 import toast from 'react-hot-toast';
 import { Navigate } from 'react-router-dom';
 import { Brand } from '../../components/common/Brand';
+import GoalDurationInput, { WeeklyGoalSummary } from '../../components/settings/GoalDurationInput';
 import WeekdayPicker from '../../components/settings/WeekdayPicker';
+import { formatGoalMinutes } from '../../utils/studyGoals';
+import FirstRecordsStep from './FirstRecordsStep';
 import { useTerms } from '../../hooks/useTerms';
-import { appLocale, browserTimezone, listTimezones, orderedWeekdays, weekdayLabel, weekStartLabels } from '../../lib/locale';
+import { browserTimezone, listTimezones, orderedWeekdays, weekdayLabel, weekStartLabels } from '../../lib/locale';
 import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import {
   choosePurpose,
-  filledCourseNames,
   initialDraft,
   purposeIds,
   purposes,
@@ -38,8 +40,6 @@ function ChoiceCard({ name, checked, onChange, title, children }: { name: string
   );
 }
 
-const hours = (value: number) => `${value.toLocaleString(appLocale)} sa`;
-const numberValue = (value: number) => (Number.isNaN(value) ? '' : value);
 
 export default function WelcomePage() {
   const preferences = useUserPreferencesStore((state) => state.preferences);
@@ -102,7 +102,6 @@ export default function WelcomePage() {
     else goTo(step + 1);
   };
 
-  const courseWord = terms.course({ capitalize: true });
   const content: { title: string; description: string; body: ReactNode }[] = [
     {
       title: firstName ? `Hoş geldin, ${firstName}` : 'Hoş geldin',
@@ -131,7 +130,7 @@ export default function WelcomePage() {
     },
     {
       title: 'Zamanını planlayalım',
-      description: 'Hedefler panoda ve istatistiklerde ölçülen süreyle karşılaştırılır. 0 hedef yok demektir.',
+      description: 'Günlük hedefini saat ya da dakika olarak seç; haftalık hedef aktif günlerinden hesaplanır.',
       body: (
         <div className="space-y-6">
           <div>
@@ -155,16 +154,8 @@ export default function WelcomePage() {
             <WeekdayPicker label="Aktif günler" value={draft.activeStudyDays} weekStart={draft.weekStartsOn} onChange={(activeStudyDays) => update({ activeStudyDays })} />
             <p className="mt-2 text-xs text-[var(--muted)]">Günlük hedef yalnız bu günlerde uygulanır.</p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor={`${prefix}-daily`} className="mb-2 block text-sm font-medium">Günlük hedef (saat)</label>
-              <input id={`${prefix}-daily`} type="number" min={0} max={24} step={0.5} className="input" value={numberValue(draft.dailyStudyGoal)} onChange={(event) => update({ dailyStudyGoal: event.target.valueAsNumber })} />
-            </div>
-            <div>
-              <label htmlFor={`${prefix}-weekly`} className="mb-2 block text-sm font-medium">Haftalık hedef (saat)</label>
-              <input id={`${prefix}-weekly`} type="number" min={0} max={168} step={0.5} className="input" value={numberValue(draft.weeklyStudyGoal)} onChange={(event) => update({ weeklyStudyGoal: event.target.valueAsNumber })} />
-            </div>
-          </div>
+          <GoalDurationInput id={`${prefix}-daily`} label="Günlük hedef" minutes={draft.dailyGoalMinutes} onChange={(dailyGoalMinutes) => update({ dailyGoalMinutes })} />
+          <WeeklyGoalSummary dailyMinutes={draft.dailyGoalMinutes} activeDays={draft.activeStudyDays.length} />
         </div>
       ),
     },
@@ -184,28 +175,9 @@ export default function WelcomePage() {
     },
     {
       title: `İlk ${terms.course({ plural: true })}`,
-      description: `İstersen şimdi en fazla üç ${terms.course()} ekle. Boş bırakırsan bu adım atlanır.`,
+      description: `Üzerinde çalışacağın ${terms.course({ plural: true })} ekle; panon bunlarla hazırlanır.`,
       body: (
-        <div className="space-y-5">
-          <div>
-            <label htmlFor={`${prefix}-category`} className="mb-2 block text-sm font-medium">Kategori</label>
-            <input id={`${prefix}-category`} className="input" maxLength={100} value={draft.categoryName} onChange={(event) => update({ categoryName: event.target.value })} />
-            <p className="mt-2 text-xs text-[var(--muted)]">Yalnız sana görünen kişisel bir kategori olarak oluşturulur; aynı adlı ortak bir kategori varsa o kullanılır.</p>
-          </div>
-          {draft.courseNames.map((name, index) => (
-            <div key={index}>
-              <label htmlFor={`${prefix}-course-${index}`} className="mb-2 block text-sm font-medium">{courseWord} {index + 1}</label>
-              <input
-                id={`${prefix}-course-${index}`}
-                className="input"
-                maxLength={100}
-                value={name}
-                placeholder={draft.purpose ? purposes[draft.purpose].examples[index] : undefined}
-                onChange={(event) => update({ courseNames: draft.courseNames.map((current, position) => (position === index ? event.target.value : current)) })}
-              />
-            </div>
-          ))}
-        </div>
+        <FirstRecordsStep id={prefix} draft={draft} terms={terms} onChange={(next) => setDraft(next)} onError={setError} />
       ),
     },
     {
@@ -220,9 +192,9 @@ export default function WelcomePage() {
             ['Saat dilimi', draft.timezone],
             ['Hafta başlangıcı', weekStartLabels[draft.weekStartsOn]],
             ['Aktif günler', orderedWeekdays(draft.weekStartsOn).filter((day) => draft.activeStudyDays.includes(day)).map(weekdayLabel).join(', ') || 'Seçilmedi'],
-            ['Hedefler', `Günde ${hours(draft.dailyStudyGoal)} · Haftada ${hours(draft.weeklyStudyGoal)}`],
+            ['Hedefler', draft.dailyGoalMinutes ? `Günde ${formatGoalMinutes(draft.dailyGoalMinutes)} · Haftada ${formatGoalMinutes(draft.dailyGoalMinutes * draft.activeStudyDays.length)}` : 'Hedef yok'],
             ['Ritim', `${rhythms[draft.rhythm].label}: ${rhythms[draft.rhythm].description}`],
-            ['İlk kayıtlar', filledCourseNames(draft).length ? `${draft.categoryName.trim()}: ${filledCourseNames(draft).join(', ')}` : 'Eklenmeyecek'],
+            ['İlk kayıtlar', draft.courseNames.length ? `${draft.categoryName.trim()}: ${draft.courseNames.join(', ')}` : 'Eklenmeyecek'],
           ].map(([term, detail]) => (
             <div key={term} className="grid gap-1 px-4 py-3 sm:grid-cols-[10rem_1fr]">
               <dt className="text-[var(--muted)]">{term}</dt>

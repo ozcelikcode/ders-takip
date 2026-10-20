@@ -17,7 +17,7 @@ async function scan(page: Page, info: TestInfo, name: string) {
         .map((animation) => animation.finished.catch(() => undefined)),
     );
   });
-  if (['login', 'dashboard', 'pomodoro-settings'].includes(name)) {
+  if (['login', 'dashboard', 'pomodoro-settings', 'welcome-time', 'welcome-records'].includes(name)) {
     const screenshot = info.outputPath(`${name}.png`);
     await page.screenshot({ path: screenshot, fullPage: true });
     await info.attach(name, { path: screenshot, contentType: 'image/png' });
@@ -102,6 +102,7 @@ for (const theme of ['light', 'dark'] as const) {
             ['Görünüm', 'appearance'],
             ['Bölge', 'region'],
             ['Çalışma Tercihleri', 'study'],
+            ['Bildirimler', 'notifications'],
           ] as const) {
             await page.getByRole('button', { name, exact: true }).click();
             await scan(page, info, `settings-${id}`);
@@ -137,7 +138,14 @@ for (const theme of ['light', 'dark'] as const) {
       await registerAccount(page, `welcome${theme}`);
       await page.getByRole('radio', { name: /Okul ve sınavlar/ }).check();
       for (const step of ['purpose', 'time', 'rhythm', 'records', 'summary']) {
+        if (step === 'records') {
+          await page.getByRole('button', { name: 'Matematik ekle' }).click();
+          await page.getByRole('button', { name: 'Fizik ekle' }).click();
+          await page.getByRole('button', { name: 'Ders ekle', exact: true }).click();
+          await expect(page.getByLabel('Yeni ders')).toBeFocused();
+        }
         await scan(page, info, `welcome-${step}`);
+        if (step === 'records') await page.getByRole('button', { name: 'Eklemeyi bırak' }).click();
         if (step !== 'summary') await page.getByRole('button', { name: 'İleri' }).click();
       }
     });
@@ -161,6 +169,7 @@ for (const theme of ['light', 'dark'] as const) {
       for (const [name, id] of [
         ['Güvenlik', 'security'],
         ['Kelimeler', 'terminology'],
+        ['Bildirimler', 'notifications'],
         ['Görünüm', 'appearance'],
         ['Yedekleme ve sıfırlama', 'backups'],
       ] as const) {

@@ -7,13 +7,9 @@ export const migrateStoredPreferences = (stored: unknown): UserPreferences & { l
   const raw: unknown = typeof stored === 'string' ? JSON.parse(stored) : stored;
   const source = record(raw);
   if (source.schemaVersion !== undefined) return { ...source, ...preferencesSchema.parse(source) };
-  const notifications = record(source.notifications);
   const goals = { ...record(source.workGoals), ...record(source.studyGoals) };
   const candidates: Record<string, unknown> = {
     ...source,
-    emailNotifications: source.emailNotifications ?? notifications.email,
-    pushNotifications: source.pushNotifications ?? notifications.push,
-    taskReminders: source.taskReminders ?? notifications.reminders,
     dailyStudyGoal: source.dailyStudyGoal ?? goals.dailyHours,
     weeklyStudyGoal: source.weeklyStudyGoal ?? goals.weeklyHours,
   };

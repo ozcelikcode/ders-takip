@@ -12,6 +12,9 @@ import { formatMeasuredTime } from '../../utils/sessionHelpers';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useAuthStore } from '../../store/authStore';
 import GoalProgress from '../../components/dashboard/GoalProgress';
+import { isOwnOrShared } from '../../lib/catalogAccess';
+import type { CatalogCourse } from '../../types/catalog';
+import Recommendations from '../../components/dashboard/Recommendations';
 
 /** "19 Ekim 2026, Pazartesi" in the user's zone, via Intl so the dashboard does not need luxon. */
 const todayLabel = (timeZone: string) => {
@@ -28,11 +31,13 @@ const DashboardPage = () => {
   const accountKeys = useAccountQueryKeys();
   const t = useTerms();
   const timezone = useUserPreferencesStore(state => state.preferences.timezone);
-  const firstName = useAuthStore(state => state.user?.firstName);
+  const user = useAuthStore(state => state.user);
+  const firstName = user?.firstName;
   const { data: courses, isLoading: coursesLoading, isError: coursesError } = useQuery({
     queryKey: accountKeys.catalog('courses', { includeTopics: true }),
     queryFn: () => coursesAPI.getCourses({ includeTopics: true }),
-    select: response => (response.data.data?.courses || []) as { topics?: unknown[] }[],
+    // Admins can list everyone's records; the personal dashboard counts only their own and shared ones.
+    select: response => ((response.data.data?.courses || []) as CatalogCourse[]).filter(course => isOwnOrShared(course, user)),
   });
   const { data: statsData, isLoading: sessionsLoading, isError: sessionsError } = useQuery({
     queryKey: accountKeys.sessions('measured-stats'),
@@ -65,6 +70,8 @@ const DashboardPage = () => {
           <p className={`text-[11px] leading-5 ${stat.error ? 'text-red-600 dark:text-red-400' : 'text-[var(--muted)]'}`}>{stat.error ? 'Veriler alınamadı' : stat.detail}</p>
         </div>)}
       </section>
+
+      <Recommendations />
 
       <GoalProgress />
 

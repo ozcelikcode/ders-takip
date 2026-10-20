@@ -23,8 +23,13 @@ Okuma controller'ları ORM sorgularını yürütür; yazma iş kuralları ilgili
 
 - User → Plan, StudySession; kullanıcı silinince bu kayıtlar cascade.
 - User → Course; kullanıcı silinince course.userId SET NULL.
-- Category → Course; kategori silme RESTRICT. Kategori `userId` null ise ortaktır (admin yönetir), doluysa kişiseldir (yalnız sahibinin kendi, ortak olmayan kayıtları; ad tekilliği ortaklarda ve sahip başına). Görünürlük tek tanım: `visibleCategoryWhere` (services/catalog.ts).
+- Category → Course; kategori silme RESTRICT. Kategori `userId` null ise ortaktır (admin yönetir), doluysa kişiseldir (yalnız sahibinin kendi, ortak olmayan kayıtları; ad tekilliği ortaklarda ve sahip başına). Görünürlük tek tanım: `visibleCategoryWhere` (services/catalog.ts). Yönetim: ortak → admin, kişisel → sahibi (`managedCategoryById`); ad çakışması `assertCategoryName`; silmede hedef, kategorinin sahibinin görebildiği bir kategori olmalı.
 - İlk kurulum: tercihlerde isteğe bağlı `onboarding` (`pending` yalnız kayıt ve admin'in açtığı hesaplarda; alan yok = tamamlanmış) ve kişisel `terminologyPreset` (null/yok = site seti, `resolveTerminologyPreset`). `POST /api/onboarding` tercihleri, kişisel kategoriyi ve ilk kayıtları tek transaction'da yazar.
+- Bildirim: tercih `notifications` isteğe bağlı ve varsayılan kapalı; kanal = yapılandırma + admin site anahtarı; zamanlayıcı her olayı `notification_deliveries` ile önce talep eder (en fazla bir kez). Göndericiler (`mailer`, `pushSender`) testte değiştirilebilir nesnelerdir.
+- Hesap silme tek yol: `services/accounts.ts` `deleteAccount` (admin ve kişinin kendisi); son etkin yönetici korunur. Dışa aktarım `exportAccount` yalnız kullanıcının kendi satırlarını verir.
+- Metin arama tek kural: `foldSearchText`/`matchesSearch` (contracts) ve sunucuda aynı çiftlerle `columnContains` (instr, joker yok). Yeni arama ya da süzgeç bunları kullanır.
+- Haftalık hedef türetilmiş değerdir: `weeklyGoalHours` = günlük hedef × aktif gün (en fazla 168). Okuyanlar fonksiyonu kullanır; sunucu tercih yazımlarının tamamı `mergePreferences` üzerinden geçer ve saklanan alanı eşitler.
+- Kişisel pano (sayılar, öneriler) admin dahil yalnız kendi + ortak kayıtlara bakar (`isOwnOrShared`); admin genel görünümü ayrı sayfadır.
 - Course → Topic; ders silmede ilişki CASCADE; konu controller'ı normal konu silmede isActive=false uygular.
 - Plan/Course/Topic → StudySession; ilişkiler silinince ilgili FK SET NULL.
 - Category global; Course kişisel veya global; Topic üst Course erişimini miras almalı.

@@ -31,13 +31,13 @@ before(async()=>{
 after(async()=>{await sequelize.close();rmSync(directory,{recursive:true,force:true});});
 it('migrates legacy JSON explicitly and preserves source data, identity and password',async()=>{
  const current=await User.findByPk(owner.id);
- assert.equal(current.preferences.dailyStudyGoal,3);assert.equal(current.preferences.weeklyStudyGoal,18);assert.equal(current.preferences.emailNotifications,false);assert.equal(current.preferences.studyField,'SAY');
+ assert.equal(current.preferences.dailyStudyGoal,3);assert.equal(current.preferences.weeklyStudyGoal,18);assert.equal(current.preferences.studyField,'SAY');
  assert.deepEqual(current.preferences.legacyPreferences,legacy);assert.ok(await current.comparePassword('fixture-password'));
  await applyMigrations();assert.deepEqual((await User.findByPk(owner.id)).preferences,current.preferences);
  assert.throws(()=>migrateStoredPreferences({schemaVersion:2}),/Invalid/);
 });
 it('saves every canonical preference and reads the same values through another authenticated request',async()=>{
- const patch={...defaultPreferences,theme:'system',customPrimaryColor:'#aabbcc',weeklyStudyGoal:12,dailyStudyGoal:2,activeStudyDays:[0,2],timezone:'UTC',studyField:'DIL'};
+ const patch={...defaultPreferences,theme:'system',customPrimaryColor:'#aabbcc',weeklyStudyGoal:4,dailyStudyGoal:2,activeStudyDays:[0,2],timezone:'UTC',studyField:'DIL'};
  const saved=await auth('put','/api/auth/profile').send({preferences:patch}).expect(200);
  const read=await auth('get','/api/auth/me').expect(200);
  assert.deepEqual(read.body.data.user.preferences,saved.body.data.user.preferences);
@@ -56,9 +56,9 @@ it('serializes concurrent partial updates without losing unrelated values or ano
 });
 it('uses the canonical contract on admin edits and never exposes the migration archive',async()=>{
  await auth('put',`/api/users/${owner.id}`,admin).send({preferences:{theme:'invalid'}}).expect(400);
- await Promise.all([auth('put',`/api/users/${owner.id}`,admin).send({preferences:{theme:'dark'}}).expect(200),auth('put','/api/auth/profile',owner).send({preferences:{weeklyStudyGoal:22}}).expect(200)]);
+ await Promise.all([auth('put',`/api/users/${owner.id}`,admin).send({preferences:{theme:'dark'}}).expect(200),auth('put','/api/auth/profile',owner).send({preferences:{studyField:'Eşzamanlı'}}).expect(200)]);
  const read=await auth('get','/api/auth/me').expect(200);
- assert.equal(read.body.data.user.preferences.theme,'dark');assert.equal(read.body.data.user.preferences.weeklyStudyGoal,22);assert.equal(read.body.data.user.preferences.legacyPreferences,undefined);
+ assert.equal(read.body.data.user.preferences.theme,'dark');assert.equal(read.body.data.user.preferences.studyField,'Eşzamanlı');assert.equal(read.body.data.user.preferences.legacyPreferences,undefined);
 });
 it('rolls back the full migration when a later row has an unsupported preference version',async()=>{
  const ownerBefore=(await User.findByPk(owner.id)).preferences;

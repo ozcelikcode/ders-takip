@@ -2,9 +2,7 @@ import { Link } from 'react-router-dom';
 import { useWeeklyStats } from '../../hooks/useWeeklyStats';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { formatMeasuredTime } from '../../utils/sessionHelpers';
-import { goalPercent, summarizeGoals } from '../../utils/studyGoals';
-
-const hours = (seconds: number) => `${Math.round((seconds / 3600) * 10) / 10} sa`;
+import { formatGoalMinutes, goalPercent, summarizeGoals } from '../../utils/studyGoals';
 
 function GoalRow({ label, studySeconds, goalSeconds, empty }: { label: string; studySeconds: number; goalSeconds: number | null; empty: string }) {
   const percent = goalPercent(studySeconds, goalSeconds);
@@ -13,7 +11,7 @@ function GoalRow({ label, studySeconds, goalSeconds, empty }: { label: string; s
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <span className="font-medium">{label}</span>
         <span className="tabular-nums text-[var(--muted)]">
-          {goalSeconds ? `${formatMeasuredTime(studySeconds)} / ${hours(goalSeconds)}` : empty}
+          {goalSeconds ? `${formatMeasuredTime(studySeconds)} / ${formatGoalMinutes(goalSeconds / 60)}` : empty}
         </span>
       </div>
       {goalSeconds !== null && (

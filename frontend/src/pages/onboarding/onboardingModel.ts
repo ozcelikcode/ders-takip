@@ -8,6 +8,7 @@ import {
   type WeekStart,
 } from '@study-tracker/contracts';
 import { appLocale } from '../../lib/locale';
+import { goalHoursToMinutes, goalMinutesToHours, maxDailyGoalMinutes } from '../../utils/studyGoals';
 
 export const purposeIds = ['education', 'work', 'personal', 'skills', 'other'] as const;
 export type PurposeId = (typeof purposeIds)[number];
@@ -21,18 +22,17 @@ interface Purpose {
   preset: TerminologyPresetId;
   categoryName: string;
   examples: readonly string[];
-  dailyStudyGoal: number;
-  weeklyStudyGoal: number;
+  dailyGoalMinutes: number;
   rhythm: RhythmId;
 }
 
-/** What the account is for; each answer suggests vocabulary, goals, rhythm and first records. */
+/** What the account is for; each answer suggests vocabulary, a daily goal, a rhythm and first records. */
 export const purposes: Record<PurposeId, Purpose> = {
-  education: { label: 'Okul ve sınavlar', description: 'Dersler, konular ve sınav hazırlığı', preset: 'education', categoryName: 'Derslerim', examples: ['Matematik', 'Fizik', 'Tarih'], dailyStudyGoal: 3, weeklyStudyGoal: 15, rhythm: 'classic' },
-  work: { label: 'İş ve projeler', description: 'Projeler, görevler ve teslimler', preset: 'general', categoryName: 'Projelerim', examples: ['Web sitesi', 'Aylık rapor', 'Sunum'], dailyStudyGoal: 4, weeklyStudyGoal: 20, rhythm: 'extended' },
-  personal: { label: 'Kişisel hedefler', description: 'Alışkanlıklar ve uzun vadeli hedefler', preset: 'goals', categoryName: 'Hedeflerim', examples: ['Kitap okuma', 'Spor', 'Birikim'], dailyStudyGoal: 1, weeklyStudyGoal: 5, rhythm: 'classic' },
-  skills: { label: 'Beceri ve hobiler', description: 'Dil, müzik, kodlama gibi pratik isteyen işler', preset: 'skills', categoryName: 'Becerilerim', examples: ['İngilizce', 'Gitar', 'Çizim'], dailyStudyGoal: 1, weeklyStudyGoal: 6, rhythm: 'classic' },
-  other: { label: 'Başka bir şey', description: 'Kendi düzenimi kendim kuracağım', preset: 'general', categoryName: 'Çalışmalarım', examples: ['İlk çalışma', 'İkinci çalışma', 'Üçüncü çalışma'], dailyStudyGoal: 2, weeklyStudyGoal: 10, rhythm: 'classic' },
+  education: { label: 'Okul ve sınavlar', description: 'Dersler, konular ve sınav hazırlığı', preset: 'education', categoryName: 'Derslerim', examples: ['Matematik', 'Fizik', 'Kimya', 'Biyoloji', 'Tarih', 'Edebiyat'], dailyGoalMinutes: 180, rhythm: 'classic' },
+  work: { label: 'İş ve projeler', description: 'Projeler, görevler ve teslimler', preset: 'general', categoryName: 'Projelerim', examples: ['Web sitesi', 'Aylık rapor', 'Sunum', 'Müşteri işleri', 'Araştırma'], dailyGoalMinutes: 240, rhythm: 'extended' },
+  personal: { label: 'Kişisel hedefler', description: 'Alışkanlıklar ve uzun vadeli hedefler', preset: 'goals', categoryName: 'Hedeflerim', examples: ['Kitap okuma', 'Spor', 'Birikim', 'Meditasyon', 'Yazı yazma'], dailyGoalMinutes: 30, rhythm: 'classic' },
+  skills: { label: 'Beceri ve hobiler', description: 'Dil, müzik, kodlama gibi pratik isteyen işler', preset: 'skills', categoryName: 'Becerilerim', examples: ['İngilizce', 'Gitar', 'Çizim', 'Kodlama', 'Fotoğraf'], dailyGoalMinutes: 45, rhythm: 'classic' },
+  other: { label: 'Başka bir şey', description: 'Kendi düzenimi kendim kuracağım', preset: 'general', categoryName: 'Çalışmalarım', examples: [], dailyGoalMinutes: 60, rhythm: 'classic' },
 };
 
 export const rhythms: Record<RhythmId, { label: string; description: string; values: Pick<UserPreferences, 'defaultPomodoroDuration' | 'defaultShortBreak' | 'defaultLongBreak' | 'pomodorosUntilLongBreak'> }> = {
@@ -49,11 +49,13 @@ export interface OnboardingDraft {
   timezone: string;
   weekStartsOn: WeekStart;
   activeStudyDays: number[];
-  dailyStudyGoal: number;
-  weeklyStudyGoal: number;
+  dailyGoalMinutes: number;
   rhythm: RhythmId;
   categoryName: string;
+  /** Trimmed, unique names in the order they were added. */
   courseNames: string[];
+  /** Text typed into the add tile but not added yet; kept so leaving the step cannot drop it silently. */
+  pendingCourseName: string;
 }
 
 export const initialDraft = (preferences: UserPreferences): OnboardingDraft => ({
@@ -62,31 +64,42 @@ export const initialDraft = (preferences: UserPreferences): OnboardingDraft => (
   timezone: preferences.timezone,
   weekStartsOn: resolveWeekStart(preferences),
   activeStudyDays: [...preferences.activeStudyDays],
-  dailyStudyGoal: preferences.dailyStudyGoal,
-  weeklyStudyGoal: preferences.weeklyStudyGoal,
+  dailyGoalMinutes: goalHoursToMinutes(preferences.dailyStudyGoal),
   rhythm: 'classic',
   categoryName: '',
-  courseNames: Array.from({ length: onboardingCourseLimit }, () => ''),
+  courseNames: [],
+  pendingCourseName: '',
 });
 
 /** Choosing a purpose replaces the later suggestions; it is the first step, so nothing typed is lost. */
 export const choosePurpose = (draft: OnboardingDraft, purpose: PurposeId): OnboardingDraft => {
   const suggestion = purposes[purpose];
-  return {
-    ...draft,
-    purpose,
-    dailyStudyGoal: suggestion.dailyStudyGoal,
-    weeklyStudyGoal: suggestion.weeklyStudyGoal,
-    rhythm: suggestion.rhythm,
-    categoryName: suggestion.categoryName,
-  };
+  return { ...draft, purpose, dailyGoalMinutes: suggestion.dailyGoalMinutes, rhythm: suggestion.rhythm, categoryName: suggestion.categoryName };
 };
 
-export const filledCourseNames = (draft: OnboardingDraft) => draft.courseNames.map((name) => name.trim()).filter(Boolean);
+const sameName = (first: string, second: string) => first.toLocaleLowerCase(appLocale) === second.toLocaleLowerCase(appLocale);
+
+/** Adds a first record, or explains why it cannot be added. */
+export const addCourseName = (draft: OnboardingDraft, raw: string): { draft: OnboardingDraft } | { error: string } => {
+  const name = raw.trim();
+  if (!name) return { error: 'Önce bir ad yazın.' };
+  if (name.length > 100) return { error: 'Ad en fazla 100 karakter olabilir.' };
+  if (draft.courseNames.some((existing) => sameName(existing, name))) return { error: `“${name}” zaten listede.` };
+  if (draft.courseNames.length >= onboardingCourseLimit) return { error: `Kurulumda en fazla ${onboardingCourseLimit} kayıt eklenebilir; gerisini sonra ekleyebilirsin.` };
+  return { draft: { ...draft, courseNames: [...draft.courseNames, name] } };
+};
+
+export const removeCourseName = (draft: OnboardingDraft, name: string): OnboardingDraft => ({
+  ...draft,
+  courseNames: draft.courseNames.filter((existing) => existing !== name),
+});
+
+/** Example names for the chosen purpose that are not on the list yet. */
+export const suggestedCourseNames = (draft: OnboardingDraft): string[] =>
+  draft.purpose ? purposes[draft.purpose].examples.filter((example) => !draft.courseNames.some((name) => sameName(name, example))) : [];
 
 export const toOnboardingInput = (draft: OnboardingDraft): CompleteOnboardingInput | null => {
   if (!draft.purpose) return null;
-  const courseNames = filledCourseNames(draft);
   const parsed = completeOnboardingSchema.safeParse({
     preferences: {
       terminologyPreset: purposes[draft.purpose].preset,
@@ -94,11 +107,10 @@ export const toOnboardingInput = (draft: OnboardingDraft): CompleteOnboardingInp
       timezone: draft.timezone,
       weekStartsOn: draft.weekStartsOn,
       activeStudyDays: draft.activeStudyDays,
-      dailyStudyGoal: draft.dailyStudyGoal,
-      weeklyStudyGoal: draft.weeklyStudyGoal,
+      dailyStudyGoal: goalMinutesToHours(draft.dailyGoalMinutes),
       ...rhythms[draft.rhythm].values,
     },
-    workspace: courseNames.length ? { categoryName: draft.categoryName, courseNames } : null,
+    workspace: draft.courseNames.length ? { categoryName: draft.categoryName, courseNames: draft.courseNames } : null,
   });
   return parsed.success ? parsed.data : null;
 };
@@ -108,14 +120,14 @@ export const stepError = (draft: OnboardingDraft, step: number): string | null =
   if (step === 0 && !draft.purpose) return 'Devam etmek için bir seçenek seçin.';
   if (step === 0 && draft.studyField.trim().length > 60) return 'Odak alanı en fazla 60 karakter olabilir.';
   if (step === 1) {
-    if (!(draft.dailyStudyGoal >= 0 && draft.dailyStudyGoal <= 24)) return 'Günlük hedef 0 ile 24 saat arasında olmalı.';
-    if (!(draft.weeklyStudyGoal >= 0 && draft.weeklyStudyGoal <= 168)) return 'Haftalık hedef 0 ile 168 saat arasında olmalı.';
+    if (!(Number.isInteger(draft.dailyGoalMinutes) && draft.dailyGoalMinutes >= 0 && draft.dailyGoalMinutes <= maxDailyGoalMinutes)) return 'Günlük hedef 0 ile 24 saat arasında olmalı.';
+    if (draft.dailyGoalMinutes > 0 && draft.activeStudyDays.length === 0) return 'Hedefin işlemesi için en az bir aktif gün seçin.';
   }
-  if (step === 3) {
-    const names = filledCourseNames(draft);
-    if (names.length && !draft.categoryName.trim()) return 'Kayıtların duracağı kategoriye bir ad verin.';
-    if (names.some((name) => name.length > 100) || draft.categoryName.trim().length > 100) return 'Adlar en fazla 100 karakter olabilir.';
-    if (new Set(names.map((name) => name.toLocaleLowerCase(appLocale))).size !== names.length) return 'Aynı ad iki kez kullanılamaz.';
+  if (step === 3 && draft.pendingCourseName.trim()) return `“${draft.pendingCourseName.trim()}” henüz eklenmedi. Ekle'ye bas ya da alanı temizle.`;
+  if (step === 3 && draft.courseNames.length) {
+    const category = draft.categoryName.trim();
+    if (!category) return 'Kayıtların duracağı kategoriye bir ad verin.';
+    if (category.length > 100) return 'Kategori adı en fazla 100 karakter olabilir.';
   }
   return null;
 };

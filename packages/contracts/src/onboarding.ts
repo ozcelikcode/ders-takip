@@ -3,7 +3,7 @@ import { preferencesSchema } from './preferences.js';
 import { terminologyPresetSchema } from './terminology.js';
 import { weekStartSchema } from './time.js';
 
-export const onboardingCourseLimit = 3;
+export const onboardingCourseLimit = 6;
 
 const catalogName = z.string().trim().min(1).max(100);
 
@@ -20,7 +20,6 @@ export const completeOnboardingSchema = z.object({
     timezone: true,
     activeStudyDays: true,
     dailyStudyGoal: true,
-    weeklyStudyGoal: true,
     defaultPomodoroDuration: true,
     defaultShortBreak: true,
     defaultLongBreak: true,

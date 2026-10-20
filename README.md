@@ -1,6 +1,6 @@
-# Ders Takip Sistemi
+# Çalışma ve Görev Takip Sistemi
 
-Ders, görev ve çalışma oturumlarını planlayan Türkçe web uygulaması. Teknik adlandırma İngilizcedir; kullanıcıya görünen içerik Türkçe kalır.
+Her alandan kullanıcı için çalışma planlama, odak sayacı ve ölçülen süreyle ilerleme takibi yapan Türkçe web uygulaması. Okul, iş, kişisel hedef veya beceri: görünen kelimeler (ders/konu, proje/görev, hedef/adım…) ayarlanabilir. Görünen site adı admin ayarından gelir. Teknik adlandırma İngilizcedir; kullanıcıya görünen içerik Türkçe kalır.
 
 ## Geliştirme gereksinimleri
 
@@ -80,7 +80,7 @@ Restore önce kaynak doğrulaması ve mevcut verinin güvenlik yedeğini alır, 
 
 Otomatik yedek kontrolü her 5 dakikada çalışır. Son başarılı otomatik yedekten itibaren 1, 5 veya 7 **tam gün** dolması esas alınır; aralık ayarı her çalışmada yeniden okunur. Yedekler otomatik silinmez. Kapasite takibi, şifreli/ayrı diskte yedek, saklama politikası ve gerçek ortam kurtarma tatbikatı ayrıca kurulmalıdır.
 
-`settings_only` yalnız site ayarlarını sıfırlar. `all`, öğrenci hesapları ve ders/çalışma verilerini temizler; adminleri ve yedekleri korur. İki işlem de önce güvenlik yedeği alır ve silmeleri transaction içinde yürütür. Doğrulama testleri geçici veritabanlarında çalışır. Koordinasyon tek backend süreci içindir; çoklu instance ve harici SQLite yazıcıları bu kilide dahil değildir.
+`settings_only` yalnız site ayarlarını sıfırlar. `all`, admin olmayan hesapları ve kayıt/çalışma verilerini temizler; adminleri ve yedekleri korur. İki işlem de önce güvenlik yedeği alır ve silmeleri transaction içinde yürütür. Doğrulama testleri geçici veritabanlarında çalışır. Koordinasyon tek backend süreci içindir; çoklu instance ve harici SQLite yazıcıları bu kilide dahil değildir.
 
 ## Site adını ve kimliğini değiştirme
 
@@ -201,7 +201,7 @@ memory-bank/         Kalıcı kararlar, mevcut durum ve teknik inceleme
 
 ## Mevcut kapsam ve açık işler
 
-Uygulamada kayıt/giriş, ders/konu yönetimi, haftalık/günlük planlayıcı, Pomodoro ve yönetim ekranları bulunur. Oturum iptali, tek süreçli snapshot/restore/reset, Preferences v1, kullanıcı/tarih cache ayrımı değiştirilebilir site kimliği ve atomik seans/durum bütünlüğü uygulandı ve davranış testleriyle doğrulandı. Üretime hazır olma iddiası yoktur. Katalog silme/taşıma/sıralama transaction bütünlüğü tamamlandı. Kalıcı sunucu deadline/faz/döngüsü ve ortak Pomodoro motoru tamamlandı. Global admin agregasyonları, kayıt/bakım/boşta oturum ayarları ve kalıcı kullanıcı-konu ilerlemesi de uygulandı. Günlük/haftalık planner tek işlem ve görünüm motoruna taşındı. Öğrenci katalog ve kategori yönetimi UI tamamlandı. Bildirim teslimatı ve dağıtım/kurtarma operasyonları açık işlerdir.
+Uygulamada kayıt/giriş, ilk kurulum sihirbazı, kayıt/alt kayıt ve kişisel kategori yönetimi, haftalık/günlük planlayıcı, Pomodoro, hedefler ve öneriler, istatistikler, arama, şifre sıfırlama, veri indirme/hesap silme ve yönetim ekranları bulunur. Oturum iptali, tek süreçli snapshot/restore/reset, Preferences v1, kullanıcı/tarih cache ayrımı değiştirilebilir site kimliği ve atomik seans/durum bütünlüğü uygulandı ve davranış testleriyle doğrulandı. Üretime hazır olma iddiası yoktur. Katalog silme/taşıma/sıralama transaction bütünlüğü tamamlandı. Kalıcı sunucu deadline/faz/döngüsü ve ortak Pomodoro motoru tamamlandı. Global admin agregasyonları, kayıt/bakım/boşta oturum ayarları ve kalıcı kullanıcı-konu ilerlemesi de uygulandı. Günlük/haftalık planner tek işlem ve görünüm motoruna taşındı. Kullanıcı katalog ve kişisel kategori yönetimi UI tamamlandı. Arayüz çevirisi (R10), bildirim teslimatı (R11) ve dağıtım/kurtarma operasyonları açık işlerdir.
 
 Güncel ilerleme [memory-bank/progress.md](memory-bank/progress.md), çalışma kuralları [memory-bank/workingPrinciples.md](memory-bank/workingPrinciples.md), başlangıç incelemesi [teknik audit](memory-bank/audits/2026-10-15-project-audit.md) içindedir.
 

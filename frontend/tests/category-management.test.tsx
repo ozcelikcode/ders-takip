@@ -18,7 +18,10 @@ import CategoryManagementModal from '../src/components/modals/CategoryManagement
 
 const auth = vi.hoisted(() => ({ epoch: 1, user: { id: '1', role: 'admin' } }));
 vi.mock('../src/store/authStore', () => ({
-  useAuthStore: Object.assign(() => auth, { getState: () => auth }),
+  useAuthStore: Object.assign(
+    (selector?: (state: typeof auth) => unknown) => (selector ? selector(auth) : auth),
+    { getState: () => auth },
+  ),
 }));
 vi.mock('../src/hooks/useAccountQueryKeys', async () => {
   const { accountQueryKeys } = await import('../src/lib/queryKeys');
@@ -123,12 +126,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it('keeps category management unavailable to students before any read or write', () => {
-  auth.user.role = 'student';
-  mount();
-  expect(screen.queryByRole('dialog')).toBeNull();
-  expect(categoriesAPI.getCategories).not.toHaveBeenCalled();
-});
 it('distinguishes read failure from an empty catalog and allows a read retry', async () => {
   vi.mocked(categoriesAPI.getCategories).mockRejectedValueOnce(
     new Error('Offline'),
@@ -137,7 +134,7 @@ it('distinguishes read failure from an empty catalog and allows a read retry', a
   expect((await screen.findByRole('alert')).textContent).toContain(
     'Kategoriler yüklenemedi.',
   );
-  expect(screen.queryByText('Henüz kategori eklenmedi.')).toBeNull();
+  expect(screen.queryByText('Henüz ortak kategori eklenmedi.')).toBeNull();
   expect(
     (screen.getByRole('button', { name: 'Kategori ekle' }) as HTMLButtonElement)
       .disabled,
@@ -191,6 +188,7 @@ it('validates the shared category contract and creates after the highest order r
       icon: 'Tag',
       order: 9,
       isActive: true,
+      scope: 'shared',
     }),
   );
   await waitFor(() =>
@@ -437,4 +435,46 @@ it('manages shared categories only, leaving personal ones to their owners', asyn
   mount();
   await screen.findByRole('button', { name: 'Eğitim kategorisini düzenle' });
   expect(screen.queryByRole('button', { name: 'Kişisel kategorisini düzenle' })).toBeNull();
+});
+
+it('lets an administrator switch to their own personal categories', async () => {
+  vi.mocked(categoriesAPI.getCategories).mockResolvedValue(
+    response([...categories, { ...categories[0]!, id: 9, name: 'Notlarım', userId: 1 }]) as never,
+  );
+  mount();
+  await screen.findByRole('button', { name: 'Eğitim kategorisini düzenle' });
+  fireEvent.click(screen.getByRole('button', { name: 'Kişisel' }));
+  expect(screen.getByRole('button', { name: 'Notlarım kategorisini düzenle' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Eğitim kategorisini düzenle' })).toBeNull();
+});
+
+it('gives other users their own personal categories and creates new ones as personal', async () => {
+  auth.user = { id: '7', role: 'student' };
+  vi.mocked(categoriesAPI.getCategories).mockResolvedValue(
+    response([
+      ...categories,
+      { ...categories[0]!, id: 9, name: 'Okuma', userId: 7 },
+      { ...categories[0]!, id: 10, name: 'Başkasının', userId: 8 },
+    ]) as never,
+  );
+  vi.mocked(categoriesAPI.createCategory).mockResolvedValue(response() as never);
+  mount();
+  expect(await screen.findByRole('dialog', { name: 'Kategorilerim' })).toBeTruthy();
+  expect(screen.queryByRole('group', { name: 'Kategori türü' })).toBeNull();
+  expect(await screen.findByRole('button', { name: 'Okuma kategorisini düzenle' })).toBeTruthy();
+  for (const name of ['Eğitim', 'İş', 'Başkasının']) {
+    expect(screen.queryByRole('button', { name: `${name} kategorisini düzenle` })).toBeNull();
+  }
+  // A personal category's records may move to a shared category or another of the user's own.
+  fireEvent.click(screen.getByRole('button', { name: 'Okuma kategorisini sil' }));
+  const dialog = await screen.findByRole('dialog', { name: 'Kategoriyi sil' });
+  const options = within(dialog).getAllByRole('option').map((option) => option.textContent);
+  expect(options).toEqual(expect.arrayContaining(['Eğitim', 'İş · Pasif']));
+  expect(options.some((option) => option?.startsWith('Başkasının'))).toBe(false);
+  fireEvent.click(within(dialog).getByRole('button', { name: 'İptal' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Kategori ekle' }));
+  const editor = await screen.findByRole('dialog', { name: 'Kategori ekle' });
+  fireEvent.change(within(editor).getByLabelText('Kategori adı'), { target: { value: 'Spor' } });
+  save();
+  await waitFor(() => expect(categoriesAPI.createCategory).toHaveBeenCalledWith(expect.objectContaining({ name: 'Spor', scope: 'personal' })));
 });

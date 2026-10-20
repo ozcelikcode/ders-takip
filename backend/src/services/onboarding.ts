@@ -1,5 +1,6 @@
 import { Op, Transaction } from 'sequelize';
-import { needsOnboarding, preferencesSchema, type CompleteOnboardingInput, type OnboardingWorkspace } from '@study-tracker/contracts';
+import { needsOnboarding, type CompleteOnboardingInput, type OnboardingWorkspace } from '@study-tracker/contracts';
+import { mergePreferences } from './preferences';
 import { sequelize } from '../config/database';
 import { Category, Course, User } from '../models';
 
@@ -30,7 +31,7 @@ export async function completeOnboarding(userId: number, input: CompleteOnboardi
     if (!user?.isActive) fail(404, 'Kullanıcı bulunamadı');
     if (!needsOnboarding(user.preferences)) fail(409, 'Kurulum zaten tamamlandı');
     if (input.workspace) await firstCourses(userId, input.workspace, transaction);
-    user.preferences = { ...user.preferences, ...preferencesSchema.parse({ ...user.preferences, ...input.preferences, onboarding: 'done' }) };
+    user.preferences = mergePreferences(user.preferences, { ...input.preferences, onboarding: 'done' });
     await user.save({ transaction });
     return user;
   });

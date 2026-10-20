@@ -17,11 +17,22 @@ async function writableCourse(actor: Actor, id: number, transaction: Transaction
 }
 /** Categories a user may list and file records under: shared ones plus their own personal ones. */
 export const visibleCategoryWhere = (actor: Actor): WhereOptions => ({ [Op.or]: [{ userId: null }, { userId: actor.id }] });
-// Admin category management covers shared categories only; personal ones belong to their owner.
-async function sharedCategoryById(id: number, transaction: Transaction) {
-  const category = await Category.findOne({ where: { id, userId: null }, transaction });
-  if (!category) fail(404, 'Kategori bulunamadı');
+// Admins manage shared categories; everyone manages their own personal ones.
+// A shared category is visible to all, so refusing it is 403; someone else's personal one reads as missing.
+async function managedCategoryById(actor: Actor, id: number, transaction: Transaction) {
+  const category = await Category.findByPk(id, { transaction });
+  if (!category || (category.userId !== null && category.userId !== actor.id)) fail(404, 'Kategori bulunamadı');
+  if (category.userId === null) requireAdmin(actor);
   return category;
+}
+// Shared names are unique; a personal name must not repeat the owner's own or a shared one they can see.
+async function assertCategoryName(name: string, ownerId: number | null, transaction: Transaction, excludeId?: number) {
+  const conflict = await Category.findOne({ where: {
+    name,
+    ...(excludeId === undefined ? {} : { id: { [Op.ne]: excludeId } }),
+    ...(ownerId === null ? { userId: null } : { [Op.or]: [{ userId: null }, { userId: ownerId }] }),
+  }, transaction });
+  if (conflict) fail(409, conflict.userId === null ? 'Bu adla ortak bir kategori zaten var' : 'Bu adla bir kategorin zaten var');
 }
 // Someone else's personal category reads as missing so its existence does not leak.
 async function categoryForCourse(id: number, course: { userId?: number | null | undefined; isGlobal: boolean }, transaction: Transaction) {
@@ -57,9 +68,12 @@ async function appendTopicOrder(courseId: number, transaction: Transaction) {
 }
 
 export async function createCategory(actor: Actor, input: CreateCategoryInput) {
-  requireAdmin(actor);
+  const scope = input.scope ?? (actor.role === 'admin' ? 'shared' : 'personal');
+  if (scope === 'shared') requireAdmin(actor);
+  const userId = scope === 'shared' ? null : actor.id;
   return write(async transaction => {
-    const category = Category.build({ name: input.name, color: input.color ?? '#3b82f6', order: input.order ?? 1, userId: null });
+    await assertCategoryName(input.name, userId, transaction);
+    const category = Category.build({ name: input.name, color: input.color ?? '#3b82f6', order: input.order ?? 1, userId });
     for (const field of ['description', 'icon', 'isActive'] as const) {
       if (input[field] !== undefined) category.set(field, input[field]);
     }
@@ -67,9 +81,9 @@ export async function createCategory(actor: Actor, input: CreateCategoryInput) {
   });
 }
 export async function updateCategory(actor: Actor, id: number, input: UpdateCategoryInput) {
-  requireAdmin(actor);
   return write(async transaction => {
-    const category = await sharedCategoryById(id, transaction);
+    const category = await managedCategoryById(actor, id, transaction);
+    if (input.name !== undefined && input.name !== category.name) await assertCategoryName(input.name, category.userId, transaction, category.id);
     for (const field of ['name', 'description', 'color', 'icon', 'order', 'isActive'] as const) {
       if (input[field] !== undefined) category.set(field, input[field]);
     }
@@ -78,11 +92,14 @@ export async function updateCategory(actor: Actor, id: number, input: UpdateCate
   });
 }
 export async function deleteCategory(actor: Actor, id: number, input: DeleteCategoryInput) {
-  requireAdmin(actor);
   return write(async transaction => {
-    const category = await sharedCategoryById(id, transaction);
+    const category = await managedCategoryById(actor, id, transaction);
     if (input.migrateToCategoryId === id) fail(400, 'Hedef kategori silinen kategoriyle aynı olamaz');
-    if (input.migrateToCategoryId !== undefined) await sharedCategoryById(input.migrateToCategoryId, transaction);
+    if (input.migrateToCategoryId !== undefined) {
+      // Records may only move where their owner can see them: a shared category, or the same owner's personal one.
+      const target = await Category.findByPk(input.migrateToCategoryId, { transaction });
+      if (!target || (target.userId !== null && target.userId !== category.userId)) fail(404, 'Hedef kategori bulunamadı');
+    }
     const courses = await Course.findAll({ where: { categoryId: id }, transaction });
     if (courses.length && input.migrateToCategoryId === undefined) fail(409, 'Bu kategoride kayıtlar var. Önce bir hedef kategori seçin');
     for (const course of courses) {

@@ -6,6 +6,7 @@ import { isAxiosError } from 'axios';
 import { create } from 'zustand';
 import { queryClient } from '../lib/queryClient';
 import { authAPI, onboardingAPI } from '../services/api';
+import { unsubscribeBrowser } from '../lib/push';
 import type { CompleteOnboardingInput } from '@study-tracker/contracts';
 import type { LoginCredentials, RegisterData, User } from '../types/auth';
 
@@ -67,6 +68,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     notifyPeers();
   },
   logout: () => {
+    // This browser must not keep showing the account's reminders once it is signed out.
+    void unsubscribeBrowser().catch(() => undefined);
     const pending = refreshPromise;
     localStorage.setItem('auth-logout-pending', '1');
     get().clearAuth();

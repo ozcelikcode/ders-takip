@@ -34,3 +34,13 @@ describe('environment validation', () => {
     assert.equal(config.FRONTEND_URL, 'https://study.example.test');
   });
 });
+
+it('treats blank optional lines from .env.example as unset and keeps VAPID settings together', () => {
+  const base = { NODE_ENV: 'development', JWT_SECRET: 'f'.repeat(64) };
+  const blank = parseEnvironment({ ...base, SMTP_HOST: '', SMTP_USER: '', SMTP_PASS: '', MAIL_FROM: '', VAPID_PUBLIC_KEY: '', VAPID_PRIVATE_KEY: '', VAPID_SUBJECT: '' });
+  assert.equal(blank.SMTP_HOST, undefined);
+  assert.equal(blank.VAPID_PUBLIC_KEY, undefined);
+  assert.throws(() => parseEnvironment({ ...base, VAPID_PUBLIC_KEY: 'public' }));
+  assert.throws(() => parseEnvironment({ ...base, VAPID_PUBLIC_KEY: 'public', VAPID_PRIVATE_KEY: 'private', VAPID_SUBJECT: 'http://example.com' }));
+  assert.equal(parseEnvironment({ ...base, VAPID_PUBLIC_KEY: 'public', VAPID_PRIVATE_KEY: 'private', VAPID_SUBJECT: 'mailto:ops@example.com' }).VAPID_SUBJECT, 'mailto:ops@example.com');
+});

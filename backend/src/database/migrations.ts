@@ -1,9 +1,9 @@
 import { DataTypes, Model, QueryTypes, type ModelStatic, type SyncOptions, type Transactionable } from 'sequelize';
 import { sequelize } from '../config/database';
 import { migrateStoredPreferences } from './preferenceMigration';
-import { AuthSession, RefreshCredential, SessionInterval, PomodoroClock, UserTopicProgress, PasswordResetToken } from '../models';
+import { AuthSession, RefreshCredential, SessionInterval, PomodoroClock, UserTopicProgress, PasswordResetToken, PushSubscription, NotificationDelivery } from '../models';
 
-export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1', '004-session-activity-intervals', '005-pomodoro-clocks', '006-user-topic-progress', '007-password-reset-tokens', '008-personal-categories'];
+export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1', '004-session-activity-intervals', '005-pomodoro-clocks', '006-user-topic-progress', '007-password-reset-tokens', '008-personal-categories', '009-notifications'];
 const personalCategoriesMigration = '008-personal-categories';
 // Columns that a still-pending migration adds itself, as `table.column`.
 async function validateExistingTables(addedByPendingMigrations: readonly string[] = []) {
@@ -25,7 +25,11 @@ export async function assertDatabaseReady(): Promise<void> {
   await validateExistingTables();
   for (const model of Object.values(sequelize.models)) if (!tables.includes(String(model.getTableName()))) throw new Error('Database tables are missing. Restore or repair the database before startup.');
 }
-export async function applyMigrations(): Promise<void> {
+// Notification flags that never worked were replaced by `notifications`; 009 drops them from stored preferences.
+const retiredPreferenceKeys = ['emailNotifications', 'pushNotifications', 'taskReminders'];
+
+// Runs pending migrations in one transaction, stopping before the categories rebuild, which needs its own connection state.
+async function applyTransactionalMigrations(): Promise<void> {
   await sequelize.transaction(async transaction => {
     await sequelize.query('CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY NOT NULL)', { transaction });
     const completed = await sequelize.query<{ name: string }>('SELECT name FROM schema_migrations', { type: QueryTypes.SELECT, transaction });
@@ -57,11 +61,30 @@ export async function applyMigrations(): Promise<void> {
       else if (name === '005-pomodoro-clocks') await PomodoroClock.sync(options);
       else if (name === '006-user-topic-progress') await UserTopicProgress.sync(options);
       else if (name === '007-password-reset-tokens') await PasswordResetToken.sync(options);
+      else if (name === '009-notifications') {
+        await PushSubscription.sync(options);
+        await NotificationDelivery.sync(options);
+        const users = await sequelize.query<{ id: number; preferences: unknown }>('SELECT id, preferences FROM users', { type: QueryTypes.SELECT, transaction });
+        for (const user of users) {
+          const preferences = typeof user.preferences === 'string' ? JSON.parse(user.preferences) as Record<string, unknown> : user.preferences as Record<string, unknown>;
+          if (!retiredPreferenceKeys.some(key => key in preferences)) continue;
+          const kept = Object.fromEntries(Object.entries(preferences).filter(([key]) => !retiredPreferenceKeys.includes(key)));
+          await sequelize.query('UPDATE users SET preferences = :preferences WHERE id = :id', { replacements: { id: user.id, preferences: JSON.stringify(kept) }, transaction });
+        }
+      }
       await sequelize.query('INSERT INTO schema_migrations (name) VALUES (:name)', { replacements: { name }, transaction });
     }
   });
+}
+
+export async function applyMigrations(): Promise<void> {
+  await applyTransactionalMigrations();
   const completed = await sequelize.query<{ name: string }>('SELECT name FROM schema_migrations WHERE name = :name', { replacements: { name: personalCategoriesMigration }, type: QueryTypes.SELECT });
-  if (!completed.length) await addCategoryOwners();
+  if (!completed.length) {
+    await addCategoryOwners();
+    // Migrations after 008 run in a second pass.
+    await applyTransactionalMigrations();
+  }
   await assertDatabaseReady();
 }
 

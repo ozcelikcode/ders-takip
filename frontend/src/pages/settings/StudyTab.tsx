@@ -1,11 +1,13 @@
 import { useWeekStart } from '../../hooks/useWeekStart';
+import GoalDurationInput, { WeeklyGoalSummary } from '../../components/settings/GoalDurationInput';
 import WeekdayPicker from '../../components/settings/WeekdayPicker';
+import { goalHoursToMinutes, goalMinutesToHours } from '../../utils/studyGoals';
 export interface StudyPreferencesDraft {
   defaultPomodoroDuration: number;
   defaultShortBreak: number;
   defaultLongBreak: number;
   pomodorosUntilLongBreak: number;
-  weeklyStudyGoal: number;
+  /** Hours; the weekly goal is derived from it and the active days. */
   dailyStudyGoal: number;
   activeStudyDays: number[];
 }
@@ -19,15 +21,13 @@ interface StudyTabProps {
   onRestartOnboarding: () => void;
 }
 
-type NumericField = Exclude<keyof StudyPreferencesDraft, 'activeStudyDays'>;
+type NumericField = Exclude<keyof StudyPreferencesDraft, 'activeStudyDays' | 'dailyStudyGoal'>;
 
 const FIELDS: { name: NumericField; label: string; fallback: number; min: number; max: number }[] = [
   { name: 'defaultPomodoroDuration', label: 'Varsayılan Pomodoro Süresi (dk)', fallback: 25, min: 1, max: 120 },
   { name: 'defaultShortBreak', label: 'Kısa Mola Süresi (dk)', fallback: 5, min: 1, max: 30 },
   { name: 'defaultLongBreak', label: 'Uzun Mola Süresi (dk)', fallback: 15, min: 1, max: 60 },
   { name: 'pomodorosUntilLongBreak', label: 'Uzun Molaya Kadar Pomodoro Sayısı', fallback: 4, min: 1, max: 10 },
-  { name: 'weeklyStudyGoal', label: 'Haftalık Çalışma Hedefi (saat)', fallback: 20, min: 1, max: 100 },
-  { name: 'dailyStudyGoal', label: 'Günlük Çalışma Hedefi (saat)', fallback: 4, min: 1, max: 24 },
 ];
 
 
@@ -64,6 +64,15 @@ const StudyTab = ({ studyPrefs, setStudyPrefs, pending, onSave, onReset, onResta
           weekStart={weekStart}
           onChange={(activeStudyDays) => setStudyPrefs({ ...studyPrefs, activeStudyDays })}
         />
+      </div>
+      <div className="space-y-4 md:col-span-2">
+        <GoalDurationInput
+          id="settings-daily-goal"
+          label="Günlük hedef"
+          minutes={goalHoursToMinutes(studyPrefs.dailyStudyGoal)}
+          onChange={(minutes) => setStudyPrefs({ ...studyPrefs, dailyStudyGoal: goalMinutesToHours(minutes) })}
+        />
+        <WeeklyGoalSummary dailyMinutes={goalHoursToMinutes(studyPrefs.dailyStudyGoal)} activeDays={studyPrefs.activeStudyDays.length} />
       </div>
     </div>
 

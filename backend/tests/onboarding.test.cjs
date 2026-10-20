@@ -25,7 +25,7 @@ const register = (username) => request(app).post('/api/auth/register').set('X-Re
   .send({ username, email: `${username}@example.com`, password: 'Fixture-pass-2026', firstName: 'Yeni', lastName: 'Kullanıcı', timezone: 'America/New_York' });
 const answers = {
   terminologyPreset: 'skills', studyField: 'Gitar', timezone: 'Asia/Tokyo', weekStartsOn: 0,
-  activeStudyDays: [0, 2, 4], dailyStudyGoal: 1, weeklyStudyGoal: 3,
+  activeStudyDays: [0, 2, 4], dailyStudyGoal: 0.75,
   defaultPomodoroDuration: 50, defaultShortBreak: 10, defaultLongBreak: 20, pomodorosUntilLongBreak: 3,
 };
 
@@ -54,7 +54,7 @@ it('finishing onboarding applies the answers and creates the personal workspace 
   assert.equal(response.status, 200, JSON.stringify(response.body));
   const { preferences } = response.body.data.user;
   assert.equal(preferences.onboarding, 'done');
-  assert.deepEqual({ ...preferences, onboarding: undefined, schemaVersion: undefined }, { ...defaultPreferences, ...answers, onboarding: undefined, schemaVersion: undefined });
+  assert.deepEqual({ ...preferences, onboarding: undefined, schemaVersion: undefined }, { ...defaultPreferences, ...answers, weeklyStudyGoal: 2.25, onboarding: undefined, schemaVersion: undefined });
   const category = await Category.findOne({ where: { name: 'Enstrüman' } });
   assert.equal(category.userId, user.id);
   const courses = await Course.findAll({ where: { categoryId: category.id }, order: [['order', 'ASC']] });
@@ -94,6 +94,18 @@ it('skipping onboarding is an ordinary preference update', async () => {
   assert.equal(response.status, 200, JSON.stringify(response.body));
   assert.equal(response.body.data.user.preferences.onboarding, 'done');
   assert.equal((await post('/api/onboarding', user, { preferences: answers, workspace: null })).status, 409);
+});
+
+it('every preference write keeps the weekly goal equal to the daily goal on active days', async () => {
+  const user = await User.findOne({ where: { username: 'rollback' } });
+  const update = async (preferences) => (await request(app).put('/api/auth/profile').set('X-Requested-With', 'StudyTracker').auth(await as(user), { type: 'bearer' }).send({ preferences })).body.data.user.preferences;
+  let stored = await update({ dailyStudyGoal: 0.5, activeStudyDays: [1, 2, 3, 4] });
+  assert.equal(stored.weeklyStudyGoal, 2);
+  // A stale or hand-made weekly value is replaced, not kept.
+  stored = await update({ weeklyStudyGoal: 40 });
+  assert.equal(stored.weeklyStudyGoal, 2);
+  stored = await update({ activeStudyDays: [] });
+  assert.equal(stored.weeklyStudyGoal, 0);
 });
 
 it('invalid answers are rejected before anything is written', async () => {

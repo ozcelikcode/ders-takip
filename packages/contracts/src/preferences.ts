@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { timezoneSchema, weekStartSchema, defaultWeekStart, type WeekStart } from './time.js';
 import { terminologyPresetSchema, type TerminologyPresetId } from './terminology.js';
+import { defaultNotificationPreferences, notificationPreferencesSchema, type NotificationPreferences } from './notifications.js';
 
 export const onboardingStateSchema = z.enum(['pending', 'done']);
 
@@ -9,9 +10,6 @@ export const preferencesSchema = z.object({
   schemaVersion: z.literal(1),
   theme: z.enum(['light', 'dark', 'system']),
   customPrimaryColor: colorSchema.nullable(),
-  emailNotifications: z.boolean(),
-  pushNotifications: z.boolean(),
-  taskReminders: z.boolean(),
   defaultPomodoroDuration: z.number().int().min(1).max(120),
   defaultShortBreak: z.number().int().min(1).max(30),
   defaultLongBreak: z.number().int().min(1).max(60),
@@ -33,6 +31,8 @@ export const preferencesSchema = z.object({
   onboarding: onboardingStateSchema.optional(),
   // Personal vocabulary; null or absent follows the site-wide preset.
   terminologyPreset: terminologyPresetSchema.nullable().optional(),
+  // Opt-in delivery choices; absent means everything off (see `resolveNotifications`).
+  notifications: notificationPreferencesSchema.optional(),
 });
 export type UserPreferences = z.infer<typeof preferencesSchema>;
 export type ThemeMode = UserPreferences['theme'];
@@ -42,9 +42,6 @@ export const defaultPreferences: UserPreferences = {
   schemaVersion: 1,
   theme: 'system',
   customPrimaryColor: null,
-  emailNotifications: true,
-  pushNotifications: true,
-  taskReminders: true,
   defaultPomodoroDuration: 25,
   defaultShortBreak: 5,
   defaultLongBreak: 15,
@@ -66,3 +63,21 @@ export const resolveTerminologyPreset = (
   preferences: Pick<UserPreferences, 'terminologyPreset'>,
   sitePreset: TerminologyPresetId,
 ): TerminologyPresetId => preferences.terminologyPreset ?? sitePreset;
+/**
+ * The weekly goal is not chosen separately: it is the daily goal on every active day.
+ * The stored `weeklyStudyGoal` is kept equal to this on every write; readers use this function.
+ */
+export const weeklyGoalHours = (preferences: Pick<UserPreferences, 'dailyStudyGoal' | 'activeStudyDays'>): number =>
+  Math.min(168, preferences.dailyStudyGoal * preferences.activeStudyDays.length);
+export const resolveNotifications = (preferences: Pick<UserPreferences, 'notifications'>): NotificationPreferences =>
+  preferences.notifications ?? defaultNotificationPreferences;
+
+/** A goal or duration in whole minutes: "45 dk", "2 sa", "1 sa 30 dk"; "Hedef yok" for zero. */
+export const formatGoalMinutes = (minutes: number): string => {
+  const total = Math.max(0, Math.round(minutes));
+  if (total === 0) return 'Hedef yok';
+  const hours = Math.floor(total / 60);
+  const rest = total % 60;
+  if (!hours) return `${rest} dk`;
+  return rest ? `${hours} sa ${rest} dk` : `${hours} sa`;
+};

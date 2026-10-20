@@ -1,25 +1,17 @@
-import { searchLimit, type SearchResult } from '@study-tracker/contracts';
-import { Op, Sequelize, type WhereOptions } from 'sequelize';
+import { matchesSearch, searchLimit, type SearchResult } from '@study-tracker/contracts';
+import { Op, type WhereOptions } from 'sequelize';
 import { Category, Course, StudySession, Topic } from '../models';
 import { visibleCourseWhere } from '../policies/courseAccess';
+import { columnContains as contains } from '../utils/textSearch';
 
 interface Actor {
   id: number;
   role: string;
 }
 
-// SQLite lower() only folds ASCII, so the needle is folded the same way to stay consistent;
-// non-ASCII letters (İ, Ş, Ü…) therefore match case-sensitively. instr() has no wildcards,
-// which keeps user input such as "%" or "_" literal without escaping.
-const foldAscii = (text: string) => text.replace(/[A-Z]/g, (char) => char.toLowerCase());
-const contains = (column: string, needle: string) =>
-  Sequelize.where(Sequelize.fn('instr', Sequelize.fn('lower', Sequelize.col(column)), needle), Op.gt, 0);
-const includes = (value: string | null | undefined, needle: string) =>
-  !!value && foldAscii(value).includes(needle);
-
 /** Searches the actor's visible catalog and their own sessions by title, description and notes. */
 export async function search(actor: Actor, query: string): Promise<SearchResult> {
-  const needle = foldAscii(query.trim());
+  const needle = query.trim();
   const [courses, topics, sessions] = await Promise.all([
     Course.findAll({
       where: { [Op.and]: [visibleCourseWhere(actor), contains('Course.name', needle)] } as WhereOptions,
@@ -60,7 +52,7 @@ export async function search(actor: Actor, query: string): Promise<SearchResult>
       title: session.title,
       startTime: session.startTime.toISOString(),
       status: session.status,
-      matchedIn: includes(session.title, needle) ? 'title' : includes(session.description, needle) ? 'description' : 'notes',
+      matchedIn: matchesSearch(session.title, needle) ? 'title' : matchesSearch(session.description, needle) ? 'description' : 'notes',
     })),
   };
 }

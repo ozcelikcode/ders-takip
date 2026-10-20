@@ -12,6 +12,7 @@ import BackupPanel, {
 } from '../../components/admin/BackupPanel';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import TerminologyPresetPicker from '../../components/settings/TerminologyPresetPicker';
+import NotificationChannelStatus from '../../components/admin/NotificationChannelStatus';
 import PageHeader from '../../components/common/PageHeader';
 import { useAccountMutation } from '../../hooks/useAccountMutation';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
@@ -24,6 +25,7 @@ const sections = [
   ['security', 'Güvenlik'],
   ['appearance', 'Görünüm'],
   ['terminology', 'Kelimeler'],
+  ['notifications', 'Bildirimler'],
   ['backup', 'Yedekleme ve sıfırlama'],
 ] as const;
 type Section = (typeof sections)[number][0];
@@ -117,7 +119,9 @@ function SettingsForm({
   const toggle = (
     name:
       | 'allowRegistration'
-      | 'maintenanceMode',
+      | 'maintenanceMode'
+      | 'emailNotifications'
+      | 'pushNotifications',
     label: string,
     description: string,
   ) => (
@@ -286,6 +290,17 @@ function SettingsForm({
                 1–1440 dakika. Etkin alt sınır erişim anahtarının ömrüdür (en
                 fazla 15 dakika); süre yenileme sırasında denetlenir.
               </p>
+            </>
+          )}
+          {section === 'notifications' && (
+            <>
+              <h2 className="text-base font-medium">Bildirim kanalları</h2>
+              <p className="text-sm text-[var(--muted)]">
+                Kullanıcılar hatırlatma ve özetleri kendileri seçer; burada kapatılan kanal kimseye sunulmaz.
+              </p>
+              {toggle('emailNotifications', 'E-posta bildirimleri', 'Seans hatırlatmaları, sabah planı ve haftalık özet e-postaları.')}
+              {toggle('pushNotifications', 'Tarayıcı bildirimleri', 'Sekme kapalıyken de gelen seans hatırlatmaları.')}
+              <NotificationChannelStatus />
             </>
           )}
           {section === 'appearance' && (

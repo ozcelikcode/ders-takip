@@ -65,3 +65,16 @@ it('treats wildcard characters literally and validates the query', async () => {
   await request(app).get('/api/search').query({ q: 'mobile', extra: '1' }).auth(token, { type: 'bearer' }).expect(400);
   await request(app).get('/api/search').query({ q: 'mobile' }).expect(401);
 });
+
+it('ignores case and Turkish letter forms in every searched field', async () => {
+  const category = await Category.create({ name: 'Diller', color: '#111111', order: 2 });
+  await Course.create({ name: 'İSTANBUL TARİHİ', categoryId: category.id, userId: owner.id, color: '#111111', order: 5 });
+  await StudySession.create({ userId: owner.id, title: 'Sınav hazırlığı', description: 'Işık ve çağrı', startTime: new Date('2026-10-13T09:00:00Z'), endTime: new Date('2026-10-13T10:00:00Z'), duration: 60 });
+  assert.deepEqual((await find('istanbul')).courses.map((course) => course.name), ['İSTANBUL TARİHİ']);
+  assert.deepEqual((await find('tarihi')).courses.map((course) => course.name), ['İSTANBUL TARİHİ']);
+  const sinav = (await find('SINAV')).sessions;
+  assert.deepEqual(sinav.map((session) => [session.title, session.matchedIn]), [['Sınav hazırlığı', 'title']]);
+  assert.deepEqual((await find('ISIK VE CAGRI')).sessions.map((session) => session.matchedIn), ['description']);
+  // Another user's matching data stays out.
+  assert.equal((await find('istanbul', other)).courses.length, 0);
+});

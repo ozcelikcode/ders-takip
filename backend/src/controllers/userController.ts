@@ -1,11 +1,14 @@
 import { userResponse } from '../services/userResponses';
 import { getAllTimeSummaries, getStudyStats } from '../services/studyTracking';
 import { defaultPreferences, preferencesSchema } from '@study-tracker/contracts';
+import { mergePreferences } from '../services/preferences';
+import { columnContains } from '../utils/textSearch';
 import { Op, Transaction, type WhereOptions } from 'sequelize';
 import { sequelize } from '../config/database';
 import { revokeUserSessions } from '../services/authSessions';
+import { deleteAccount } from '../services/accounts';
 import { NextFunction, Request, Response } from 'express';
-import { Course, StudySession, Topic, User } from '../models';
+import { Course, StudySession, User } from '../models';
 import type { AdminOverview } from '@study-tracker/contracts';
 
 export const getUsers = async (
@@ -25,14 +28,12 @@ export const getUsers = async (
     } = req.query;
 
     const where: WhereOptions<User> = {
-      ...(typeof search === 'string'
+      // Same fold as global search: case and Turkish letter forms ignored, "%" and "_" literal.
+      ...(typeof search === 'string' && search.trim()
         ? {
-            [Op.or]: [
-              { firstName: { [Op.like]: `%${search}%` } },
-              { lastName: { [Op.like]: `%${search}%` } },
-              { username: { [Op.like]: `%${search}%` } },
-              { email: { [Op.like]: `%${search}%` } },
-            ],
+            [Op.or]: ['firstName', 'lastName', 'username', 'email'].map(
+              (column) => columnContains(`User.${column}`, search),
+            ),
           }
         : {}),
     };
@@ -185,13 +186,7 @@ export const updateUser = async (
         if (role !== undefined) current.role = role;
         if (isActive !== undefined) current.isActive = isActive;
         if (preferences !== undefined)
-          current.preferences = {
-            ...current.preferences,
-            ...preferencesSchema.parse({
-              ...current.preferences,
-              ...preferences,
-            }),
-          };
+          current.preferences = mergePreferences(current.preferences, preferences);
         const privilegesChanged =
           current.changed('role') || current.changed('isActive');
         await current.save({ transaction });
@@ -239,41 +234,7 @@ export const deleteUser = async (
           });
         }
 
-        const privateCourses = await Course.findAll({
-          where: { userId: user.id, isGlobal: false },
-          attributes: ['id'],
-          transaction,
-        });
-        const privateCourseIds = privateCourses.map((course) => course.id);
-        if (privateCourseIds.length > 0) {
-          const privateTopics = await Topic.findAll({
-            where: { courseId: { [Op.in]: privateCourseIds } },
-            attributes: ['id'],
-            transaction,
-          });
-          const privateTopicIds = privateTopics.map((topic) => topic.id);
-          await StudySession.update(
-            { courseId: null, topicId: null },
-            {
-              where: {
-                [Op.or]: [
-                  { courseId: { [Op.in]: privateCourseIds } },
-                  ...(privateTopicIds.length > 0
-                    ? [{ topicId: { [Op.in]: privateTopicIds } }]
-                    : []),
-                ],
-              },
-              transaction,
-            },
-          );
-          await Course.destroy({
-            where: { id: { [Op.in]: privateCourseIds } },
-            transaction,
-          });
-        }
-
-        await revokeUserSessions(user.id, transaction);
-        await user.destroy({ transaction });
+        await deleteAccount(user, transaction);
       },
     );
 

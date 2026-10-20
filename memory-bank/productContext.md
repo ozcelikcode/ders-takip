@@ -1,121 +1,71 @@
-# Ders Takip Sistemi - Product Context
+# Çalışma ve Görev Takip Sistemi — Product Context
 
-## Güncel Geliştirme Önceliği (15 Ekim 2026)
+Son güncelleme: 21 Ekim 2026 (R15: 19 Ekim ürün yönü kararına göre yeniden yazıldı; eski öğrenci/TYT senaryoları Git geçmişindedir).
 
-Mevcut ürünün güvenilirliği, gerçek çalışma süresinin doğru ölçülmesi, kullanıcılar arasında veri gizliliği ve veri kaybetmeden devam edebilmek yeni özelliklerden önce gelir. Teknik açıklar `audits/2026-10-15-project-audit.md`, kalıcı çalışma disiplini `workingPrinciples.md` içinde kayıtlıdır.
+## Neden var?
 
-Aşağıdaki kullanıcı yolculukları ve gelecek vizyonu ürün hedefleridir; uygulanmış/ölçülmüş davranış değildir. Kısa/orta/uzun vade süreleri tarihsel vizyon olarak okunmalı, güncel teslim taahhüdü sayılmamalıdır. AI, sosyal, PWA/offline ve takım özellikleri şu anda aktif iş kapsamına alınmadı. Ürün yönü 19 Ekim 2026'da netleşti: alan/kitle bağımsız, global ve değişken odaklı sistem (TYT/AYT zorunluluğu yok); aşağıdaki öğrenci/TYT örnekleri tarihsel senaryodur ve yol haritası progress.md'dedir.
+İnsanlar ne üzerinde çalıştığını, ne kadar zaman ayırdığını ve hedefe ne kadar yaklaştığını tek yerde göremiyor. Plan bir yerde, sayaç başka yerde, ilerleme hiçbir yerde. Bu ürün; alanı ne olursa olsun (okul, iş, kişisel hedef, beceri) çalışmayı planlamak, odakla yapmak ve gerçekten ölçülen süreyle görmek için tek, sade bir yer sunar.
 
-İlk iyileştirme paketi geliştirme tabanını ve temel erişim/veri güvenliğini ele aldı. Kullanıcıya görünen Türkçe içerik korundu; yanıltıcı sabit demo hesap bilgileri kaldırıldı. Yeni özellik veya ürün yönü kararı alınmadı.
+### Çözdüğü problemler
 
-## Neden Bu Proje Var?
+1. **Dağınık plan:** Ne zaman neye çalışılacağı belirsiz. → Takvimde seans planlama, bugünün listesi.
+2. **Görünmeyen ilerleme:** Ne kadar çalışıldığı bilinmiyor; planlanan ile yapılan karışıyor. → Yalnız ölçülen süre sayılır; hedefle karşılaştırma.
+3. **Kişiye uymayan araçlar:** Hazır sistemler tek bir kitleye göre kurulu. → Kelime seti, kişisel kategoriler, kendi hedefleri ve ritmi.
+4. **Nereden başlanacağı belirsiz:** Boş ekran. → İlk kurulum sihirbazı ve panoda kişisel öneriler.
 
-### Çözülen Problem
-Öğrencilerin ders takibi ve zaman yönetiminde yaşadığı temel zorlukları çözmek için:
+## Temel değerler
 
-1. **Dağınık Çalışma Planları**: Öğrenciler genellikle hangi derste ne kadar çalıştıklarını takip edemez
-2. **Motivasyon Eksikliği**: İlerleme görememek motivasyon düşüklüğüne neden olur
-3. **Zaman Yönetimi**: Haftalık/daily planlama yapmak zordur, özellikle birden fazla ders çalışırken
-4. **İstatistik Takibi**: Hangi derste daha başarılı olduklarını görememek
+- **Sadelik:** Az ama net ekran; her şey bir menü kadar düzenli.
+- **Güvenilirlik:** Veri kaybolmaz; ölçüm doğru; değişiklik çakışmaları açıkça yönetilir.
+- **Kişiye uyum:** Kullanıcı kendi kelimelerini, kategorilerini, hedeflerini ve ritmini seçer.
+- **Dürüst ilerleme:** Planlanan değil, ölçülen süre; teşvik edici ama abartısız geri bildirim.
+- **Veri sahipliği:** Kullanıcı verisini indirebilir ve hesabını silebilir.
 
-### Hedef Kullanıcı Deneyimi
-**Ana senaryo**: Bir TYT öğrencisinin günlük akışı
-1. Sabah güne başlarken bugünkü planını görür
-2. Haftalık planlayıcıda görevleri sürükleyerek günlerine yerleştirir
-3. Çalışmaya başladığında Pomodoro timer'ı kullanarak odaklanır
-4. Akşam günün istatistiklerini kontrol eder ve gelecek planını yapar
+## Kullanıcı yolculukları
 
-### Temel Değerler
-- **Basitlik**: Karmaşık arayüzlerden kaçınma, sade ve anlaşılır UI
-- **Güvenilirlik**: Kaybolan veriler, yavaş performans olmamalı
-- **Motivasyon**: Başarı hissi veren, ilerlemeyi gösteren feedback
-- **Esneklik**: Kullanıcı kendi sistemini kurgulayabilmeli
+### Yeni kullanıcı
+1. Kayıt olur (tarayıcı saat dilimi otomatik gelir) ya da admin hesap açar.
+2. Kurulum sihirbazı: amaç (okul, iş, kişisel, beceri, diğer) → kelime seti; saat dilimi, hafta başı, aktif günler, günlük hedef (saat ve/veya dakika; haftalık hedef otomatik); odak ritmi; kişisel kategori ve ilk kayıtlar (kutucuklar). İsterse atlar.
+3. Panoda kendisine göre öneriler görür (ör. "Bugün için bir seans planla", "X için alt kayıt ekle").
 
-## Nasıl Çalışmalı?
+### Günlük akış
+1. Panoda bugünkü hedef, öneriler ve haftalık ilerlemeyi görür.
+2. Planlayıcıda seansları yerleştirir ya da taşır.
+3. Odak sayacıyla çalışır; süre ölçülür.
+4. Gerekirse seansa not ekler; aramayla eski notları bulur.
+5. İstatistiklerde aralık seçip dağılımı ve hedefi karşılaştırır.
 
-### Haftalık Planlayıcı
-- 15 dakikalık grid sistem
-- Drag & drop görev taşıma
-- Görev boyutunu otomatik ayarlama (1 saat = 4 grid kutu)
-- Color coding ile kategori ayrımı
-- Sağ click ile hızlı menü (düzenle, sil, tamamla)
+### Yönetici
+Kullanıcıları ve ortak kataloğu yönetir, site kimliğini ve varsayılan kelime setini seçer, yedek alır, şifre sıfırlama bağlantısı verir.
 
-### Pomodoro Timer
-- Özelleştirilebilir süreler (25dk çalışma, 5dk mola default)
-- Timer bitince bildirim
-- Çalışma istatistiklerini otomatik kayıt
-- Minimize edilebilir mini timer
+## Nasıl çalışmalı?
 
-### İstatistikler
-- Günlük/haftalık/aylık çalışma saatleri
-- Ders bazında dağılım grafiği
-- Hedef vs gerçekleşen karşılaştırması
-- Verimlilik analizi (hangü günlerde daha verimli)
+- **Planlayıcı:** Günlük/haftalık görünüm, sürükle-bırak, klavye ile oluşturma, iki sekmede çakışmada açık uyarı.
+- **Odak sayacı:** Süreler kullanıcı ritminden gelir; faz durumu sunucuda tutulur, sayfa yenilense de sürer.
+- **Hedefler:** Günlük hedef yalnız aktif günlerde geçerli; haftalık hedef = günlük hedef × aktif gün.
+- **İstatistik:** Ölçülmemiş eski süreler toplama girmez; bu açıkça belirtilir.
+- **Arama:** Büyük/küçük harf ve Türkçe harf farkı gözetmez; yalnız kullanıcının görebildiği veride arar.
 
-## Kullanıcı Journey'leri
+## Başarı göstergeleri (hedef; ölçüm altyapısı yok)
 
-### Yeni Öğrenci
-1. Kayıt ol → profil bilgilerini gir
-2. İlgili dersleri/kategorileri ekle
-3. İlk haftalık planını oluştur
-4. İlk çalışma seansını başlat
-5. İlk gün sonunda ilerleme grafiğini gör
+- Yeni kullanıcının ilk seansı planlaması 2 dakikadan kısa.
+- Kurulumu tamamlayan ya da bilinçli atlayan hesap oranı.
+- Haftalık hedefe ulaşılan hafta oranı.
+- Mobil kullanımda sorunsuz akış (yatay taşma yok, dokunma hedefleri yeterli).
 
-### Mevcut Kullanıcı (Günlük Akış)
-1. Dashboard'da bugünkü planı gör
-2. Gerekiyorsa planını güncelle (drag & drop)
-3. Pomodoro ile çalışmaya başla
-4. Çalışma sonrası notlar ekle (opsiyonel)
-5. İstatistikleri kontrol et
-6. Yarın için plan yap
+## Ayrışma
 
-## Başarı Metrikleri
+1. **Alan bağımsız ve kişiye uyarlanabilir:** Kelime seti, kişisel kategori, hedef ve ritim kullanıcıda.
+2. **Ölçülen süre:** Plan ile gerçekleşen ayrılır.
+3. **Planlama + odak + istatistik tek yerde.**
+4. **Türkçe öncelikli, sade arayüz;** çeviri altyapısı yol haritasında (R10).
 
-### Kullanıcı Etkileşimi
-- Daily active users (DAU)
-- Ortalama oturum süresi
-- Haftalık plan oluşturma oranı
-- Pomodoro kullanım oranı
+## Bilinçli olarak şimdilik yok
 
-### İşlevsel Başarı
-- Plan oluşturma süresi < 2 dakika
-- Görev ekleme süresi < 30 saniye
-- Sayfa yükleme süreleri < 2 saniye
-- Mobil kullanım oranı > 30%
+Yapay zekâ önerileri, sosyal/rekabet, çevrimdışı/PWA, mobil uygulama, eğitim içeriği. Panodaki öneriler kural tabanlıdır (yapay zekâ değil).
 
-## Farklılaşma Noktaları
+## Mevcut karar notları
 
-1. **Türkiye Odaklı**: TYT/AYT müfredatına özel optimizasyon
-2. **Pomodoro Entegrasyonu**: Sadece planlama değil, çalışma deneyimi
-3. **Basit Arayüz**: Rakiplerin karmaşık arayüzüne karşı sade yaklaşım
-4. **Türkçe Dil Desteği**: Tam yerelleştirilmiş deneyim
-
-## Gelecek Vizyonu
-
-### Kısa Vade (3-6 ay)
-- Temel özellikleri mükemmelleştirme
-- Mobil uygulama (PWA)
-- Tema ve özelleştirme seçenekleri
-
-### Orta Vade (6-12 ay)
-- AI destekli çalışma önerileri
-- Sosyal özellikler (arkadaşlarla paylaşım)
-- Gelişmiş raporlama
-
-### Uzun Vade (1+ yıl)
-- Öğrenci grupları ve rekabet
-- Online ders entegrasyonu
-- Eğitim içerik pazarı
-
-## Güncel görsel gereksinim — 15 Ekim 2026
-
-Kullanıcı modern, basit, sade ve özenli; Vercel benzeri tasarım istedi. Güncel Geist/Linear resmî kaynakları incelenerek nötr yüzey, belirgin tipografi, ince sınır ve anlamlı renk standardı uygulandı. Eski pastel/iOS/cam yönü geçersizdir. Kalıcı kurallar, uygulama kapsamı ve kanıt sınırları `design-system.md` içindedir. Türkçe kullanıcı içeriği korunur.
-
-## Değiştirilebilir marka ve yönetim (16 Ekim 2026)
-
-Görünen site adı tamamen admin ayarından değişebilir; logo/ikon/açıklama aynı kimlik kaynağını kullanır. Admin paneli mevcut ve /admin/settings genel ayarları bu akışın merkezidir. Yeni isim kullanıcı adına seçilmez; kod/dosya/paket adları İngilizce kalır. Uygulama ve doğrulama implementation/2026-10-16-preferences-and-site-identity.md içinde; tamamlanmamış diğer yönetim ayarları progress.md'de açıkça izlenir.
-
-
-## Mevcut hedef ve takvim ayrımı — 17 Ekim 2026
-
-A19 mevcut sözleşmeyi açıklaştırdı: takvim ve sayaç StudySession üzerinden çalışır. Plan API'si isteğe bağlı tarihli hedef kabıdır; planId açıkça atanır. Plan olmadan seans oluşturulabilir; tarihten otomatik Plan türetilmez. Kullanılmayan frontend plansAPI kopyası kaldırıldı; yeni hedef yönetim ekranı veya zorunlu ürün akışı eklenmedi. Plan silmek ölçüm/seans/not geçmişini silmez. Hedef UI'ı genişletmek ayrı ürün kapsamıdır; bu belgeki vizyon mevcut uygulama kanıtı yerine geçmez.
+- **Tasarım (15 Ekim):** Nötr, sade, Vercel/Geist çizgisi; `design-system.md`.
+- **Marka (16 Ekim):** Site adı/logo admin ayarından; kod adlarına bağlanmaz.
+- **Plan ve seans (17 Ekim):** Takvim ve sayaç `StudySession` üzerinden çalışır; Plan isteğe bağlı tarihli hedef kabıdır, seans için zorunlu değildir ve tarihten otomatik türetilmez. Plan silmek seans/ölçüm geçmişini silmez.

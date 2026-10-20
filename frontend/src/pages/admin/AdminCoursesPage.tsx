@@ -1,4 +1,4 @@
-import { appLocale } from '../../lib/locale';
+import { matchesSearch } from '@study-tracker/contracts';
 import { useTerms } from '../../hooks/useTerms';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -30,11 +30,9 @@ export default function AdminCoursesPage() {
         CatalogCourse[] | undefined,
   });
   const courses = query.data ?? [];
-  const term = search.trim().toLocaleLowerCase(appLocale);
+  const term = search.trim();
   const filtered = courses.filter((course) =>
-    [course.name, course.category?.name].some((value) =>
-      value?.toLocaleLowerCase(appLocale).includes(term),
-    ),
+    [course.name, course.category?.name].some((value) => matchesSearch(value, search)),
   );
   return (
     <div className="space-y-6">

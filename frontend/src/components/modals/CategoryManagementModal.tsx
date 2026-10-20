@@ -1,4 +1,3 @@
-import { appLocale } from '../../lib/locale';
 import { useTerms } from '../../hooks/useTerms';
 import { Dialog } from '@headlessui/react';
 import { useQuery } from '@tanstack/react-query';
@@ -8,6 +7,7 @@ import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useCatalogMutation } from '../../hooks/useCatalogMutation';
 import { useAuthStore } from '../../store/authStore';
 import { categoriesAPI } from '../../services/api';
+import { matchesSearch, type CategoryScope } from '@study-tracker/contracts';
 import type { CatalogCategoryRecord } from '../../types/catalog';
 import { catalogIcon } from '../catalog/catalogIcons';
 import ConfirmDialog from '../common/ConfirmDialog';
@@ -21,10 +21,13 @@ interface Props {
 function CategoryDeleteDialog({
   category,
   categories,
+  scope,
   onClose,
 }: {
   category: CatalogCategoryRecord;
+  /** Categories the records may move to: shared ones, plus the owner's own for a personal category. */
   categories: CatalogCategoryRecord[];
+  scope: CategoryScope;
   onClose: () => void;
 }) {
   const t = useTerms();
@@ -41,7 +44,11 @@ function CategoryDeleteDialog({
       title="Kategoriyi sil"
       confirmText="Kategoriyi sil"
       type="danger"
-      message={`“${category.name}” kategorisi kalıcı olarak silinecek. Kategori doluysa bütün kullanıcıların aktif ve pasif ${t.course({ case: 'acc', plural: true })} taşıyacağınız hedefi seçin. ${t.course({ plural: true, capitalize: true })}, ${t.topic({ plural: true })}, ${t.session({ plural: true })} ve ilerleme kayıtları korunur.`}
+      message={
+        scope === 'shared'
+          ? `“${category.name}” kategorisi kalıcı olarak silinecek. Kategori doluysa bütün kullanıcıların aktif ve pasif ${t.course({ case: 'acc', plural: true })} taşıyacağınız hedefi seçin. ${t.course({ plural: true, capitalize: true })}, ${t.topic({ plural: true })}, ${t.session({ plural: true })} ve ilerleme kayıtları korunur.`
+          : `“${category.name}” kategorin kalıcı olarak silinecek. Kategori doluysa ${t.course({ case: 'acc', plural: true })} taşıyacağın hedefi seç. ${t.course({ plural: true, capitalize: true })}, ${t.topic({ plural: true })}, ${t.session({ plural: true })} ve ilerleme kayıtları korunur.`
+      }
       onConfirm={() =>
         validTarget
           ? mutation.save(
@@ -95,9 +102,15 @@ function CategoryDeleteDialog({
   );
 }
 
+const scopeLabels: Record<CategoryScope, string> = { shared: 'Ortak', personal: 'Kişisel' };
+
 function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
   const t = useTerms();
   const keys = useAccountQueryKeys();
+  const user = useAuthStore((state) => state.user);
+  const admin = user?.role === 'admin';
+  // Admins manage shared categories and may keep personal ones; everyone else only has personal ones.
+  const [scope, setScope] = useState<CategoryScope>(admin ? 'shared' : 'personal');
   const searchId = useId();
   const [search, setSearch] = useState('');
   const [editor, setEditor] = useState<{
@@ -108,15 +121,16 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
     queryKey: keys.catalog('categories'),
     queryFn: () => categoriesAPI.getCategories(),
   });
-  // Shared categories only: personal ones belong to their owners.
-  const categories: CatalogCategoryRecord[] = (
-    query.data?.data.data?.categories ?? []
-  ).filter((category) => category.userId === null);
-  const filtered = categories.filter((category) =>
-    category.name
-      .toLocaleLowerCase(appLocale)
-      .includes(search.trim().toLocaleLowerCase(appLocale)),
+  // The list holds shared categories and the user's own personal ones.
+  const visible: CatalogCategoryRecord[] = query.data?.data.data?.categories ?? [];
+  const categories = visible.filter((category) =>
+    scope === 'shared' ? category.userId === null : category.userId === Number(user?.id),
   );
+  // Records move only where their owner sees them: shared categories, plus the owner's own for a personal one.
+  const moveTargets = visible.filter((category) =>
+    category.userId === null || (scope === 'personal' && category.userId === Number(user?.id)),
+  );
+  const filtered = categories.filter((category) => matchesSearch(category.name, search));
   const close = () => {
     if (!editor && !deleting) onClose();
   };
@@ -129,11 +143,12 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
             <div className="flex items-start justify-between gap-4 border-b p-5 sm:p-6">
               <div>
                 <Dialog.Title className="text-lg font-medium">
-                  Kategori yönetimi
+                  {admin ? 'Kategori yönetimi' : 'Kategorilerim'}
                 </Dialog.Title>
                 <Dialog.Description className="mt-2 text-sm text-[var(--muted)]">
-                  Tüm kullanıcıların {t.course({ case: 'acc', plural: true })} gruplandıran ortak kategorileri
-                  yönetin.
+                  {scope === 'shared'
+                    ? `Tüm kullanıcıların ${t.course({ case: 'acc', plural: true })} gruplandıran ortak kategorileri yönetin.`
+                    : `Yalnız sana görünen kategoriler. Kendi ${t.course({ case: 'acc', plural: true })} bunlarla ya da ortak kategorilerle gruplayabilirsin.`}
                 </Dialog.Description>
               </div>
               <button
@@ -145,6 +160,21 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
               </button>
             </div>
             <div className="space-y-5 p-5 sm:p-6">
+              {admin && (
+                <div role="group" aria-label="Kategori türü" className="segmented-control">
+                  {(['shared', 'personal'] as const).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      aria-pressed={scope === option}
+                      onClick={() => { setScope(option); setSearch(''); }}
+                      className={`segment ${scope === option ? 'segment-active' : ''}`}
+                    >
+                      {scopeLabels[option]}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="flex flex-wrap items-center gap-3">
                 <div className="relative min-w-0 flex-1 basis-48">
                   <label htmlFor={searchId} className="sr-only">
@@ -249,7 +279,9 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                         <p className="text-sm text-[var(--muted)]">
                           {search.trim()
                             ? 'Aramanıza uygun kategori bulunamadı.'
-                            : 'Henüz kategori eklenmedi.'}
+                            : scope === 'shared'
+                              ? 'Henüz ortak kategori eklenmedi.'
+                              : 'Henüz kişisel kategorin yok.'}
                         </p>
                       </div>
                     )}
@@ -264,6 +296,7 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
         <CategoryEditorModal
           key={editor.category?.id ?? 'new'}
           category={editor.category}
+          scope={scope}
           nextOrder={
             Math.max(0, ...categories.map((category) => category.order)) + 1
           }
@@ -274,7 +307,8 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
         <CategoryDeleteDialog
           key={deleting.id}
           category={deleting}
-          categories={categories}
+          categories={moveTargets}
+          scope={scope}
           onClose={() => setDeleting(null)}
         />
       )}
@@ -284,7 +318,5 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
 
 export default function CategoryManagementModal({ isOpen, onClose }: Props) {
   const { user } = useAuthStore();
-  return isOpen && user?.role === 'admin' ? (
-    <CategoryManagement onClose={onClose} />
-  ) : null;
+  return isOpen && user ? <CategoryManagement onClose={onClose} /> : null;
 }

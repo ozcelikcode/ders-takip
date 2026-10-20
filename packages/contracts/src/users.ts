@@ -177,3 +177,21 @@ export const adminOverviewResponseSchema = z.object({
     }),
   }),
 });
+
+/** Self-service account deletion is confirmed with the current password. */
+export const deleteAccountSchema = z.object({ password: z.string().min(1, 'Şifrenizi girin') }).strict();
+export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;
+
+export const accountExportFormat = 'study-tracker-account-export';
+/** The user's own data as plain JSON; record shapes follow the stored rows and may gain fields over time. */
+export interface AccountExport {
+  format: typeof accountExportFormat;
+  version: 1;
+  exportedAt: string;
+  account: UserResponse;
+  categories: unknown[];
+  courses: unknown[];
+  topicProgress: unknown[];
+  sessions: unknown[];
+  plans: unknown[];
+}

@@ -368,17 +368,30 @@ test('welcomes a new account with a setup that shapes its pages and can be resta
   await next();
   await expect(heading).toHaveText('Zamanını planlayalım');
   await expect(heading).toBeFocused();
-  await page.getByLabel('Günlük hedef (saat)').fill('1.5');
+  await page.getByRole('button', { name: '1 sa 30 dk' }).click();
+  await expect(page.locator('p', { hasText: 'Haftalık hedef:' })).toContainText('10 sa 30 dk');
   await next();
   await page.getByRole('radio', { name: /Uzun odak/ }).check();
   await next();
   await expect(heading).toHaveText('İlk beceriler');
-  await page.getByLabel('Beceri 1').fill('Gitar');
-  await page.getByLabel('Beceri 2').fill('İspanyolca');
+  await page.getByRole('button', { name: 'Gitar ekle' }).click();
+  await page.getByRole('button', { name: 'Beceri ekle', exact: true }).click();
+  await page.getByLabel('Yeni beceri').fill('İspanyolca');
+  await page.getByLabel('Yeni beceri').press('Enter');
+  await expect(page.getByRole('button', { name: 'İspanyolca kaldır' })).toBeVisible();
+  await expect(heading).toHaveText('İlk beceriler');
   await next();
   await expect(page.getByText('Becerilerim: Gitar, İspanyolca')).toBeVisible();
   await page.getByRole('button', { name: 'Kurulumu bitir' }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
+
+  // The dashboard suggests next steps from the answers: plan today, then break a new record into parts.
+  const recommendations = page.getByRole('region', { name: 'Öneriler' });
+  await expect(recommendations.getByRole('heading', { level: 3 }).first()).toHaveText('Bugün için bir seans planla');
+  await expect(recommendations.getByRole('heading', { name: 'Gitar için alıştırmalar ekle' })).toBeVisible();
+  // A brand-new account is never told it is behind for days before it existed.
+  await expect(recommendations.getByText('Bu hafta hedefin gerisindesin')).toHaveCount(0);
+  await page.screenshot({ path: test.info().outputPath('dashboard-recommendations.png'), fullPage: true });
 
   // The account's own words and first records survive a reload; the wizard does not come back.
   await page.goto('/courses');
@@ -387,6 +400,16 @@ test('welcomes a new account with a setup that shapes its pages and can be resta
   await page.reload();
   await expect(page).toHaveURL(/\/courses$/);
   await expect(page.getByText('İspanyolca', { exact: true })).toBeVisible();
+
+  // The personal category from setup is the user's own to rename.
+  await page.getByRole('button', { name: 'Kategorilerim' }).click();
+  const categories = page.getByRole('dialog', { name: 'Kategorilerim' });
+  await categories.getByRole('button', { name: 'Becerilerim kategorisini düzenle' }).click();
+  const editor = page.getByRole('dialog', { name: 'Kategoriyi düzenle' });
+  await editor.getByLabel('Kategori adı').fill('Müzik ve dil');
+  await editor.getByRole('button', { name: 'Kaydet' }).click();
+  await expect(categories.getByRole('button', { name: 'Müzik ve dil kategorisini düzenle' })).toBeVisible();
+  await categories.getByRole('button', { name: 'Kategori yönetimini kapat' }).click();
 
   await page.goto('/settings');
   await page.getByRole('navigation', { name: 'Ayar bölümleri' }).getByRole('button', { name: 'Çalışma Tercihleri' }).click();
@@ -397,4 +420,47 @@ test('welcomes a new account with a setup that shapes its pages and can be resta
   await expect(page).toHaveURL(/\/dashboard$/);
   await page.reload();
   await expect(page).toHaveURL(/\/dashboard$/);
+});
+
+test('lets an account download its data and delete itself with its password', async ({ page }) => {
+  await registerAccount(page, 'leaving');
+  await page.getByRole('button', { name: 'Şimdilik atla' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await page.goto('/profile');
+  const data = page.getByRole('region', { name: 'Verilerin' });
+  const download = page.waitForEvent('download');
+  await data.getByRole('button', { name: 'İndir' }).click();
+  expect((await download).suggestedFilename()).toMatch(/^hesap-verisi-\d{4}-\d{2}-\d{2}\.json$/);
+
+  await data.getByRole('button', { name: 'Hesabı sil' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Hesabı sil' });
+  await dialog.getByLabel('Onay için şifren').fill('wrong-password');
+  await dialog.getByRole('button', { name: 'Hesabımı kalıcı olarak sil' }).click();
+  await expect(dialog.getByRole('alert')).toHaveText('Şifre hatalı');
+  await dialog.getByLabel('Onay için şifren').fill('fixture-password-2026');
+  await dialog.getByRole('button', { name: 'Hesabımı kalıcı olarak sil' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+
+  await page.getByLabel('E-posta Adresi').fill('leaving@example.test');
+  await page.getByLabel('Şifre', { exact: true }).fill('fixture-password-2026');
+  await page.getByRole('button', { name: 'Giriş Yap', exact: true }).click();
+  // The account is gone: the server's sign-in error appears and the page stays on login.
+  await expect(page.getByText('E-posta veya şifre hatalı')).toBeVisible();
+  await expect(page).toHaveURL(/\/login$/);
+});
+
+test('lets a user choose browser reminders and keeps the choice after a reload', async ({ page }) => {
+  await login(page);
+  await page.goto('/settings');
+  await page.getByRole('navigation', { name: 'Ayar bölümleri' }).getByRole('button', { name: 'Bildirimler' }).click();
+  await expect(page.getByRole('heading', { name: 'Bu tarayıcı' })).toBeVisible();
+  // No SMTP in the fixture: email choices are not offered at all.
+  await expect(page.getByLabel('E-posta ile')).toHaveCount(0);
+  await page.getByLabel(/Tarayıcı bildirimi ile/).check();
+  await page.getByLabel('Ne kadar önce').selectOption('15');
+  await expect(page.getByRole('status').filter({ hasText: 'Tercihler hesabınızda saklanır' })).toBeVisible();
+  await page.reload();
+  await page.getByRole('navigation', { name: 'Ayar bölümleri' }).getByRole('button', { name: 'Bildirimler' }).click();
+  await expect(page.getByLabel(/Tarayıcı bildirimi ile/)).toBeChecked();
+  await expect(page.getByLabel('Ne kadar önce')).toHaveValue('15');
 });

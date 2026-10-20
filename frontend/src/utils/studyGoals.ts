@@ -1,8 +1,18 @@
-import type { UserPreferences } from '@study-tracker/contracts';
+import { weeklyGoalHours, type UserPreferences } from '@study-tracker/contracts';
 
 const hour = 3600;
 
-type GoalPreferences = Pick<UserPreferences, 'dailyStudyGoal' | 'weeklyStudyGoal' | 'activeStudyDays'>;
+type GoalPreferences = Pick<UserPreferences, 'dailyStudyGoal' | 'activeStudyDays'>;
+
+/** Largest daily goal, in minutes (24 hours). */
+export const maxDailyGoalMinutes = 24 * 60;
+
+/** Goals are stored in hours but chosen and shown in whole minutes. */
+export const goalHoursToMinutes = (hours: number) => Math.round(hours * 60);
+export const goalMinutesToHours = (minutes: number) => minutes / 60;
+
+// The formatter lives in contracts because notification emails use it too.
+export { formatGoalMinutes } from '@study-tracker/contracts';
 
 /** Whether a calendar day (YYYY-MM-DD) is one of the user's study days. */
 export const isActiveStudyDay = (date: string, activeStudyDays: readonly number[]) =>
@@ -35,7 +45,7 @@ export const summarizeGoals = (
     },
     week: {
       studySeconds: weekDates.reduce((total, date) => total + secondsOn(date), 0),
-      goalSeconds: preferences.weeklyStudyGoal > 0 ? preferences.weeklyStudyGoal * hour : null,
+      goalSeconds: weeklyGoalHours(preferences) > 0 ? weeklyGoalHours(preferences) * hour : null,
     },
   };
 };

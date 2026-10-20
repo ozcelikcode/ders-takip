@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import { authAPI } from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
 import { useAuthStore } from '../../store/authStore';
+import AccountDataCard from './AccountDataCard';
 import AccountInfoCard from './AccountInfoCard';
 import PasswordCard from './PasswordCard';
 import ProfilePictureCard from './ProfilePictureCard';
@@ -374,6 +375,7 @@ const ProfilePage = () => {
             isPending={changePasswordMutation.isPending}
             onSubmit={handlePasswordSubmit}
           />
+          <AccountDataCard />
         </div>
       </div>
     </div>

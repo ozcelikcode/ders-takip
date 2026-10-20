@@ -12,11 +12,16 @@ const directory = fs.realpathSync(process.argv[2]);
 assert.equal(path.dirname(directory), fs.realpathSync(os.tmpdir()));
 assert.ok(path.basename(directory).startsWith('study-tracker-e2e-'));
 assert.deepEqual(fs.readdirSync(directory), []);
+// Throwaway VAPID keys make the browser-notification settings visible; nothing is sent from the fixture.
+const vapid = require('web-push').generateVAPIDKeys();
 Object.assign(process.env, {
   NODE_ENV: 'test',
   DB_PATH: path.join(directory, 'test.sqlite'),
   BACKUP_DIR: path.join(directory, 'backups'),
   JWT_SECRET: crypto.randomBytes(48).toString('hex'),
+  VAPID_PUBLIC_KEY: vapid.publicKey,
+  VAPID_PRIVATE_KEY: vapid.privateKey,
+  VAPID_SUBJECT: 'mailto:e2e@example.test',
 });
 const site = express();
 let server;

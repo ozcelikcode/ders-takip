@@ -101,6 +101,37 @@ it('admin category management works on shared categories only', async () => {
   assert.equal((await Category.findByPk(personal.id)).name, 'Projelerim');
 });
 
+it('owners create, rename and delete their own personal categories', async () => {
+  const created = await call('post', '/api/categories', other, { name: 'Okuma', color: '#123456' });
+  assert.equal(created.status, 201, JSON.stringify(created.body));
+  assert.equal(created.body.data.category.userId, other.id);
+  const id = created.body.data.category.id;
+  assert.equal((await call('post', '/api/categories', other, { name: 'Ortak olsun', scope: 'shared' })).status, 403);
+  const duplicate = await call('post', '/api/categories', other, { name: 'Okuma' });
+  assert.deepEqual([duplicate.status, duplicate.body.error.message], [409, 'Bu adla bir kategorin zaten var']);
+  const clash = await call('post', '/api/categories', other, { name: 'Genel' });
+  assert.deepEqual([clash.status, clash.body.error.message], [409, 'Bu adla ortak bir kategori zaten var']);
+  // Another owner may use the same name.
+  assert.equal((await call('post', '/api/categories', owner, { name: 'Okuma' })).status, 201);
+
+  assert.equal((await call('put', `/api/categories/${id}`, other, { name: 'Kitaplar' })).status, 200);
+  assert.equal((await call('put', `/api/categories/${id}`, other, { name: 'Projelerim' })).status, 409);
+  assert.equal((await call('put', `/api/categories/${id}`, owner, { name: 'Başkası' })).status, 404);
+  assert.equal((await call('put', `/api/categories/${shared.id}`, other, { name: 'Başkası' })).status, 403);
+
+  // A populated personal category moves its records only where their owner can see them.
+  const course = await Course.create({ name: 'Roman', categoryId: id, userId: other.id, isGlobal: false, color: '#123456', order: 1 });
+  const foreign = await Category.findOne({ where: { userId: owner.id, name: 'Okuma' } });
+  assert.equal((await call('delete', `/api/categories/${id}`, other, { migrateToCategoryId: foreign.id })).status, 404);
+  assert.equal((await call('delete', `/api/categories/${id}`, other, {})).status, 409);
+  assert.equal((await call('delete', `/api/categories/${id}`, other, { migrateToCategoryId: shared.id })).status, 200);
+  assert.equal((await Course.findByPk(course.id)).categoryId, shared.id);
+
+  // Admins may keep personal categories too, through an explicit scope.
+  const adminPersonal = await call('post', '/api/categories', admin, { name: 'Notlarım', scope: 'personal' });
+  assert.equal(adminPersonal.body.data.category.userId, admin.id);
+});
+
 it('deleting a user removes their personal categories with their private records', async () => {
   const response = await call('delete', `/api/users/${owner.id}`, admin);
   assert.equal(response.status, 200, JSON.stringify(response.body));

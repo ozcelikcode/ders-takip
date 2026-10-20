@@ -64,6 +64,11 @@ import {
   type ResetPasswordInput,
   type SearchResult,
   type CompleteOnboardingInput,
+  type AccountExport,
+  type DeleteAccountInput,
+  notificationChannelsSchema,
+  type NotificationChannels,
+  type TestNotificationInput,
 } from '@study-tracker/contracts';
 import { api, authTransport } from './httpClient';
 
@@ -149,6 +154,13 @@ export const authAPI = {
       return response;
     });
   },
+
+  /** The user's own data as the server's export document. */
+  exportAccount: async (): Promise<AccountExport> =>
+    (await api.get<AccountExport>('/auth/account/export')).data,
+
+  deleteAccount: (input: DeleteAccountInput): Promise<AxiosResponse<ApiResponse>> =>
+    api.delete('/auth/account', { data: input }),
 
   refreshToken: (): Promise<AxiosResponse<AuthResponse>> =>
     withAuthLock(() =>
@@ -367,6 +379,17 @@ export const topicsAPI = {
 };
 
 // Settings API
+export const notificationsAPI = {
+  channels: async (): Promise<NotificationChannels> =>
+    notificationChannelsSchema.parse((await api.get<{ data: unknown }>('/notifications/channels')).data.data),
+  subscribe: (subscription: PushSubscriptionJSON): Promise<AxiosResponse<ApiResponse>> =>
+    api.post('/notifications/push-subscriptions', subscription),
+  unsubscribe: (endpoint: string): Promise<AxiosResponse<ApiResponse>> =>
+    api.delete('/notifications/push-subscriptions', { data: { endpoint } }),
+  test: (input: TestNotificationInput): Promise<AxiosResponse<ApiResponse<{ delivered: number }>>> =>
+    api.post('/notifications/test', input),
+};
+
 export const onboardingAPI = {
   complete: (input: CompleteOnboardingInput): Promise<AxiosResponse<ApiResponse<{ user: User }>>> =>
     api.post<unknown>('/onboarding', input).then(parseProfileResponse),

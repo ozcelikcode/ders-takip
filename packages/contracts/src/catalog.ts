@@ -10,10 +10,15 @@ const appearance = {
   order: order.optional(),
   isActive: z.boolean().optional(),
 };
-export const createCategorySchema = z.object({ name: z.string().trim().min(1).max(100), ...appearance }).strict();
-export const updateCategorySchema = createCategorySchema.partial().refine(value => Object.keys(value).length > 0);
+const namedFields = z.object({ name: z.string().trim().min(1).max(100), ...appearance }).strict();
+/** Shared categories are managed by admins; personal ones by their owner. Users can only create personal ones. */
+export const categoryScopeSchema = z.enum(['shared', 'personal']);
+export type CategoryScope = z.infer<typeof categoryScopeSchema>;
+// Without a scope an admin creates a shared category and anyone else a personal one.
+export const createCategorySchema = namedFields.extend({ scope: categoryScopeSchema.optional() });
+export const updateCategorySchema = namedFields.partial().refine(value => Object.keys(value).length > 0);
 export const deleteCategorySchema = z.object({ migrateToCategoryId: catalogIdSchema.optional() }).strict();
-export const createCourseSchema = createCategorySchema.extend({ categoryId: catalogIdSchema, isGlobal: z.boolean().optional() });
+export const createCourseSchema = namedFields.extend({ categoryId: catalogIdSchema, isGlobal: z.boolean().optional() });
 export const updateCourseSchema = createCourseSchema.partial().refine(value => Object.keys(value).length > 0);
 export const createTopicSchema = z.object({
   name: z.string().trim().min(1).max(200), courseId: catalogIdSchema,

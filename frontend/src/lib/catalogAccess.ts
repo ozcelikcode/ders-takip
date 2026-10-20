@@ -12,3 +12,11 @@ export function canManageCourse(
     ownerId === Number(actor.id)
   );
 }
+
+/** Records on a user's own workspace: their own and shared ones. Admins can see everyone's, but their dashboard is still theirs. */
+export function isOwnOrShared(
+  course: { isGlobal: boolean; userId?: number | null },
+  actor: { id: string | number } | null | undefined,
+) {
+  return course.isGlobal || (!!actor && Number(course.userId) === Number(actor.id));
+}

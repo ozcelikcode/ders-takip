@@ -2,6 +2,7 @@ import { useTerms } from '../../hooks/useTerms';
 import { useId, useState, type FormEvent } from 'react';
 import {
   createCategorySchema,
+  type CategoryScope,
   type UpdateCategoryInput,
 } from '@study-tracker/contracts';
 import { categoriesAPI } from '../../services/api';
@@ -13,12 +14,15 @@ import { catalogIcons, catalogIcon } from '../catalog/catalogIcons';
 
 interface Props {
   category: CatalogCategoryRecord | null;
+  /** Shared categories are admin-only; personal ones belong to the signed-in user. */
+  scope: CategoryScope;
   nextOrder: number;
   onClose: () => void;
 }
 
 export default function CategoryEditorModal({
   category,
+  scope,
   nextOrder,
   onClose,
 }: Props) {
@@ -57,10 +61,11 @@ export default function CategoryEditorModal({
   const Icon = catalogIcon(form.icon);
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (useAuthStore.getState().user?.role !== 'admin') return;
+    if (scope === 'shared' && useAuthStore.getState().user?.role !== 'admin') return;
     const result = createCategorySchema.safeParse({
       ...form,
       order: Number(form.order),
+      scope,
     });
     if (!result.success) {
       const messages: Record<string, string> = {
@@ -109,11 +114,15 @@ export default function CategoryEditorModal({
     if (saved) onClose();
   };
   const t = useTerms();
-  if (user?.role !== 'admin') return null;
+  if (scope === 'shared' && user?.role !== 'admin') return null;
   return (
     <EditorDialog
       title={category ? 'Kategoriyi düzenle' : 'Kategori ekle'}
-      description={`Kategoriler tüm kullanıcıların ${t.course({ case: 'acc', plural: true })} gruplar. Değişiklikler ortak kataloğa uygulanır.`}
+      description={
+        scope === 'shared'
+          ? `Ortak kategoriler tüm kullanıcıların ${t.course({ case: 'acc', plural: true })} gruplar. Değişiklikler ortak kataloğa uygulanır.`
+          : `Kişisel kategoriler yalnız sana görünür ve yalnız kendi ${t.course({ case: 'acc', plural: true })} gruplar.`
+      }
       pending={mutation.isPending}
       error={mutation.errorMessage}
       onClose={onClose}

@@ -1,4 +1,4 @@
-import { appLocale } from '../lib/locale';
+import { matchesSearch } from '@study-tracker/contracts';
 import { useTerms } from '../hooks/useTerms';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -45,7 +45,7 @@ export default function CoursesPage() {
     queryFn: () => coursesAPI.getCourses({ includeTopics: true }),
   });
   const courses: CatalogCourse[] = query.data?.data.data?.courses ?? [];
-  const term = search.trim().toLocaleLowerCase(appLocale);
+  const term = search.trim();
   const filtered = courses.filter((course) =>
     [
       course.name,
@@ -55,7 +55,7 @@ export default function CoursesPage() {
         topic.name,
         topic.description,
       ]),
-    ].some((value) => value?.toLocaleLowerCase(appLocale).includes(term)),
+    ].some((value) => matchesSearch(value, search)),
   );
   return (
     <div className="space-y-6">
@@ -64,15 +64,13 @@ export default function CoursesPage() {
         description={`${t.course({ case: 'acc', plural: true, capitalize: true })} ve ${t.topic({ case: 'acc', plural: true })} tek yerde yönetin.`}
         actions={
           <>
-            {user?.role === 'admin' && (
-              <button
-                className="btn btn-secondary"
-                onClick={() => setCategoryOpen(true)}
-              >
-                <Tag className="h-4 w-4" />
-                Kategoriler
-              </button>
-            )}
+            <button
+              className="btn btn-secondary"
+              onClick={() => setCategoryOpen(true)}
+            >
+              <Tag className="h-4 w-4" />
+              {user?.role === 'admin' ? 'Kategoriler' : 'Kategorilerim'}
+            </button>
             <button
               className="btn btn-primary"
               onClick={() => setEditor({ course: null })}

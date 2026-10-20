@@ -4,19 +4,21 @@ import PageHeader from '../../components/common/PageHeader';
 import { useEffect, useState } from 'react';
 import { useUserPreferencesStore, ThemeMode } from '../../store/userPreferencesStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { Settings, Clock, Globe } from 'lucide-react';
+import { Bell, Settings, Clock, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AppearanceTab from './AppearanceTab';
 import RegionTab from './RegionTab';
+import NotificationsTab from './NotificationsTab';
 import StudyTab, { type StudyPreferencesDraft } from './StudyTab';
 
-type TabType = 'appearance' | 'region' | 'study';
+type TabType = 'appearance' | 'region' | 'study' | 'notifications';
 
 const tabs = [
   { id: 'appearance', label: 'Görünüm', icon: Settings },
   { id: 'region', label: 'Bölge', icon: Globe },
   { id: 'study', label: 'Çalışma Tercihleri', icon: Clock },
+  { id: 'notifications', label: 'Bildirimler', icon: Bell },
 ];
 
 const studyDraftFrom = (preferences: typeof defaultPreferences): StudyPreferencesDraft => ({
@@ -24,7 +26,6 @@ const studyDraftFrom = (preferences: typeof defaultPreferences): StudyPreference
   defaultShortBreak: preferences.defaultShortBreak,
   defaultLongBreak: preferences.defaultLongBreak,
   pomodorosUntilLongBreak: preferences.pomodorosUntilLongBreak,
-  weeklyStudyGoal: preferences.weeklyStudyGoal,
   dailyStudyGoal: preferences.dailyStudyGoal,
   activeStudyDays: preferences.activeStudyDays ? [...preferences.activeStudyDays] : [1, 2, 3, 4, 5, 6, 0],
 });
@@ -44,7 +45,6 @@ const UserSettingsPage = () => {
     preferences.defaultShortBreak,
     preferences.defaultLongBreak,
     preferences.pomodorosUntilLongBreak,
-    preferences.weeklyStudyGoal,
     preferences.dailyStudyGoal,
     preferences.activeStudyDays,
   ]);
@@ -64,7 +64,7 @@ const UserSettingsPage = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Ayarlar" description="Görünümü, kelimeleri, bölge ayarlarını ve çalışma tercihlerini yönet." />
+      <PageHeader title="Ayarlar" description="Görünümü, kelimeleri, bölge ayarlarını, çalışma tercihlerini ve bildirimleri yönet." />
       <p className="text-sm text-[var(--muted)]">
         Ad, kullanıcı adı, profil resmi ve şifre{' '}
         <Link to="/profile" className="font-medium text-[var(--text)] underline underline-offset-4">Profil</Link> sayfasındadır.
@@ -99,6 +99,9 @@ const UserSettingsPage = () => {
             onColorChange={handleColorChange}
             onTerminologyChange={(terminologyPreset) => void savePreferences({ terminologyPreset })}
           />
+        )}
+        {activeTab === 'notifications' && (
+          <NotificationsTab preferences={preferences} onSave={(patch) => void savePreferences(patch)} />
         )}
         {activeTab === 'region' && (
           <RegionTab preferences={preferences} onSave={(patch) => void savePreferences(patch)} />

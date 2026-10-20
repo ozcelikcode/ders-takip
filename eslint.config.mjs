@@ -30,4 +30,8 @@ export default [
     plugins: { 'react-hooks': reactHooks },
     rules: { 'react-hooks/rules-of-hooks': 'error' },
   },
+  {
+    files: ['frontend/public/sw.js'],
+    languageOptions: { globals: globals.serviceworker },
+  },
 ];

@@ -55,7 +55,8 @@ it('compares measured time with the daily and weekly goals and requests the conf
 
 it('says when today is a rest day or a goal is unset instead of showing an empty bar', async () => {
   useUserPreferencesStore.setState({
-    preferences: { ...defaultPreferences, timezone: 'UTC', weeklyStudyGoal: 0, activeStudyDays: [1, 2] },
+    // No active days: today is a rest day and the derived weekly goal is empty.
+    preferences: { ...defaultPreferences, timezone: 'UTC', activeStudyDays: [] },
   });
   vi.mocked(studySessionsAPI.getStats).mockResolvedValue(stats([]));
   mount();

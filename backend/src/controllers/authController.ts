@@ -1,5 +1,6 @@
 import { userResponse } from '../services/userResponses';
-import { defaultPreferences, preferencesSchema } from '@study-tracker/contracts';
+import { defaultPreferences } from '@study-tracker/contracts';
+import { mergePreferences } from '../services/preferences';
 import { NextFunction, Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { User } from '../models/User';
@@ -244,13 +245,7 @@ export const updateProfile = async (
         if (profileImage !== undefined)
           current.profileImage = profileImage || null;
         if (preferences !== undefined)
-          current.preferences = {
-            ...current.preferences,
-            ...preferencesSchema.parse({
-              ...current.preferences,
-              ...preferences,
-            }),
-          };
+          current.preferences = mergePreferences(current.preferences, preferences);
         await current.save({ transaction });
         return current;
       },

@@ -12,7 +12,7 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import toast from 'react-hot-toast';
 import { categoriesAPI, coursesAPI, topicsAPI } from '../../services/api';
-import { canManageCourse } from '../../lib/catalogAccess';
+import { canManageCourse, isOwnOrShared } from '../../lib/catalogAccess';
 import type { ApiResponse } from '../../types/api';
 import type { CatalogCourse, CatalogTopic } from '../../types/catalog';
 import CourseEditorModal from '../modals/CourseEditorModal';
@@ -105,6 +105,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+it('keeps a personal workspace to own and shared records, even for administrators', () => {
+  expect(isOwnOrShared({ isGlobal: false, userId: 1 }, { id: '1' })).toBe(true);
+  expect(isOwnOrShared({ isGlobal: true, userId: 9 }, { id: '1' })).toBe(true);
+  expect(isOwnOrShared({ isGlobal: false, userId: 9 }, { id: 1 })).toBe(false);
+  expect(isOwnOrShared({ isGlobal: false, userId: null }, null)).toBe(false);
+});
 it('matches owner, global, missing-owner and administrator access rules', () => {
   expect(canManageCourse(course, { id: '1', role: 'student' })).toBe(true);
   expect(canManageCourse(course, { id: 2, role: 'student' })).toBe(false);

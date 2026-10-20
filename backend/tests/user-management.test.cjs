@@ -64,3 +64,12 @@ it('keeps management admin-only and protects the current administrator', async (
   assert.equal(await User.count(), count);
   assert.equal((await admin.reload()).role, 'admin'); assert.equal(admin.isActive, true);
 });
+it('user search ignores case and Turkish letter forms and treats wildcards literally', async () => {
+  await User.create({ username: 'sukru', email: 'sukru@example.com', password: 'fixture-password', firstName: 'Şükrü', lastName: 'IŞIK', role: 'student' });
+  for (const search of ['sukru', 'ŞÜKRÜ', 'isik', 'ışık']) {
+    const data = (await auth('get', `/api/users?search=${encodeURIComponent(search)}&limit=20`).expect(200)).body.data;
+    assert.deepEqual(data.users.map((user) => user.username), ['sukru'], search);
+  }
+  assert.equal((await auth('get', '/api/users?search=%25&limit=20').expect(200)).body.data.pagination.total, 0);
+  assert.equal((await auth('get', '/api/users?search=_&limit=20').expect(200)).body.data.pagination.total, 0);
+});
