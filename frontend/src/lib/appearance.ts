@@ -4,7 +4,6 @@ export const applyAppearance = (preferences: UserPreferences, settings: PublicSe
   const root = document.documentElement;
   root.classList.toggle('dark', preferences.theme === 'dark' || (preferences.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches));
   root.style.setProperty('--primary-rgb', rgb(preferences.customPrimaryColor || settings.primaryColor) || '59 130 246');
-  root.style.setProperty('--secondary-rgb', rgb(settings.secondaryColor) || '16 185 129');
   document.title = settings.siteName;
   document.querySelector('meta[name="application-name"]')?.setAttribute('content', settings.siteName);
   document.querySelector('meta[property="og:site_name"]')?.setAttribute('content', settings.siteName);

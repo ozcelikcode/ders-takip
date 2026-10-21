@@ -69,6 +69,15 @@ export const resolveTerminologyPreset = (
  */
 export const weeklyGoalHours = (preferences: Pick<UserPreferences, 'dailyStudyGoal' | 'activeStudyDays'>): number =>
   Math.min(168, preferences.dailyStudyGoal * preferences.activeStudyDays.length);
+/**
+ * Applies a validated patch to stored preferences. Keys outside the schema (the archived legacy
+ * values) survive, and the weekly goal follows the daily one. The server and the client's
+ * optimistic view use the same rule.
+ */
+export const mergePreferences = <T extends UserPreferences>(stored: T, patch: PreferencesPatch): T => {
+  const merged = preferencesSchema.parse({ ...stored, ...patch });
+  return { ...stored, ...merged, weeklyStudyGoal: weeklyGoalHours(merged) };
+};
 export const resolveNotifications = (preferences: Pick<UserPreferences, 'notifications'>): NotificationPreferences =>
   preferences.notifications ?? defaultNotificationPreferences;
 

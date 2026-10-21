@@ -174,9 +174,8 @@
 
 @layer base {
   :root {
-    /* Runtime brand colors as RGB channels; appearance.ts overrides them per site and account. */
+    /* Runtime brand color as RGB channels; appearance.ts overrides it per site and account. */
     --primary-rgb: 59 130 246;
-    --secondary-rgb: 16 185 129;
     --canvas: #fafafa;
     --surface: #fff;
     --sidebar: #fcfcfc;

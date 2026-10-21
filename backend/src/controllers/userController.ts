@@ -1,7 +1,6 @@
 import { userResponse } from '../services/userResponses';
 import { getAllTimeSummaries, getStudyStats } from '../services/studyTracking';
-import { defaultPreferences, preferencesSchema } from '@study-tracker/contracts';
-import { mergePreferences } from '../services/preferences';
+import { defaultPreferences, mergePreferences, preferencesSchema } from '@study-tracker/contracts';
 import { columnContains } from '../utils/textSearch';
 import { Op, Transaction, type WhereOptions } from 'sequelize';
 import { sequelize } from '../config/database';

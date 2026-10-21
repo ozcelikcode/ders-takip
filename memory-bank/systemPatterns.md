@@ -28,7 +28,7 @@ Okuma controller'ları ORM sorgularını yürütür; yazma iş kuralları ilgili
 - Bildirim: tercih `notifications` isteğe bağlı ve varsayılan kapalı; kanal = yapılandırma + admin site anahtarı; zamanlayıcı her olayı `notification_deliveries` ile önce talep eder (en fazla bir kez). Göndericiler (`mailer`, `pushSender`) testte değiştirilebilir nesnelerdir.
 - Hesap silme tek yol: `services/accounts.ts` `deleteAccount` (admin ve kişinin kendisi); son etkin yönetici korunur. Dışa aktarım `exportAccount` yalnız kullanıcının kendi satırlarını verir.
 - Metin arama tek kural: `foldSearchText`/`matchesSearch` (contracts) ve sunucuda aynı çiftlerle `columnContains` (instr, joker yok). Yeni arama ya da süzgeç bunları kullanır.
-- Haftalık hedef türetilmiş değerdir: `weeklyGoalHours` = günlük hedef × aktif gün (en fazla 168). Okuyanlar fonksiyonu kullanır; sunucu tercih yazımlarının tamamı `mergePreferences` üzerinden geçer ve saklanan alanı eşitler.
+- Haftalık hedef türetilmiş değerdir: `weeklyGoalHours` = günlük hedef × aktif gün (en fazla 168). Okuyanlar fonksiyonu kullanır; tercih birleştirme kuralı `mergePreferences` contracts'tadır: sunucu bütün yazımlarda saklanan alanı onunla eşitler, istemcinin iyimser görünümü de aynı fonksiyonu kullanır.
 - Kişisel pano (sayılar, öneriler) admin dahil yalnız kendi + ortak kayıtlara bakar (`isOwnOrShared`); admin genel görünümü ayrı sayfadır.
 - Course → Topic; ders silmede ilişki CASCADE; konu controller'ı normal konu silmede isActive=false uygular.
 - Plan/Course/Topic → StudySession; ilişkiler silinince ilgili FK SET NULL.
@@ -115,7 +115,7 @@ Dashboard ve CoursesPage aynı key için aynı ham API response biçimini cache'
 
 ## Preferences ve site kimliği — 16 Ekim
 
-contracts v1 ortak runtime şeması/tipler; 003 explicit JSON dönüşümü ve kayıpsız kaynak arşivi. User/admin tercih patch'i güncel satırdan IMMEDIATE transaction içinde birleşir. İstemci sıraya alınmış, sunucu onaylı kayıt yapar; generation hesap değişiminde bekleyen/geç sonucu iptal eder. Profil ve private admin response'ları da kimlik sınırına tabidir. Profil/tercih HTTP yazmaları ortak kuyruktadır; monoton tercih revision'ı geç eski refresh/profil snapshot'ının aynı hesapta yeni onaylanan tercihi ezmesini engeller. Aynı alanda son yazma kazanır; cihazlar arası canlı conflict-resolution kurulmadı.
+contracts v1 ortak runtime şeması/tipler; 003 explicit JSON dönüşümü ve kayıpsız kaynak arşivi. User/admin tercih patch'i güncel satırdan IMMEDIATE transaction içinde birleşir. İstemci sıraya alınmış kayıt yapar; 21 Ekim'den beri iyimserdir: `preferences` = son sunucu onayı + bekleyen değişiklikler (sırayla `mergePreferences`), her cevapta onaylı değer sunucudan gelir, başarısız değişiklik yalnız kendisi geri alınır; generation hesap değişiminde bekleyen/geç sonucu iptal eder. Profil ve private admin response'ları da kimlik sınırına tabidir. Profil/tercih HTTP yazmaları ortak kuyruktadır; monoton tercih revision'ı geç eski refresh/profil snapshot'ının aynı hesapta yeni onaylanan tercihi ezmesini engeller. Aynı alanda son yazma kazanır; cihazlar arası canlı conflict-resolution kurulmadı.
 
 Kişisel tercih belleği login/refresh profilinden doğar; anonim/başka hesaba geçince temizlenir. Sahipsiz eski browser değerleri manuel kurtarma arşivine alınır, aktif fallback yapılmaz. Bildirim id'leri account anahtarıyla ve boyut sınırıyla saklanır. Tema/renk tek appearance katmanı ve OS listener ile uygulanır; özel renk kaldırılınca public site rengi döner.
 

@@ -1,6 +1,5 @@
 import { Op, Transaction } from 'sequelize';
-import { needsOnboarding, type CompleteOnboardingInput, type OnboardingWorkspace } from '@study-tracker/contracts';
-import { mergePreferences } from './preferences';
+import { mergePreferences, needsOnboarding, type CompleteOnboardingInput, type OnboardingWorkspace } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
 import { Category, Course, User } from '../models';
 

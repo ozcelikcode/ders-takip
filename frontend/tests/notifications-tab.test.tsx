@@ -20,7 +20,7 @@ const channels = (email: boolean, pushEnabled: boolean): NotificationChannels =>
   email: { configured: email, enabled: email },
   push: { configured: pushEnabled, enabled: pushEnabled, publicKey: pushEnabled ? 'BPublicKey' : null },
 });
-const mount = (preferences: UserPreferences = defaultPreferences, onSave = vi.fn(() => Promise.resolve())) => {
+const mount = (preferences: UserPreferences = defaultPreferences, onSave = vi.fn()) => {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <NotificationsTab preferences={preferences} onSave={onSave} />
@@ -47,17 +47,15 @@ it('explains when the site has no delivery channel', async () => {
 
 it('offers only email choices when push is not set up and saves each choice as a whole', async () => {
   vi.mocked(notificationsAPI.channels).mockResolvedValue(channels(true, false));
-  // The save never settles here, so the optimistic choices stay on screen.
-  const onSave = mount({ ...defaultPreferences, notifications: { ...defaultNotificationPreferences, dailyPlanEmail: true } }, vi.fn(() => new Promise<void>(() => undefined)));
+  const onSave = mount({ ...defaultPreferences, notifications: { ...defaultNotificationPreferences, dailyPlanEmail: true } });
   await screen.findByRole('heading', { name: 'Seans hatırlatmaları' });
   expect(screen.queryByRole('heading', { name: 'Bu tarayıcı' })).toBeNull();
   expect(screen.queryByLabelText(/Tarayıcı bildirimi ile/)).toBeNull();
   expect((screen.getByLabelText(/Sabah günlük plan/) as HTMLInputElement).checked).toBe(true);
   fireEvent.click(screen.getByLabelText('E-posta ile'));
   expect(onSave).toHaveBeenLastCalledWith({ notifications: { ...defaultNotificationPreferences, dailyPlanEmail: true, sessionReminderEmail: true } });
-  expect((screen.getByLabelText('E-posta ile') as HTMLInputElement).checked).toBe(true);
   fireEvent.change(screen.getByLabelText('Ne kadar önce'), { target: { value: '30' } });
-  expect(onSave).toHaveBeenLastCalledWith({ notifications: { ...defaultNotificationPreferences, dailyPlanEmail: true, sessionReminderEmail: true, reminderLeadMinutes: 30 } });
+  expect(onSave).toHaveBeenLastCalledWith({ notifications: { ...defaultNotificationPreferences, dailyPlanEmail: true, reminderLeadMinutes: 30 } });
   fireEvent.click(screen.getByRole('button', { name: 'Deneme e-postası gönder' }));
   await waitFor(() => expect(notificationsAPI.test).toHaveBeenCalledWith({ channel: 'email' }));
 });
@@ -86,15 +84,4 @@ it('says when the browser blocks the site instead of offering a button that cann
   mount();
   expect(await screen.findByText(/tarayıcı ayarlarında engellenmiş/)).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Bu tarayıcıda bildirimleri aç' })).toBeNull();
-});
-
-it('falls back to the stored choice when a save fails', async () => {
-  vi.mocked(notificationsAPI.channels).mockResolvedValue(channels(true, false));
-  let fail: () => void = () => undefined;
-  mount(defaultPreferences, vi.fn(() => new Promise<void>((_resolve, reject) => { fail = () => reject(new Error('offline')); }).catch(() => undefined)));
-  const toggle = await screen.findByLabelText('E-posta ile') as HTMLInputElement;
-  fireEvent.click(toggle);
-  expect(toggle.checked).toBe(true);
-  fail();
-  await waitFor(() => expect(toggle.checked).toBe(false));
 });

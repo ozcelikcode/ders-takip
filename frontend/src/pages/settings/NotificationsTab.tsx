@@ -1,7 +1,7 @@
 import { reminderLeadOptions, resolveNotifications, type NotificationPreferences, type PreferencesPatch, type UserPreferences } from '@study-tracker/contracts';
 import { useQuery } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useTerms } from '../../hooks/useTerms';
@@ -11,7 +11,7 @@ import { useAuthStore } from '../../store/authStore';
 
 interface NotificationsTabProps {
   preferences: UserPreferences;
-  onSave: (patch: PreferencesPatch) => Promise<void>;
+  onSave: (patch: PreferencesPatch) => void;
 }
 
 const browserStateText: Record<BrowserPushState, string> = {
@@ -44,18 +44,8 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
   const channels = useQuery({ queryKey: keys.resource('notification-channels'), queryFn: notificationsAPI.channels });
   const [browser, setBrowser] = useState<BrowserPushState | null>(null);
   const [busy, setBusy] = useState<'browser' | 'test-email' | 'test-push' | null>(null);
-  // Choices show at once; the stored value takes over again when every pending save has settled.
-  const [draft, setDraft] = useState<NotificationPreferences | null>(null);
-  const pendingSaves = useRef(0);
-  const options = draft ?? resolveNotifications(preferences);
-  const save = (patch: Partial<NotificationPreferences>) => {
-    const next = { ...options, ...patch };
-    setDraft(next);
-    pendingSaves.current++;
-    void onSave({ notifications: next }).finally(() => {
-      if (--pendingSaves.current === 0) setDraft(null);
-    });
-  };
+  const options = resolveNotifications(preferences);
+  const save = (patch: Partial<NotificationPreferences>) => onSave({ notifications: { ...options, ...patch } });
 
   useEffect(() => {
     let active = true;

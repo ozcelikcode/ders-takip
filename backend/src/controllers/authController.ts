@@ -1,6 +1,5 @@
 import { userResponse } from '../services/userResponses';
-import { defaultPreferences } from '@study-tracker/contracts';
-import { mergePreferences } from '../services/preferences';
+import { defaultPreferences, mergePreferences } from '@study-tracker/contracts';
 import { NextFunction, Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { User } from '../models/User';

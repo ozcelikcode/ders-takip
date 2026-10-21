@@ -101,7 +101,7 @@ const UserSettingsPage = () => {
           />
         )}
         {activeTab === 'notifications' && (
-          <NotificationsTab preferences={preferences} onSave={savePreferences} />
+          <NotificationsTab preferences={preferences} onSave={(patch) => void savePreferences(patch)} />
         )}
         {activeTab === 'region' && (
           <RegionTab preferences={preferences} onSave={(patch) => void savePreferences(patch)} />

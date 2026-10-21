@@ -397,7 +397,6 @@ function SettingsForm({
                     adminEmail: 'Yönetici e-postası',
                     sessionTimeout: 'Oturum süresi',
                     primaryColor: 'Ana renk',
-                    secondaryColor: 'İkincil renk',
                     siteLogo: 'Logo URL',
                     siteIcon: 'Site ikonu',
                   })[key] ?? key,
