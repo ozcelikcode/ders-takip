@@ -41,7 +41,8 @@ R11 notları (21 Ekim, kullanıcı kararları: Web Push; e-posta: seans hatırla
 - **Ek hata düzeltmesi:** `.env.example`'dan kopyalanan boş `SMTP_HOST=` gibi satırlar ortam doğrulamasını düşürüp sunucuyu açtırmıyordu (R8'den beri); boş isteğe bağlı değerler artık "ayarlanmamış" sayılır.
 - **`formatGoalMinutes`** contracts'a taşındı (ekran ve e-posta aynı biçim).
 - **Güvenlik (otomatik incelemeden, SSRF):** sunucu abonelik adresine istek attığı için `endpoint` yalnız bilinen tarayıcı push servisleri olabilir (`isKnownPushService`: fcm.googleapis.com, Mozilla, Apple, Windows; https, varsayılan port, kimlik bilgisi yok); hem kayıtta hem her gönderimden önce denetlenir.
-- Kanıt: check 35/179/269 (yeni 4 contracts, 9 backend, 4 frontend testi); E2E bildirim seçimi yeniden yüklemede korunur + Bildirimler sekmeleri axe taraması. Gerçek push teslimatı ve SMTP gönderimi yerelde uçtan uca denenmedi (sağlayıcı/ağ gerektirir); sunucu tarafı sahte gönderici ile test edildi.
+- Bildirim seçimleri iyimser: tıklama anında görünür, bekleyen kayıtlar bitince saklanan değer geri gelir (kayıt başarısızsa eski seçim). Ayar sayfasının diğer anlık seçimleri sunucu yanıtını bekler; aynı gecikme orada da var (ileride ortak kalıp).
+- Kanıt: check 36/180/270 (yeni 5 contracts, 10 backend, 5 frontend testi); E2E 56/57 + tek WebKit flake (hesap silme testinde sayfa değişirken iptal edilen istekler `pageerror`; tek başına 5/5 geçti). E2E bildirim seçimi yeniden yüklemede korunur + Bildirimler sekmeleri axe taraması. Gerçek push teslimatı ve SMTP gönderimi yerelde uçtan uca denenmedi (sağlayıcı/ağ gerektirir); sunucu tarafı sahte gönderici ile test edildi.
 
 R15 notları (21 Ekim): `projectbrief.md` ve `productContext.md` global ürün kararına göre baştan yazıldı (kavramlar, roller, uygulanmış özellikler, yolculuklar, kapsam dışı, karar notları); öğrenci/TYT senaryoları yalnız Git geçmişinde. README başlığı/kapsamı nötrleştirildi. Kod değişmedi.
 
