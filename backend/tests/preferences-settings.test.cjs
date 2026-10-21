@@ -5,7 +5,7 @@ const { mkdtempSync, rmSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
 const request = require('supertest');
-const { defaultPreferences } = require('@study-tracker/contracts');
+const { defaultPreferences, customTerminologyFrom } = require('@study-tracker/contracts');
 const directory = mkdtempSync(path.join(tmpdir(),'study-tracker-preferences-'));
 Object.assign(process.env,{NODE_ENV:'test',JWT_SECRET:randomBytes(48).toString('hex'),DB_PATH:path.join(directory,'test.sqlite'),BACKUP_DIR:path.join(directory,'backups')});
 const app = require('../dist/app').default;
@@ -89,6 +89,21 @@ it('serves the terminology preset publicly, validates it, and keeps it when othe
  await auth('put','/api/settings',owner).send({terminologyPreset:'goals'}).expect(403);
  assert.equal((await auth('get','/api/settings/admin',admin).expect(200)).body.data.terminologyPreset,'education');
  await Settings.destroy({where:{key:'terminologyPreset'}});
+});
+it('stores site and personal custom words as JSON and rejects an accusative that does not fit',async()=>{
+ const site={...customTerminologyFrom('general'),course:{word:'kitap',accusative:'kitabı'}};
+ await auth('put','/api/settings',admin).send({customTerminology:site}).expect(200);
+ assert.deepEqual((await request(app).get('/api/settings').expect(200)).body.data.customTerminology,site);
+ assert.equal((await Settings.findOne({where:{key:'customTerminology'}})).type,'json');
+ await auth('put','/api/settings',admin).send({customTerminology:{...site,course:{word:'kitap',accusative:'kitapa'}}}).expect(400);
+ await auth('put','/api/settings',admin).send({customTerminology:null}).expect(200);
+ assert.equal((await request(app).get('/api/settings').expect(200)).body.data.customTerminology,null);
+ const mine={...customTerminologyFrom('skills'),session:{word:'saat',accusative:'saati'}};
+ const saved=await auth('put','/api/auth/profile',other).send({preferences:{customTerminology:mine}}).expect(200);
+ assert.deepEqual(saved.body.data.user.preferences.customTerminology,mine);
+ await auth('put','/api/auth/profile',other).send({preferences:{customTerminology:{...mine,topic:{word:'iki kelime',accusative:'iki kelimeyi'}}}}).expect(400);
+ await auth('put','/api/auth/profile',other).send({preferences:{customTerminology:null}}).expect(200);
+ await Settings.destroy({where:{key:'customTerminology'}});
 });
 it('validates all settings before writing and denies student updates',async()=>{
  const before=await Settings.findOne({where:{key:'siteName'}});

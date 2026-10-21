@@ -17,7 +17,7 @@ export * from './search.js';
 export * from './onboarding.js';
 export * from './textSearch.js';
 export * from './notifications.js';
-import { defaultTerminologyPreset, terminologyPresetSchema } from './terminology.js';
+import { customTerminologySchema, defaultTerminologyPreset, terminologyPresetSchema } from './terminology.js';
 
 export const brandIconNames = [
   'GraduationCap',
@@ -48,6 +48,8 @@ export const publicSettingsSchema = z.object({
   allowRegistration: z.boolean(),
   maintenanceMode: z.boolean(),
   terminologyPreset: terminologyPresetSchema,
+  // Site-wide custom words; when set they replace the preset for everyone who follows the site.
+  customTerminology: customTerminologySchema.nullable(),
 });
 export const siteSettingsSchema = publicSettingsSchema.extend({
   adminEmail: z.email(),
@@ -71,6 +73,7 @@ export const defaultSiteSettings: SiteSettings = {
   allowRegistration: true,
   maintenanceMode: false,
   terminologyPreset: defaultTerminologyPreset,
+  customTerminology: null,
   sessionTimeout: 60,
   emailNotifications: true,
   pushNotifications: true,

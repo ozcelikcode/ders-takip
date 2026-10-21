@@ -55,12 +55,15 @@ export const updateSettings = async (
       { type: Transaction.TYPES.IMMEDIATE },
       async (transaction) => {
         for (const [key, value] of Object.entries(parsed.data)) {
+          // Objects and null (custom words, cleared optional values) round-trip as JSON.
           const type =
             typeof value === 'boolean'
               ? 'boolean'
               : typeof value === 'number'
                 ? 'number'
-                : 'string';
+                : typeof value === 'object'
+                  ? 'json'
+                  : 'string';
           const category =
             key === 'backup_interval'
               ? 'backup'
@@ -78,7 +81,7 @@ export const updateSettings = async (
                     ? 'security'
                     : 'general';
           await Settings.upsert(
-            { key, value: value === null ? '' : String(value), type, category },
+            { key, value: type === 'json' ? JSON.stringify(value) : String(value), type, category },
             { transaction },
           );
         }

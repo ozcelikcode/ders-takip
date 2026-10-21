@@ -28,6 +28,7 @@ Okuma controller'ları ORM sorgularını yürütür; yazma iş kuralları ilgili
 - Bildirim: tercih `notifications` isteğe bağlı ve varsayılan kapalı; kanal = yapılandırma + admin site anahtarı; zamanlayıcı her olayı `notification_deliveries` ile önce talep eder (en fazla bir kez). Göndericiler (`mailer`, `pushSender`) testte değiştirilebilir nesnelerdir.
 - Hesap silme tek yol: `services/accounts.ts` `deleteAccount` (admin ve kişinin kendisi); son etkin yönetici korunur. Dışa aktarım `exportAccount` yalnız kullanıcının kendi satırlarını verir.
 - Metin arama tek kural: `foldSearchText`/`matchesSearch` (contracts) ve sunucuda aynı çiftlerle `columnContains` (instr, joker yok). Yeni arama ya da süzgeç bunları kullanır.
+- Görünen kelimeler: `resolveTerminology` (kişisel özel → kişisel set → site özel → site seti) + `createTerms`; ekranlar `useTerms()`, sunucu e-postaları aynı fonksiyonları kullanır. Özel kelime `{ word, accusative }` taşır; ekler -ı hâlinden türetilir, istisna listesi yoktur.
 - Haftalık hedef türetilmiş değerdir: `weeklyGoalHours` = günlük hedef × aktif gün (en fazla 168). Okuyanlar fonksiyonu kullanır; tercih birleştirme kuralı `mergePreferences` contracts'tadır: sunucu bütün yazımlarda saklanan alanı onunla eşitler, istemcinin iyimser görünümü de aynı fonksiyonu kullanır.
 - Kişisel pano (sayılar, öneriler) admin dahil yalnız kendi + ortak kayıtlara bakar (`isOwnOrShared`); admin genel görünümü ayrı sayfadır.
 - Course → Topic; ders silmede ilişki CASCADE; konu controller'ı normal konu silmede isActive=false uygular.

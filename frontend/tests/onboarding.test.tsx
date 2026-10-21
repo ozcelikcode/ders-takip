@@ -178,14 +178,14 @@ it('a personal word set wins over the site preset', () => {
 });
 
 it('settings let a user pick their own word set and restart the wizard', () => {
-  const onTerminologyChange = vi.fn();
+  const onTerminologySave = vi.fn();
   render(
-    <AppearanceTab preferences={preferences({ terminologyPreset: 'skills' })} sitePrimaryColor="#3b82f6" siteTerminologyPreset="education" onThemeChange={vi.fn()} onColorChange={vi.fn()} onTerminologyChange={onTerminologyChange} />,
+    <AppearanceTab preferences={preferences({ terminologyPreset: 'skills' })} sitePrimaryColor="#3b82f6" siteTerminology="education" onThemeChange={vi.fn()} onColorChange={vi.fn()} onTerminologySave={onTerminologySave} />,
   );
   expect((screen.getByRole('radio', { name: /Beceri/ }) as HTMLInputElement).checked).toBe(true);
   expect(screen.getByRole('radio', { name: /Site varsayılanı/ }).closest('label')?.textContent).toContain('Eğitim');
   fireEvent.click(screen.getByRole('radio', { name: /Site varsayılanı/ }));
-  expect(onTerminologyChange).toHaveBeenCalledWith(null);
+  expect(onTerminologySave).toHaveBeenCalledWith({ terminologyPreset: null, customTerminology: null });
   cleanup();
   const onRestartOnboarding = vi.fn();
   const { activeStudyDays, dailyStudyGoal, defaultPomodoroDuration, defaultShortBreak, defaultLongBreak, pomodorosUntilLongBreak } = defaultPreferences;

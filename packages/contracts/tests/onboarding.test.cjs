@@ -1,6 +1,6 @@
 const { it } = require('node:test');
 const assert = require('node:assert/strict');
-const { weeklyGoalHours, completeOnboardingSchema, defaultPreferences, preferencesSchema, preferencesPatchSchema, needsOnboarding, resolveTerminologyPreset } = require('../dist/cjs');
+const { weeklyGoalHours, completeOnboardingSchema, defaultPreferences, preferencesSchema, preferencesPatchSchema, needsOnboarding, resolveTerminology } = require('../dist/cjs');
 
 const preferences = {
   terminologyPreset: 'education', studyField: 'Dil öğrenimi', timezone: 'America/New_York', weekStartsOn: 0,
@@ -18,9 +18,10 @@ it('stored preferences without the onboarding fields stay valid and count as fin
 });
 
 it('a personal terminology preset overrides the site preset until cleared', () => {
-  assert.equal(resolveTerminologyPreset({ terminologyPreset: 'skills' }, 'general'), 'skills');
-  assert.equal(resolveTerminologyPreset({ terminologyPreset: null }, 'education'), 'education');
-  assert.equal(resolveTerminologyPreset({}, 'goals'), 'goals');
+  const site = (terminologyPreset) => ({ terminologyPreset, customTerminology: null });
+  assert.equal(resolveTerminology({ terminologyPreset: 'skills' }, site('general')), 'skills');
+  assert.equal(resolveTerminology({ terminologyPreset: null }, site('education')), 'education');
+  assert.equal(resolveTerminology({}, site('goals')), 'goals');
   assert.equal(preferencesPatchSchema.safeParse({ terminologyPreset: null }).success, true);
   assert.equal(preferencesPatchSchema.safeParse({ terminologyPreset: 'exam' }).success, false);
   assert.equal(preferencesPatchSchema.safeParse({ onboarding: 'started' }).success, false);

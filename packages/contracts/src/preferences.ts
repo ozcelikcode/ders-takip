@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { timezoneSchema, weekStartSchema, defaultWeekStart, type WeekStart } from './time.js';
-import { terminologyPresetSchema, type TerminologyPresetId } from './terminology.js';
+import { customTerminologySchema, terminologyPresetSchema, type CustomTerminology, type TerminologyPresetId } from './terminology.js';
 import { defaultNotificationPreferences, notificationPreferencesSchema, type NotificationPreferences } from './notifications.js';
 
 export const onboardingStateSchema = z.enum(['pending', 'done']);
@@ -31,6 +31,8 @@ export const preferencesSchema = z.object({
   onboarding: onboardingStateSchema.optional(),
   // Personal vocabulary; null or absent follows the site-wide preset.
   terminologyPreset: terminologyPresetSchema.nullable().optional(),
+  // Personal custom words; when set they win over any preset.
+  customTerminology: customTerminologySchema.nullable().optional(),
   // Opt-in delivery choices; absent means everything off (see `resolveNotifications`).
   notifications: notificationPreferencesSchema.optional(),
 });
@@ -59,10 +61,15 @@ export const resolveWeekStart = (preferences: Pick<UserPreferences, 'weekStartsO
   preferences.weekStartsOn ?? defaultWeekStart;
 export const needsOnboarding = (preferences: Pick<UserPreferences, 'onboarding'>): boolean =>
   preferences.onboarding === 'pending';
-export const resolveTerminologyPreset = (
-  preferences: Pick<UserPreferences, 'terminologyPreset'>,
-  sitePreset: TerminologyPresetId,
-): TerminologyPresetId => preferences.terminologyPreset ?? sitePreset;
+/**
+ * The vocabulary a person sees: their own custom words, else their preset, else the site's
+ * custom words, else the site preset. Feed the result to `createTerms`.
+ */
+export const resolveTerminology = (
+  preferences: Pick<UserPreferences, 'terminologyPreset' | 'customTerminology'>,
+  site: { terminologyPreset: TerminologyPresetId; customTerminology: CustomTerminology | null },
+): TerminologyPresetId | CustomTerminology =>
+  preferences.customTerminology ?? preferences.terminologyPreset ?? site.customTerminology ?? site.terminologyPreset;
 /**
  * The weekly goal is not chosen separately: it is the daily goal on every active day.
  * The stored `weeklyStudyGoal` is kept equal to this on every write; readers use this function.

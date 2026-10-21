@@ -528,7 +528,7 @@ it('offers the vocabulary presets and saves only the chosen preset', async () =>
   await ready();
   fireEvent.click(screen.getByRole('button', { name: 'Kelimeler' }));
   const group = screen.getByRole('radiogroup', { name: 'Kelime seti' });
-  expect(within(group).getAllByRole('radio')).toHaveLength(4);
+  expect(within(group).getAllByRole('radio')).toHaveLength(5);
   expect((within(group).getByRole('radio', { name: /Eğitim/ }) as HTMLInputElement).checked).toBe(true);
   expect(within(group).getByText('Örnek: Hedef → Adım · Seans')).toBeTruthy();
   fireEvent.click(within(group).getByRole('radio', { name: /Hedef/ }));
@@ -537,4 +537,32 @@ it('offers the vocabulary presets and saves only the chosen preset', async () =>
     expect(settingsAPI.updateSettings).toHaveBeenCalledWith({ terminologyPreset: 'goals' }),
   );
   await waitFor(() => expect(useSettingsStore.getState().settings.terminologyPreset).toBe('goals'));
+});
+
+it('lets an administrator write site-wide custom words and refuses ones that do not fit', async () => {
+  mount();
+  await ready();
+  fireEvent.click(screen.getByRole('button', { name: 'Kelimeler' }));
+  fireEvent.click(screen.getByRole('radio', { name: /Özel kelimeler/ }));
+  const word = screen.getByRole('group', { name: 'Ana kayıt' });
+  expect((within(word).getByLabelText('Kelime') as HTMLInputElement).value).toBe('ders');
+  fireEvent.change(within(word).getByLabelText('Kelime'), { target: { value: 'Kitap' } });
+  expect((within(word).getByLabelText('"-ı" hâli') as HTMLInputElement).value).toBe('kitapı');
+  fireEvent.change(within(word).getByLabelText('"-ı" hâli'), { target: { value: 'kitapa' } });
+  expect(within(word).getByText(/bu kelimeye uymuyor/)).toBeTruthy();
+  save();
+  expect(await screen.findByText(/Geçersiz alanlar: Özel kelimeler/)).toBeTruthy();
+  expect(settingsAPI.updateSettings).not.toHaveBeenCalled();
+  fireEvent.change(within(word).getByLabelText('"-ı" hâli'), { target: { value: 'kitabı' } });
+  expect(within(word).getByText('Biçimler: kitap · kitabı · kitaba · kitabın · kitapta · kitaplar')).toBeTruthy();
+  save();
+  await waitFor(() =>
+    expect(settingsAPI.updateSettings).toHaveBeenCalledWith({
+      customTerminology: {
+        course: { word: 'kitap', accusative: 'kitabı' },
+        topic: { word: 'konu', accusative: 'konuyu' },
+        session: { word: 'seans', accusative: 'seansı' },
+      },
+    }),
+  );
 });

@@ -1,6 +1,7 @@
 import { useTerms } from '../../hooks/useTerms';
 import {
   brandIconNames,
+  customTerminologyFrom,
   siteSettingsSchema,
   settingsPatchSchema,
   type SiteSettings,
@@ -11,6 +12,7 @@ import BackupPanel, {
   type MaintenanceAction,
 } from '../../components/admin/BackupPanel';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import CustomTerminologyEditor from '../../components/settings/CustomTerminologyEditor';
 import TerminologyPresetPicker from '../../components/settings/TerminologyPresetPicker';
 import NotificationChannelStatus from '../../components/admin/NotificationChannelStatus';
 import PageHeader from '../../components/common/PageHeader';
@@ -19,6 +21,9 @@ import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { backupAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
+
+// Custom words are an object; compare settings by value, not identity.
+const sameSetting = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
 
 const sections = [
   ['general', 'Genel'],
@@ -59,7 +64,7 @@ function SettingsForm({
   const client = useQueryClient();
   const keys = useAccountQueryKeys();
   const dirty = (Object.keys(draft) as (keyof SiteSettings)[]).some(
-    (key) => draft[key] !== baseline[key],
+    (key) => !sameSetting(draft[key], baseline[key]),
   );
   useEffect(() => {
     if (!dirty && !mutation.isPending && adminSettings) {
@@ -159,7 +164,7 @@ function SettingsForm({
     const patch = settingsPatchSchema.parse(
       Object.fromEntries(
         (Object.keys(result.data) as (keyof SiteSettings)[])
-          .filter((key) => result.data[key] !== baseline[key])
+          .filter((key) => !sameSetting(result.data[key], baseline[key]))
           .map((key) => [key, result.data[key]]),
       ),
     );
@@ -347,11 +352,21 @@ function SettingsForm({
               </p>
               <TerminologyPresetPicker
                 name={`${prefix}-terminologyPreset`}
-                value={draft.terminologyPreset}
-                onChange={(terminologyPreset) => {
-                  if (terminologyPreset) setDraft({ ...draft, terminologyPreset });
+                value={draft.customTerminology ? 'custom' : draft.terminologyPreset}
+                custom={draft.customTerminology}
+                onChange={(choice) => {
+                  if (choice === 'custom')
+                    setDraft({ ...draft, customTerminology: draft.customTerminology ?? customTerminologyFrom(draft.terminologyPreset) });
+                  else if (choice) setDraft({ ...draft, terminologyPreset: choice, customTerminology: null });
                 }}
               />
+              {draft.customTerminology && (
+                <CustomTerminologyEditor
+                  idPrefix={`${prefix}-customTerminology`}
+                  value={draft.customTerminology}
+                  onChange={(customTerminology) => setDraft({ ...draft, customTerminology })}
+                />
+              )}
             </>
           )}
           {section === 'backup' && (
@@ -397,6 +412,7 @@ function SettingsForm({
                     adminEmail: 'Yönetici e-postası',
                     sessionTimeout: 'Oturum süresi',
                     primaryColor: 'Ana renk',
+                    customTerminology: 'Özel kelimeler',
                     siteLogo: 'Logo URL',
                     siteIcon: 'Site ikonu',
                   })[key] ?? key,

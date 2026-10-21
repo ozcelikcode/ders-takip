@@ -1,6 +1,5 @@
-import type { TerminologyPresetId, UserPreferences } from '@study-tracker/contracts';
-import { useId } from 'react';
-import TerminologyPresetPicker from '../../components/settings/TerminologyPresetPicker';
+import type { CustomTerminology, PreferencesPatch, TerminologyPresetId, UserPreferences } from '@study-tracker/contracts';
+import TerminologySection from './TerminologySection';
 import { Check, Monitor, Moon, Sun } from 'lucide-react';
 import type { ThemeMode } from '../../store/userPreferencesStore';
 
@@ -34,21 +33,20 @@ const isLightColor = (hexColor: string): boolean => {
 interface AppearanceTabProps {
   preferences: UserPreferences;
   sitePrimaryColor: string;
-  siteTerminologyPreset: TerminologyPresetId;
+  siteTerminology: TerminologyPresetId | CustomTerminology;
   onThemeChange: (theme: ThemeMode) => void;
   onColorChange: (color: string | null) => void;
-  onTerminologyChange: (preset: TerminologyPresetId | null) => void;
+  onTerminologySave: (patch: PreferencesPatch) => void;
 }
 
 const AppearanceTab = ({
   preferences,
   sitePrimaryColor,
-  siteTerminologyPreset,
+  siteTerminology,
   onThemeChange,
   onColorChange,
-  onTerminologyChange,
+  onTerminologySave,
 }: AppearanceTabProps) => {
-  const prefix = useId();
   const currentColor = preferences.customPrimaryColor || sitePrimaryColor;
   return (
     <div className="space-y-8">
@@ -152,20 +150,7 @@ const AppearanceTab = ({
         </div>
       </section>
 
-      <section className="space-y-4 border-t border-(--line) pt-6">
-        <div>
-          <h2 className="text-base font-medium">Kelimeler</h2>
-          <p className="mt-1 text-sm text-(--muted)">
-            Ana kavramların sana nasıl görüneceğini seç. Kayıtların değişmez; yalnızca görünen kelimeler değişir.
-          </p>
-        </div>
-        <TerminologyPresetPicker
-          name={`${prefix}-terminologyPreset`}
-          value={preferences.terminologyPreset ?? null}
-          siteDefault={siteTerminologyPreset}
-          onChange={onTerminologyChange}
-        />
-      </section>
+      <TerminologySection preferences={preferences} siteTerminology={siteTerminology} onSave={onTerminologySave} />
     </div>
   );
 };

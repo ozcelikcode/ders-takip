@@ -464,3 +464,24 @@ test('lets a user choose browser reminders and keeps the choice after a reload',
   await expect(page.getByLabel(/Tarayıcı bildirimi ile/)).toBeChecked();
   await expect(page.getByLabel('Ne kadar önce')).toHaveValue('15');
 });
+
+test('lets a user name records with their own word and keeps it after a reload', async ({ page }) => {
+  await login(page);
+  await page.goto('/settings');
+  await page.getByRole('radio', { name: /Özel kelimeler/ }).check();
+  const course = page.getByRole('group', { name: 'Ana kayıt' });
+  await course.getByLabel('Kelime').fill('kitap');
+  await course.getByLabel('"-ı" hâli').fill('kitabı');
+  await expect(course.getByText('Biçimler: kitap · kitabı · kitaba · kitabın · kitapta · kitaplar')).toBeVisible();
+  await page.getByRole('button', { name: 'Kelimeleri kaydet' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Tercihler hesabınızda saklanır' })).toBeVisible();
+  await page.goto('/courses');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Kitaplar');
+  await page.reload();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Kitaplar');
+  await page.goto('/settings');
+  await page.getByRole('radio', { name: /Site varsayılanı/ }).check();
+  await expect(page.getByRole('status').filter({ hasText: 'Tercihler hesabınızda saklanır' })).toBeVisible();
+  await page.goto('/courses');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Projeler');
+});

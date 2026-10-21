@@ -8,7 +8,7 @@ import {
   formatGoalMinutes,
   formatZonedTime,
   resolveNotifications,
-  resolveTerminologyPreset,
+  resolveTerminology,
   resolveWeekStart,
   weeklyGoalHours,
   weeklySummaryHour,
@@ -188,7 +188,7 @@ export async function runDueNotifications(now = new Date()): Promise<void> {
       const options = resolveNotifications(user.preferences);
       return options.sessionReminderEmail || options.sessionReminderPush || options.dailyPlanEmail || options.weeklySummaryEmail;
     })
-    .map((user) => ({ user, preferences: user.preferences, terms: createTerms(resolveTerminologyPreset(user.preferences, settings.terminologyPreset)) }));
+    .map((user) => ({ user, preferences: user.preferences, terms: createTerms(resolveTerminology(user.preferences, settings)) }));
   if (!recipients.length) return;
   await sendSessionReminders(now, recipients, channels, settings.siteName);
   if (channels.email.enabled) {

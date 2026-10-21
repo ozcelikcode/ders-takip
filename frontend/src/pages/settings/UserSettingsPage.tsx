@@ -94,10 +94,10 @@ const UserSettingsPage = () => {
           <AppearanceTab
             preferences={preferences}
             sitePrimaryColor={siteSettings.primaryColor}
-            siteTerminologyPreset={siteSettings.terminologyPreset}
+            siteTerminology={siteSettings.customTerminology ?? siteSettings.terminologyPreset}
             onThemeChange={handleThemeChange}
             onColorChange={handleColorChange}
-            onTerminologyChange={(terminologyPreset) => void savePreferences({ terminologyPreset })}
+            onTerminologySave={(patch) => void savePreferences(patch)}
           />
         )}
         {activeTab === 'notifications' && (

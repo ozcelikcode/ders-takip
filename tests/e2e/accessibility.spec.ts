@@ -110,6 +110,12 @@ for (const theme of ['light', 'dark'] as const) {
           ] as const) {
             await page.getByRole('button', { name, exact: true }).click();
             await scan(page, info, `settings-${id}`);
+            if (id === 'appearance') {
+              // Opening the custom words editor saves nothing; it only shows the fields.
+              await page.getByRole('radio', { name: /Özel kelimeler/ }).check();
+              await expect(page.getByRole('group', { name: 'Ana kayıt' })).toBeVisible();
+              await scan(page, info, 'settings-custom-terminology');
+            }
           }
         }
       }

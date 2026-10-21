@@ -1,6 +1,9 @@
 const { it } = require('node:test');
 const assert = require('node:assert/strict');
-const { inflect, createTerms, terminologyPresets, terminologyPresetIds, publicSettingsSchema, defaultSiteSettings, settingsPatchSchema } = require('../dist/cjs');
+const {
+  inflect, createTerms, terminologyPresets, terminologyPresetIds, publicSettingsSchema, defaultSiteSettings, settingsPatchSchema,
+  accusativeFits, suggestAccusative, customTerminologySchema, customTerminologyFrom, resolveTerminology, preferencesPatchSchema,
+} = require('../dist/cjs');
 
 // Hand-verified Turkish forms: [word, acc, dat, gen, loc, abl, plural, pluralDat]
 const golden = [
@@ -48,4 +51,74 @@ it('requires the preset in public settings and never injects it into a settings 
   assert.deepEqual(settingsPatchSchema.parse({ siteName: 'Yeni' }), { siteName: 'Yeni' });
   assert.equal(settingsPatchSchema.safeParse({ terminologyPreset: 'skills' }).success, true);
   assert.equal(settingsPatchSchema.safeParse({ terminologyPreset: 'astronomy' }).success, false);
+});
+
+// Words plain harmony gets wrong, with the accusative a person gives: [word, acc, dat, gen, loc, abl, plural, pluralAcc]
+const irregular = [
+  ['kitap', 'kitabı', 'kitaba', 'kitabın', 'kitapta', 'kitaptan', 'kitaplar', 'kitapları'],
+  ['saat', 'saati', 'saate', 'saatin', 'saatte', 'saatten', 'saatler', 'saatleri'],
+  ['ağız', 'ağzı', 'ağza', 'ağzın', 'ağızda', 'ağızdan', 'ağızlar', 'ağızları'],
+  ['hak', 'hakkı', 'hakka', 'hakkın', 'hakta', 'haktan', 'haklar', 'hakları'],
+  ['renk', 'rengi', 'renge', 'rengin', 'renkte', 'renkten', 'renkler', 'renkleri'],
+  ['rol', 'rolü', 'role', 'rolün', 'rolde', 'rolden', 'roller', 'rolleri'],
+  ['oturum', 'oturumu', 'oturuma', 'oturumun', 'oturumda', 'oturumdan', 'oturumlar', 'oturumları'],
+];
+
+it('inflects custom words from their given accusative', () => {
+  for (const [word, accusative, dat, gen, loc, abl, plural, pluralAcc] of irregular) {
+    const term = { word, accusative };
+    assert.ok(accusativeFits(word, accusative), word);
+    assert.equal(inflect(term, { case: 'acc' }), accusative, word);
+    assert.equal(inflect(term, { case: 'dat' }), dat, word);
+    assert.equal(inflect(term, { case: 'gen' }), gen, word);
+    assert.equal(inflect(term, { case: 'loc' }), loc, word);
+    assert.equal(inflect(term, { case: 'abl' }), abl, word);
+    assert.equal(inflect(term, { plural: true }), plural, word);
+    assert.equal(inflect(term, { plural: true, case: 'acc' }), pluralAcc, word);
+  }
+});
+
+it('suggests the regular accusative and matches the preset golden forms through the term path', () => {
+  assert.equal(suggestAccusative('proje'), 'projeyi');
+  assert.equal(suggestAccusative('kitap'), 'kitapı');
+  for (const [word, acc, dat, gen, loc, abl, plural, pluralDat] of golden) {
+    const term = { word, accusative: acc };
+    assert.deepEqual(
+      [inflect(term, { case: 'dat' }), inflect(term, { case: 'gen' }), inflect(term, { case: 'loc' }), inflect(term, { case: 'abl' }), inflect(term, { plural: true }), inflect(term, { plural: true, case: 'dat' })],
+      [dat, gen, loc, abl, plural, pluralDat],
+      word,
+    );
+  }
+});
+
+it('rejects accusatives and words that cannot belong together', () => {
+  assert.equal(accusativeFits('kitap', 'kitapa'), false);
+  assert.equal(accusativeFits('kitap', 'defteri'), false);
+  assert.equal(accusativeFits('proje', 'projei'), false);
+  const valid = customTerminologyFrom('education');
+  assert.equal(customTerminologySchema.safeParse(valid).success, true);
+  for (const word of ['iki kelime', 'Ders', 'a', 'ders1']) {
+    const parsed = customTerminologySchema.safeParse({ ...valid, course: { word, accusative: 'dersi' } });
+    assert.equal(parsed.success, false, word);
+  }
+  const mismatch = customTerminologySchema.safeParse({ ...valid, topic: { word: 'kitap', accusative: 'kitapa' } });
+  assert.deepEqual(mismatch.error.issues[0].path, ['topic', 'accusative']);
+});
+
+it('prefers personal custom words, then the personal preset, then the site words', () => {
+  const mine = customTerminologyFrom('skills');
+  const site = { terminologyPreset: 'education', customTerminology: customTerminologyFrom('goals') };
+  assert.equal(resolveTerminology({ customTerminology: mine, terminologyPreset: 'general' }, site), mine);
+  assert.equal(resolveTerminology({ customTerminology: null, terminologyPreset: 'general' }, site), 'general');
+  assert.equal(resolveTerminology({}, site), site.customTerminology);
+  assert.equal(resolveTerminology({}, { ...site, customTerminology: null }), 'education');
+  assert.equal(createTerms(mine).topic({ plural: true }), 'alıştırmalar');
+});
+
+it('accepts custom words in settings and preference patches, null clearing them', () => {
+  assert.equal(publicSettingsSchema.safeParse(defaultSiteSettings).success, true);
+  assert.equal(settingsPatchSchema.safeParse({ customTerminology: null }).success, true);
+  assert.equal(settingsPatchSchema.safeParse({ customTerminology: customTerminologyFrom('general') }).success, true);
+  assert.equal(preferencesPatchSchema.safeParse({ customTerminology: customTerminologyFrom('general') }).success, true);
+  assert.equal(preferencesPatchSchema.safeParse({ customTerminology: { course: { word: 'x', accusative: 'x' } } }).success, false);
 });
