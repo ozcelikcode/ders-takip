@@ -18,7 +18,7 @@ Sıra (öncelik: önce yanlış varsayımları kaldır, sonra yapılandırılabi
 | R6 | Genel istatistik | **Yapıldı (19 Ekim)** | Kategori/ders bazlı dağılım, aralık seçimi, hedefle gerçekleşen; ölçülmemiş eski süre hariç |
 | R7 | Global arama | **Yapıldı (19 Ekim)** | Header araması ders/konu/seans başlığı ve not içinde arar, yetki kapsamına uyar |
 | R8 | Hesap kurtarma | **Yapıldı (19 Ekim)** | Şifre sıfırlama akışı; e-posta altyapısı kararı gerekir (SMTP/sağlayıcı) |
-| R11 | Bildirim teslimatı | **Yapıldı (21 Ekim); gerçek DB'de migration 009 bekliyor** | E-posta (R8 SMTP kararıyla) ve tarayıcı bildirimi/hatırlatma; teslimat kurulana dek kullanıcı ve admin ekranında bildirim anahtarı gösterilmez |
+| R11 | Bildirim teslimatı | **Yapıldı (21 Ekim); gerçek DB'ye 009 uygulandı (yedek: `backend/backups/pre-009-20261021-110755.sqlite`)** | E-posta (R8 SMTP kararıyla) ve tarayıcı bildirimi/hatırlatma; teslimat kurulana dek kullanıcı ve admin ekranında bildirim anahtarı gösterilmez |
 | R10 | Arayüz çevirisi (i18n) | Bekliyor | Metin kataloğu + `language` tercihinin gerçek etkisi; biçimlendirme `lib/locale.ts` tek kaynağından değişir. Hazır olana dek dil seçici gösterilmez |
 | R9 | Sağlamlaştırma | **Yapıldı (19 Ekim); Tailwind 4 geçişi ayrı iş olarak bekliyor** | Major bağımlılıklar + audit, mobil ilk yük (Lighthouse 90+), LICENSE kararı, giriş/kayıt sayfalarının nötr token'a taşınması |
 | R12 | İlk kurulum sihirbazı | **Yapıldı (20 Ekim); R12b kişisel kategori yönetimi de yapıldı (21 Ekim)** | Yeni hesap ilk girişte birkaç adımlı kurulum görür; cevaplara göre kelime seti, hedefler, ritim, kişisel kategori ve ilk kayıtlar hazırlanır; pano boş değil, ilk adımı gösterir. Atlanabilir, Ayarlar'dan yeniden başlatılabilir |
