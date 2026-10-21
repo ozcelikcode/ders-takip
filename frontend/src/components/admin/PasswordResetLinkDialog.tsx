@@ -46,7 +46,7 @@ export default function PasswordResetLinkDialog({ userId, name, onClose }: Passw
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <Dialog.Panel className="panel w-full max-w-lg space-y-4 p-6 shadow-xl">
           <Dialog.Title className="text-lg font-medium">Şifre sıfırlama bağlantısı</Dialog.Title>
-          <Dialog.Description className="text-sm text-[var(--muted)]">
+          <Dialog.Description className="text-sm text-(--muted)">
             “{name}” için tek kullanımlık, 30 dakika geçerli bir bağlantı oluşturulur ve önceki bağlantılar geçersiz olur.
             Bağlantıyı yalnızca hesap sahibine güvenli bir kanaldan iletin.
           </Dialog.Description>
@@ -54,7 +54,7 @@ export default function PasswordResetLinkDialog({ userId, name, onClose }: Passw
             <div className="space-y-2">
               <label htmlFor="reset-link" className="block text-sm font-medium">Bağlantı</label>
               <input id="reset-link" readOnly className="input font-mono text-xs" value={link.url} onFocus={(event) => event.target.select()} />
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-xs text-(--muted)">
                 Son geçerlilik: {new Date(link.expiresAt).toLocaleString('tr-TR')}
               </p>
             </div>

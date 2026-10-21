@@ -58,11 +58,11 @@ export default function AccountDataCard() {
       <div className="panel-heading">
         <h2 id="account-data-heading" className="text-base font-medium">Verilerin</h2>
       </div>
-      <div className="divide-y divide-[var(--line)]">
+      <div className="divide-y divide-(--line)">
         <div className="flex flex-wrap items-center justify-between gap-4 p-5">
           <div className="min-w-0 flex-1 basis-64">
             <h3 className="text-sm font-medium">Verilerimi indir</h3>
-            <p className="mt-1 text-sm text-[var(--muted)]">
+            <p className="mt-1 text-sm text-(--muted)">
               Profilin, tercihlerin, kendi kayıt ve kategorilerin, seansların, planların ve ilerlemen tek bir JSON dosyasında.
             </p>
           </div>
@@ -74,7 +74,7 @@ export default function AccountDataCard() {
         <div className="flex flex-wrap items-center justify-between gap-4 p-5">
           <div className="min-w-0 flex-1 basis-64">
             <h3 className="text-sm font-medium">Hesabı sil</h3>
-            <p className="mt-1 text-sm text-[var(--muted)]">
+            <p className="mt-1 text-sm text-(--muted)">
               Hesabın ve sana ait bütün veriler kalıcı olarak silinir. Geri alınamaz; önce verilerini indirmen önerilir.
             </p>
           </div>

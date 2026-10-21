@@ -36,7 +36,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
       }[pathname.split('/')[1] || ''] || 'Çalışma alanı';
   const [searchTerm, setSearchTerm] = useState('');
   return (
-    <header className="sticky top-0 z-30 border-b bg-[var(--surface)]">
+    <header className="sticky top-0 z-30 border-b bg-(--surface)">
       <div className="mx-auto max-w-[1440px] px-4 sm:px-7 lg:px-10">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-4">
@@ -48,9 +48,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <span className="hidden items-center gap-3 text-xs text-[var(--muted)] lg:flex">
+            <span className="hidden items-center gap-3 text-xs text-(--muted) lg:flex">
               Çalışma alanı <span aria-hidden="true">/</span>
-              <span className="font-medium text-[var(--text)]">
+              <span className="font-medium text-(--text)">
                 {sectionName}
               </span>
             </span>
@@ -66,7 +66,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             >
               <Search
                 aria-hidden="true"
-                className="pointer-events-none absolute left-3 top-2 h-4 w-4 text-[var(--muted)]"
+                className="pointer-events-none absolute left-3 top-2 h-4 w-4 text-(--muted)"
               />
               <input
                 aria-label="Çalışma alanında ara"
@@ -78,7 +78,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               />
               <button
                 type="submit"
-                className="absolute inset-y-0 right-2 min-w-6 text-xs text-[var(--muted)] hover:text-[var(--text)]"
+                className="absolute inset-y-0 right-2 min-w-6 text-xs text-(--muted) hover:text-(--text)"
               >
                 Ara
               </button>
@@ -96,7 +96,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               {({ close }) => (
                 <>
                   <Popover.Button
-                    className="flex items-center gap-2 rounded-md p-1.5 hover:bg-[var(--subtle)]"
+                    className="flex items-center gap-2 rounded-md p-1.5 hover:bg-(--subtle)"
                   >
                     <span className="sr-only">Hesap menüsü</span>
                     {' '}
@@ -110,7 +110,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       ) : (
                         <UserIcon
                           aria-hidden="true"
-                          className="h-4 w-4 text-[var(--muted)]"
+                          className="h-4 w-4 text-(--muted)"
                         />
                       )}
                     </span>
@@ -119,7 +119,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         {user?.fullName}
                       </span>
                       {' '}
-                      <span className="block text-xs text-[var(--muted)]">
+                      <span className="block text-xs text-(--muted)">
                         {user ? roleLabel(user.role) : ''}
                       </span>
                     </span>
@@ -129,9 +129,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     className="dropdown-panel w-56 py-2"
                     aria-label="Hesap bağlantıları"
                   >
-                    <div className="border-b border-[var(--line)] px-4 py-3">
+                    <div className="border-b border-(--line) px-4 py-3">
                       <p className="text-sm font-medium">{user?.fullName}</p>
-                      <p className="truncate text-xs text-[var(--muted)]">
+                      <p className="truncate text-xs text-(--muted)">
                         {user?.email}
                       </p>
                     </div>
@@ -139,7 +139,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       <Link
                         to="/profile"
                         onClick={() => close()}
-                        className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-[var(--subtle)]"
+                        className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-(--subtle)"
                       >
                         <UserCircle aria-hidden="true" className="h-4 w-4" />
                         Profil
@@ -147,7 +147,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       <Link
                         to="/settings"
                         onClick={() => close()}
-                        className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-[var(--subtle)]"
+                        className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-(--subtle)"
                       >
                         <Settings aria-hidden="true" className="h-4 w-4" />
                         Ayarlar
@@ -159,7 +159,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         close();
                         useAuthStore.getState().logout();
                       }}
-                      className="flex w-full items-center gap-3 border-t border-[var(--line)] px-4 py-3 text-left text-sm text-red-600 hover:bg-[var(--subtle)]"
+                      className="flex w-full items-center gap-3 border-t border-(--line) px-4 py-3 text-left text-sm text-red-600 hover:bg-(--subtle)"
                     >
                       <LogOut aria-hidden="true" className="h-4 w-4" />
                       Çıkış Yap

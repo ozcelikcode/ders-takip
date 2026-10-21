@@ -65,23 +65,23 @@ const AppearanceTab = ({
                 aria-pressed={selected}
                 className={`rounded-lg border p-4 text-left transition-colors ${
                   selected
-                    ? 'border-[var(--solid)] bg-[var(--subtle)]'
-                    : 'border-[var(--line)] hover:bg-[var(--subtle)]'
+                    ? 'border-(--solid) bg-(--subtle)'
+                    : 'border-(--line) hover:bg-(--subtle)'
                 }`}
               >
                 <IconComponent className="mb-3 h-5 w-5" />
                 <div className="text-sm font-medium">{label}</div>
-                <div className="mt-1 text-xs text-[var(--muted)]">{description}</div>
+                <div className="mt-1 text-xs text-(--muted)">{description}</div>
               </button>
             );
           })}
         </div>
       </section>
 
-      <section className="space-y-4 border-t border-[var(--line)] pt-6">
+      <section className="space-y-4 border-t border-(--line) pt-6">
         <div>
           <h2 className="text-base font-medium">Ana renk</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">Vurgu ve odak rengini özelleştirin</p>
+          <p className="mt-1 text-sm text-(--muted)">Vurgu ve odak rengini özelleştirin</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {PREDEFINED_COLORS.map((color) => {
@@ -95,8 +95,8 @@ const AppearanceTab = ({
                 title={color.name}
                 className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs transition-colors ${
                   selected
-                    ? 'border-[var(--solid)] bg-[var(--subtle)] font-medium'
-                    : 'border-[var(--line)] text-[var(--muted)] hover:bg-[var(--subtle)] hover:text-[var(--text)]'
+                    ? 'border-(--solid) bg-(--subtle) font-medium'
+                    : 'border-(--line) text-(--muted) hover:bg-(--subtle) hover:text-(--text)'
                 }`}
               >
                 <span
@@ -126,7 +126,7 @@ const AppearanceTab = ({
               type="color"
               value={currentColor}
               onChange={(e) => onColorChange(e.target.value)}
-              className="h-9 w-12 shrink-0 cursor-pointer rounded-md border border-[var(--line)] bg-transparent p-1"
+              className="h-9 w-12 shrink-0 cursor-pointer rounded-md border border-(--line) bg-transparent p-1"
             />
             <input
               type="text"
@@ -152,10 +152,10 @@ const AppearanceTab = ({
         </div>
       </section>
 
-      <section className="space-y-4 border-t border-[var(--line)] pt-6">
+      <section className="space-y-4 border-t border-(--line) pt-6">
         <div>
           <h2 className="text-base font-medium">Kelimeler</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">
+          <p className="mt-1 text-sm text-(--muted)">
             Ana kavramların sana nasıl görüneceğini seç. Kayıtların değişmez; yalnızca görünen kelimeler değişir.
           </p>
         </div>

@@ -88,7 +88,7 @@ function CategoryDeleteDialog({
           </p>
         )}
         {targets.length === 0 && (
-          <p className="text-sm text-[var(--muted)]">
+          <p className="text-sm text-(--muted)">
             Dolu bir kategoriyi silmeden önce başka bir kategori ekleyin.
           </p>
         )}
@@ -145,7 +145,7 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                 <Dialog.Title className="text-lg font-medium">
                   {admin ? 'Kategori yönetimi' : 'Kategorilerim'}
                 </Dialog.Title>
-                <Dialog.Description className="mt-2 text-sm text-[var(--muted)]">
+                <Dialog.Description className="mt-2 text-sm text-(--muted)">
                   {scope === 'shared'
                     ? `Tüm kullanıcıların ${t.course({ case: 'acc', plural: true })} gruplandıran ortak kategorileri yönetin.`
                     : `Yalnız sana görünen kategoriler. Kendi ${t.course({ case: 'acc', plural: true })} bunlarla ya da ortak kategorilerle gruplayabilirsin.`}
@@ -180,7 +180,7 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                   <label htmlFor={searchId} className="sr-only">
                     Kategori ara
                   </label>
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-[var(--muted)]" />
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-(--muted)" />
                   <input
                     id={searchId}
                     className="input pl-9"
@@ -201,7 +201,7 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
               {query.isPending ? (
                 <p
                   role="status"
-                  className="py-8 text-center text-sm text-[var(--muted)]"
+                  className="py-8 text-center text-sm text-(--muted)"
                 >
                   Kategoriler yükleniyor…
                 </p>
@@ -217,7 +217,7 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                 </div>
               ) : (
                 <>
-                  <p className="text-xs text-[var(--muted)]">
+                  <p className="text-xs text-(--muted)">
                     {categories.length} kategori · {filtered.length} sonuç
                   </p>
                   <div className="max-h-[50vh] space-y-2 overflow-y-auto">
@@ -236,21 +236,21 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                           </div>
                           <div className="min-w-0 flex-1 basis-32">
                             <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="break-words text-sm font-medium">
+                              <h3 className="wrap-break-word text-sm font-medium">
                                 {category.name}
                               </h3>
                               {!category.isActive && (
-                                <span className="badge border text-[var(--muted)]">
+                                <span className="badge border text-(--muted)">
                                   Pasif
                                 </span>
                               )}
                             </div>
                             {category.description && (
-                              <p className="mt-1 break-words text-sm text-[var(--muted)]">
+                              <p className="mt-1 wrap-break-word text-sm text-(--muted)">
                                 {category.description}
                               </p>
                             )}
-                            <p className="mt-1 text-xs text-[var(--muted)]">
+                            <p className="mt-1 text-xs text-(--muted)">
                               Sıra: {category.order}
                             </p>
                           </div>
@@ -275,8 +275,8 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                     })}
                     {filtered.length === 0 && (
                       <div className="py-8 text-center">
-                        <Tag className="mx-auto mb-3 h-6 w-6 text-[var(--muted)]" />
-                        <p className="text-sm text-[var(--muted)]">
+                        <Tag className="mx-auto mb-3 h-6 w-6 text-(--muted)" />
+                        <p className="text-sm text-(--muted)">
                           {search.trim()
                             ? 'Aramanıza uygun kategori bulunamadı.'
                             : scope === 'shared'

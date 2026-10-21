@@ -79,25 +79,25 @@ export default function Recommendations() {
       <div className="panel-heading">
         <div>
           <h2 id="recommendations-heading" className="text-sm font-medium">Öneriler</h2>
-          <p className="mt-1 text-xs text-[var(--muted)]">Hedeflerine, planına ve bu haftaki çalışmana göre</p>
+          <p className="mt-1 text-xs text-(--muted)">Hedeflerine, planına ve bu haftaki çalışmana göre</p>
         </div>
       </div>
       {loading ? (
-        <p role="status" className="p-5 text-sm text-[var(--muted)]">Öneriler yükleniyor…</p>
+        <p role="status" className="p-5 text-sm text-(--muted)">Öneriler yükleniyor…</p>
       ) : failed ? (
         <p className="p-5 text-sm text-red-600 dark:text-red-400">Öneriler şu anda hazırlanamadı.</p>
       ) : (
-        <ul className="grid divide-y divide-[var(--line)] md:grid-cols-3 md:divide-x md:divide-y-0">
+        <ul className="grid divide-y divide-(--line) md:grid-cols-3 md:divide-x md:divide-y-0">
           {items.map((item) => {
             const Icon = icons[item.kind];
             return (
               <li key={item.kind} className="flex flex-col gap-3 p-5">
-                <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--subtle)]">
+                <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-lg bg-(--subtle)">
                   <Icon className="h-4 w-4" strokeWidth={1.7} />
                 </span>
                 <div className="flex-1">
                   <h3 className="text-sm font-medium">{item.title}</h3>
-                  <p className="mt-1 text-xs leading-5 text-[var(--muted)]">{item.detail}</p>
+                  <p className="mt-1 text-xs leading-5 text-(--muted)">{item.detail}</p>
                 </div>
                 <Link to={item.href} className="inline-flex w-fit items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline">
                   {item.action}

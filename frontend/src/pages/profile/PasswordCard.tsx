@@ -55,7 +55,7 @@ function PasswordField({
           </button>
         )}
       </div>
-      {hint && <p className="mt-1 text-xs text-[var(--muted)]">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-(--muted)">{hint}</p>}
     </div>
   );
 }
@@ -71,7 +71,7 @@ const PasswordCard = ({
   <div className="panel">
     <div className="panel-heading">
       <div className="flex items-center gap-2">
-        <Lock className="h-4 w-4 text-[var(--muted)]" />
+        <Lock className="h-4 w-4 text-(--muted)" />
         <h2 className="text-base font-medium">Şifre Değiştir</h2>
       </div>
       {!isEditingPassword && (

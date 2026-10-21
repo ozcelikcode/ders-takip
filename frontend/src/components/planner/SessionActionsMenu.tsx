@@ -20,7 +20,7 @@ interface SessionActionsMenuProps {
 }
 
 const itemClass =
-  'flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-[var(--subtle)]';
+  'flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-(--subtle)';
 
 export default function SessionActionsMenu({
   anchor,
@@ -44,7 +44,7 @@ export default function SessionActionsMenu({
           className="panel fixed w-56 p-2 shadow-lg"
           style={{ top: anchor.y, left: anchor.x }}
         >
-          <Dialog.Title className="px-2 py-1 text-xs text-[var(--muted)]">
+          <Dialog.Title className="px-2 py-1 text-xs text-(--muted)">
             {t.session({ capitalize: true })} işlemleri
           </Dialog.Title>
           <button className={itemClass} onClick={run(onEdit)}>

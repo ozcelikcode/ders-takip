@@ -30,11 +30,11 @@ const lastStep = steps.length - 1;
 
 function ChoiceCard({ name, checked, onChange, title, children }: { name: string; checked: boolean; onChange: () => void; title: string; children: ReactNode }) {
   return (
-    <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${checked ? 'border-[var(--solid)] bg-[var(--subtle)]' : 'border-[var(--line)] hover:bg-[var(--subtle)]'}`}>
+    <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${checked ? 'border-(--solid) bg-(--subtle)' : 'border-(--line) hover:bg-(--subtle)'}`}>
       <input type="radio" name={name} className="mt-1" checked={checked} onChange={onChange} />
       <span>
         <span className="block text-sm font-medium">{title}</span>
-        <span className="mt-1 block text-sm text-[var(--muted)]">{children}</span>
+        <span className="mt-1 block text-sm text-(--muted)">{children}</span>
       </span>
     </label>
   );
@@ -122,7 +122,7 @@ export default function WelcomePage() {
             })}
           </fieldset>
           <div>
-            <label htmlFor={`${prefix}-studyField`} className="mb-2 block text-sm font-medium">Odak alanı <span className="font-normal text-[var(--muted)]">(isteğe bağlı)</span></label>
+            <label htmlFor={`${prefix}-studyField`} className="mb-2 block text-sm font-medium">Odak alanı <span className="font-normal text-(--muted)">(isteğe bağlı)</span></label>
             <input id={`${prefix}-studyField`} className="input" maxLength={60} value={draft.studyField} onChange={(event) => update({ studyField: event.target.value })} placeholder="Örn. üniversite hazırlığı, ürün yönetimi, İspanyolca" />
           </div>
         </div>
@@ -152,7 +152,7 @@ export default function WelcomePage() {
           <div>
             <p className="mb-2 text-sm font-medium">Aktif günler</p>
             <WeekdayPicker label="Aktif günler" value={draft.activeStudyDays} weekStart={draft.weekStartsOn} onChange={(activeStudyDays) => update({ activeStudyDays })} />
-            <p className="mt-2 text-xs text-[var(--muted)]">Günlük hedef yalnız bu günlerde uygulanır.</p>
+            <p className="mt-2 text-xs text-(--muted)">Günlük hedef yalnız bu günlerde uygulanır.</p>
           </div>
           <GoalDurationInput id={`${prefix}-daily`} label="Günlük hedef" minutes={draft.dailyGoalMinutes} onChange={(dailyGoalMinutes) => update({ dailyGoalMinutes })} />
           <WeeklyGoalSummary dailyMinutes={draft.dailyGoalMinutes} activeDays={draft.activeStudyDays.length} />
@@ -184,7 +184,7 @@ export default function WelcomePage() {
       title: 'Özet',
       description: 'Onaylarsan sayfan bu cevaplara göre hazırlanır.',
       body: (
-        <dl className="divide-y divide-[var(--line)] rounded-lg border border-[var(--line)] text-sm">
+        <dl className="divide-y divide-(--line) rounded-lg border border-(--line) text-sm">
           {[
             ['Kullanım', draft.purpose ? purposes[draft.purpose].label : '—'],
             ['Kelimeler', `${terms.course({ capitalize: true })} → ${terms.topic({ capitalize: true })} · ${terms.session({ capitalize: true })}`],
@@ -197,7 +197,7 @@ export default function WelcomePage() {
             ['İlk kayıtlar', draft.courseNames.length ? `${draft.categoryName.trim()}: ${draft.courseNames.join(', ')}` : 'Eklenmeyecek'],
           ].map(([term, detail]) => (
             <div key={term} className="grid gap-1 px-4 py-3 sm:grid-cols-[10rem_1fr]">
-              <dt className="text-[var(--muted)]">{term}</dt>
+              <dt className="text-(--muted)">{term}</dt>
               <dd>{detail}</dd>
             </div>
           ))}
@@ -208,11 +208,11 @@ export default function WelcomePage() {
   const current = content[step]!;
 
   return (
-    <main className="min-h-screen bg-[var(--canvas)] px-4 py-8 text-[var(--text)] sm:py-12">
+    <main className="min-h-screen bg-(--canvas) px-4 py-8 text-(--text) sm:py-12">
       <div className="mx-auto w-full max-w-2xl space-y-6">
         <div className="flex items-center justify-between gap-4">
           <Brand />
-          <button type="button" className="text-sm text-[var(--muted)] underline-offset-4 hover:text-[var(--text)] hover:underline disabled:opacity-50" onClick={() => void skip()} disabled={busy !== null}>
+          <button type="button" className="text-sm text-(--muted) underline-offset-4 hover:text-(--text) hover:underline disabled:opacity-50" onClick={() => void skip()} disabled={busy !== null}>
             Şimdilik atla
           </button>
         </div>
@@ -220,23 +220,23 @@ export default function WelcomePage() {
           <ol aria-label="Kurulum adımları" className="grid grid-cols-5 gap-2">
             {steps.map((label, index) => (
               <li key={label} aria-current={index === step ? 'step' : undefined} className="space-y-1.5">
-                <span aria-hidden="true" className={`block h-1 rounded-full ${index <= step ? 'bg-[var(--solid)]' : 'bg-[var(--line)]'}`} />
-                <span className={`hidden text-xs sm:block ${index === step ? 'font-medium text-[var(--text)]' : 'text-[var(--muted)]'}`}>{label}</span>
+                <span aria-hidden="true" className={`block h-1 rounded-full ${index <= step ? 'bg-(--solid)' : 'bg-(--line)'}`} />
+                <span className={`hidden text-xs sm:block ${index === step ? 'font-medium text-(--text)' : 'text-(--muted)'}`}>{label}</span>
               </li>
             ))}
           </ol>
-          <p className="text-xs text-[var(--muted)]">Adım {step + 1} / {steps.length}</p>
+          <p className="text-xs text-(--muted)">Adım {step + 1} / {steps.length}</p>
         </div>
         <form className="panel" onSubmit={submit} noValidate>
           <div className="space-y-6 p-6 sm:p-8">
             <div>
-              <h1 ref={headingRef} tabIndex={-1} className="text-xl font-semibold tracking-tight outline-none">{current.title}</h1>
-              <p className="mt-1 text-sm text-[var(--muted)]">{current.description}</p>
+              <h1 ref={headingRef} tabIndex={-1} className="text-xl font-semibold tracking-tight outline-hidden">{current.title}</h1>
+              <p className="mt-1 text-sm text-(--muted)">{current.description}</p>
             </div>
             {current.body}
             {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
           </div>
-          <div className="flex items-center justify-between gap-3 border-t border-[var(--line)] px-6 py-4 sm:px-8">
+          <div className="flex items-center justify-between gap-3 border-t border-(--line) px-6 py-4 sm:px-8">
             <button type="button" className="btn btn-secondary" onClick={() => goTo(step - 1)} disabled={step === 0 || busy !== null}>
               Geri
             </button>

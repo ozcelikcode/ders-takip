@@ -38,26 +38,26 @@ function DistributionList({ title, rows }: { title: string; rows: DistributionRo
         <h2 className="text-sm font-medium">{title}</h2>
       </div>
       {rows.length === 0 ? (
-        <p className="p-5 text-sm text-[var(--muted)]">Bu aralıkta ölçülmüş çalışma yok.</p>
+        <p className="p-5 text-sm text-(--muted)">Bu aralıkta ölçülmüş çalışma yok.</p>
       ) : (
-        <ul className="divide-y divide-[var(--line)]">
+        <ul className="divide-y divide-(--line)">
           {rows.map((row) => (
             <li key={row.key} className="space-y-2 px-5 py-3">
               <div className="flex items-center justify-between gap-3 text-sm">
                 <span className="flex min-w-0 items-center gap-2">
                   <span
                     aria-hidden="true"
-                    className="h-2.5 w-2.5 shrink-0 rounded-full border border-[var(--line)]"
+                    className="h-2.5 w-2.5 shrink-0 rounded-full border border-(--line)"
                     style={row.color ? { backgroundColor: row.color } : undefined}
                   />
                   <span className="truncate">{row.label}</span>
                 </span>
-                <span className="shrink-0 tabular-nums text-[var(--muted)]">
+                <span className="shrink-0 tabular-nums text-(--muted)">
                   {formatMeasuredTime(row.studySeconds)} · %{Math.round(row.share * 100)}
                 </span>
               </div>
-              <div className="h-1 overflow-hidden rounded bg-[var(--subtle)]" aria-hidden="true">
-                <div className="h-full bg-[var(--solid)]" style={{ width: `${row.share * 100}%` }} />
+              <div className="h-1 overflow-hidden rounded-sm bg-(--subtle)" aria-hidden="true">
+                <div className="h-full bg-(--solid)" style={{ width: `${row.share * 100}%` }} />
               </div>
             </li>
           ))}
@@ -117,7 +117,7 @@ export default function StatsPage() {
         </div>
         {preset === 'custom' && (
           <div className="flex flex-wrap items-end gap-2">
-            <label className="text-xs text-[var(--muted)]">
+            <label className="text-xs text-(--muted)">
               Başlangıç
               <input
                 type="date"
@@ -126,7 +126,7 @@ export default function StatsPage() {
                 onChange={(event) => setCustom({ ...custom, startDate: event.target.value })}
               />
             </label>
-            <label className="text-xs text-[var(--muted)]">
+            <label className="text-xs text-(--muted)">
               Bitiş
               <input
                 type="date"
@@ -137,7 +137,7 @@ export default function StatsPage() {
             </label>
           </div>
         )}
-        <p className="text-xs text-[var(--muted)]">
+        <p className="text-xs text-(--muted)">
           {range.startDate} – {range.endDate} · {preferences.timezone}
         </p>
       </div>
@@ -145,7 +145,7 @@ export default function StatsPage() {
       {invalid ? (
         <p role="alert" className="text-sm text-red-600">{invalid}</p>
       ) : stats.isPending ? (
-        <p role="status" className="text-sm text-[var(--muted)]">İstatistikler yükleniyor…</p>
+        <p role="status" className="text-sm text-(--muted)">İstatistikler yükleniyor…</p>
       ) : stats.isError || !data ? (
         <div role="alert" className="panel flex flex-wrap items-center gap-3 p-4 text-sm">
           İstatistikler alınamadı.
@@ -155,12 +155,12 @@ export default function StatsPage() {
         </div>
       ) : (
         <>
-          <section aria-label="Aralık özeti" className="panel grid grid-cols-2 divide-x divide-[var(--line)] lg:grid-cols-4">
+          <section aria-label="Aralık özeti" className="panel grid grid-cols-2 divide-x divide-(--line) lg:grid-cols-4">
             {summary.map((item, index) => (
               <div key={item.label} className={`p-5 ${index > 1 ? 'border-t lg:border-t-0' : ''}`}>
-                <p className="text-xs text-[var(--muted)]">{item.label}</p>
+                <p className="text-xs text-(--muted)">{item.label}</p>
                 <p className="my-3 text-2xl font-medium tabular-nums tracking-tight">{item.value}</p>
-                <p className="text-[11px] text-[var(--muted)]">{item.detail}</p>
+                <p className="text-[11px] text-(--muted)">{item.detail}</p>
               </div>
             ))}
           </section>
@@ -168,18 +168,18 @@ export default function StatsPage() {
           <section aria-labelledby="goal-comparison-heading" className="panel">
             <div className="panel-heading">
               <h2 id="goal-comparison-heading" className="text-sm font-medium">Hedefle karşılaştırma</h2>
-              <Link to="/settings" className="text-xs text-[var(--muted)] hover:text-[var(--text)]">Hedefleri düzenle</Link>
+              <Link to="/settings" className="text-xs text-(--muted) hover:text-(--text)">Hedefleri düzenle</Link>
             </div>
             <div className="space-y-3 p-5 text-sm">
               {goal.targetSeconds === null ? (
-                <p className="text-[var(--muted)]">Günlük hedef belirlenmedi. Hedef, Ayarlar › Çalışma Tercihleri'nden girilir.</p>
+                <p className="text-(--muted)">Günlük hedef belirlenmedi. Hedef, Ayarlar › Çalışma Tercihleri'nden girilir.</p>
               ) : (
                 <>
                   <div className="flex flex-wrap items-baseline justify-between gap-3">
                     <span>
                       {formatMeasuredTime(goal.studySeconds)} / {formatMeasuredTime(goal.targetSeconds)}
                     </span>
-                    <span className="text-[var(--muted)]">
+                    <span className="text-(--muted)">
                       Hedefe ulaşılan gün: {goal.metDays} / {goal.activeDays}
                     </span>
                   </div>
@@ -189,14 +189,14 @@ export default function StatsPage() {
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuenow={goalPercent(goal.studySeconds, goal.targetSeconds)}
-                    className="h-1.5 overflow-hidden rounded bg-[var(--subtle)]"
+                    className="h-1.5 overflow-hidden rounded-sm bg-(--subtle)"
                   >
                     <div
-                      className="h-full bg-[var(--solid)]"
+                      className="h-full bg-(--solid)"
                       style={{ width: `${goalPercent(goal.studySeconds, goal.targetSeconds)}%` }}
                     />
                   </div>
-                  <p className="text-xs text-[var(--muted)]">
+                  <p className="text-xs text-(--muted)">
                     Hedef, aralıktaki aktif çalışma günlerinin günlük hedeflerinin toplamıdır.
                   </p>
                 </>
@@ -219,7 +219,7 @@ export default function StatsPage() {
           </div>
 
           {(data.untrackedSessions > 0 || data.partialSessions > 0) && (
-            <p className="text-xs text-[var(--muted)]">
+            <p className="text-xs text-(--muted)">
               Ölçüm öncesi döneme ait {data.untrackedSessions + data.partialSessions} kayıt süreye kısmen veya hiç dahil değildir.
             </p>
           )}

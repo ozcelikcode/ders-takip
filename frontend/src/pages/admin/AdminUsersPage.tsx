@@ -160,7 +160,7 @@ function UserManagement() {
           <label className="sr-only" htmlFor="admin-user-search">
             Kullanıcı ara
           </label>
-          <Search className="absolute left-3 top-3 h-4 w-4 text-[var(--muted)]" />
+          <Search className="absolute left-3 top-3 h-4 w-4 text-(--muted)" />
           <input
             id="admin-user-search"
             className="input pl-9 pr-9"
@@ -171,7 +171,7 @@ function UserManagement() {
           {search && (
             <button
               type="button"
-              className="absolute right-2 top-2 p-1 text-[var(--muted)]"
+              className="absolute right-2 top-2 p-1 text-(--muted)"
               aria-label="Aramayı temizle"
               onClick={() => {
                 setSearch('');
@@ -188,7 +188,7 @@ function UserManagement() {
       </form>
       {query.isPending ? (
         <p
-          className="py-8 text-center text-sm text-[var(--muted)]"
+          className="py-8 text-center text-sm text-(--muted)"
           role="status"
         >
           Kullanıcılar yükleniyor…
@@ -220,27 +220,27 @@ function UserManagement() {
                         </div>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="break-words text-sm font-medium">
+                            <h2 className="wrap-break-word text-sm font-medium">
                               {name}
                             </h2>
-                            <span className="badge border text-[var(--muted)]">
+                            <span className="badge border text-(--muted)">
                               {roleLabel(user.role)}
                             </span>
                             {!user.isActive && (
-                              <span className="badge border text-[var(--muted)]">
+                              <span className="badge border text-(--muted)">
                                 Pasif
                               </span>
                             )}
                             {self && (
-                              <span className="text-xs text-[var(--muted)]">
+                              <span className="text-xs text-(--muted)">
                                 Siz
                               </span>
                             )}
                           </div>
-                          <p className="mt-1 break-all text-xs text-[var(--muted)]">
+                          <p className="mt-1 break-all text-xs text-(--muted)">
                             @{user.username} · {user.email}
                           </p>
-                          <p className="mt-1 text-xs text-[var(--muted)]">
+                          <p className="mt-1 text-xs text-(--muted)">
                             Katılma: {date(user.createdAt)}
                           </p>
                         </div>
@@ -287,7 +287,7 @@ function UserManagement() {
                                   onClick={() =>
                                     setAction({ user, kind: item.kind })
                                   }
-                                  className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm disabled:opacity-40 ${active ? 'bg-[var(--subtle)]' : ''} ${item.kind === 'delete' ? 'text-red-600' : ''}`}
+                                  className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm disabled:opacity-40 ${active ? 'bg-(--subtle)' : ''} ${item.kind === 'delete' ? 'text-red-600' : ''}`}
                                 >
                                   <item.icon className="h-4 w-4" />
                                   {item.label}
@@ -300,7 +300,7 @@ function UserManagement() {
                               <button
                                 disabled={disabled}
                                 onClick={() => setResetTarget({ id: String(user.id), name })}
-                                className={`flex w-full items-center gap-2 border-t px-4 py-2 text-left text-sm disabled:opacity-40 ${active ? 'bg-[var(--subtle)]' : ''}`}
+                                className={`flex w-full items-center gap-2 border-t px-4 py-2 text-left text-sm disabled:opacity-40 ${active ? 'bg-(--subtle)' : ''}`}
                               >
                                 <KeyRound className="h-4 w-4" />
                                 Şifre sıfırlama bağlantısı
@@ -308,7 +308,7 @@ function UserManagement() {
                             )}
                           </Menu.Item>
                           {self && (
-                            <p className="border-t px-4 py-2 text-xs text-[var(--muted)]">
+                            <p className="border-t px-4 py-2 text-xs text-(--muted)">
                               Kendi yönetici erişiminizi buradan
                               değiştiremezsiniz.
                             </p>
@@ -332,7 +332,7 @@ function UserManagement() {
                         ],
                       ].map(([label, value]) => (
                         <div key={label}>
-                          <dt className="text-xs text-[var(--muted)]">
+                          <dt className="text-xs text-(--muted)">
                             {label}
                           </dt>
                           <dd className="mt-1 text-sm font-medium tabular-nums">
@@ -345,7 +345,7 @@ function UserManagement() {
                 );
               })}
               {data.users.length === 0 && (
-                <p className="panel p-10 text-center text-sm text-[var(--muted)]">
+                <p className="panel p-10 text-center text-sm text-(--muted)">
                   {filters.search
                     ? 'Aramanıza uygun kullanıcı bulunamadı.'
                     : 'Henüz kullanıcı bulunmuyor.'}
@@ -356,7 +356,7 @@ function UserManagement() {
               aria-label="Kullanıcı sayfaları"
               className="flex flex-wrap items-center justify-between gap-3 border-t pt-4"
             >
-              <p className="text-sm text-[var(--muted)]">
+              <p className="text-sm text-(--muted)">
                 Sayfa {data.pagination.current} /{' '}
                 {Math.max(1, data.pagination.pages)} · {data.pagination.total}{' '}
                 {filters.search ? 'sonuç' : 'kullanıcı'}

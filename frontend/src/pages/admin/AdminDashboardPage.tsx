@@ -87,7 +87,7 @@ function AdminOverview() {
       />
       <section aria-label="Sistem özeti" aria-busy={overview.isFetching}>
         {overview.isPending ? (
-          <p role="status" className="panel p-6 text-sm text-[var(--muted)]">
+          <p role="status" className="panel p-6 text-sm text-(--muted)">
             Yönetim özeti yükleniyor…
           </p>
         ) : overview.isError ? (
@@ -105,14 +105,14 @@ function AdminOverview() {
             </button>
           </div>
         ) : (
-          <dl className="panel grid grid-cols-1 divide-y divide-[var(--line)] sm:grid-cols-2 lg:grid-cols-4">
+          <dl className="panel grid grid-cols-1 divide-y divide-(--line) sm:grid-cols-2 lg:grid-cols-4">
             {stats.map((stat) => (
               <div key={stat.label} className="min-w-0 p-5 sm:p-6">
-                <dt className="text-xs text-[var(--muted)]">{stat.label}</dt>
-                <dd className="my-4 break-words text-3xl font-medium tracking-tight tabular-nums">
+                <dt className="text-xs text-(--muted)">{stat.label}</dt>
+                <dd className="my-4 wrap-break-word text-3xl font-medium tracking-tight tabular-nums">
                   {stat.value}
                 </dd>
-                <dd className="text-xs leading-5 text-[var(--muted)]">
+                <dd className="text-xs leading-5 text-(--muted)">
                   {stat.detail}
                 </dd>
               </div>
@@ -128,19 +128,19 @@ function AdminOverview() {
           <Link
             key={item.href}
             to={item.href}
-            className="panel group flex min-w-0 items-center gap-3 p-5 transition-colors hover:bg-[var(--subtle)]"
+            className="panel group flex min-w-0 items-center gap-3 p-5 transition-colors hover:bg-(--subtle)"
           >
             <item.icon
-              className="h-5 w-5 shrink-0 text-[var(--muted)]"
+              className="h-5 w-5 shrink-0 text-(--muted)"
               strokeWidth={1.5}
             />
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium">{item.title}</span>
-              <span className="mt-1 block text-xs leading-5 text-[var(--muted)]">
+              <span className="mt-1 block text-xs leading-5 text-(--muted)">
                 {item.detail}
               </span>
             </span>
-            <ArrowRight className="h-4 w-4 shrink-0 text-[var(--muted)]" />
+            <ArrowRight className="h-4 w-4 shrink-0 text-(--muted)" />
           </Link>
         ))}
       </nav>
@@ -156,14 +156,14 @@ function AdminOverview() {
             </h2>
             <Link
               to="/admin/users"
-              className="text-xs text-[var(--muted)] underline"
+              className="text-xs text-(--muted) underline"
             >
               Tüm kullanıcılar
             </Link>
           </div>
           <div className="p-5">
             {users.isPending ? (
-              <p role="status" className="text-sm text-[var(--muted)]">
+              <p role="status" className="text-sm text-(--muted)">
                 Kullanıcılar yükleniyor…
               </p>
             ) : users.isError ? (
@@ -178,11 +178,11 @@ function AdminOverview() {
                 </button>
               </div>
             ) : users.data.length === 0 ? (
-              <p className="text-sm text-[var(--muted)]">
+              <p className="text-sm text-(--muted)">
                 Henüz kullanıcı yok.
               </p>
             ) : (
-              <ul className="divide-y divide-[var(--line)]">
+              <ul className="divide-y divide-(--line)">
                 {users.data.map((user) => (
                   <li
                     key={user.id}
@@ -196,10 +196,10 @@ function AdminOverview() {
                       {user.lastName[0]}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block break-words text-sm font-medium">
+                      <span className="block wrap-break-word text-sm font-medium">
                         {user.firstName} {user.lastName}
                       </span>
-                      <span className="mt-1 block break-all text-xs text-[var(--muted)]">
+                      <span className="mt-1 block break-all text-xs text-(--muted)">
                         {user.email}
                       </span>
                     </span>
@@ -223,29 +223,29 @@ function AdminOverview() {
           </div>
           <div className="p-5">
             {overview.isPending ? (
-              <p role="status" className="text-sm text-[var(--muted)]">
+              <p role="status" className="text-sm text-(--muted)">
                 {t.session({ plural: true, capitalize: true })} yükleniyor…
               </p>
             ) : overview.isError ? (
-              <p role="status" className="text-sm text-[var(--muted)]">
+              <p role="status" className="text-sm text-(--muted)">
                 {t.session({ plural: true, capitalize: true })} için yönetim özetini tekrar yükleyin.
               </p>
             ) : data?.recentSessions.length === 0 ? (
-              <p className="text-sm text-[var(--muted)]">
+              <p className="text-sm text-(--muted)">
                 Henüz {t.session()} yok.
               </p>
             ) : (
-              <ul className="divide-y divide-[var(--line)]">
+              <ul className="divide-y divide-(--line)">
                 {data?.recentSessions.map((session) => (
                   <li
                     key={session.id}
                     className="flex flex-wrap items-start justify-between gap-2 py-3 first:pt-0 last:pb-0"
                   >
                     <div className="min-w-0 flex-1 basis-48">
-                      <p className="break-words text-sm font-medium">
+                      <p className="wrap-break-word text-sm font-medium">
                         {session.title}
                       </p>
-                      <p className="mt-1 break-words text-xs leading-5 text-[var(--muted)]">
+                      <p className="mt-1 wrap-break-word text-xs leading-5 text-(--muted)">
                         {session.userName} · Plan: {session.duration} dakika ·{' '}
                         {sessionTypeLabels[
                           session.sessionType as keyof typeof sessionTypeLabels

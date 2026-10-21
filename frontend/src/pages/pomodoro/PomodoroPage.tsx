@@ -37,15 +37,15 @@ export default function PomodoroPage() {
     <div className="space-y-6">
       <PageHeader title="Pomodoro" description={`Bir ${t.session()} seç. Tek bir işe odaklan, molalarla ritmini koru.`} actions={<Link className="btn btn-secondary" to="/planner">{t.session({ capitalize: true })} planla</Link>} />
       {query.isPending ? <p role="status">{t.session({ plural: true, capitalize: true })} yükleniyor…</p> : query.isError ? <p role="alert">{t.session({ plural: true, capitalize: true })} yüklenemedi. <button className="underline" onClick={() => void query.refetch()}>Tekrar dene</button></p> : !sessions?.length ? (
-        <div className="panel p-12 text-center"><h2 className="text-lg font-medium">Pomodoro {t.session()} yok</h2><p className="mt-2 text-sm text-[var(--muted)]">Planlayıcıdan Pomodoro türünde bir {t.session()} oluşturun.</p></div>
+        <div className="panel p-12 text-center"><h2 className="text-lg font-medium">Pomodoro {t.session()} yok</h2><p className="mt-2 text-sm text-(--muted)">Planlayıcıdan Pomodoro türünde bir {t.session()} oluşturun.</p></div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
           <section className="panel p-4" aria-label={`Pomodoro ${t.session({ plural: true })}`}>
             <h2 className="mb-3 text-sm font-medium">{t.session({ plural: true, capitalize: true })}</h2>
             <div className="max-h-[640px] space-y-2 overflow-y-auto">
-              {sessions.map(session => <button key={session.id} className={`w-full rounded-md border p-3 text-left ${selectedId === session.id ? 'border-[var(--muted)] bg-[var(--subtle)]' : 'border-transparent hover:border-[var(--line)]'}`} onClick={() => setSelectedId(session.id)} aria-pressed={selectedId === session.id}>
+              {sessions.map(session => <button key={session.id} className={`w-full rounded-md border p-3 text-left ${selectedId === session.id ? 'border-(--muted) bg-(--subtle)' : 'border-transparent hover:border-(--line)'}`} onClick={() => setSelectedId(session.id)} aria-pressed={selectedId === session.id}>
                 <span className="block text-sm font-medium">{session.title}</span>
-                <span className="mt-1 block text-xs text-[var(--muted)]">{dateKeyInZone(new Date(session.startTime), timezone)} · {formatZonedTime(session.startTime, timezone)} · {statusLabels[session.status]}</span>
+                <span className="mt-1 block text-xs text-(--muted)">{dateKeyInZone(new Date(session.startTime), timezone)} · {formatZonedTime(session.startTime, timezone)} · {statusLabels[session.status]}</span>
               </button>)}
             </div>
           </section>

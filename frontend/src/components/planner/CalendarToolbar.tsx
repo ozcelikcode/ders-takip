@@ -31,7 +31,7 @@ export default function CalendarToolbar({
         <h2 className="text-sm font-medium">
           {weekly ? 'Haftalık Planlayıcı' : 'Günlük Planlayıcı'}
         </h2>
-        <p className="text-xs text-[var(--muted)]">
+        <p className="text-xs text-(--muted)">
           {weekly
             ? `${format(days[0]!, 'd MMMM')} – ${format(days[6]!, 'd MMMM yyyy')}`
             : format(days[0]!, 'd MMMM yyyy, EEEE')}

@@ -10,7 +10,7 @@ const AccountInfoCard = ({ user }: { user: User | null }) => {
     </div>
     <div className="space-y-2 p-5 text-sm">
       <div className="flex justify-between">
-        <span className="text-[var(--muted)]">Durum:</span>
+        <span className="text-(--muted)">Durum:</span>
         <span
           className={`font-medium ${user?.isActive ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
         >
@@ -18,7 +18,7 @@ const AccountInfoCard = ({ user }: { user: User | null }) => {
         </span>
       </div>
       <div className="flex justify-between">
-        <span className="text-[var(--muted)]">Kayıt:</span>
+        <span className="text-(--muted)">Kayıt:</span>
         <span>
           {user?.createdAt
             ? new Date(user.createdAt).toLocaleDateString('tr-TR')
@@ -27,7 +27,7 @@ const AccountInfoCard = ({ user }: { user: User | null }) => {
       </div>
       {user?.lastLogin && (
         <div className="flex justify-between">
-          <span className="text-[var(--muted)]">
+          <span className="text-(--muted)">
             Son Giriş:
           </span>
           <span>

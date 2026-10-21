@@ -305,11 +305,11 @@ const ProfilePage = () => {
                     E-posta
                   </label>
                   <div className="flex items-center gap-2 py-2">
-                    <Mail className="h-4 w-4 text-[var(--muted)]" />
+                    <Mail className="h-4 w-4 text-(--muted)" />
                     <p>
                       {user?.email}
                     </p>
-                    <span className="text-xs text-[var(--muted)]">
+                    <span className="text-xs text-(--muted)">
                       (değiştirilemez)
                     </span>
                   </div>

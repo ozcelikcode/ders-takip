@@ -63,7 +63,7 @@ export default function NotificationsPanel() {
             {fresh && unread.length > 0 && (
               <span
                 aria-hidden="true"
-                className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[var(--text)]"
+                className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-(--text)"
               />
             )}
           </Popover.Button>
@@ -73,7 +73,7 @@ export default function NotificationsPanel() {
             role="region"
             aria-labelledby={headingId}
           >
-            <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] p-4">
+            <div className="flex items-center justify-between gap-2 border-b border-(--line) p-4">
               <h2 id={headingId} className="text-sm font-medium">
                 Bildirimler
               </h2>
@@ -90,7 +90,7 @@ export default function NotificationsPanel() {
             <p role="status" className="sr-only">
               {announcement}
             </p>
-            <p className="px-4 pt-3 text-xs text-[var(--muted)]">
+            <p className="px-4 pt-3 text-xs text-(--muted)">
               Son 5 tamamlanan {t.session()}. Okundu bilgisi bu tarayıcıda saklanır.
             </p>
             <div
@@ -123,12 +123,12 @@ export default function NotificationsPanel() {
                 </div>
               )}
               {fresh && sessions.length === 0 && (
-                <p role="status" className="p-4 text-sm text-[var(--muted)]">
+                <p role="status" className="p-4 text-sm text-(--muted)">
                   Henüz bildirim yok
                 </p>
               )}
               {sessions.length > 0 && (
-                <ul className="divide-y divide-[var(--line)]">
+                <ul className="divide-y divide-(--line)">
                   {sessions.map((session) => {
                     const read = ids.has(session.id);
                     return (
@@ -137,17 +137,17 @@ export default function NotificationsPanel() {
                         className="flex items-start justify-between gap-3 p-4"
                       >
                         <div className="min-w-0">
-                          <p className="break-words text-sm font-medium">
+                          <p className="wrap-break-word text-sm font-medium">
                             {session.title}
                           </p>
-                          <p className="mt-1 text-xs text-[var(--muted)]">
+                          <p className="mt-1 text-xs text-(--muted)">
                             {measuredSessionLabel(session)} ·{' '}
                             {formatDistanceToNow(
                               new Date(session.completedAt || session.endTime),
                               { addSuffix: true, locale: dateFnsLocale },
                             )}
                           </p>
-                          <p className="mt-1 text-xs text-[var(--muted)]">
+                          <p className="mt-1 text-xs text-(--muted)">
                             {read ? 'Okundu' : 'Okunmamış'}
                           </p>
                         </div>
@@ -169,7 +169,7 @@ export default function NotificationsPanel() {
               )}
             </div>
             {fresh && unread.length > 0 && (
-              <div className="border-t border-[var(--line)] p-3">
+              <div className="border-t border-(--line) p-3">
                 <button
                   type="button"
                   className="btn btn-secondary w-full"

@@ -21,14 +21,14 @@ interface PomodoroSettingsFieldsProps {
 }
 
 const PomodoroSettingsFields = ({ register, setValue }: PomodoroSettingsFieldsProps) => (
-  <div className="rounded-lg border border-[var(--line)] bg-[var(--subtle)] p-4 space-y-3">
-    <div className="flex items-center gap-2 text-[var(--text)]">
+  <div className="rounded-lg border border-(--line) bg-(--subtle) p-4 space-y-3">
+    <div className="flex items-center gap-2 text-(--text)">
       <Timer className="w-5 h-5" />
       <span className="font-medium">Pomodoro Ayarları</span>
     </div>
 
     <div className="space-y-2">
-      <p className="text-xs font-medium text-[var(--muted)]">Hazır Ayarlar:</p>
+      <p className="text-xs font-medium text-(--muted)">Hazır Ayarlar:</p>
       <div className="grid grid-cols-3 gap-2">
         {PRESETS.map(({ label, ...preset }) => (
           <button
@@ -51,7 +51,7 @@ const PomodoroSettingsFields = ({ register, setValue }: PomodoroSettingsFieldsPr
     <div className="grid grid-cols-2 gap-3">
       {FIELDS.map(({ name, label, min, max }) => (
         <div key={name}>
-          <label htmlFor={name} className="block text-xs font-medium text-[var(--muted)] mb-1">
+          <label htmlFor={name} className="block text-xs font-medium text-(--muted) mb-1">
             {label}
           </label>
           <input

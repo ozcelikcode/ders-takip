@@ -87,11 +87,11 @@ it('applies name and metadata consistently and restores site color when a user o
     site,
   );
   expect(
-    document.documentElement.style.getPropertyValue('--color-primary'),
+    document.documentElement.style.getPropertyValue('--primary-rgb'),
   ).toBe('255 0 0');
   applyAppearance(defaultPreferences, site);
   expect(
-    document.documentElement.style.getPropertyValue('--color-primary'),
+    document.documentElement.style.getPropertyValue('--primary-rgb'),
   ).toBe('59 130 246');
   expect(document.title).toBe('Yeni İsim');
   expect(

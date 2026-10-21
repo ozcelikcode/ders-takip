@@ -24,12 +24,12 @@ export default function TerminologyPresetPicker({ name, value, onChange, siteDef
   return (
     <div role="radiogroup" aria-label="Kelime seti" className="space-y-3">
       {options.map((option) => (
-        <label key={option.id ?? 'site'} className="flex items-start gap-3 rounded-lg border border-[var(--line)] p-4">
+        <label key={option.id ?? 'site'} className="flex items-start gap-3 rounded-lg border border-(--line) p-4">
           <input type="radio" name={name} className="mt-1" checked={value === option.id} onChange={() => onChange(option.id)} />
           <span>
             <span className="block text-sm font-medium">{option.label}</span>
-            <span className="mt-1 block text-sm text-[var(--muted)]">{option.description}</span>
-            <span className="mt-1 block text-xs text-[var(--muted)]">Örnek: {example(option.preview)}</span>
+            <span className="mt-1 block text-sm text-(--muted)">{option.description}</span>
+            <span className="mt-1 block text-xs text-(--muted)">Örnek: {example(option.preview)}</span>
           </span>
         </label>
       ))}

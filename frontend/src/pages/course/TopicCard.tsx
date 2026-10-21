@@ -46,7 +46,7 @@ const TopicCard = ({
         <div
           {...provided.dragHandleProps}
           aria-label={`${t.topic({ case: 'acc', capitalize: true })} sırala: ${topic.name}`}
-          className="cursor-grab text-[var(--muted)]"
+          className="cursor-grab text-(--muted)"
         >
           <svg
             className="h-5 w-5"
@@ -63,15 +63,15 @@ const TopicCard = ({
         </div>
       )}
       <div className="min-w-0 flex-1 basis-40">
-        <h2 className="break-words text-sm font-medium">
+        <h2 className="wrap-break-word text-sm font-medium">
           {topic.name}
         </h2>
         {topic.description && (
-          <p className="mt-1 text-sm text-[var(--muted)]">
+          <p className="mt-1 text-sm text-(--muted)">
             {topic.description}
           </p>
         )}
-        <div className="mt-2 flex items-center gap-3 text-xs text-[var(--muted)]">
+        <div className="mt-2 flex items-center gap-3 text-xs text-(--muted)">
           <span>{topic.difficulty}</span>
           <span className="inline-flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />
@@ -104,7 +104,7 @@ const TopicCard = ({
                 <button
                   key={status}
                   onClick={() => onStatusChange(status)}
-                  className={`icon-button ${currentStatus === status ? 'bg-[var(--subtle)] text-[var(--text)]' : ''}`}
+                  className={`icon-button ${currentStatus === status ? 'bg-(--subtle) text-(--text)' : ''}`}
                   title={statusLabels[status]}
                   aria-pressed={currentStatus === status}
                   disabled={progressPending}

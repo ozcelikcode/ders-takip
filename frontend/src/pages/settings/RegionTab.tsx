@@ -15,7 +15,7 @@ const RegionTab = ({ preferences, onSave }: RegionTabProps) => {
     <div className="space-y-8">
       <section className="max-w-xl space-y-3">
         <h2 className="text-base font-medium">Saat dilimi</h2>
-        <p className="text-sm text-[var(--muted)]">
+        <p className="text-sm text-(--muted)">
           Takvim, günlük özetler ve ölçülen süreler bu saat dilimine göre hesaplanır. Kayıtlı zamanlar değişmez.
         </p>
         <label htmlFor="settings-timezone" className="block text-sm font-medium">
@@ -35,7 +35,7 @@ const RegionTab = ({ preferences, onSave }: RegionTabProps) => {
         </select>
         {detected && detected !== preferences.timezone && (
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span className="text-[var(--muted)]">Tarayıcınızın saat dilimi: {detected}</span>
+            <span className="text-(--muted)">Tarayıcınızın saat dilimi: {detected}</span>
             <button type="button" className="btn btn-secondary" onClick={() => onSave({ timezone: detected })}>
               Bunu kullan
             </button>
@@ -43,7 +43,7 @@ const RegionTab = ({ preferences, onSave }: RegionTabProps) => {
         )}
       </section>
 
-      <section className="space-y-3 border-t border-[var(--line)] pt-6">
+      <section className="space-y-3 border-t border-(--line) pt-6">
         <h2 className="text-base font-medium">Hafta başlangıcı</h2>
         <div role="group" aria-label="Hafta başlangıcı" className="segmented-control">
           {weekStartDays.map((day) => (
@@ -58,12 +58,12 @@ const RegionTab = ({ preferences, onSave }: RegionTabProps) => {
             </button>
           ))}
         </div>
-        <p className="text-xs text-[var(--muted)]">Haftalık planlayıcı, tarih seçici ve haftalık grafik bu günden başlar.</p>
+        <p className="text-xs text-(--muted)">Haftalık planlayıcı, tarih seçici ve haftalık grafik bu günden başlar.</p>
       </section>
 
-      <section className="space-y-2 border-t border-[var(--line)] pt-6">
+      <section className="space-y-2 border-t border-(--line) pt-6">
         <h2 className="text-base font-medium">Dil</h2>
-        <p className="text-sm text-[var(--muted)]">
+        <p className="text-sm text-(--muted)">
           Arayüz şu anda yalnızca Türkçe. Tarih ve sayı biçimleri Türkçe kurallarına göre gösterilir.
         </p>
       </section>

@@ -65,13 +65,13 @@ const UserSettingsPage = () => {
   return (
     <div className="space-y-6">
       <PageHeader title="Ayarlar" description="Görünümü, kelimeleri, bölge ayarlarını, çalışma tercihlerini ve bildirimleri yönet." />
-      <p className="text-sm text-[var(--muted)]">
+      <p className="text-sm text-(--muted)">
         Ad, kullanıcı adı, profil resmi ve şifre{' '}
-        <Link to="/profile" className="font-medium text-[var(--text)] underline underline-offset-4">Profil</Link> sayfasındadır.
+        <Link to="/profile" className="font-medium text-(--text) underline underline-offset-4">Profil</Link> sayfasındadır.
       </p>
-      <div role="status" aria-live="polite" className="text-xs text-[var(--muted)]">{pending ? 'Tercihler kaydediliyor…' : preferencesError || 'Tercihler hesabınızda saklanır'}</div>
+      <div role="status" aria-live="polite" className="text-xs text-(--muted)">{pending ? 'Tercihler kaydediliyor…' : preferencesError || 'Tercihler hesabınızda saklanır'}</div>
 
-      <nav aria-label="Ayar bölümleri" className="flex flex-wrap gap-1 border-b border-[var(--line)] pb-3">
+      <nav aria-label="Ayar bölümleri" className="flex flex-wrap gap-1 border-b border-(--line) pb-3">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (

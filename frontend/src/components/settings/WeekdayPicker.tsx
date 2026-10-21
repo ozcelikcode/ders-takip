@@ -22,8 +22,8 @@ export default function WeekdayPicker({ label, value, weekStart, onChange }: Wee
             onClick={() => onChange(active ? value.filter((id) => id !== day) : [...value, day])}
             className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
               active
-                ? 'border-[var(--solid)] bg-[var(--solid)] text-[var(--solid-text)]'
-                : 'border-[var(--line)] text-[var(--muted)] hover:bg-[var(--subtle)] hover:text-[var(--text)]'
+                ? 'border-(--solid) bg-(--solid) text-(--solid-text)'
+                : 'border-(--line) text-(--muted) hover:bg-(--subtle) hover:text-(--text)'
             }`}
           >
             {weekdayLabel(day)}

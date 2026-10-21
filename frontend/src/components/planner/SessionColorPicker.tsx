@@ -45,8 +45,8 @@ const SessionColorPicker = ({ selected, register, setValue }: SessionColorPicker
           }
           className={`h-8 w-8 rounded-full border transition-shadow ${
             selected === color.value
-              ? 'border-transparent ring-2 ring-[var(--solid)] ring-offset-2 ring-offset-[var(--surface)]'
-              : 'border-[var(--line)] hover:ring-2 hover:ring-[var(--line)] hover:ring-offset-2 hover:ring-offset-[var(--surface)]'
+              ? 'border-transparent ring-2 ring-(--solid) ring-offset-2 ring-offset-(--surface)'
+              : 'border-(--line) hover:ring-2 hover:ring-(--line) hover:ring-offset-2 hover:ring-offset-(--surface)'
           }`}
           style={{ backgroundColor: color.value }}
           title={color.name}

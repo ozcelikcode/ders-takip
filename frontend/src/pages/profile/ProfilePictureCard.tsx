@@ -31,7 +31,7 @@ const ProfilePictureCard = ({
             {profileForm.profileImage ? (
               <img src={profileForm.profileImage} alt="Profile" className="h-full w-full object-cover" />
             ) : (
-              <UserIcon className="h-8 w-8 text-[var(--muted)]" />
+              <UserIcon className="h-8 w-8 text-(--muted)" />
             )}
           </div>
           {isEditingProfile && (
@@ -39,7 +39,7 @@ const ProfilePictureCard = ({
               type="button"
               onClick={() => document.getElementById('file-upload')?.click()}
               aria-label="Profil resmi seç"
-              className="icon-button absolute -bottom-1 -right-1 h-8 w-8 border bg-[var(--surface)]"
+              className="icon-button absolute -bottom-1 -right-1 h-8 w-8 border bg-(--surface)"
             >
               <Camera className="h-4 w-4" />
             </button>
@@ -48,8 +48,8 @@ const ProfilePictureCard = ({
 
         <div>
           <h2 className="text-base font-medium">{user?.fullName}</h2>
-          <p className="text-sm text-[var(--muted)]">@{user?.username}</p>
-          <p className="mt-1 text-xs text-[var(--muted)]">
+          <p className="text-sm text-(--muted)">@{user?.username}</p>
+          <p className="mt-1 text-xs text-(--muted)">
             {user ? roleLabel(user.role) : ''}
           </p>
         </div>
@@ -91,7 +91,7 @@ const ProfilePictureCard = ({
                 className="btn btn-secondary w-full flex-col gap-0 py-2 text-sm"
               >
                 Resim Seç veya Yükle
-                <span className="text-xs font-normal text-[var(--muted)]">
+                <span className="text-xs font-normal text-(--muted)">
                   WebP, JPG, JPEG, PNG, BMP (Max 5MB)
                 </span>
               </button>

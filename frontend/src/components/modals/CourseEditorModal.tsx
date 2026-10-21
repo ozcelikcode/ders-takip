@@ -196,7 +196,7 @@ function CourseEditor({
         </select>
         {error('categoryId')}
         {categoriesQuery.isPending && (
-          <p role="status" className="mt-2 text-sm text-[var(--muted)]">
+          <p role="status" className="mt-2 text-sm text-(--muted)">
             Kategoriler yükleniyor…
           </p>
         )}
@@ -213,7 +213,7 @@ function CourseEditor({
           </div>
         )}
         {categoriesQuery.isSuccess && categories.length === 0 && (
-          <p role="status" className="mt-2 text-sm text-[var(--muted)]">
+          <p role="status" className="mt-2 text-sm text-(--muted)">
             Önce bir yöneticinin kategori eklemesi gerekiyor.
           </p>
         )}
@@ -233,7 +233,7 @@ function CourseEditor({
           {label('color', 'Renk kodu')}
           <div className="flex items-center gap-2">
             <span
-              className="h-5 w-5 shrink-0 rounded border border-[var(--line)]"
+              className="h-5 w-5 shrink-0 rounded-sm border border-(--line)"
               style={{
                 backgroundColor: /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(
                   form.color,
@@ -269,7 +269,7 @@ function CourseEditor({
       <div>
         {label('icon', 'Simge')}
         <div className="flex items-center gap-2">
-          <Icon className="h-5 w-5 shrink-0 text-[var(--muted)]" />
+          <Icon className="h-5 w-5 shrink-0 text-(--muted)" />
           <select
             {...field('icon')}
             className="input"
@@ -289,7 +289,7 @@ function CourseEditor({
         {error('icon')}
       </div>
       {admin && (
-        <div className="space-y-2 border-t border-[var(--line)] pt-4">
+        <div className="space-y-2 border-t border-(--line) pt-4">
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"

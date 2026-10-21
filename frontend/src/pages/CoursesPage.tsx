@@ -86,7 +86,7 @@ export default function CoursesPage() {
           {t.course({ capitalize: true })} ve {t.topic()} ara
         </label>
         <Search
-          className="absolute left-3 top-3 h-4 w-4 text-[var(--muted)]"
+          className="absolute left-3 top-3 h-4 w-4 text-(--muted)"
           aria-hidden="true"
         />
         <input
@@ -98,7 +98,7 @@ export default function CoursesPage() {
         />
         {search && (
           <button
-            className="absolute right-2 top-2 p-1 text-[var(--muted)]"
+            className="absolute right-2 top-2 p-1 text-(--muted)"
             aria-label="Aramayı temizle"
             onClick={() => setSearch('')}
           >
@@ -107,7 +107,7 @@ export default function CoursesPage() {
         )}
       </div>
       {query.isPending ? (
-        <p role="status" className="text-sm text-[var(--muted)]">
+        <p role="status" className="text-sm text-(--muted)">
           {t.course({ plural: true, capitalize: true })} yükleniyor…
         </p>
       ) : query.isError ? (
@@ -122,7 +122,7 @@ export default function CoursesPage() {
         </div>
       ) : (
         <>
-          <p className="text-sm text-[var(--muted)]">
+          <p className="text-sm text-(--muted)">
             {filtered.length} {t.course()}{term && ` / ${courses.length} toplam`}
           </p>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -135,11 +135,11 @@ export default function CoursesPage() {
                 >
                   <Link
                     to={`/courses/${course.id}`}
-                    className="flex flex-1 flex-col gap-4 p-5 transition-colors hover:bg-[var(--subtle)]"
+                    className="flex flex-1 flex-col gap-4 p-5 transition-colors hover:bg-(--subtle)"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div
-                        className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--line)]"
+                        className="flex h-10 w-10 items-center justify-center rounded-md border border-(--line)"
                         style={{ color: course.color }}
                       >
                         <Icon className="h-5 w-5" />
@@ -149,17 +149,17 @@ export default function CoursesPage() {
                       )}
                     </div>
                     <div>
-                      <p className="mb-1 text-xs text-[var(--muted)]">
+                      <p className="mb-1 text-xs text-(--muted)">
                         {course.category?.name}
                       </p>
                       <h2 className="text-lg font-medium">{course.name}</h2>
                       {course.description && (
-                        <p className="mt-2 line-clamp-2 text-sm text-[var(--muted)]">
+                        <p className="mt-2 line-clamp-2 text-sm text-(--muted)">
                           {course.description}
                         </p>
                       )}
                     </div>
-                    <div className="mt-auto flex items-center justify-between text-sm text-[var(--muted)]">
+                    <div className="mt-auto flex items-center justify-between text-sm text-(--muted)">
                       <span>{course.topics?.length ?? 0} {t.topic()}</span>
                       <span className="flex items-center gap-1">
                         {t.topic({ case: 'acc', plural: true, capitalize: true })} görüntüle
@@ -168,7 +168,7 @@ export default function CoursesPage() {
                     </div>
                   </Link>
                   {canManageCourse(course, user) && (
-                    <div className="flex items-center justify-end gap-2 border-t border-[var(--line)] px-4 py-2">
+                    <div className="flex items-center justify-end gap-2 border-t border-(--line) px-4 py-2">
                       <button
                         className="btn btn-secondary"
                         aria-label={`${t.course({ case: 'acc', capitalize: true })} düzenle: ${course.name}`}
@@ -199,13 +199,13 @@ export default function CoursesPage() {
           </div>
           {filtered.length === 0 && (
             <div className="panel py-12 text-center">
-              <BookOpen className="mx-auto mb-3 h-8 w-8 text-[var(--muted)]" />
+              <BookOpen className="mx-auto mb-3 h-8 w-8 text-(--muted)" />
               <h2 className="font-medium">
                 {term
                   ? `Aramanıza uygun ${t.course()} bulunamadı`
                   : `Henüz ${t.course()} eklenmedi`}
               </h2>
-              <p className="mt-2 text-sm text-[var(--muted)]">
+              <p className="mt-2 text-sm text-(--muted)">
                 {term
                   ? `Başka bir ${t.course()} veya ${t.topic()} adı deneyin.`
                   : `Bir ${t.course()} ekleyerek ${t.topic({ case: 'acc', plural: true })} planlamaya başlayın.`}

@@ -10,7 +10,7 @@ function GoalRow({ label, studySeconds, goalSeconds, empty }: { label: string; s
     <div className="space-y-2">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <span className="font-medium">{label}</span>
-        <span className="tabular-nums text-[var(--muted)]">
+        <span className="tabular-nums text-(--muted)">
           {goalSeconds ? `${formatMeasuredTime(studySeconds)} / ${formatGoalMinutes(goalSeconds / 60)}` : empty}
         </span>
       </div>
@@ -21,9 +21,9 @@ function GoalRow({ label, studySeconds, goalSeconds, empty }: { label: string; s
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={percent}
-          className="h-1.5 overflow-hidden rounded bg-[var(--subtle)]"
+          className="h-1.5 overflow-hidden rounded-sm bg-(--subtle)"
         >
-          <div className="h-full bg-[var(--solid)]" style={{ width: `${percent}%` }} />
+          <div className="h-full bg-(--solid)" style={{ width: `${percent}%` }} />
         </div>
       )}
     </div>
@@ -40,15 +40,15 @@ export default function GoalProgress() {
       <div className="panel-heading">
         <div>
           <h2 id="goal-progress-heading" className="text-sm font-medium">Hedefler</h2>
-          <p className="mt-1 text-xs text-[var(--muted)]">Ölçülen çalışma; molalar hariç</p>
+          <p className="mt-1 text-xs text-(--muted)">Ölçülen çalışma; molalar hariç</p>
         </div>
-        <Link to="/settings" className="text-xs text-[var(--muted)] hover:text-[var(--text)]">
+        <Link to="/settings" className="text-xs text-(--muted) hover:text-(--text)">
           Hedefleri düzenle
         </Link>
       </div>
       <div className="grid gap-5 p-5 sm:grid-cols-2">
         {query.isPending ? (
-          <p role="status" className="text-sm text-[var(--muted)]">Hedefler yükleniyor…</p>
+          <p role="status" className="text-sm text-(--muted)">Hedefler yükleniyor…</p>
         ) : query.isError ? (
           <p className="text-sm text-red-600">Ölçümler alınamadı.</p>
         ) : (

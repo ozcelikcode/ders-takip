@@ -49,7 +49,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   ));
 
   const content = (
-    <div className="flex h-full flex-col bg-[var(--sidebar)]">
+    <div className="flex h-full flex-col bg-(--sidebar)">
       <div className="flex h-16 shrink-0 items-center gap-2.5 border-b px-5">
         <Link to="/dashboard" onClick={onClose} className="flex min-w-0 items-center gap-2.5 text-sm font-semibold tracking-tight">
           <Brand />
@@ -62,12 +62,12 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         {user?.role === 'admin' && <div className="mt-7"><p className="nav-label">Yönetim</p><div className="space-y-1">{renderLinks(adminNavigation(t))}</div></div>}
         <div className="mt-7"><p className="nav-label">Hesap</p><div className="space-y-1">{renderLinks(accountNavigation)}</div></div>
       </nav>
-      <div className="mx-3 mb-4 rounded-lg border bg-[var(--surface)] p-3.5">
+      <div className="mx-3 mb-4 rounded-lg border bg-(--surface) p-3.5">
         <div className="mb-2 flex items-center gap-2 text-xs font-medium"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Odaklanmaya hazır</div>
-        <p className="text-xs leading-5 text-[var(--muted)]">Bir {t.session()}, tek bir odak.</p>
+        <p className="text-xs leading-5 text-(--muted)">Bir {t.session()}, tek bir odak.</p>
         <Link to="/pomodoro" onClick={onClose} className="mt-3 flex items-center justify-between text-xs font-medium">Odaklanmaya başla<ArrowUpRight className="h-3.5 w-3.5" /></Link>
       </div>
-      <div className="flex items-center gap-2 border-t px-5 py-4 text-xs text-[var(--muted)]"><span className="avatar h-7 w-7 text-[10px]">{user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}</span><span className="truncate">{user?.fullName}</span></div>
+      <div className="flex items-center gap-2 border-t px-5 py-4 text-xs text-(--muted)"><span className="avatar h-7 w-7 text-[10px]">{user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}</span><span className="truncate">{user?.fullName}</span></div>
     </div>
   );
 

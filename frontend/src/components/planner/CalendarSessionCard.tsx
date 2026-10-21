@@ -44,7 +44,7 @@ export default function CalendarSessionCard(props: Props) {
   }[session.status];
   return (
     <div
-      className={`absolute group rounded border border-[var(--line)] bg-[var(--surface)] text-[var(--text)] ${props.dragging ? 'opacity-30' : ''} ${session.status === 'completed' || session.status === 'cancelled' ? 'opacity-60' : ''}`}
+      className={`absolute group rounded-sm border border-(--line) bg-(--surface) text-(--text) ${props.dragging ? 'opacity-30' : ''} ${session.status === 'completed' || session.status === 'cancelled' ? 'opacity-60' : ''}`}
       style={{
         top,
         height,
@@ -70,7 +70,7 @@ export default function CalendarSessionCard(props: Props) {
           className={`flex items-center gap-1 ${compact ? 'min-w-0 flex-1' : 'justify-between'}`}
         >
           {!compact && (
-            <span className="text-[10px] tabular-nums text-[var(--muted)]">
+            <span className="text-[10px] tabular-nums text-(--muted)">
               {formatZonedTime(session.startTime, timezone)}
             </span>
           )}
@@ -100,7 +100,7 @@ export default function CalendarSessionCard(props: Props) {
                     : `${t.session({ case: 'acc', capitalize: true })} başlat`
                 }
                 onClick={props.onStart}
-                className="inline-flex min-h-6 min-w-6 items-center justify-center rounded hover:bg-[var(--subtle)] disabled:opacity-40"
+                className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm hover:bg-(--subtle) disabled:opacity-40"
               >
                 <Play className="h-3.5 w-3.5" />
               </button>
@@ -112,7 +112,7 @@ export default function CalendarSessionCard(props: Props) {
                     disabled={pending}
                     aria-label="Pomodoro sayacını aç"
                     onClick={props.onTimer}
-                    className="inline-flex min-h-6 min-w-6 items-center justify-center rounded hover:bg-[var(--subtle)]"
+                    className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm hover:bg-(--subtle)"
                   >
                     <Timer className="h-3.5 w-3.5" />
                   </button>
@@ -121,7 +121,7 @@ export default function CalendarSessionCard(props: Props) {
                   disabled={pending}
                   aria-label={`${t.session({ case: 'acc', capitalize: true })} duraklat`}
                   onClick={props.onPause}
-                  className="inline-flex min-h-6 min-w-6 items-center justify-center rounded hover:bg-[var(--subtle)]"
+                  className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm hover:bg-(--subtle)"
                 >
                   <Pause className="h-3.5 w-3.5" />
                 </button>
@@ -129,7 +129,7 @@ export default function CalendarSessionCard(props: Props) {
                   disabled={pending}
                   aria-label={`${t.session({ case: 'acc', capitalize: true })} tamamla`}
                   onClick={props.onComplete}
-                  className="inline-flex min-h-6 min-w-6 items-center justify-center rounded hover:bg-[var(--subtle)]"
+                  className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm hover:bg-(--subtle)"
                 >
                   <CheckCircle className="h-3.5 w-3.5" />
                 </button>
@@ -140,7 +140,7 @@ export default function CalendarSessionCard(props: Props) {
               ref={props.actionRef}
               aria-label={`${session.title}: işlemler`}
               onClick={props.onActions}
-              className="inline-flex min-h-6 min-w-6 items-center justify-center rounded hover:bg-[var(--subtle)]"
+              className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm hover:bg-(--subtle)"
             >
               <MoreHorizontal className="h-3.5 w-3.5" />
             </button>
@@ -159,7 +159,7 @@ export default function CalendarSessionCard(props: Props) {
           </button>
         )}
         {height >= 90 && (
-          <span className="truncate text-[10px] text-[var(--muted)]">
+          <span className="truncate text-[10px] text-(--muted)">
             {session.duration} dk · {status}
           </span>
         )}
@@ -168,7 +168,7 @@ export default function CalendarSessionCard(props: Props) {
         <div
           data-resize-handle
           aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize touch-none hover:bg-[var(--line)]"
+          className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize touch-none hover:bg-(--line)"
           onPointerDown={props.onResize}
           onClick={(event) => event.stopPropagation()}
         />

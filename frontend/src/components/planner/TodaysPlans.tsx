@@ -136,14 +136,14 @@ export default function TodaysPlans() {
           aria-expanded={expanded}
           aria-controls="today-sessions"
           onClick={() => setExpanded((value) => !value)}
-          className="flex flex-wrap items-center gap-3 rounded text-left"
+          className="flex flex-wrap items-center gap-3 rounded-sm text-left"
         >
           <ChevronDown
-            className={`h-4 w-4 text-[var(--muted)] ${expanded ? 'rotate-180' : ''}`}
+            className={`h-4 w-4 text-(--muted) ${expanded ? 'rotate-180' : ''}`}
           />
           <span className="text-sm font-medium">Bugünün planları</span>
           {query.isSuccess && (
-            <span className="text-xs text-[var(--muted)]">
+            <span className="text-xs text-(--muted)">
               {completed}/{sessions.length} tamamlandı
             </span>
           )}
@@ -165,7 +165,7 @@ export default function TodaysPlans() {
       {query.isPending ? (
         <p
           role="status"
-          className="border-t px-4 py-4 text-sm text-[var(--muted)]"
+          className="border-t px-4 py-4 text-sm text-(--muted)"
         >
           Bugünün planları yükleniyor…
         </p>
@@ -191,28 +191,28 @@ export default function TodaysPlans() {
             aria-busy={query.isFetching}
           >
             {sessions.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-[var(--muted)]">
+              <p className="px-4 py-6 text-sm text-(--muted)">
                 Bugün için planlanmış {t.session()} yok.
               </p>
             ) : (
-              <ul className="divide-y divide-[var(--line)]">
+              <ul className="divide-y divide-(--line)">
                 {sessions.map((session) => (
                   <li
                     key={session.id}
                     className="flex flex-wrap items-start justify-between gap-3 p-4"
                   >
                     <div className="min-w-0 flex-1 basis-48">
-                      <p className="text-xs text-[var(--muted)]">
+                      <p className="text-xs text-(--muted)">
                         {formatZonedTime(session.startTime, timezone)}–
                         {formatZonedTime(session.endTime, timezone)} · Plan:{' '}
                         {session.duration} dk ·{' '}
                         {sessionTypeLabels[session.sessionType]}
                       </p>
-                      <h3 className="mt-1 break-words text-sm font-medium">
+                      <h3 className="mt-1 wrap-break-word text-sm font-medium">
                         {session.title}
                       </h3>
                       {session.description && (
-                        <p className="mt-1 break-words text-xs text-[var(--muted)]">
+                        <p className="mt-1 wrap-break-word text-xs text-(--muted)">
                           {session.description}
                         </p>
                       )}
@@ -221,7 +221,7 @@ export default function TodaysPlans() {
                           {sessionStatusLabels[session.status]}
                         </span>
                         {isSessionMissed(session) && (
-                          <span className="text-xs text-[var(--muted)]">
+                          <span className="text-xs text-(--muted)">
                             Planlanan bitiş saati geçti
                           </span>
                         )}

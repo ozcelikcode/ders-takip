@@ -125,7 +125,7 @@ function SettingsForm({
     label: string,
     description: string,
   ) => (
-    <label className="flex items-start gap-3 rounded-lg border border-[var(--line)] p-4">
+    <label className="flex items-start gap-3 rounded-lg border border-(--line) p-4">
       <input
         className="mt-1"
         type="checkbox"
@@ -136,7 +136,7 @@ function SettingsForm({
       />
       <span>
         <span className="block text-sm font-medium">{label}</span>
-        <span className="mt-1 block text-sm text-[var(--muted)]">
+        <span className="mt-1 block text-sm text-(--muted)">
           {description}
         </span>
       </span>
@@ -206,7 +206,7 @@ function SettingsForm({
     <>
       <nav
         aria-label="Site ayarı bölümleri"
-        className="flex flex-wrap gap-2 border-b border-[var(--line)] pb-4"
+        className="flex flex-wrap gap-2 border-b border-(--line) pb-4"
       >
         {sections.map(([id, label]) => (
           <button
@@ -262,7 +262,7 @@ function SettingsForm({
                 />,
               )}
               {input('adminEmail', 'Yönetici iletişim e-postası', 'email')}
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-xs text-(--muted)">
                 Site adı bütün görünen marka alanlarına uygulanır. Site URL
                 alanı hosting adresinizi veya alan adınızı değiştirmez.
               </p>
@@ -286,7 +286,7 @@ function SettingsForm({
                 'Boşta oturum süresi (dakika)',
                 'number',
               )}
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-xs text-(--muted)">
                 1–1440 dakika. Etkin alt sınır erişim anahtarının ömrüdür (en
                 fazla 15 dakika); süre yenileme sırasında denetlenir.
               </p>
@@ -295,7 +295,7 @@ function SettingsForm({
           {section === 'notifications' && (
             <>
               <h2 className="text-base font-medium">Bildirim kanalları</h2>
-              <p className="text-sm text-[var(--muted)]">
+              <p className="text-sm text-(--muted)">
                 Kullanıcılar hatırlatma ve özetleri kendileri seçer; burada kapatılan kanal kimseye sunulmaz.
               </p>
               {toggle('emailNotifications', 'E-posta bildirimleri', 'Seans hatırlatmaları, sabah planı ve haftalık özet e-postaları.')}
@@ -329,7 +329,7 @@ function SettingsForm({
                   <option key={name} value={name} />
                 ))}
               </datalist>
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-xs text-(--muted)">
                 Yerleşik ikon adlarından birini veya HTTP(S) görsel adresini
                 kullanın. Logo URL boşsa site ikonu gösterilir.
               </p>
@@ -341,7 +341,7 @@ function SettingsForm({
           {section === 'terminology' && (
             <>
               <h2 className="text-base font-medium">Kelime seti</h2>
-              <p className="text-sm text-[var(--muted)]">
+              <p className="text-sm text-(--muted)">
                 Arayüzdeki ana kavramların adı seçtiğiniz sete göre değişir. Kayıtlı veriler ve
                 yetkiler etkilenmez; yalnızca görünen kelimeler değişir.
               </p>
@@ -377,7 +377,7 @@ function SettingsForm({
                   <option value="7">7 günde bir</option>
                 </select>,
               )}
-              <p className="text-sm text-[var(--muted)]">
+              <p className="text-sm text-(--muted)">
                 Son başarılı otomatik yedekten itibaren seçilen süre dolduğunda
                 yeni yedek alınır. Sistem her 5 dakikada bir kontrol eder.
               </p>
@@ -411,8 +411,8 @@ function SettingsForm({
             {mutation.errorMessage}
           </p>
         )}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-5">
-          <p className="text-sm text-[var(--muted)]" role="status">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-(--line) pt-5">
+          <p className="text-sm text-(--muted)" role="status">
             {mutation.isPending
               ? 'İşlem sürüyor…'
               : dirty

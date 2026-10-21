@@ -33,7 +33,7 @@ export default function GoalDurationInput({ id, label, minutes, onChange }: Goal
             value={hours}
             onChange={(event) => onChange(clamp(part(event.target.value) * 60 + rest))}
           />
-          <span aria-hidden="true" className="text-sm text-[var(--muted)]">sa</span>
+          <span aria-hidden="true" className="text-sm text-(--muted)">sa</span>
         </div>
         <div className="flex items-center gap-2">
           <label htmlFor={`${id}-minutes`} className="sr-only">{label} (dakika)</label>
@@ -48,7 +48,7 @@ export default function GoalDurationInput({ id, label, minutes, onChange }: Goal
             value={rest}
             onChange={(event) => onChange(clamp(hours * 60 + Math.min(59, part(event.target.value))))}
           />
-          <span aria-hidden="true" className="text-sm text-[var(--muted)]">dk</span>
+          <span aria-hidden="true" className="text-sm text-(--muted)">dk</span>
         </div>
       </div>
       <div role="group" aria-label={`${label}: hazır süreler`} className="mt-3 flex flex-wrap gap-2">
@@ -60,8 +60,8 @@ export default function GoalDurationInput({ id, label, minutes, onChange }: Goal
             onClick={() => onChange(preset)}
             className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
               minutes === preset
-                ? 'border-[var(--solid)] bg-[var(--solid)] text-[var(--solid-text)]'
-                : 'border-[var(--line)] text-[var(--muted)] hover:bg-[var(--subtle)] hover:text-[var(--text)]'
+                ? 'border-(--solid) bg-(--solid) text-(--solid-text)'
+                : 'border-(--line) text-(--muted) hover:bg-(--subtle) hover:text-(--text)'
             }`}
           >
             {formatGoalMinutes(preset)}
@@ -75,8 +75,8 @@ export default function GoalDurationInput({ id, label, minutes, onChange }: Goal
 /** The weekly goal follows from the daily goal and the active days; it is shown, not entered. */
 export function WeeklyGoalSummary({ dailyMinutes, activeDays }: { dailyMinutes: number; activeDays: number }) {
   return (
-    <p aria-live="polite" className="rounded-lg border border-[var(--line)] bg-[var(--subtle)] px-4 py-3 text-sm">
-      <span className="text-[var(--muted)]">Haftalık hedef: </span>
+    <p aria-live="polite" className="rounded-lg border border-(--line) bg-(--subtle) px-4 py-3 text-sm">
+      <span className="text-(--muted)">Haftalık hedef: </span>
       {dailyMinutes === 0 ? (
         <span className="font-medium">Hedef yok</span>
       ) : activeDays === 0 ? (
@@ -84,7 +84,7 @@ export function WeeklyGoalSummary({ dailyMinutes, activeDays }: { dailyMinutes: 
       ) : (
         <>
           <span className="font-medium">{formatGoalMinutes(Math.min(dailyMinutes * activeDays, 168 * 60))}</span>
-          <span className="text-[var(--muted)]"> · {activeDays} aktif gün × {formatGoalMinutes(dailyMinutes)}</span>
+          <span className="text-(--muted)"> · {activeDays} aktif gün × {formatGoalMinutes(dailyMinutes)}</span>
         </>
       )}
     </p>

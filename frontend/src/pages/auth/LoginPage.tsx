@@ -81,7 +81,7 @@ const LoginPage = () => {
                 </label>
                 <Link
                   to="/forgot-password"
-                  className="text-xs text-[var(--muted)] underline underline-offset-4 hover:text-[var(--text)]"
+                  className="text-xs text-(--muted) underline underline-offset-4 hover:text-(--text)"
                 >
                   Şifremi unuttum
                 </Link>
@@ -102,9 +102,9 @@ const LoginPage = () => {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-[var(--muted)]" />
+                    <EyeOff className="h-5 w-5 text-(--muted)" />
                   ) : (
-                    <Eye className="h-5 w-5 text-[var(--muted)]" />
+                    <Eye className="h-5 w-5 text-(--muted)" />
                   )}
                 </button>
                 {errors.password && (
@@ -134,11 +134,11 @@ const LoginPage = () => {
 
             {allowRegistration && (
               <div className="text-center">
-                <p className="text-sm text-[var(--muted)]">
+                <p className="text-sm text-(--muted)">
                   Hesabınız yok mu?{' '}
                   <Link
                     to="/register"
-                    className="font-medium text-[var(--text)] underline underline-offset-4 hover:no-underline"
+                    className="font-medium text-(--text) underline underline-offset-4 hover:no-underline"
                   >
                     Kayıt ol
                   </Link>

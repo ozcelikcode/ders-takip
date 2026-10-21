@@ -55,7 +55,7 @@ const StudyTab = ({ studyPrefs, setStudyPrefs, pending, onSave, onReset, onResta
       ))}
       <div className="md:col-span-2">
         <p className="text-sm font-medium">Aktif Çalışma Günleri</p>
-        <p className="mb-2 mt-1 text-xs text-[var(--muted)]">
+        <p className="mb-2 mt-1 text-xs text-(--muted)">
           Günlük hedef yalnız bu günlerde uygulanır; panodaki hedef göstergesi ve haftalık grafik bu ayarları kullanır.
         </p>
         <WeekdayPicker
@@ -76,7 +76,7 @@ const StudyTab = ({ studyPrefs, setStudyPrefs, pending, onSave, onReset, onResta
       </div>
     </div>
 
-    <div className="flex flex-wrap gap-2 border-t border-[var(--line)] pt-5">
+    <div className="flex flex-wrap gap-2 border-t border-(--line) pt-5">
       <button type="button" onClick={onSave} className="btn btn-primary" disabled={pending > 0}>
         Kaydet
       </button>
@@ -85,9 +85,9 @@ const StudyTab = ({ studyPrefs, setStudyPrefs, pending, onSave, onReset, onResta
       </button>
     </div>
 
-    <div className="space-y-2 border-t border-[var(--line)] pt-5">
+    <div className="space-y-2 border-t border-(--line) pt-5">
       <h3 className="text-sm font-medium">Kurulum sihirbazı</h3>
-      <p className="text-sm text-[var(--muted)]">
+      <p className="text-sm text-(--muted)">
         Kullanım amacını, hedeflerini ve ilk kayıtlarını baştan seç. Mevcut kayıtların silinmez.
       </p>
       <button type="button" onClick={onRestartOnboarding} className="btn btn-secondary" disabled={pending > 0}>

@@ -29,7 +29,7 @@ function Toggle({ checked, onChange, label, hint }: { checked: boolean; onChange
       <input id={id} type="checkbox" className="mt-1" checked={checked} onChange={(event) => onChange(event.target.checked)} />
       <label htmlFor={id} className="text-sm">
         <span className="font-medium">{label}</span>
-        {hint && <span className="mt-0.5 block text-[var(--muted)]">{hint}</span>}
+        {hint && <span className="mt-0.5 block text-(--muted)">{hint}</span>}
       </label>
     </div>
   );
@@ -101,7 +101,7 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
     }
   };
 
-  if (channels.isPending) return <p role="status" className="text-sm text-[var(--muted)]">Bildirim ayarları yükleniyor…</p>;
+  if (channels.isPending) return <p role="status" className="text-sm text-(--muted)">Bildirim ayarları yükleniyor…</p>;
   if (channels.isError) {
     return (
       <div role="alert" className="text-sm">
@@ -115,7 +115,7 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
     return (
       <section className="space-y-2">
         <h2 className="text-base font-medium">Bildirimler</h2>
-        <p className="text-sm text-[var(--muted)]">Bu sitede bildirim gönderimi açık değil. Yöneticin e-posta ya da tarayıcı bildirimlerini açtığında burada seçebilirsin.</p>
+        <p className="text-sm text-(--muted)">Bu sitede bildirim gönderimi açık değil. Yöneticin e-posta ya da tarayıcı bildirimlerini açtığında burada seçebilirsin.</p>
       </section>
     );
   }
@@ -125,7 +125,7 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
       {push.enabled && push.publicKey && (
         <section className="space-y-3">
           <h2 className="text-base font-medium">Bu tarayıcı</h2>
-          <p role="status" className="text-sm text-[var(--muted)]">{browser ? browserStateText[browser] : 'Kontrol ediliyor…'}</p>
+          <p role="status" className="text-sm text-(--muted)">{browser ? browserStateText[browser] : 'Kontrol ediliyor…'}</p>
           <div className="flex flex-wrap gap-2">
             {browser === 'off' && (
               <button type="button" className="btn btn-primary" disabled={busy !== null} onClick={() => void enableBrowser(push.publicKey!)}>
@@ -142,10 +142,10 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
         </section>
       )}
 
-      <section className="space-y-4 border-t border-[var(--line)] pt-6 first:border-t-0 first:pt-0">
+      <section className="space-y-4 border-t border-(--line) pt-6 first:border-t-0 first:pt-0">
         <div>
           <h2 className="text-base font-medium">{t.session({ capitalize: true })} hatırlatmaları</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">Planlı bir {t.session()} başlamadan önce haber verir.</p>
+          <p className="mt-1 text-sm text-(--muted)">Planlı bir {t.session()} başlamadan önce haber verir.</p>
         </div>
         {mail.enabled && <Toggle checked={options.sessionReminderEmail} onChange={(sessionReminderEmail) => save({ sessionReminderEmail })} label="E-posta ile" />}
         {push.enabled && (
@@ -170,10 +170,10 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
       </section>
 
       {mail.enabled && (
-        <section className="space-y-4 border-t border-[var(--line)] pt-6">
+        <section className="space-y-4 border-t border-(--line) pt-6">
           <div>
             <h2 className="text-base font-medium">E-posta özetleri</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">{email ? `${email} adresine, ` : ''}kendi saat dilimine göre gönderilir.</p>
+            <p className="mt-1 text-sm text-(--muted)">{email ? `${email} adresine, ` : ''}kendi saat dilimine göre gönderilir.</p>
           </div>
           <Toggle checked={options.dailyPlanEmail} onChange={(dailyPlanEmail) => save({ dailyPlanEmail })} label="Sabah günlük plan" hint={`Aktif günlerde 07:00'de: bugünkü ${t.session({ plural: true })} ve günlük hedef.`} />
           <Toggle checked={options.weeklySummaryEmail} onChange={(weeklySummaryEmail) => save({ weeklySummaryEmail })} label="Haftalık özet" hint="Haftanın son günü 19:00'da: ölçülen süre, hedef ve dağılım." />

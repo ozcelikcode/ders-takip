@@ -301,7 +301,7 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
   };
 
   return (
-    <div className="space-y-4" aria-busy={pending}>
+    <div className="flex flex-col gap-4" aria-busy={pending}>
       <CalendarToolbar
         weekly={weekly}
         days={days}
@@ -314,7 +314,7 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
         onDropOnNavigation={clearDrag}
       />
       {onCreateSession && (
-        <p id={slotHelpId} className="text-xs text-[var(--muted)]">
+        <p id={slotHelpId} className="text-xs text-(--muted)">
           Boş saatlerde ok tuşlarıyla gezinip Enter veya boşlukla {t.session()} ekleyin.
           Home/End günün ilk/son boş saatine gider. {t.session({ capitalize: true })} işlemlerinden tarih,
           saat ve süre değiştirilebilir.
@@ -352,21 +352,21 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
             >
               <div
                 data-calendar-header
-                className="sticky top-0 z-40 grid border-b border-[var(--line)] bg-[var(--surface)]"
+                className="sticky top-0 z-40 grid border-b border-(--line) bg-(--surface)"
                 style={{
                   gridTemplateColumns,
                 }}
               >
-                <div className="flex items-center justify-center border-r border-[var(--line)]">
-                  <Clock className="h-4 w-4 text-[var(--muted)]" />
+                <div className="flex items-center justify-center border-r border-(--line)">
+                  <Clock className="h-4 w-4 text-(--muted)" />
                 </div>
                 {days.map((day) => (
                   <div
                     key={day.getTime()}
-                    className={`p-3 text-center text-xs ${format(day, 'yyyy-MM-dd') === format(planner.now, 'yyyy-MM-dd') ? 'bg-[var(--subtle)]' : ''}`}
+                    className={`p-3 text-center text-xs ${format(day, 'yyyy-MM-dd') === format(planner.now, 'yyyy-MM-dd') ? 'bg-(--subtle)' : ''}`}
                   >
                     <p className="font-medium">{format(day, 'EEEE')}</p>
-                    <p className="mt-1 text-[var(--muted)]">
+                    <p className="mt-1 text-(--muted)">
                       {format(day, 'd MMM')}
                     </p>
                   </div>
@@ -376,13 +376,13 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
                 <div
                   key={hour}
                   data-calendar-hour={hour}
-                  className="grid border-b border-[var(--line)]"
+                  className="grid border-b border-(--line)"
                   style={{
                     gridTemplateColumns,
                     height: hourHeight,
                   }}
                 >
-                  <div className="flex items-start justify-center border-r border-[var(--line)] bg-[var(--subtle)] pt-2 text-[11px] tabular-nums text-[var(--muted)]">
+                  <div className="flex items-start justify-center border-r border-(--line) bg-(--subtle) pt-2 text-[11px] tabular-nums text-(--muted)">
                     {String(hour).padStart(2, '0')}:00
                   </div>
                   {days.map((day, index) => {
@@ -398,12 +398,12 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
                       <div
                         key={day.getTime()}
                         data-calendar-slot={`${format(day, 'yyyy-MM-dd')}T${String(hour).padStart(2, '0')}:00`}
-                        className="relative border-r border-[var(--line)] hover:bg-[var(--subtle)]"
+                        className="relative border-r border-(--line) hover:bg-(--subtle)"
                         onDragOver={(event) => dragOver(event, index, hour)}
                         onDragLeave={() => setDrop(null)}
                         onDrop={(event) => dropSession(event, index, hour)}
                       >
-                        <div className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-dashed border-[var(--line)] opacity-50" />
+                        <div className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-dashed border-(--line) opacity-50" />
                         {!occupied && onCreateSession && (
                           <button
                             ref={(node) => {
@@ -421,7 +421,7 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
                             }
                             disabled={pending}
                             aria-label={`${format(day, 'd MMMM')} ${String(hour).padStart(2, '0')}:00 ${t.session()} ekle`}
-                            className="absolute inset-0 flex items-center justify-center text-[var(--muted)] opacity-100 sm:opacity-0 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px]"
+                            className="absolute inset-0 flex items-center justify-center text-(--muted) opacity-100 sm:opacity-0 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-[-3px]"
                             style={{ scrollMarginTop: 56 }}
                             onClick={() => create(index, hour)}
                           >
@@ -439,7 +439,7 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
                         )}
                         {drag && drop?.day === index && drop.hour === hour && (
                           <div
-                            className="pointer-events-none absolute inset-x-1 z-20 rounded border border-dashed border-[var(--muted)] bg-[var(--subtle)] opacity-70"
+                            className="pointer-events-none absolute inset-x-1 z-20 rounded-sm border border-dashed border-(--muted) bg-(--subtle) opacity-70"
                             style={{
                               top:
                                 ((drop.minute - hour * 60) / 60) * hourHeight,

@@ -42,12 +42,12 @@ export default function EditorDialog({
                 onClick={close}
                 disabled={pending}
                 aria-label="Düzenleyiciyi kapat"
-                className="rounded p-1 text-[var(--muted)] hover:bg-[var(--subtle)] disabled:opacity-50"
+                className="rounded-sm p-1 text-(--muted) hover:bg-(--subtle) disabled:opacity-50"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <Dialog.Description className="mt-2 text-sm text-[var(--muted)]">
+            <Dialog.Description className="mt-2 text-sm text-(--muted)">
               {description}
             </Dialog.Description>
             <form onSubmit={onSubmit} noValidate className="mt-6 space-y-5">
@@ -62,7 +62,7 @@ export default function EditorDialog({
                   {error}
                 </p>
               )}
-              <div className="flex justify-end gap-3 border-t border-[var(--line)] pt-5">
+              <div className="flex justify-end gap-3 border-t border-(--line) pt-5">
                 <button
                   type="button"
                   onClick={close}

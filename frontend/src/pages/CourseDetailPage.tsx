@@ -193,7 +193,7 @@ const CourseDetailPage = () => {
     <div className="space-y-6">
       <Link
         to="/courses"
-        className="inline-flex items-center gap-2 text-sm text-[var(--muted)]"
+        className="inline-flex items-center gap-2 text-sm text-(--muted)"
       >
         <ArrowLeft className="h-4 w-4" />
         {t.course({ case: 'dat', plural: true, capitalize: true })} geri dön
@@ -280,7 +280,7 @@ const CourseDetailPage = () => {
         </div>
       </div>
       {canEdit && (
-        <p className="text-sm text-[var(--muted)]" role="status">
+        <p className="text-sm text-(--muted)" role="status">
           {archived
             ? `Arşivdeki ${t.topic({ plural: true })} çalışma geçmişi ve ilerlemesi korunur. Geri alınanlar aktif listede görünür.`
             : reorderMutation.isPending
@@ -294,7 +294,7 @@ const CourseDetailPage = () => {
         </p>
       )}
       {archived && archiveQuery.isPending && (
-        <p role="status" className="text-sm text-[var(--muted)]">
+        <p role="status" className="text-sm text-(--muted)">
           Arşiv yükleniyor…
         </p>
       )}
@@ -364,7 +364,7 @@ const CourseDetailPage = () => {
             <h2 className="text-sm font-medium">
               {archived ? `Arşivde ${t.topic()} bulunamadı` : `${t.topic({ capitalize: true })} bulunamadı`}
             </h2>
-            <p className="mt-2 text-sm text-[var(--muted)]">
+            <p className="mt-2 text-sm text-(--muted)">
               {filterBy !== 'all'
                 ? `Seçilen filtreye uygun ${t.topic()} bulunmuyor.`
                 : archived

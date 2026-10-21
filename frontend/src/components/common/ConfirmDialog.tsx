@@ -50,7 +50,7 @@ export default function ConfirmDialog({
     }
   };
   return (
-    <Dialog open={isOpen} onClose={close} className="relative z-[60]">
+    <Dialog open={isOpen} onClose={close} className="relative z-60">
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="fixed inset-0 overflow-y-auto">
         <div className="flex min-h-full items-center justify-center p-4">
@@ -61,7 +61,7 @@ export default function ConfirmDialog({
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
                 <AlertTriangle
-                  className={`mt-0.5 h-5 w-5 shrink-0 ${type === 'danger' ? 'text-red-600' : 'text-[var(--muted)]'}`}
+                  className={`mt-0.5 h-5 w-5 shrink-0 ${type === 'danger' ? 'text-red-600' : 'text-(--muted)'}`}
                 />
                 <Dialog.Title className="text-base font-medium">
                   {title}
@@ -71,12 +71,12 @@ export default function ConfirmDialog({
                 disabled={pending}
                 aria-label="Onay penceresini kapat"
                 onClick={close}
-                className="rounded p-1 text-[var(--muted)] hover:bg-[var(--subtle)] disabled:opacity-50"
+                className="rounded-sm p-1 text-(--muted) hover:bg-(--subtle) disabled:opacity-50"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <Dialog.Description className="mt-4 text-sm text-[var(--muted)]">
+            <Dialog.Description className="mt-4 text-sm text-(--muted)">
               {message}
             </Dialog.Description>
             {children && <div className="mt-4">{children}</div>}

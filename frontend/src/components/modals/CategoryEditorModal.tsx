@@ -156,7 +156,7 @@ export default function CategoryEditorModal({
           <div className="flex items-center gap-2">
             <span
               aria-hidden="true"
-              className="h-5 w-5 shrink-0 rounded border"
+              className="h-5 w-5 shrink-0 rounded-sm border"
               style={{
                 backgroundColor: /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(
                   form.color,
@@ -191,7 +191,7 @@ export default function CategoryEditorModal({
       <div>
         {label('icon', 'Simge')}
         <div className="flex items-center gap-2">
-          <Icon className="h-5 w-5 shrink-0 text-[var(--muted)]" />
+          <Icon className="h-5 w-5 shrink-0 text-(--muted)" />
           <select
             {...field('icon')}
             className="input"

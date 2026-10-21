@@ -62,24 +62,24 @@ export default function FirstRecordsStep({ id, draft, terms, onChange, onError }
       <div>
         <label htmlFor={`${id}-category`} className="mb-2 block text-sm font-medium">Kategori</label>
         <div className="relative">
-          <FolderOpen aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
+          <FolderOpen aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--muted)" />
           <input id={`${id}-category`} className="input pl-9" maxLength={100} value={draft.categoryName} onChange={(event) => onChange({ ...draft, categoryName: event.target.value })} />
         </div>
-        <p className="mt-2 text-xs text-[var(--muted)]">Yalnız sana görünen kişisel bir kategori olarak oluşturulur; aynı adlı ortak bir kategori varsa o kullanılır.</p>
+        <p className="mt-2 text-xs text-(--muted)">Yalnız sana görünen kişisel bir kategori olarak oluşturulur; aynı adlı ortak bir kategori varsa o kullanılır.</p>
       </div>
 
       <div>
         <div className="flex items-baseline justify-between gap-3">
           <h2 id={`${id}-records`} className="text-sm font-medium">{terms.course({ plural: true, capitalize: true })}</h2>
-          <span className="text-xs text-[var(--muted)]">{draft.courseNames.length} / {onboardingCourseLimit}</span>
+          <span className="text-xs text-(--muted)">{draft.courseNames.length} / {onboardingCourseLimit}</span>
         </div>
         <ul aria-labelledby={`${id}-records`} className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {draft.courseNames.map((courseName) => (
-            <li key={courseName} className={`${tile} justify-between border-[var(--line)] bg-[var(--surface)]`}>
-              <span aria-hidden="true" className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--subtle)] text-base font-semibold">
+            <li key={courseName} className={`${tile} justify-between border-(--line) bg-(--surface)`}>
+              <span aria-hidden="true" className="flex h-10 w-10 items-center justify-center rounded-lg bg-(--subtle) text-base font-semibold">
                 {courseName.charAt(0).toLocaleUpperCase(appLocale)}
               </span>
-              <span className="line-clamp-3 break-words pr-1 text-sm font-medium">{courseName}</span>
+              <span className="line-clamp-3 wrap-break-word pr-1 text-sm font-medium">{courseName}</span>
               <button type="button" aria-label={`${courseName} kaldır`} onClick={() => remove(courseName)} className="icon-button absolute right-2 top-2">
                 <X className="h-4 w-4" />
               </button>
@@ -88,8 +88,8 @@ export default function FirstRecordsStep({ id, draft, terms, onChange, onError }
           {!full && (
             <li className="aspect-square">
               {adding ? (
-                <div className={`${tile} h-full justify-between gap-2 border-dashed border-[var(--solid)] p-3`}>
-                  <label htmlFor={`${id}-new`} className="text-xs font-medium text-[var(--muted)]">Yeni {terms.course()}</label>
+                <div className={`${tile} h-full justify-between gap-2 border-dashed border-(--solid) p-3`}>
+                  <label htmlFor={`${id}-new`} className="text-xs font-medium text-(--muted)">Yeni {terms.course()}</label>
                   <input
                     ref={inputRef}
                     id={`${id}-new`}
@@ -112,7 +112,7 @@ export default function FirstRecordsStep({ id, draft, terms, onChange, onError }
                   ref={addButtonRef}
                   type="button"
                   onClick={() => { setAdding(true); onError(null); }}
-                  className={`${tile} h-full w-full items-center justify-center gap-2 border-dashed border-[var(--line)] text-sm text-[var(--muted)] transition-colors hover:border-[var(--solid)] hover:text-[var(--text)]`}
+                  className={`${tile} h-full w-full items-center justify-center gap-2 border-dashed border-(--line) text-sm text-(--muted) transition-colors hover:border-(--solid) hover:text-(--text)`}
                 >
                   <Plus aria-hidden="true" className="h-5 w-5" />
                   {courseWord} ekle
@@ -122,13 +122,13 @@ export default function FirstRecordsStep({ id, draft, terms, onChange, onError }
           )}
         </ul>
         {draft.courseNames.length === 0 && (
-          <p className="mt-3 text-xs text-[var(--muted)]">Boş bırakırsan bu adım atlanır; {terms.course({ plural: true })} sonra da eklenebilir.</p>
+          <p className="mt-3 text-xs text-(--muted)">Boş bırakırsan bu adım atlanır; {terms.course({ plural: true })} sonra da eklenebilir.</p>
         )}
       </div>
 
       {suggestions.length > 0 && (
         <div>
-          <p className="text-xs font-medium text-[var(--muted)]">Hızlı ekle</p>
+          <p className="text-xs font-medium text-(--muted)">Hızlı ekle</p>
           <div role="group" aria-label="Önerilen adlar" className="mt-2 flex flex-wrap gap-2">
             {suggestions.map((suggestion) => (
               <button
@@ -136,7 +136,7 @@ export default function FirstRecordsStep({ id, draft, terms, onChange, onError }
                 type="button"
                 aria-label={`${suggestion} ekle`}
                 onClick={() => add(suggestion)}
-                className="inline-flex items-center gap-1 rounded-full border border-[var(--line)] px-3 py-1.5 text-xs font-medium text-[var(--muted)] transition-colors hover:bg-[var(--subtle)] hover:text-[var(--text)]"
+                className="inline-flex items-center gap-1 rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--muted) transition-colors hover:bg-(--subtle) hover:text-(--text)"
               >
                 <Plus aria-hidden="true" className="h-3.5 w-3.5" />
                 {suggestion}

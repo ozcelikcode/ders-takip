@@ -93,8 +93,12 @@ for (const theme of ['light', 'dark'] as const) {
           await page
             .getByRole('button', { name: 'Değiştir', exact: true })
             .click();
+          // Clicking scrolls the page by an engine-dependent amount; content resting under
+          // the sticky header would then read as an obscured target, so scan from the top.
+          await page.evaluate(() => window.scrollTo(0, 0));
           await scan(page, info, 'profile-edit');
           await page.getByRole('button', { name: 'URL', exact: true }).click();
+          await page.evaluate(() => window.scrollTo(0, 0));
           await scan(page, info, 'profile-image-url');
         }
         if (route === 'settings') {

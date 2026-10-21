@@ -135,7 +135,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
       onClose={() => {
         if (!pending) onClose();
       }}
-      className="relative z-[60]"
+      className="relative z-60"
     >
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
@@ -144,12 +144,12 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
           aria-busy={pending}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-[var(--line)]">
+          <div className="flex items-center justify-between p-4 border-b border-(--line)">
             <div>
               <Dialog.Title className="text-base font-medium">
                 Görevi Taşı
               </Dialog.Title>
-              <p className="text-sm text-[var(--muted)] mt-1">
+              <p className="text-sm text-(--muted) mt-1">
                 {sessionTitle} · Taşınacak saat: {format(currentDate, 'HH:mm')}
               </p>
             </div>
@@ -157,7 +157,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
               disabled={pending}
               onClick={onClose}
               aria-label="Kapat"
-              className="p-2 text-[var(--muted)] hover:text-[var(--text)] rounded-lg hover:bg-[var(--subtle)]"
+              className="p-2 text-(--muted) hover:text-(--text) rounded-lg hover:bg-(--subtle)"
             >
               <X className="h-5 w-5" />
             </button>
@@ -166,7 +166,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
           {sourceUnavailable && (
             <div
               role="alert"
-              className="space-y-2 border-b border-[var(--line)] p-4 text-sm"
+              className="space-y-2 border-b border-(--line) p-4 text-sm"
             >
               <p>
                 Güncel {t.session()} okunamadı veya bu takvim aralığında bulunamadı.
@@ -190,9 +190,9 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
                 disabled={pending}
                 onClick={handlePrevMonth}
                 aria-label="Önceki ay"
-                className="p-2 rounded-lg hover:bg-[var(--subtle)]"
+                className="p-2 rounded-lg hover:bg-(--subtle)"
               >
-                <ChevronLeft className="h-5 w-5 text-[var(--muted)]" />
+                <ChevronLeft className="h-5 w-5 text-(--muted)" />
               </button>
               <h3 className="text-base font-semibold ">
                 {format(selectedMonth, 'MMMM yyyy')}
@@ -201,9 +201,9 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
                 disabled={pending}
                 onClick={handleNextMonth}
                 aria-label="Sonraki ay"
-                className="p-2 rounded-lg hover:bg-[var(--subtle)]"
+                className="p-2 rounded-lg hover:bg-(--subtle)"
               >
-                <ChevronRight className="h-5 w-5 text-[var(--muted)]" />
+                <ChevronRight className="h-5 w-5 text-(--muted)" />
               </button>
             </div>
 
@@ -212,7 +212,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
               {orderedWeekdays(weekStart).map(weekdayLabel).map((day) => (
                 <div
                   key={day}
-                  className="text-center text-xs font-medium text-[var(--muted)] py-2"
+                  className="text-center text-xs font-medium text-(--muted) py-2"
                 >
                   {day}
                 </div>
@@ -236,16 +236,16 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
                     aria-pressed={!!isSelected}
                     className={`
                     relative p-2 text-sm rounded-lg transition-colors
-                    ${!isCurrentMonth ? 'text-[var(--muted)] cursor-not-allowed' : ''}
-                    ${isCurrentMonth && !isSelected && !isTodayDate ? 'hover:bg-[var(--subtle)]' : ''}
-                    ${isTodayDate && !isSelected ? 'bg-[var(--subtle)] text-[var(--text)] font-medium' : ''}
+                    ${!isCurrentMonth ? 'text-(--muted) cursor-not-allowed' : ''}
+                    ${isCurrentMonth && !isSelected && !isTodayDate ? 'hover:bg-(--subtle)' : ''}
+                    ${isTodayDate && !isSelected ? 'bg-(--subtle) text-(--text) font-medium' : ''}
                     ${isSelected ? 'bg-primary-600 text-white font-semibold' : ''}
-                    ${isCurrentDateDay && !isSelected ? 'ring-1 ring-[var(--muted)]' : ''}
+                    ${isCurrentDateDay && !isSelected ? 'ring-1 ring-(--muted)' : ''}
                   `}
                   >
                     {format(day, 'd')}
                     {isCurrentDateDay && !isSelected && (
-                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-[var(--muted)] rounded-full"></div>
+                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-(--muted) rounded-full"></div>
                     )}
                   </button>
                 );
@@ -254,7 +254,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
 
             {/* Selected Date Info */}
             {selectedDate && (
-              <div className="mt-4 p-3 bg-[var(--subtle)] rounded-lg">
+              <div className="mt-4 p-3 bg-(--subtle) rounded-lg">
                 <p className="text-sm">
                   Seçilen tarih:{' '}
                   <span className="font-semibold">
@@ -266,8 +266,8 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
           </div>
 
           {sessionDuration !== undefined && (
-            <div className="space-y-3 border-t border-[var(--line)] p-4">
-              <p className="text-xs text-[var(--muted)]">
+            <div className="space-y-3 border-t border-(--line) p-4">
+              <p className="text-xs text-(--muted)">
                 Tarihi değiştirmeden saat veya süreyi düzenleyebilirsiniz. Saat
                 dilimi: {timezone}.
               </p>
@@ -318,7 +318,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
             </div>
           )}
           {/* Footer */}
-          <div className="flex gap-3 p-4 border-t border-[var(--line)]">
+          <div className="flex gap-3 p-4 border-t border-(--line)">
             <button
               disabled={pending}
               onClick={onClose}

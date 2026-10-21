@@ -62,7 +62,7 @@ export default function AdminCoursesPage() {
         <label htmlFor="admin-course-search" className="sr-only">
           {t.course({ capitalize: true })} veya kategori ara
         </label>
-        <Search className="absolute left-3 top-3 h-4 w-4 text-[var(--muted)]" />
+        <Search className="absolute left-3 top-3 h-4 w-4 text-(--muted)" />
         <input
           id="admin-course-search"
           className="input pl-9"
@@ -72,7 +72,7 @@ export default function AdminCoursesPage() {
         />
       </div>
       {query.isPending ? (
-        <p role="status" className="text-sm text-[var(--muted)]">
+        <p role="status" className="text-sm text-(--muted)">
           {t.course({ plural: true, capitalize: true })} yükleniyor…
         </p>
       ) : query.isError ? (
@@ -100,19 +100,19 @@ export default function AdminCoursesPage() {
                     {!course.isActive && <span className="badge">Pasif</span>}
                   </div>
                 </div>
-                <p className="mt-4 text-xs text-[var(--muted)]">
+                <p className="mt-4 text-xs text-(--muted)">
                   {course.category?.name}
                 </p>
                 <h2 className="mt-1 text-lg font-medium">{course.name}</h2>
                 {course.description && (
-                  <p className="mt-2 line-clamp-2 text-sm text-[var(--muted)]">
+                  <p className="mt-2 line-clamp-2 text-sm text-(--muted)">
                     {course.description}
                   </p>
                 )}
-                <p className="mb-4 mt-3 text-xs text-[var(--muted)]">
+                <p className="mb-4 mt-3 text-xs text-(--muted)">
                   Sıra: {course.order}
                 </p>
-                <div className="mt-auto flex justify-end gap-2 border-t border-[var(--line)] pt-4">
+                <div className="mt-auto flex justify-end gap-2 border-t border-(--line) pt-4">
                   <button
                     className="btn btn-secondary"
                     aria-label={`${t.course({ case: 'acc', capitalize: true })} düzenle: ${course.name}`}
@@ -140,7 +140,7 @@ export default function AdminCoursesPage() {
             );
           })}
           {filtered.length === 0 && (
-            <p className="panel col-span-full p-8 text-center text-sm text-[var(--muted)]">
+            <p className="panel col-span-full p-8 text-center text-sm text-(--muted)">
               {term
                 ? `Aramaya uygun ${t.course()} bulunamadı.`
                 : `Henüz ${t.course()} eklenmedi.`}

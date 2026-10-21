@@ -49,7 +49,7 @@ const RegisterPage = () => {
 
   if (!allowRegistration) {
     return (
-      <main className="min-h-screen bg-[var(--canvas)] flex items-center justify-center py-12 px-4">
+      <main className="min-h-screen bg-(--canvas) flex items-center justify-center py-12 px-4">
         <div
           className="panel w-full max-w-md space-y-4 p-8 text-center"
           role="status"
@@ -60,7 +60,7 @@ const RegisterPage = () => {
           <h1 className="text-[28px] font-semibold tracking-tight">
             Kayıtlar kapalı
           </h1>
-          <p className="text-sm text-[var(--muted)]">
+          <p className="text-sm text-(--muted)">
             Yeni hesap oluşturma şu anda kapalı. Mevcut hesabınızla giriş
             yapabilirsiniz.
           </p>
@@ -193,9 +193,9 @@ const RegisterPage = () => {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-[var(--muted)]" />
+                    <EyeOff className="h-5 w-5 text-(--muted)" />
                   ) : (
-                    <Eye className="h-5 w-5 text-[var(--muted)]" />
+                    <Eye className="h-5 w-5 text-(--muted)" />
                   )}
                 </button>
                 {errors.password && (
@@ -224,11 +224,11 @@ const RegisterPage = () => {
             </div>
 
             <div className="text-center">
-              <p className="text-sm text-[var(--muted)]">
+              <p className="text-sm text-(--muted)">
                 Zaten hesabınız var mı?{' '}
                 <Link
                   to="/login"
-                  className="font-medium text-[var(--text)] underline underline-offset-4 hover:no-underline"
+                  className="font-medium text-(--text) underline underline-offset-4 hover:no-underline"
                 >
                   Giriş yap
                 </Link>

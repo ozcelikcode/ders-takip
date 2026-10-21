@@ -34,15 +34,15 @@ const CourseHeader = ({
               <Icon className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-xs text-(--muted)">
                 {course.category?.name}
                 {course.isGlobal ? ` · Ortak ${t.course()}` : ''}
               </p>
-              <h1 className="mt-1 break-words text-2xl font-medium tracking-tight">
+              <h1 className="mt-1 wrap-break-word text-2xl font-medium tracking-tight">
                 {course.name}
               </h1>
               {course.description && (
-                <p className="mt-2 text-sm text-[var(--muted)]">
+                <p className="mt-2 text-sm text-(--muted)">
                   {course.description}
                 </p>
               )}
@@ -76,12 +76,12 @@ const CourseHeader = ({
           ].map(([count, label]) => (
             <div key={label}>
               <div className="text-2xl font-medium tabular-nums">{count}</div>
-              <div className="mt-1 text-xs text-[var(--muted)]">{label}</div>
+              <div className="mt-1 text-xs text-(--muted)">{label}</div>
             </div>
           ))}
         </div>
         <div className="mt-5">
-          <div className="mb-2 flex justify-between text-xs text-[var(--muted)]">
+          <div className="mb-2 flex justify-between text-xs text-(--muted)">
             <span>Aktif {t.topic({ case: 'loc', plural: true })} ilerleme</span>
             <span>{progressPercentage}%</span>
           </div>
@@ -91,10 +91,10 @@ const CourseHeader = ({
             aria-valuenow={progressPercentage}
             aria-valuemin={0}
             aria-valuemax={100}
-            className="h-1.5 overflow-hidden rounded bg-[var(--subtle)]"
+            className="h-1.5 overflow-hidden rounded-sm bg-(--subtle)"
           >
             <div
-              className="h-full bg-[var(--solid)]"
+              className="h-full bg-(--solid)"
               style={{ width: `${progressPercentage}%` }}
             />
           </div>

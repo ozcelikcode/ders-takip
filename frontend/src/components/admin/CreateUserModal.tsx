@@ -182,7 +182,7 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
           <option value="admin">Yönetici</option>
         </select>
         {form.role === 'admin' && (
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-(--muted)">
             Yöneticiler kullanıcıları, ortak içerikleri ve sistem ayarlarını
             yönetebilir.
           </p>

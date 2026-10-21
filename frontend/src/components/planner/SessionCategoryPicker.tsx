@@ -35,13 +35,13 @@ const SessionCategoryPicker = ({ value, onChange }: SessionCategoryPickerProps) 
           onClick={() => onChange(category)}
           className={`p-4 rounded-md border transition-colors duration-150 ${
             value === category
-              ? 'border-[var(--solid)] bg-[var(--subtle)] text-[var(--text)]'
-              : 'border-[var(--line)] text-[var(--muted)] hover:bg-[var(--subtle)]'
+              ? 'border-(--solid) bg-(--subtle) text-(--text)'
+              : 'border-(--line) text-(--muted) hover:bg-(--subtle)'
           }`}
         >
           <div className="flex flex-col items-center gap-2">
             <Icon
-              className={`w-6 h-6 ${value === category ? ' ' : 'text-[var(--muted)]'}`}
+              className={`w-6 h-6 ${value === category ? ' ' : 'text-(--muted)'}`}
             />
             <span className="font-medium text-xs">{labels[category]}</span>
           </div>

@@ -53,7 +53,7 @@ export default function ResetPasswordPage() {
           <div>
             <label htmlFor="reset-password" className="mb-2 block text-sm font-medium">Yeni Şifre</label>
             <input id="reset-password" type="password" autoComplete="new-password" className="input" value={password} onChange={(event) => setPassword(event.target.value)} />
-            <p className="mt-1 text-xs text-[var(--muted)]">En az 12 karakter olmalıdır</p>
+            <p className="mt-1 text-xs text-(--muted)">En az 12 karakter olmalıdır</p>
           </div>
           <div>
             <label htmlFor="reset-confirm" className="mb-2 block text-sm font-medium">Yeni Şifre (Tekrar)</label>

@@ -355,7 +355,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
           className="panel mx-auto my-8 flex max-h-[90vh] w-full max-w-lg flex-col shadow-xl"
           aria-busy={mutation.isPending}
         >
-          <div className="flex items-center justify-between p-5 border-b border-[var(--line)]">
+          <div className="flex items-center justify-between p-5 border-b border-(--line)">
             <Dialog.Title className="text-lg font-medium ">
               {isEditMode ? `${t.session({ case: 'acc', capitalize: true })} düzenle` : `Yeni ${t.session({ capitalize: true })}`}
             </Dialog.Title>
@@ -363,7 +363,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
               onClick={handleClose}
               disabled={mutation.isPending}
               aria-label="Pencereyi kapat"
-              className="p-2 rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--subtle)] transition-all"
+              className="p-2 rounded-md text-(--muted) hover:text-(--text) hover:bg-(--subtle) transition-all"
             >
               <X className="w-5 h-5" />
             </button>
@@ -378,7 +378,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
               disabled={mutation.isPending || showDeleteConfirm}
               className="space-y-5 disabled:opacity-60"
             >
-              <p className="text-xs text-[var(--muted)]">
+              <p className="text-xs text-(--muted)">
                 Takvim saat dilimi: {preferences.timezone}
               </p>
               {coursesQuery.isError && (
@@ -459,8 +459,8 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
               )}
 
               {sessionCategory === 'break' && (
-                <div className="rounded-lg border border-[var(--line)] bg-[var(--subtle)] p-3">
-                  <p className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                <div className="rounded-lg border border-(--line) bg-(--subtle) p-3">
+                  <p className="flex items-center gap-2 text-sm text-(--muted)">
                     <Coffee className="w-4 h-4" />
                     Mola oluşturuyorsunuz. Süreyi ve zamanı ayarlayın.
                   </p>
@@ -516,7 +516,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                   <div>
                     <label
                       htmlFor="startDate"
-                      className="block text-xs text-[var(--muted)] mb-1"
+                      className="block text-xs text-(--muted) mb-1"
                     >
                       Tarih
                     </label>
@@ -530,7 +530,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                   <div>
                     <label
                       htmlFor="startTime"
-                      className="block text-xs text-[var(--muted)] mb-1"
+                      className="block text-xs text-(--muted) mb-1"
                     >
                       Saat
                     </label>
@@ -609,7 +609,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
           </form>
 
           {/* Footer with buttons */}
-          <div className="flex flex-wrap justify-between items-center gap-3 p-5 border-t border-[var(--line)] bg-[var(--surface)]">
+          <div className="flex flex-wrap justify-between items-center gap-3 p-5 border-t border-(--line) bg-(--surface)">
             {/* Delete button - left side, only in edit mode */}
             <div>
               {isEditMode && (

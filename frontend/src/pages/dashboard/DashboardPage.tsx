@@ -63,11 +63,11 @@ const DashboardPage = () => {
         description="Çalışmalarına bir adım uzaktan bak. Sıradaki adımını planla."
         actions={<Link to="/planner" className="btn btn-primary"><Plus className="h-4 w-4" />{t.session({ capitalize: true })} planla</Link>} />
 
-      <section aria-label="Çalışma özeti" className="panel grid grid-cols-2 divide-x divide-[var(--line)] lg:grid-cols-4">
+      <section aria-label="Çalışma özeti" className="panel grid grid-cols-2 divide-x divide-(--line) lg:grid-cols-4">
         {stats.map((stat, index) => <div key={stat.label} className={`p-5 sm:p-6 ${index > 1 ? 'border-t lg:border-t-0' : ''}`}>
-          <div className="flex items-center justify-between gap-3 text-xs text-[var(--muted)]"><span>{stat.label}</span><stat.icon className="h-4 w-4" strokeWidth={1.6} /></div>
+          <div className="flex items-center justify-between gap-3 text-xs text-(--muted)"><span>{stat.label}</span><stat.icon className="h-4 w-4" strokeWidth={1.6} /></div>
           <p className="my-4 text-[30px] font-medium leading-none tracking-tight tabular-nums">{stat.loading ? '—' : stat.error ? '—' : stat.value}</p>
-          <p className={`text-[11px] leading-5 ${stat.error ? 'text-red-600 dark:text-red-400' : 'text-[var(--muted)]'}`}>{stat.error ? 'Veriler alınamadı' : stat.detail}</p>
+          <p className={`text-[11px] leading-5 ${stat.error ? 'text-red-600 dark:text-red-400' : 'text-(--muted)'}`}>{stat.error ? 'Veriler alınamadı' : stat.detail}</p>
         </div>)}
       </section>
 
@@ -77,19 +77,19 @@ const DashboardPage = () => {
 
       <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
         <section className="panel min-w-0">
-          <div className="panel-heading"><div><h2 className="text-sm font-medium">Haftalık ilerleme</h2><p className="mt-1 text-xs text-[var(--muted)]">Günlere bölünmüş ölçülen çalışma; molalar hariç</p></div><span className="badge badge-gray">Bu hafta</span></div>
-          <div className="h-[300px] px-5 pb-5 pt-7"><Suspense fallback={<p role="status" className="text-sm text-[var(--muted)]">Grafik yükleniyor…</p>}><WeeklyProgressChart /></Suspense></div>
+          <div className="panel-heading"><div><h2 className="text-sm font-medium">Haftalık ilerleme</h2><p className="mt-1 text-xs text-(--muted)">Günlere bölünmüş ölçülen çalışma; molalar hariç</p></div><span className="badge badge-gray">Bu hafta</span></div>
+          <div className="h-[300px] px-5 pb-5 pt-7"><Suspense fallback={<p role="status" className="text-sm text-(--muted)">Grafik yükleniyor…</p>}><WeeklyProgressChart /></Suspense></div>
         </section>
         <section className="panel min-w-0">
-          <div className="panel-heading"><div><h2 className="text-sm font-medium">Son aktiviteler</h2><p className="mt-1 text-xs text-[var(--muted)]">Tamamladığın son çalışmalar</p></div><Link to="/planner" className="icon-button" aria-label="Planlayıcıya git"><ArrowRight className="h-4 w-4" /></Link></div>
+          <div className="panel-heading"><div><h2 className="text-sm font-medium">Son aktiviteler</h2><p className="mt-1 text-xs text-(--muted)">Tamamladığın son çalışmalar</p></div><Link to="/planner" className="icon-button" aria-label="Planlayıcıya git"><ArrowRight className="h-4 w-4" /></Link></div>
           <div className="min-h-[300px] p-4"><RecentActivities /></div>
         </section>
       </div>
 
       <section aria-label="Hızlı erişim" className="grid gap-3 md:grid-cols-3">
-        {shortcuts.map(item => <Link key={item.href} to={item.href} className="group flex items-center gap-4 rounded-lg border bg-[var(--surface)] p-5 transition-colors hover:border-gray-400 dark:hover:border-gray-500">
-          <item.icon className="h-5 w-5 shrink-0 text-[var(--muted)]" strokeWidth={1.5} />
-          <div className="min-w-0 flex-1"><h2 className="text-sm font-medium">{item.title}</h2><p className="mt-1 text-xs leading-5 text-[var(--muted)]">{item.description}</p></div><ArrowRight className="h-4 w-4 text-[var(--muted)]" />
+        {shortcuts.map(item => <Link key={item.href} to={item.href} className="group flex items-center gap-4 rounded-lg border bg-(--surface) p-5 transition-colors hover:border-gray-400 dark:hover:border-gray-500">
+          <item.icon className="h-5 w-5 shrink-0 text-(--muted)" strokeWidth={1.5} />
+          <div className="min-w-0 flex-1"><h2 className="text-sm font-medium">{item.title}</h2><p className="mt-1 text-xs leading-5 text-(--muted)">{item.description}</p></div><ArrowRight className="h-4 w-4 text-(--muted)" />
         </Link>)}
       </section>
     </div>

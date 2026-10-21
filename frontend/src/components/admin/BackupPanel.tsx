@@ -42,7 +42,7 @@ export default function BackupPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-base font-medium">Yedekler</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">
+          <p className="mt-1 text-sm text-(--muted)">
             Yedek sunucuda saklanır; cihazınıza indirilmez. Kaydedilmemiş
             ayarlar yedeğe dahil değildir.
           </p>
@@ -71,17 +71,17 @@ export default function BackupPanel({
           </button>
         </div>
       ) : query.data.length === 0 ? (
-        <p className="text-sm text-[var(--muted)]">Henüz yedek bulunmuyor.</p>
+        <p className="text-sm text-(--muted)">Henüz yedek bulunmuyor.</p>
       ) : (
         <div
-          className="overflow-x-auto rounded-lg border border-[var(--line)]"
+          className="overflow-x-auto rounded-lg border border-(--line)"
           aria-busy={query.isFetching}
         >
           <table className="w-full text-left text-sm">
             <caption className="sr-only">
               Sunucudaki yedekler ve doğrulama durumu
             </caption>
-            <thead className="border-b bg-[var(--subtle)] text-xs text-[var(--muted)]">
+            <thead className="border-b bg-(--subtle) text-xs text-(--muted)">
               <tr>
                 <th scope="col" className="p-3 font-medium">
                   Tarih
@@ -100,7 +100,7 @@ export default function BackupPanel({
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--line)]">
+            <tbody className="divide-y divide-(--line)">
               {query.data.map((backup) => (
                 <tr key={backup.id}>
                   <td className="whitespace-nowrap p-3">
@@ -137,14 +137,14 @@ export default function BackupPanel({
           </table>
         </div>
       )}
-      <p className="text-xs text-[var(--muted)]">
+      <p className="text-xs text-(--muted)">
         Geri yükleme öncesinde dosya bütünlüğü ve şema yeniden kontrol edilir.
         Doğrulanmamış eski kayıtlar geri yüklenemez. Ayrı bir konumda yedek
         saklama ve otomatik saklama süresi politikası henüz kurulmadı.
       </p>
-      <div className="space-y-3 border-t border-[var(--line)] pt-6">
+      <div className="space-y-3 border-t border-(--line) pt-6">
         <h2 className="text-base font-medium">Verileri sıfırlama</h2>
-        <p className="text-sm text-[var(--muted)]">
+        <p className="text-sm text-(--muted)">
           İşlemden önce güvenlik yedeği alınır. Uygulanacak kapsam onay
           penceresinde gösterilir.
         </p>
