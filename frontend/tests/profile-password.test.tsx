@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { defaultPreferences } from '@study-tracker/contracts';
@@ -12,7 +13,7 @@ import { useAuthStore } from '../src/store/authStore';
 vi.mock('../src/services/api', () => ({ authAPI: { changePassword: vi.fn() } }));
 vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn() } }));
 
-const mount = (page: JSX.Element) =>
+const mount = (page: ReactElement) =>
   render(
     <MemoryRouter>
       <QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>

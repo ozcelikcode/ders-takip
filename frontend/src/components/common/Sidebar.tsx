@@ -1,5 +1,5 @@
 import { Brand } from './Brand';
-import { Dialog } from '@headlessui/react';
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { NavLink, Link } from 'react-router-dom';
 import { X, Home, BarChart3, BookOpen, Calendar, User, Users, Settings, LayoutDashboard, Timer, Sliders, ArrowUpRight, type LucideIcon } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -75,10 +75,10 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     <aside className="fixed inset-y-0 left-0 hidden w-[232px] border-r lg:block">{content}</aside>
     <Dialog open={isOpen} onClose={onClose} className="relative z-50 lg:hidden">
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
-      <Dialog.Panel className="fixed inset-y-0 left-0 w-[min(288px,85vw)] border-r">
-        <Dialog.Title className="sr-only">Ana menü</Dialog.Title>
+      <DialogPanel className="fixed inset-y-0 left-0 w-[min(288px,85vw)] border-r">
+        <DialogTitle className="sr-only">Ana menü</DialogTitle>
         {content}
-      </Dialog.Panel>
+      </DialogPanel>
     </Dialog>
   </>;
 };

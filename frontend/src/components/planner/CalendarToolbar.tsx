@@ -7,7 +7,7 @@ interface CalendarToolbarProps {
   days: readonly Date[];
   pending: boolean;
   dragging: boolean;
-  todayButtonRef: RefObject<HTMLButtonElement>;
+  todayButtonRef: RefObject<HTMLButtonElement | null>;
   onNavigate: (direction: number) => void;
   onToday: () => void;
   onHoverDirection: (direction: number | null) => void;

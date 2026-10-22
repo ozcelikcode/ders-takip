@@ -1,4 +1,4 @@
-import { Dialog } from '@headlessui/react';
+import { Description, Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { X } from 'lucide-react';
 import type { ReactNode, FormEvent } from 'react';
 
@@ -29,14 +29,14 @@ export default function EditorDialog({
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="fixed inset-0 overflow-y-auto">
         <div className="flex min-h-full items-center justify-center p-4">
-          <Dialog.Panel
+          <DialogPanel
             className="panel w-full max-w-lg p-6 shadow-xl"
             aria-busy={pending}
           >
             <div className="flex items-center justify-between gap-4">
-              <Dialog.Title className="text-lg font-medium">
+              <DialogTitle className="text-lg font-medium">
                 {title}
-              </Dialog.Title>
+              </DialogTitle>
               <button
                 type="button"
                 onClick={close}
@@ -47,9 +47,9 @@ export default function EditorDialog({
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <Dialog.Description className="mt-2 text-sm text-(--muted)">
+            <Description className="mt-2 text-sm text-(--muted)">
               {description}
-            </Dialog.Description>
+            </Description>
             <form onSubmit={onSubmit} noValidate className="mt-6 space-y-5">
               <fieldset
                 disabled={pending}
@@ -80,7 +80,7 @@ export default function EditorDialog({
                 </button>
               </div>
             </form>
-          </Dialog.Panel>
+          </DialogPanel>
         </div>
       </div>
     </Dialog>

@@ -9,9 +9,9 @@ import { format } from '../../utils/calendarDates';
 import { pomodoroDefaults } from '@study-tracker/contracts';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
-import { Dialog } from '@headlessui/react';
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { contractResolver } from '../../lib/contractResolver';
-import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
+import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { Coffee, Trash2, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -348,7 +348,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
       <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
 
       <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
-        <Dialog.Panel
+        <DialogPanel
           as={motion.div}
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -356,9 +356,9 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
           aria-busy={mutation.isPending}
         >
           <div className="flex items-center justify-between p-5 border-b border-(--line)">
-            <Dialog.Title className="text-lg font-medium ">
+            <DialogTitle className="text-lg font-medium ">
               {isEditMode ? `${t.session({ case: 'acc', capitalize: true })} düzenle` : `Yeni ${t.session({ capitalize: true })}`}
-            </Dialog.Title>
+            </DialogTitle>
             <button
               onClick={handleClose}
               disabled={mutation.isPending}
@@ -660,7 +660,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
               </button>
             </div>
           </div>
-        </Dialog.Panel>
+        </DialogPanel>
       </div>
       <ConfirmDialog
         isOpen={showDeleteConfirm}

@@ -81,7 +81,8 @@ for (const theme of ['light', 'dark'] as const) {
         'settings',
       ]) {
         await page.goto(`/${route}`);
-        await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+        // The loading screen has its own h1; wait for the page's heading inside main.
+        await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toBeVisible();
         await expect(
           page.getByRole('main').getByText(/yükleniyor/i),
         ).toHaveCount(0);
@@ -170,7 +171,8 @@ for (const theme of ['light', 'dark'] as const) {
         'admin/settings',
       ]) {
         await page.goto(`/${route}`);
-        await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+        // The loading screen has its own h1; wait for the page's heading inside main.
+        await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toBeVisible();
         await expect(
           page.getByRole('main').getByText(/yükleniyor/i),
         ).toHaveCount(0);

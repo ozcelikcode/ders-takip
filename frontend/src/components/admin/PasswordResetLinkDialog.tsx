@@ -1,4 +1,4 @@
-import { Dialog } from '@headlessui/react';
+import { Description, Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import type { PasswordResetLink } from '@study-tracker/contracts';
 import { isAxiosError } from 'axios';
 import { useState } from 'react';
@@ -44,12 +44,12 @@ export default function PasswordResetLinkDialog({ userId, name, onClose }: Passw
     <Dialog open onClose={() => !pending && onClose()} className="relative z-50">
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel className="panel w-full max-w-lg space-y-4 p-6 shadow-xl">
-          <Dialog.Title className="text-lg font-medium">Şifre sıfırlama bağlantısı</Dialog.Title>
-          <Dialog.Description className="text-sm text-(--muted)">
+        <DialogPanel className="panel w-full max-w-lg space-y-4 p-6 shadow-xl">
+          <DialogTitle className="text-lg font-medium">Şifre sıfırlama bağlantısı</DialogTitle>
+          <Description className="text-sm text-(--muted)">
             “{name}” için tek kullanımlık, 30 dakika geçerli bir bağlantı oluşturulur ve önceki bağlantılar geçersiz olur.
             Bağlantıyı yalnızca hesap sahibine güvenli bir kanaldan iletin.
-          </Dialog.Description>
+          </Description>
           {link ? (
             <div className="space-y-2">
               <label htmlFor="reset-link" className="block text-sm font-medium">Bağlantı</label>
@@ -75,7 +75,7 @@ export default function PasswordResetLinkDialog({ userId, name, onClose }: Passw
               </button>
             )}
           </div>
-        </Dialog.Panel>
+        </DialogPanel>
       </div>
     </Dialog>
   );

@@ -1,5 +1,5 @@
 import { useTerms } from '../../hooks/useTerms';
-import { Dialog } from '@headlessui/react';
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import {
   calendarViewDate,
   sessionDurationLimits,
@@ -139,16 +139,16 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
     >
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel
+        <DialogPanel
           className="panel max-h-[calc(100dvh-32px)] max-w-md w-full overflow-y-auto shadow-xl"
           aria-busy={pending}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-(--line)">
             <div>
-              <Dialog.Title className="text-base font-medium">
+              <DialogTitle className="text-base font-medium">
                 Görevi Taşı
-              </Dialog.Title>
+              </DialogTitle>
               <p className="text-sm text-(--muted) mt-1">
                 {sessionTitle} · Taşınacak saat: {format(currentDate, 'HH:mm')}
               </p>
@@ -341,7 +341,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
               {pending ? 'Taşınıyor…' : 'Taşı'}
             </button>
           </div>
-        </Dialog.Panel>
+        </DialogPanel>
       </div>
     </Dialog>
   );

@@ -1,5 +1,5 @@
 import { useTerms } from '../../hooks/useTerms';
-import { Dialog } from '@headlessui/react';
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { Clock, Edit, MoveRight, Timer, Trash2, X } from 'lucide-react';
 import type { StudySession } from '../../types/planner';
 import { canRepositionSession } from './calendarGeometry';
@@ -40,13 +40,13 @@ export default function SessionActionsMenu({
     <Dialog open={!!anchor} onClose={onClose} className="relative z-50">
       <div className="fixed inset-0" />
       {anchor && (
-        <Dialog.Panel
+        <DialogPanel
           className="panel fixed w-56 p-2 shadow-lg"
           style={{ top: anchor.y, left: anchor.x }}
         >
-          <Dialog.Title className="px-2 py-1 text-xs text-(--muted)">
+          <DialogTitle className="px-2 py-1 text-xs text-(--muted)">
             {t.session({ capitalize: true })} işlemleri
-          </Dialog.Title>
+          </DialogTitle>
           <button className={itemClass} onClick={run(onEdit)}>
             <Edit className="h-4 w-4" />
             Düzenle
@@ -84,7 +84,7 @@ export default function SessionActionsMenu({
             <X className="h-4 w-4" />
             Kapat
           </button>
-        </Dialog.Panel>
+        </DialogPanel>
       )}
     </Dialog>
   );

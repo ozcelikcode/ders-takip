@@ -321,9 +321,9 @@ it('returns to a valid page after deleting its final row', async () => {
     return response();
   });
   mount();
-  await menu();
-  fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' });
-  fireEvent.click(screen.getByRole('button', { name: 'Sonraki' }));
+  // The open menu owns Escape; the rest of the page stays inert until it closes.
+  fireEvent.keyDown(await menu(), { key: 'Escape', code: 'Escape' });
+  fireEvent.click(await screen.findByRole('button', { name: 'Sonraki' }));
   await screen.findByText('Sayfa 2 / 3 · 41 kullanıcı');
   fireEvent.click(screen.getByRole('button', { name: 'Sonraki' }));
   await screen.findByText('Sayfa 3 / 3 · 41 kullanıcı');

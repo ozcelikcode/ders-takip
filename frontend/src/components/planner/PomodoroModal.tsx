@@ -1,7 +1,7 @@
 import React from 'react';
-import { Dialog } from '@headlessui/react';
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { X, Maximize2, Minimize2 } from 'lucide-react';
-import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig } from 'motion/react';
 import { StudySession } from '../../types/planner';
 import PomodoroTimer from './PomodoroTimer';
 
@@ -40,7 +40,7 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
           <div
             className={`fixed ${isMinimized ? 'bottom-4 right-4' : 'inset-0 flex items-center justify-center p-4'}`}
           >
-            <Dialog.Panel
+            <DialogPanel
               as={motion.div}
               initial={
                 isMinimized
@@ -63,9 +63,9 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
             >
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <Dialog.Title className="text-lg font-medium">
+                <DialogTitle className="text-lg font-medium">
                   Pomodoro
-                </Dialog.Title>
+                </DialogTitle>
                 <div className="flex items-center gap-2">
                   {onToggleMinimize && (
                     <button
@@ -96,7 +96,7 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
               <div className={`p-6 ${isMinimized ? 'pb-4' : ''}`}>
                 <PomodoroTimer session={session} onComplete={onClose} />
               </div>
-            </Dialog.Panel>
+            </DialogPanel>
           </div>
         </Dialog>
       )}

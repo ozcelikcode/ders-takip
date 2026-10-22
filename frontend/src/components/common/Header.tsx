@@ -1,6 +1,6 @@
 import { useTerms } from '../../hooks/useTerms';
 import { roleLabel } from '../../lib/roleLabels';
-import { Popover } from '@headlessui/react';
+import { Popover, PopoverButton, PopoverGroup, PopoverPanel } from '@headlessui/react';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -84,7 +84,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               </button>
             </form>
           </div>
-          <Popover.Group className="flex items-center gap-2">
+          <PopoverGroup className="flex items-center gap-2">
             <Link to="/search" className="icon-button md:hidden" aria-label="Ara">
               <Search className="h-4 w-4" />
             </Link>
@@ -95,7 +95,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             >
               {({ close }) => (
                 <>
-                  <Popover.Button
+                  <PopoverButton
                     className="flex items-center gap-2 rounded-md p-1.5 hover:bg-(--subtle)"
                   >
                     <span className="sr-only">Hesap menüsü</span>
@@ -123,8 +123,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         {user ? roleLabel(user.role) : ''}
                       </span>
                     </span>
-                  </Popover.Button>
-                  <Popover.Panel
+                  </PopoverButton>
+                  <PopoverPanel
                     focus
                     className="dropdown-panel w-56 py-2"
                     aria-label="Hesap bağlantıları"
@@ -164,11 +164,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       <LogOut aria-hidden="true" className="h-4 w-4" />
                       Çıkış Yap
                     </button>
-                  </Popover.Panel>
+                  </PopoverPanel>
                 </>
               )}
             </Popover>
-          </Popover.Group>
+          </PopoverGroup>
         </div>
       </div>
     </header>

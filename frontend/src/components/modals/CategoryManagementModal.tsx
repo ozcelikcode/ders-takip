@@ -1,5 +1,5 @@
 import { useTerms } from '../../hooks/useTerms';
-import { Dialog } from '@headlessui/react';
+import { Description, Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { useQuery } from '@tanstack/react-query';
 import { Pencil, Plus, Search, Tag, Trash2, X } from 'lucide-react';
 import { useId, useState } from 'react';
@@ -139,17 +139,17 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="fixed inset-0 overflow-y-auto">
         <div className="flex min-h-full items-center justify-center p-4">
-          <Dialog.Panel className="panel w-full max-w-3xl shadow-xl">
+          <DialogPanel className="panel w-full max-w-3xl shadow-xl">
             <div className="flex items-start justify-between gap-4 border-b p-5 sm:p-6">
               <div>
-                <Dialog.Title className="text-lg font-medium">
+                <DialogTitle className="text-lg font-medium">
                   {admin ? 'Kategori yönetimi' : 'Kategorilerim'}
-                </Dialog.Title>
-                <Dialog.Description className="mt-2 text-sm text-(--muted)">
+                </DialogTitle>
+                <Description className="mt-2 text-sm text-(--muted)">
                   {scope === 'shared'
                     ? `Tüm kullanıcıların ${t.course({ case: 'acc', plural: true })} gruplandıran ortak kategorileri yönetin.`
                     : `Yalnız sana görünen kategoriler. Kendi ${t.course({ case: 'acc', plural: true })} bunlarla ya da ortak kategorilerle gruplayabilirsin.`}
-                </Dialog.Description>
+                </Description>
               </div>
               <button
                 className="icon-button"
@@ -289,7 +289,7 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                 </>
               )}
             </div>
-          </Dialog.Panel>
+          </DialogPanel>
         </div>
       </div>
       {editor && (

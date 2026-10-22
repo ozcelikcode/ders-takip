@@ -1,7 +1,7 @@
 import PasswordResetLinkDialog from '../../components/admin/PasswordResetLinkDialog';
 import { useTerms } from '../../hooks/useTerms';
 import { roleLabel } from '../../lib/roleLabels';
-import { Menu } from '@headlessui/react';
+import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
 import { useQuery } from '@tanstack/react-query';
 import type { ManagedUser } from '@study-tracker/contracts';
 import {
@@ -246,13 +246,13 @@ function UserManagement() {
                         </div>
                       </div>
                       <Menu as="div" className="relative shrink-0">
-                        <Menu.Button
+                        <MenuButton
                           className="icon-button"
                           aria-label={`${name} için işlemler`}
                         >
                           <MoreHorizontal className="h-5 w-5" />
-                        </Menu.Button>
-                        <Menu.Items className="dropdown-panel w-56 py-1">
+                        </MenuButton>
+                        <MenuItems className="dropdown-panel w-56 py-1">
                           {(
                             [
                               {
@@ -277,43 +277,43 @@ function UserManagement() {
                               },
                             ] as const
                           ).map((item) => (
-                            <Menu.Item
+                            <MenuItem
                               key={item.kind}
                               disabled={self || query.isFetching}
                             >
-                              {({ active, disabled }) => (
+                              {({ focus, disabled }) => (
                                 <button
                                   disabled={disabled}
                                   onClick={() =>
                                     setAction({ user, kind: item.kind })
                                   }
-                                  className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm disabled:opacity-40 ${active ? 'bg-(--subtle)' : ''} ${item.kind === 'delete' ? 'text-red-600' : ''}`}
+                                  className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm disabled:opacity-40 ${focus ? 'bg-(--subtle)' : ''} ${item.kind === 'delete' ? 'text-red-600' : ''}`}
                                 >
                                   <item.icon className="h-4 w-4" />
                                   {item.label}
                                 </button>
                               )}
-                            </Menu.Item>
+                            </MenuItem>
                           ))}
-                          <Menu.Item disabled={self || !user.isActive}>
-                            {({ active, disabled }) => (
+                          <MenuItem disabled={self || !user.isActive}>
+                            {({ focus, disabled }) => (
                               <button
                                 disabled={disabled}
                                 onClick={() => setResetTarget({ id: String(user.id), name })}
-                                className={`flex w-full items-center gap-2 border-t px-4 py-2 text-left text-sm disabled:opacity-40 ${active ? 'bg-(--subtle)' : ''}`}
+                                className={`flex w-full items-center gap-2 border-t px-4 py-2 text-left text-sm disabled:opacity-40 ${focus ? 'bg-(--subtle)' : ''}`}
                               >
                                 <KeyRound className="h-4 w-4" />
                                 Şifre sıfırlama bağlantısı
                               </button>
                             )}
-                          </Menu.Item>
+                          </MenuItem>
                           {self && (
                             <p className="border-t px-4 py-2 text-xs text-(--muted)">
                               Kendi yönetici erişiminizi buradan
                               değiştiremezsiniz.
                             </p>
                           )}
-                        </Menu.Items>
+                        </MenuItems>
                       </Menu>
                     </div>
                     <dl className="mt-5 grid grid-cols-2 gap-4 border-t pt-4 sm:grid-cols-4">

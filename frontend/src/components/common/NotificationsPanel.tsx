@@ -1,5 +1,5 @@
 import { useTerms } from '../../hooks/useTerms';
-import { Popover } from '@headlessui/react';
+import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
 import { useQuery } from '@tanstack/react-query';
 import { Bell, Check, CheckCheck, X } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
@@ -50,7 +50,7 @@ export default function NotificationsPanel() {
     <Popover className="relative">
       {({ close }) => (
         <>
-          <Popover.Button
+          <PopoverButton
             className="icon-button relative"
             disabled={!user}
             aria-label={
@@ -66,8 +66,8 @@ export default function NotificationsPanel() {
                 className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-(--text)"
               />
             )}
-          </Popover.Button>
-          <Popover.Panel
+          </PopoverButton>
+          <PopoverPanel
             focus
             className="dropdown-panel w-[min(360px,calc(100vw-32px))]"
             role="region"
@@ -180,7 +180,7 @@ export default function NotificationsPanel() {
                 </button>
               </div>
             )}
-          </Popover.Panel>
+          </PopoverPanel>
         </>
       )}
     </Popover>

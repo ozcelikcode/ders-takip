@@ -24,7 +24,7 @@ Bunlar bütün 2026 tasarımlarının sıralaması değildir. Ürüne uygun kara
 - Sayfa başlığı 28–32 px, gövde çoğunlukla 14 px, yardımcı metin 12 px; normal/medium ağırlıklar, sayılarda tabular-nums. Her başlık dev/bold olmamalı.
 - 4 px temelli boşluklar; panellerde yaklaşık 8 px, düğmelerde 6 px köşe. Birbirinin içine yerleştirilmiş büyük yuvarlak kartlar, dekoratif gradyan, cam efekti ve büyük gölgeler kullanılmaz. Açılır panel/dialog gölgesi katman anlamını taşır.
 - Renk; başarı/uyarı/hata, ders/seans kimliği gibi anlamlı durumlar içindir. Takvimde nötr metin, hafif renk tonu ve renkli kenar kullanılır; metin okunabilirliği kullanıcının seçtiği renge bırakılmaz.
-- Hareket kısa ve işlevsel; CSS reduced-motion ve Framer Motion reducedMotion=user uygulanır. Konfeti kaldırıldı; mevcut toast tamamlanma geri bildirimi sağlar.
+- Hareket kısa ve işlevsel; CSS reduced-motion ve motion (`motion/react`) `reducedMotion="user"` uygulanır. Konfeti kaldırıldı; mevcut toast tamamlanma geri bildirimi sağlar.
 - Türkçe arayüz korunur. Kod/dosya adları İngilizce olmalıdır. Yeni sayfalar PageHeader ve ortak panel/düğme alanlarını kullanır; eski görünüm ikinci bir alternatif olarak saklanmaz.
 
 ## Uygulanan kapsam

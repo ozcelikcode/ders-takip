@@ -89,15 +89,14 @@ const DailyStudyChart = ({ days, dailyGoal }: DailyStudyChartProps) => {
           }}
           itemStyle={{ padding: 0 }}
           labelStyle={{ color: isDarkMode ? '#f3f4f6' : '#171717', fontWeight: 600, marginBottom: '4px' }}
-          formatter={(value: number, name: string) => {
-            if (name === 'hours') return [`${Math.round(value * 60 * 10) / 10} dakika`, 'Çalışma Süresi'];
-            return value;
-          }}
-          labelFormatter={(label: string, payload: readonly { payload?: { fullName?: string; date?: string } }[]) => {
-            if (payload?.[0]?.payload) {
-              return `${payload[0].payload.fullName} (${payload[0].payload.date})`;
-            }
-            return label;
+          formatter={(value, name) =>
+            name === 'hours' && typeof value === 'number'
+              ? [`${Math.round(value * 60 * 10) / 10} dakika`, 'Çalışma Süresi']
+              : value
+          }
+          labelFormatter={(label, payload) => {
+            const day: { fullName?: string; date?: string } | undefined = payload?.[0]?.payload;
+            return day ? `${day.fullName} (${day.date})` : label;
           }}
         />
         {dailyGoal > 0 && (
@@ -119,7 +118,7 @@ const DailyStudyChart = ({ days, dailyGoal }: DailyStudyChartProps) => {
             position="top"
             style={{ fill: isDarkMode ? '#d1d5db' : '#4b5563', fontSize: 10, fontWeight: 600 }}
             offset={10}
-            formatter={(val: number) => val > 0 ? `${Math.round(val * 60)} dk` : ''}
+            formatter={(val) => (typeof val === 'number' && val > 0 ? `${Math.round(val * 60)} dk` : '')}
           />}
         </Bar>
       </BarChart>

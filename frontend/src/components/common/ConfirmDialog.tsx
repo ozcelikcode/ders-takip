@@ -1,4 +1,4 @@
-import { Dialog } from '@headlessui/react';
+import { Description, Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { AlertTriangle, X } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
@@ -54,7 +54,7 @@ export default function ConfirmDialog({
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="fixed inset-0 overflow-y-auto">
         <div className="flex min-h-full items-center justify-center p-4">
-          <Dialog.Panel
+          <DialogPanel
             className="panel w-full max-w-md p-6 shadow-xl"
             aria-busy={pending}
           >
@@ -63,9 +63,9 @@ export default function ConfirmDialog({
                 <AlertTriangle
                   className={`mt-0.5 h-5 w-5 shrink-0 ${type === 'danger' ? 'text-red-600' : 'text-(--muted)'}`}
                 />
-                <Dialog.Title className="text-base font-medium">
+                <DialogTitle className="text-base font-medium">
                   {title}
-                </Dialog.Title>
+                </DialogTitle>
               </div>
               <button
                 disabled={pending}
@@ -76,9 +76,9 @@ export default function ConfirmDialog({
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <Dialog.Description className="mt-4 text-sm text-(--muted)">
+            <Description className="mt-4 text-sm text-(--muted)">
               {message}
-            </Dialog.Description>
+            </Description>
             {children && <div className="mt-4">{children}</div>}
             {failed && (
               <p role="alert" className="mt-3 text-sm text-red-600">
@@ -105,7 +105,7 @@ export default function ConfirmDialog({
                 {pending ? 'İşleniyor…' : confirmText}
               </button>
             </div>
-          </Dialog.Panel>
+          </DialogPanel>
         </div>
       </div>
     </Dialog>
