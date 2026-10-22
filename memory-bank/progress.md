@@ -1,6 +1,21 @@
 # Ders Takip Sistemi — İlerleme
 
-Son güncelleme: 20 Ekim 2026, R12 ilk kurulum sihirbazı; şema 008 (gerçek yerel DB'de de uygulandı).
+Son güncelleme: 22 Ekim 2026 — yol haritası R1–R15 tamam; son iş R10d (tek site dili, yönetici TR/EN seçer). Son commit `d1bab79`, push yok. Gerçek DB şeması 009 (R10 migration gerektirmedi).
+
+## Son durum ve sıradaki işler (22 Ekim 2026)
+
+**Durum:** check exit 0 (contracts 44, backend 187, frontend 283), E2E 66/66. Arayüz dili tek site ayarıdır; sunucu yalnız kod döner; e-posta/push site dilinde; kayıtlı veri çevrilmez.
+
+**Sıradaki (geliştirme, kullanıcı kararı bekler):**
+1. İngilizce özel kelimeler — kullanıcı "şimdilik dokunma" dedi. Site English iken özel kelimeler yazıldığı gibi + İngilizce çoğul gösterilir; editör Türkçe "-ı" hâlini sorar.
+2. Pano mobil Lighthouse 86 (hedef 90+). Ucuz denemeler ölçümle geri alındı; kalan kaldıraç açılış yolundaki istek zinciri.
+3. Elle ekran okuyucu kontrol listesi hazır, uygulanmadı.
+
+**Kullanıcının kendi tarafında:**
+1. Depoyu iCloud eşitlemesi dışına taşımak (kopya dosyalar oluşuyor).
+2. Push için `npm run push:keys -- adres` + backend yeniden başlatma; e-posta için SMTP ayarı.
+3. `BACKUP_COPY_DIR` ile ikinci yedek klasörünü ayarlamak.
+4. Site English kullanılacaksa Site ayarları › Genel › Site dili.
 
 ## Ürün yönü ve yol haritası (19 Ekim 2026)
 

@@ -48,10 +48,13 @@ Normal final koşuları teardown/veri koruma kontrolünden geçti. Keşif sıras
 
 Yerel schema 006 korunur. Önceki normal003/004/005/006 yükseltmeleri native özel snapshot/veri koruma karşılaştırmalarıyla yapıldı. Son pointer .local/topic-progress-upgrade-2026-10-16.json; güncel schema backup id6. Pointer/snapshotlar silinmez. Bu görevde gerçek DB'ye test yazması/migration/seed/reset/restore yok. Eski şema snapshot current restore tarafından reddedilir; ayrı kopyada kontrollü yükseltme gerekir.
 
-## Sıradaki açık işler
+## Sıradaki açık işler (22 Ekim 2026 güncel)
 
-1. A22 ölçülmüş mobil ilk yük: route/import grafiği/ortak başlangıç JS-CSS ayrımı; aynı Lighthouse koşulunda önce/sonra, üretim sıkıştırma/cache/robots sınırları. Mobil 67/61, hedef 90+ açık.
-2. A22 manual incomplete/ekran okuyucu, grafik metinsel veri alternatifi, fiziksel touch, DST fold, admin/Pomodoro/native drag-resize E2E kapsamı; uzak CI ve bootstrap interrupt cleanup.
-3. A04 offsite/saklama/kapasite/yük/kurtarma operasyonları ve kalan güvenlik/major bağımlılıklar. React18/Recharts2/Router6/Tailwind3 zincirinin bütün major geçişleri yapılmış değildir.
+Güncel liste progress.md başındaki "Son durum ve sıradaki işler" bölümündedir. Özet:
+1. İngilizce özel kelimeler (kullanıcı kararıyla ertelendi).
+2. Pano mobil Lighthouse 86 → hedef 90+.
+3. Elle ekran okuyucu listesi (hazır, uygulanmadı); uzak CI, fiziksel dokunmatik ve DST kapsamı.
+4. Kullanıcı tarafı: iCloud dışına taşıma, VAPID/SMTP, `BACKUP_COPY_DIR`.
+Major bağımlılık geçişleri (React 19, Recharts 3, Tailwind 4 vb.) yapıldı; grafik metinsel alternatifi ve yedek saklama da yapıldı.
 
 **Ürün yönü kararlaştırıldı (19 Ekim 2026):** alan/kitle bağımsız, global ve değişken odaklı sistem; TYT/AYT veya yalnız öğrenci zorunluluğu yoktur. Sıralı yol haritası progress.md'nin başındadır (R1–R8 ve R9'un büyük kısmı yapıldı; Tailwind 4 geçişi de 21 Ekim'de yapıldı; audit 0. Gerçek DB'de 007 migration'ı 19 Ekim 2026'da kullanıcı onayıyla uygulandı; öncesinde `backend/backups/pre-007-migration-20261019-220239.sqlite` kopyası alındı). AI/sosyal/offline aktif öncelik değildir.
