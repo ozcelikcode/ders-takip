@@ -1,5 +1,4 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AxiosHeaders } from 'axios';
 import { act, fireEvent, render, screen, waitFor, cleanup } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { studySessionsAPI } from '../../services/api';
@@ -11,7 +10,7 @@ vi.mock('../../hooks/useAccountQueryKeys', () => ({ useAccountQueryKeys: () => (
 const now = Date.parse('2026-10-16T09:00:00Z');
 const initial: StudySession = { id: 1, userId: 1, title: 'Fixture', startTime: '2099-01-01T09:00:00Z', endTime: '2099-01-01T10:00:00Z', duration: 60, status: 'planned', sessionType: 'pomodoro', updatedAt: '2026-10-16T09:00:00.000Z', createdAt: '2026-10-16T09:00:00.000Z', serverNow: new Date(now).toISOString() };
 const clock = { phase: 'work' as const, cycle: 1, remainingMilliseconds: 60000, deadlineAt: new Date(now + 60000).toISOString(), autoStartBreaks: false, completedWorkCycles: 0 };
-const response = (session: StudySession) => ({ data: { success: true as const, data: { session } }, status: 200, statusText: 'OK', headers: {}, config: { headers: new AxiosHeaders() } });
+const response = (session: StudySession) => ({ data: { success: true as const, data: { session } }, status: 200, config: { url: '' } });
 const mount = (session = initial, client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })) => {
   vi.mocked(studySessionsAPI.getSession).mockResolvedValue(response(session));
   return { ...render(<QueryClientProvider client={client}><PomodoroTimer session={session} /></QueryClientProvider>), client };

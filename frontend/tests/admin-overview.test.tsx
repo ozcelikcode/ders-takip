@@ -1,6 +1,5 @@
 import type { AdminOverview, ManagedUser } from '@study-tracker/contracts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AxiosHeaders } from 'axios';
 import {
   act,
   cleanup,
@@ -61,9 +60,9 @@ function response<T>(data: T) {
   return {
     data: { success: true, data },
     status: 200,
-    statusText: 'OK',
-    headers: {},
-    config: { headers: new AxiosHeaders() },
+    
+    
+    config: { url: '' },
   };
 }
 function mount() {

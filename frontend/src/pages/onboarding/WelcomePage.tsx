@@ -1,6 +1,6 @@
 import { createTerms, needsOnboarding, weekStartDays } from '@study-tracker/contracts';
 import { useQueryClient } from '@tanstack/react-query';
-import { isAxiosError } from 'axios';
+import { serverMessage } from '../../services/httpError';
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { Navigate } from 'react-router-dom';
@@ -78,7 +78,7 @@ export default function WelcomePage() {
       await queryClient.invalidateQueries();
       toast.success('Her şey hazır.');
     } catch (failure) {
-      setError((isAxiosError(failure) ? failure.response?.data?.error?.message : undefined) || 'Kurulum kaydedilemedi. Lütfen tekrar deneyin.');
+      setError(serverMessage(failure) || 'Kurulum kaydedilemedi. Lütfen tekrar deneyin.');
       setBusy(null);
     }
   };

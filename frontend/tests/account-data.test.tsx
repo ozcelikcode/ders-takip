@@ -1,3 +1,4 @@
+import { HttpError } from '../src/services/httpError';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import toast from 'react-hot-toast';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -18,7 +19,7 @@ const mount = () =>
       </Routes>
     </MemoryRouter>,
   );
-const axiosError = (message: string) => Object.assign(new Error(message), { isAxiosError: true, response: { data: { error: { message } } } });
+const serverError = (message: string) => new HttpError(message, { status: 400, data: { error: { message } } });
 
 beforeEach(() => {
   useAuthStore.setState({ clearAuth: vi.fn() });
@@ -44,7 +45,7 @@ it('downloads the export as a dated JSON file', async () => {
 });
 
 it('deletes the account only after the password is confirmed, then signs out', async () => {
-  vi.mocked(authAPI.deleteAccount).mockRejectedValueOnce(axiosError('Şifre hatalı')).mockResolvedValueOnce({} as never);
+  vi.mocked(authAPI.deleteAccount).mockRejectedValueOnce(serverError('Şifre hatalı')).mockResolvedValueOnce({} as never);
   mount();
   fireEvent.click(screen.getByRole('button', { name: 'Hesabı sil' }));
   const dialog = await screen.findByRole('dialog', { name: 'Hesabı sil' });

@@ -8,7 +8,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import { AxiosError, AxiosHeaders, type AxiosResponse } from 'axios';
+import { HttpError, type HttpResponse } from '../../services/httpError';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { studySessionsAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
@@ -36,12 +36,12 @@ vi.mock('./CreateSessionModal', () => ({
   default: ({ isOpen }: { isOpen: boolean }) =>
     isOpen ? <div role="dialog">Session editor</div> : null,
 }));
-const response = <T,>(data: T): AxiosResponse<T> => ({
+const response = <T,>(data: T): HttpResponse<T> => ({
   data,
   status: 200,
-  statusText: 'OK',
-  headers: {},
-  config: { headers: new AxiosHeaders() },
+  
+  
+  config: { url: '' },
 });
 const base: StudySession = {
   id: 1,
@@ -283,14 +283,7 @@ describe.each([
     });
   });
   it('keeps a failed date move open and does not automatically retry a stale write', async () => {
-    const conflict = new AxiosError(
-      'Conflict',
-      undefined,
-      undefined,
-      undefined,
-      response({ error: { message: 'Eski sürüm' } }),
-    );
-    conflict.response!.status = 409;
+    const conflict = new HttpError('Conflict', { status: 409, data: { error: { message: 'Eski sürüm' } } });
     vi.mocked(studySessionsAPI.updateSession)
       .mockRejectedValueOnce(conflict)
       .mockResolvedValue(response({ success: true, data: { session: base } }));
@@ -428,14 +421,7 @@ describe.each([
     );
   });
   it('preserves a time/duration draft after 409 and retries only with an explicit new confirmation', async () => {
-    const conflict = new AxiosError(
-      'Conflict',
-      'ERR_BAD_REQUEST',
-      undefined,
-      undefined,
-      response({ error: { message: 'Eski sürüm' } }),
-    );
-    conflict.response!.status = 409;
+    const conflict = new HttpError('Conflict', { status: 409, data: { error: { message: 'Eski sürüm' } } });
     vi.mocked(studySessionsAPI.updateSession)
       .mockRejectedValueOnce(conflict)
       .mockResolvedValue(response({ success: true, data: { session: base } }));
@@ -510,14 +496,7 @@ describe.each([
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
   it('blocks a stale schedule write after a failed refresh and supports reading the source again', async () => {
-    const conflict = new AxiosError(
-      'Conflict',
-      'ERR_BAD_REQUEST',
-      undefined,
-      undefined,
-      response({ error: { message: 'Eski sürüm' } }),
-    );
-    conflict.response!.status = 409;
+    const conflict = new HttpError('Conflict', { status: 409, data: { error: { message: 'Eski sürüm' } } });
     vi.mocked(studySessionsAPI.updateSession)
       .mockRejectedValueOnce(conflict)
       .mockResolvedValue(response({ success: true, data: { session: base } }));

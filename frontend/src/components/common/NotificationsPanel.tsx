@@ -5,7 +5,7 @@ import { Bell, Check, CheckCheck, X } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { dateFnsLocale } from '../../lib/locale';
-import { CanceledError } from 'axios';
+import { CanceledError } from '../../services/httpError';
 import { useAuthStore } from '../../store/authStore';
 import { useReadNotifications } from '../../hooks/useReadNotifications';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';

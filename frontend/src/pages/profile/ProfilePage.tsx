@@ -4,7 +4,7 @@ import {
   type ProfilePatch,
   type ChangePasswordInput,
 } from '@study-tracker/contracts';
-import { isAxiosError } from 'axios';
+import { serverMessage } from '../../services/httpError';
 import { useMutation } from '@tanstack/react-query';
 import { Mail, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -62,9 +62,7 @@ const ProfilePage = () => {
     },
     onError: (error: unknown) => {
       toast.error(
-        (isAxiosError(error)
-          ? error.response?.data?.error?.message
-          : undefined) || 'Profil güncellenirken hata oluştu',
+        serverMessage(error) || 'Profil güncellenirken hata oluştu',
       );
     },
   });
@@ -85,9 +83,7 @@ const ProfilePage = () => {
     },
     onError: (error: unknown) => {
       toast.error(
-        (isAxiosError(error)
-          ? error.response?.data?.error?.message
-          : undefined) || 'Şifre değiştirilirken hata oluştu',
+        serverMessage(error) || 'Şifre değiştirilirken hata oluştu',
       );
     },
   });

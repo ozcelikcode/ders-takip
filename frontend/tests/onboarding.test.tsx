@@ -1,3 +1,4 @@
+import { HttpError } from '../src/services/httpError';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { defaultPreferences, type UserPreferences } from '@study-tracker/contracts';
@@ -140,7 +141,7 @@ it('stops adding first records at the limit', () => {
 });
 
 it('keeps the answers and shows the server message when finishing fails', async () => {
-  useAuthStore.setState({ completeOnboarding: vi.fn().mockRejectedValue(Object.assign(new Error('x'), { isAxiosError: true, response: { data: { error: { message: 'Kurulum zaten tamamlandı' } } } })) });
+  useAuthStore.setState({ completeOnboarding: vi.fn().mockRejectedValue(new HttpError('x', { status: 409, data: { error: { message: 'Kurulum zaten tamamlandı' } } })) });
   renderAt('/welcome');
   fireEvent.click(screen.getByRole('radio', { name: /İş ve projeler/ }));
   for (let step = 0; step < 4; step += 1) next();

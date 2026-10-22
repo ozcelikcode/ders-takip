@@ -7,7 +7,7 @@ Kaynak kodla doğrulama: 18 Ekim 2026, A22 otomatik tarayıcı kapısı ve önce
 ```text
 React SPA
   ├─ Router → sayfa / planner / modal bileşenleri
-  ├─ TanStack Query → services/api.ts → Axios
+  ├─ TanStack Query → services/api.ts → services/httpClient.ts (fetch)
   └─ Zustand → bellek auth; global ayar/kişisel tercih kalıcılığı ayrı
                          │ HTTP JSON / bellek Bearer JWT + HttpOnly refresh cookie
 app.ts middleware → routes → controllers → Sequelize → SQLite
@@ -45,7 +45,7 @@ Okuma controller'ları ORM sorgularını yürütür; yazma iş kuralları ilgili
 1. Login/register user + kısa access JWT döndürür; refresh credential yalnız HttpOnly/SameSite Strict cookie'ye yazılır. Access bellek dışına persist edilmez.
 2. protect açık algoritma/issuer/audience doğrulamasından sonra session id/kullanıcı/aktiflik/son süre/iptal kontrolü yapar; authorize güncel DB rolünü kullanır.
 3. Refresh IMMEDIATE transaction içinde credential tüketimi ve yenisini üretir. Önceden tüketilmiş hash tekrar kullanılırsa bütün aile iptal edilir. Mutlak session süresi uzamaz.
-4. Axios paralel/geç 401'leri tek refresh ile çözer; epoch ve aynı-kullanıcı kontrolü geç yanıtın bitmiş/değişmiş kimliği geri getirmesini engeller. Web Locks cookie operasyonlarını sekmeler arasında sıraya koyar, BroadcastChannel peers cache/kimliğini temizler.
+4. `httpClient` (fetch) paralel/geç 401'leri tek refresh ile çözer; epoch ve aynı-kullanıcı kontrolü geç yanıtın bitmiş/değişmiş kimliği geri getirmesini engeller. Web Locks cookie operasyonlarını sekmeler arasında sıraya koyar, BroadcastChannel peers cache/kimliğini temizler.
 5. Logout önce yerel kimliği/cache'i siler, geç refresh'i bekler ve sunucu session'ını iptal eder. Ağ hatasında gizli bilgi içermeyen pending intent, reload ile otomatik giriş yapılmasını engeller.
 6. Parola değişimi ve admin kurtarma bütün kullanıcı session'larını; rol/aktiflik değişimi ilgili eski session'ları iptal eder. Hash doğrulama/yazma yarışları transaction içinde denetlenir.
 7. Auth route'larında özel başlık/Origin/Sec-Fetch-Site kontrolü, credentials cookie transport, no-store ve production Secure/HTTPS uygulanır. Eski JWT_REFRESH_* ve JSON refresh sözleşmesi kaldırılmıştır; migration ve yeniden giriş gerekir.

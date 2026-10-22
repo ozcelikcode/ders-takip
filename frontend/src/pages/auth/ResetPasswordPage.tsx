@@ -1,5 +1,5 @@
 import { passwordResetTokenSchema, resetPasswordSchema } from '@study-tracker/contracts';
-import { isAxiosError } from 'axios';
+import { serverMessage } from '../../services/httpError';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -34,7 +34,7 @@ export default function ResetPasswordPage() {
       navigate('/login', { replace: true });
     } catch (failure) {
       setError(
-        (isAxiosError(failure) ? failure.response?.data?.error?.message : undefined) ??
+        serverMessage(failure) ??
           'Şifre güncellenemedi. Lütfen tekrar deneyin.',
       );
     } finally {

@@ -1,4 +1,4 @@
-import { AxiosError, AxiosHeaders } from 'axios';
+import { HttpError } from '../src/services/httpError';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   act,
@@ -67,14 +67,13 @@ function response(items = categories) {
   return {
     data: { success: true, data: { categories: items } },
     status: 200,
-    statusText: 'OK',
-    headers: {},
-    config: { headers: new AxiosHeaders() },
+    
+    
+    config: { url: '' },
   };
 }
 function rejection(message = 'Hedefte aynı adlı ders var.') {
-  return new AxiosError('Conflict', 'ERR_BAD_REQUEST', undefined, undefined, {
-    ...response(),
+  return new HttpError('Conflict', {
     status: 409,
     data: { success: false, error: { message } },
   });

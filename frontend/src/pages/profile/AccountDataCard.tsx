@@ -1,4 +1,4 @@
-import { isAxiosError } from 'axios';
+import { serverMessage } from '../../services/httpError';
 import { Download, Trash2 } from 'lucide-react';
 import { useId, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -7,8 +7,6 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { unsubscribeBrowser } from '../../lib/push';
 import { authAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
-
-const serverMessage = (error: unknown) => (isAxiosError(error) ? error.response?.data?.error?.message : undefined);
 
 /** Lets a user take their data with them and close their account. */
 export default function AccountDataCard() {

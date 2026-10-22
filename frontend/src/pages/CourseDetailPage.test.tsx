@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { AxiosHeaders } from 'axios';
 import type { DropResult } from '@hello-pangea/dnd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -175,9 +174,9 @@ it('sends the original full snapshot, blocks repeated drags and waits for server
     acknowledge({
       data: { success: true, data: { topics: [] } },
       status: 200,
-      statusText: 'OK',
-      headers: {},
-      config: { headers: new AxiosHeaders() },
+      
+      
+      config: { url: '' },
     }),
   );
   await waitFor(() => expect(coursesAPI.getCourse).toHaveBeenCalledTimes(2));

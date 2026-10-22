@@ -1,6 +1,6 @@
 import { defaultPreferences } from '@study-tracker/contracts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AxiosError, AxiosHeaders } from 'axios';
+import { HttpError } from '../src/services/httpError';
 import {
   act,
   cleanup,
@@ -68,9 +68,9 @@ function response<T>(data: T) {
   return {
     data: { success: true, data },
     status: 200,
-    statusText: 'OK',
-    headers: {},
-    config: { headers: new AxiosHeaders() },
+    
+    
+    config: { url: '' },
   };
 }
 function deferred<T>() {
@@ -94,8 +94,7 @@ const session: StudySession = {
   updatedAt: '2026-01-01T09:00:00Z',
 };
 const conflict = () =>
-  new AxiosError('Conflict', 'ERR_BAD_REQUEST', undefined, undefined, {
-    ...response(undefined),
+  new HttpError('Conflict', {
     status: 409,
     data: {
       success: false,

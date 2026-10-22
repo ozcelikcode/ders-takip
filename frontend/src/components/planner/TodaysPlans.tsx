@@ -1,7 +1,7 @@
 import { useTerms } from '../../hooks/useTerms';
 import { calendarViewDate, formatZonedTime } from '@study-tracker/contracts';
 import { useQuery } from '@tanstack/react-query';
-import { isAxiosError } from 'axios';
+import { isHttpError } from '../../services/httpError';
 import {
   ChevronDown,
   Pencil,
@@ -79,7 +79,7 @@ export default function TodaysPlans() {
         await operation();
       } catch (error) {
         if (
-          isAxiosError(error) &&
+          isHttpError(error) &&
           error.response?.status === 409 &&
           epoch === useAuthStore.getState().epoch
         )

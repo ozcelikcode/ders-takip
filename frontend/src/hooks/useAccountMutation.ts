@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { isAxiosError } from 'axios';
+import { serverMessage } from '../services/httpError';
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
@@ -41,10 +41,7 @@ export function useAccountMutation(invalidateKeys: readonly QueryKey[]) {
     } catch (error) {
       if (mounted.current && useAuthStore.getState().epoch === epoch) {
         setErrorMessage(
-          isAxiosError<{ error?: { message?: string } }>(error)
-            ? (error.response?.data?.error?.message ??
-                'İşlem tamamlanamadı. Lütfen tekrar deneyin.')
-            : 'İşlem tamamlanamadı. Lütfen tekrar deneyin.',
+          serverMessage(error) ?? 'İşlem tamamlanamadı. Lütfen tekrar deneyin.',
         );
       }
       return false;

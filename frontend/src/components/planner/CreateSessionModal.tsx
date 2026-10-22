@@ -15,7 +15,7 @@ import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { Coffee, Trash2, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { isAxiosError } from 'axios';
+import { isHttpError } from '../../services/httpError';
 import { useAccountMutation } from '../../hooks/useAccountMutation';
 import { useAllCourses } from '../../hooks/useAllCourses';
 import { sessionFormSchema, type CreateSessionForm } from './sessionForm';
@@ -128,7 +128,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
         await operation();
       } catch (error) {
         if (
-          isAxiosError(error) &&
+          isHttpError(error) &&
           error.response?.status === 409 &&
           mutation.isCurrent() &&
           editSession

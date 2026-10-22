@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AxiosError, type AxiosResponse } from 'axios';
+import { HttpError, type HttpResponse } from '../../services/httpError';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   act,
@@ -67,10 +67,9 @@ const topic: CatalogTopic = {
   order: 3,
   updatedAt: '2026-10-16T09:00:00.000Z',
 };
-const ok = { data: { success: true } } as AxiosResponse<ApiResponse<never>>;
+const ok = { data: { success: true } } as HttpResponse<ApiResponse<never>>;
 const failed = () =>
-  new AxiosError('Conflict', 'ERR_BAD_REQUEST', undefined, undefined, {
-    ...ok,
+  new HttpError('Conflict', {
     status: 409,
     data: { success: false, error: { message: 'Bu ad zaten kullanılıyor.' } },
   });

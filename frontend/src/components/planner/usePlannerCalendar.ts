@@ -1,6 +1,6 @@
 import { useTerms } from '../../hooks/useTerms';
 import { useEffect, useRef, useState } from 'react';
-import { isAxiosError } from 'axios';
+import { isHttpError, serverMessage } from '../../services/httpError';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarDate, calendarViewDate } from '@study-tracker/contracts';
 import toast from 'react-hot-toast';
@@ -23,9 +23,8 @@ type Confirmation = {
   action: 'pause' | 'complete' | 'delete';
 };
 const errorMessage = (error: unknown) =>
-  isAxiosError<{ error?: { message?: string } }>(error)
-    ? (error.response?.data?.error?.message ??
-      'İşlem tamamlanamadı. Lütfen tekrar deneyin.')
+  isHttpError(error)
+    ? (serverMessage(error) ?? 'İşlem tamamlanamadı. Lütfen tekrar deneyin.')
     : error instanceof Error
       ? error.message
       : 'İşlem tamamlanamadı.';
@@ -105,7 +104,7 @@ export function usePlannerCalendar(mode: CalendarMode, initialDate?: string) {
       if (useAuthStore.getState().epoch === epoch) {
         toast.error(errorMessage(error));
         // A stale snapshot must be re-read, never retried automatically.
-        if (isAxiosError(error) && error.response?.status === 409) {
+        if (isHttpError(error) && error.response?.status === 409) {
           const refreshed = await query.refetch();
           if (useAuthStore.getState().epoch === epoch && refreshed.data) {
             const latest = (session: StudySession) =>

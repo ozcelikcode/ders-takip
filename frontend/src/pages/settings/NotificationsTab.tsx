@@ -1,6 +1,6 @@
 import { reminderLeadOptions, resolveNotifications, type NotificationPreferences, type PreferencesPatch, type UserPreferences } from '@study-tracker/contracts';
 import { useQuery } from '@tanstack/react-query';
-import { isAxiosError } from 'axios';
+import { serverMessage } from '../../services/httpError';
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
@@ -20,7 +20,6 @@ const browserStateText: Record<BrowserPushState, string> = {
   subscribed: 'Bu tarayıcı bildirim alıyor.',
   off: 'Bu tarayıcıda bildirimler kapalı.',
 };
-const serverMessage = (error: unknown) => (isAxiosError(error) ? error.response?.data?.error?.message : undefined);
 
 function Toggle({ checked, onChange, label, hint }: { checked: boolean; onChange: (value: boolean) => void; label: string; hint?: ReactNode }) {
   const id = useId();

@@ -2,7 +2,7 @@ import { useUserPreferencesStore } from './userPreferencesStore';
 import { defaultPreferences } from '@study-tracker/contracts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { queryClient } from '../lib/queryClient';
-import { AxiosHeaders, type AxiosResponse } from 'axios';
+import { type HttpResponse } from '../services/httpError';
 import { authAPI } from '../services/api';
 import type { AuthResponse, User } from '../types/auth';
 import { useAuthStore } from './authStore';
@@ -45,9 +45,9 @@ describe('account cache boundaries', () => {
   });
 });
 
-const sessionResponse = (id: string, token: string): AxiosResponse<AuthResponse> => ({
+const sessionResponse = (id: string, token: string): HttpResponse<AuthResponse> => ({
   data: { success: true, message: '', data: { user: user(id), tokens: { accessToken: token, expiresIn: '15m' } } },
-  status: 200, statusText: 'OK', headers: {}, config: { headers: new AxiosHeaders() },
+  status: 200, config: { url: '' },
 });
 
 describe('in-memory session lifecycle', () => {
@@ -61,7 +61,7 @@ describe('in-memory session lifecycle', () => {
     expect(localStorage.getItem('auth-storage')).toBeNull();
   });
   it('does not restore an identity when a refresh response arrives after logout', async () => {
-    let complete: (response: AxiosResponse<AuthResponse>) => void = () => { throw new Error('Refresh did not start'); };
+    let complete: (response: HttpResponse<AuthResponse>) => void = () => { throw new Error('Refresh did not start'); };
     vi.mocked(authAPI.refreshToken).mockImplementationOnce(() => new Promise(resolve => { complete = resolve; }));
     vi.mocked(authAPI.logout).mockClear();
     useAuthStore.setState({ user: user('1'), accessToken: 'old-access', isAuthenticated: true });

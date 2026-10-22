@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { CanceledError } from 'axios';
+import { CanceledError } from '../services/httpError';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { defaultPomodoroSettings, phaseMilliseconds, pomodoroRemaining, type PomodoroCommand } from '@study-tracker/contracts';
 import { studySessionsAPI } from '../services/api';

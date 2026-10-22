@@ -5,7 +5,7 @@ import {
 
 // These tests read the education vocabulary; the settings payload must carry that preset.
 const educationSettings = { ...defaultSiteSettings, terminologyPreset: 'education' as const };
-import { AxiosError, AxiosHeaders } from 'axios';
+import { HttpError } from '../src/services/httpError';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   act,
@@ -63,9 +63,9 @@ function response<T>(data: T) {
   return {
     data: { success: true, data },
     status: 200,
-    statusText: 'OK',
-    headers: {},
-    config: { headers: new AxiosHeaders() },
+    
+    
+    config: { url: '' },
   };
 }
 function deferred<T>() {
@@ -76,8 +76,7 @@ function deferred<T>() {
   return { promise, resolve };
 }
 const denied = () =>
-  new AxiosError('Conflict', 'ERR_BAD_REQUEST', undefined, undefined, {
-    ...response(undefined),
+  new HttpError('Conflict', {
     status: 409,
     data: {
       success: false,

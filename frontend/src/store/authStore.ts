@@ -2,7 +2,7 @@ import { useUserPreferencesStore } from './userPreferencesStore';
 import { useSettingsStore } from './settingsStore';
 import type { ProfileUpdate } from '../types/auth';
 import toast from 'react-hot-toast';
-import { isAxiosError } from 'axios';
+import { serverMessage } from '../services/httpError';
 import { create } from 'zustand';
 import { queryClient } from '../lib/queryClient';
 import { authAPI, onboardingAPI } from '../services/api';
@@ -51,7 +51,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     if (localStorage.getItem('auth-logout-pending')) await finishLogout();
     const epoch = get().epoch + 1;
     set({ epoch });
-    const response = await authAPI.login(credentials).catch(error => { toast.error(isAxiosError(error) ? error.response?.data?.error?.message || 'Giriş yapılamadı' : 'Giriş yapılamadı'); throw error; });
+    const response = await authAPI.login(credentials).catch(error => { toast.error(serverMessage(error) || 'Giriş yapılamadı'); throw error; });
     if (get().epoch !== epoch) throw new Error('Authentication attempt superseded');
     set({ user: response.data.data.user, accessToken: response.data.data.tokens.accessToken, isAuthenticated: true, isLoading: false });
     notifyPeers();
@@ -62,7 +62,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     if (localStorage.getItem('auth-logout-pending')) await finishLogout();
     const epoch = get().epoch + 1;
     set({ epoch });
-    const response = await authAPI.register(data).catch(error => { toast.error(isAxiosError(error) ? error.response?.data?.error?.message || 'Kayıt oluşturulamadı' : 'Kayıt oluşturulamadı'); throw error; });
+    const response = await authAPI.register(data).catch(error => { toast.error(serverMessage(error) || 'Kayıt oluşturulamadı'); throw error; });
     if (get().epoch !== epoch) throw new Error('Authentication attempt superseded');
     set({ user: response.data.data.user, accessToken: response.data.data.tokens.accessToken, isAuthenticated: true, isLoading: false });
     notifyPeers();

@@ -35,7 +35,6 @@ import type {
 import type { ProfileUpdate } from '../types/auth';
 import type { PomodoroCommand } from '@study-tracker/contracts';
 import { withAuthLock } from '../lib/authLock';
-import axios, { AxiosResponse } from 'axios';
 import { useAuthStore } from '../store/authStore';
 import type { ApiResponse } from '../types/api';
 import type { CatalogCategoryRecord, CatalogCourse, CatalogTopic } from '../types/catalog';
@@ -71,10 +70,11 @@ import {
   type TestNotificationInput,
 } from '@study-tracker/contracts';
 import { api, authTransport } from './httpClient';
+import { CanceledError, type HttpResponse } from './httpError';
 
 const parseAuthResponse = (
-  response: AxiosResponse<unknown>,
-): AxiosResponse<AuthResponse> => {
+  response: HttpResponse<unknown>,
+): HttpResponse<AuthResponse> => {
   const parsed = authResponseSchema.parse(response.data);
   return {
     ...response,
@@ -88,8 +88,8 @@ const parseAuthResponse = (
   };
 };
 const parseProfileResponse = (
-  response: AxiosResponse<unknown>,
-): AxiosResponse<ApiResponse<{ user: User }>> => {
+  response: HttpResponse<unknown>,
+): HttpResponse<ApiResponse<{ user: User }>> => {
   const parsed = profileResponseSchema.parse(response.data);
   return {
     ...response,
@@ -104,13 +104,13 @@ const parseProfileResponse = (
 let profileQueue: Promise<unknown> = Promise.resolve();
 const updateProfile = (
   data: ProfileUpdate,
-): Promise<AxiosResponse<ApiResponse<{ user: User }>>> => {
+): Promise<HttpResponse<ApiResponse<{ user: User }>>> => {
   const epoch = useAuthStore.getState().epoch;
   const operation = profileQueue
     .catch(() => undefined)
     .then(() => {
       if (useAuthStore.getState().epoch !== epoch)
-        throw new axios.CanceledError('Account changed before profile update');
+        throw new CanceledError('Account changed before profile update');
       return api.put<unknown>('/auth/profile', data).then(parseProfileResponse);
     });
   profileQueue = operation;
@@ -121,12 +121,12 @@ const updateProfile = (
 export const authAPI = {
   login: (
     credentials: LoginCredentials,
-  ): Promise<AxiosResponse<AuthResponse>> =>
+  ): Promise<HttpResponse<AuthResponse>> =>
     withAuthLock(() =>
       authTransport.post('/auth/login', credentials).then(parseAuthResponse),
     ),
 
-  register: (data: RegisterData): Promise<AxiosResponse<AuthResponse>> =>
+  register: (data: RegisterData): Promise<HttpResponse<AuthResponse>> =>
     withAuthLock(() =>
       authTransport.post('/auth/register', data).then(parseAuthResponse),
     ),
@@ -136,19 +136,19 @@ export const authAPI = {
     forgotPasswordResponseSchema.parse(
       (await authTransport.post<{ data: unknown }>('/auth/forgot-password', input)).data.data,
     ),
-  resetPassword: (input: ResetPasswordInput): Promise<AxiosResponse<ApiResponse>> =>
+  resetPassword: (input: ResetPasswordInput): Promise<HttpResponse<ApiResponse>> =>
     authTransport.post('/auth/reset-password', input),
 
-  logout: (): Promise<AxiosResponse<ApiResponse>> =>
+  logout: (): Promise<HttpResponse<ApiResponse>> =>
     withAuthLock(() => authTransport.post('/auth/logout')),
 
   updateProfile,
 
   changePassword: (
     data: ChangePasswordInput,
-  ): Promise<AxiosResponse<ApiResponse>> => {
+  ): Promise<HttpResponse<ApiResponse>> => {
     const epoch = useAuthStore.getState().epoch;
-    return api.put('/auth/change-password', data).then((response) => {
+    return api.put<ApiResponse>('/auth/change-password', data).then((response) => {
       if (useAuthStore.getState().epoch === epoch)
         useAuthStore.getState().logout();
       return response;
@@ -159,10 +159,10 @@ export const authAPI = {
   exportAccount: async (): Promise<AccountExport> =>
     (await api.get<AccountExport>('/auth/account/export')).data,
 
-  deleteAccount: (input: DeleteAccountInput): Promise<AxiosResponse<ApiResponse>> =>
+  deleteAccount: (input: DeleteAccountInput): Promise<HttpResponse<ApiResponse>> =>
     api.delete('/auth/account', { data: input }),
 
-  refreshToken: (): Promise<AxiosResponse<AuthResponse>> =>
+  refreshToken: (): Promise<HttpResponse<AuthResponse>> =>
     withAuthLock(() =>
       authTransport.post('/auth/refresh-token').then(parseAuthResponse),
     ),
@@ -172,49 +172,49 @@ type QueryParams = Record<string, string | number | boolean>;
 
 // Courses API
 export const coursesAPI = {
-  getCourses: (params?: QueryParams): Promise<AxiosResponse<ApiResponse<{ courses: CatalogCourse[] }>>> =>
+  getCourses: (params?: QueryParams): Promise<HttpResponse<ApiResponse<{ courses: CatalogCourse[] }>>> =>
     api.get('/courses', { params }),
 
-  getCourse: (id: string, params?: QueryParams): Promise<AxiosResponse<ApiResponse<{ course: CatalogCourse }>>> =>
+  getCourse: (id: string, params?: QueryParams): Promise<HttpResponse<ApiResponse<{ course: CatalogCourse }>>> =>
     api.get(`/courses/${id}`, { params }),
 
   createCourse: (
     data: CreateCourseInput,
-  ): Promise<AxiosResponse<ApiResponse>> => api.post('/courses', data),
+  ): Promise<HttpResponse<ApiResponse>> => api.post('/courses', data),
 
   updateCourse: (
     id: string,
     data: UpdateCourseInput,
-  ): Promise<AxiosResponse<ApiResponse>> => api.put(`/courses/${id}`, data),
+  ): Promise<HttpResponse<ApiResponse>> => api.put(`/courses/${id}`, data),
 
-  deleteCourse: (id: string): Promise<AxiosResponse<ApiResponse>> =>
+  deleteCourse: (id: string): Promise<HttpResponse<ApiResponse>> =>
     api.delete(`/courses/${id}`),
 
   getCourseTopics: (
     id: string,
     params?: QueryParams,
-  ): Promise<AxiosResponse<ApiResponse<{ topics: CatalogTopic[] }>>> =>
+  ): Promise<HttpResponse<ApiResponse<{ topics: CatalogTopic[] }>>> =>
     api.get(`/courses/${id}/topics`, { params }),
 };
 
 // Categories API
 export const categoriesAPI = {
-  getCategories: (params?: QueryParams): Promise<AxiosResponse<ApiResponse<{ categories: CatalogCategoryRecord[] }>>> =>
+  getCategories: (params?: QueryParams): Promise<HttpResponse<ApiResponse<{ categories: CatalogCategoryRecord[] }>>> =>
     api.get('/categories', { params }),
 
   createCategory: (
     data: CreateCategoryInput,
-  ): Promise<AxiosResponse<ApiResponse>> => api.post('/categories', data),
+  ): Promise<HttpResponse<ApiResponse>> => api.post('/categories', data),
 
   updateCategory: (
     id: string,
     data: UpdateCategoryInput,
-  ): Promise<AxiosResponse<ApiResponse>> => api.put(`/categories/${id}`, data),
+  ): Promise<HttpResponse<ApiResponse>> => api.put(`/categories/${id}`, data),
 
   deleteCategory: (
     id: string,
     migrateToCategoryId?: number,
-  ): Promise<AxiosResponse<ApiResponse>> =>
+  ): Promise<HttpResponse<ApiResponse>> =>
     api.delete(`/categories/${id}`, { data: { migrateToCategoryId } }),
 };
 
@@ -226,7 +226,7 @@ export const usersAPI = {
     ),
 
   getAdminOverview: (): Promise<
-    AxiosResponse<ApiResponse<{ overview: AdminOverview }>>
+    HttpResponse<ApiResponse<{ overview: AdminOverview }>>
   > =>
     api.get('/users/admin-stats').then((response) => ({
       ...response,
@@ -235,7 +235,7 @@ export const usersAPI = {
 
   getUsers: (
     params?: ManagedUserListParams,
-  ): Promise<AxiosResponse<ApiResponse<ManagedUserList>>> =>
+  ): Promise<HttpResponse<ApiResponse<ManagedUserList>>> =>
     api.get('/users', { params }).then((response) => ({
       ...response,
       data: managedUserListResponseSchema.parse(response.data),
@@ -243,14 +243,14 @@ export const usersAPI = {
 
   createUser: (
     data: CreateManagedUserInput,
-  ): Promise<AxiosResponse<ApiResponse>> => api.post('/users', data),
+  ): Promise<HttpResponse<ApiResponse>> => api.post('/users', data),
 
   updateUser: (
     id: string,
     data: ManagedUserPatch,
-  ): Promise<AxiosResponse<ApiResponse>> => api.put(`/users/${id}`, data),
+  ): Promise<HttpResponse<ApiResponse>> => api.put(`/users/${id}`, data),
 
-  deleteUser: (id: string): Promise<AxiosResponse<ApiResponse>> =>
+  deleteUser: (id: string): Promise<HttpResponse<ApiResponse>> =>
     api.delete(`/users/${id}`),
 };
 
@@ -259,14 +259,14 @@ export const studySessionsAPI = {
   controlPomodoro: (
     session: Pick<StudySession, 'id' | 'updatedAt'>,
     input: Omit<PomodoroCommand, 'expectedUpdatedAt'>,
-  ): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
+  ): Promise<HttpResponse<ApiResponse<{ session: StudySession }>>> =>
     api.post(`/study-sessions/${session.id}/pomodoro`, {
       ...input,
       expectedUpdatedAt: session.updatedAt,
     }),
   getSessions: (
     params?: SessionQuery,
-  ): Promise<AxiosResponse<ApiResponse<{ sessions: StudySession[] }>>> =>
+  ): Promise<HttpResponse<ApiResponse<{ sessions: StudySession[] }>>> =>
     api.get('/study-sessions', {
       params: {
         ...params,
@@ -276,7 +276,7 @@ export const studySessionsAPI = {
 
   getStats: (
     params?: SessionQuery,
-  ): Promise<AxiosResponse<ApiResponse<{ stats: SessionStats }>>> =>
+  ): Promise<HttpResponse<ApiResponse<{ stats: SessionStats }>>> =>
     api.get('/study-sessions/stats', {
       params: {
         ...params,
@@ -286,18 +286,18 @@ export const studySessionsAPI = {
 
   getSession: (
     id: string,
-  ): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
+  ): Promise<HttpResponse<ApiResponse<{ session: StudySession }>>> =>
     api.get(`/study-sessions/${id}`),
 
   createSession: (
     data: CreateStudySessionRequest,
-  ): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
+  ): Promise<HttpResponse<ApiResponse<{ session: StudySession }>>> =>
     api.post('/study-sessions', data),
 
   updateSession: (
     session: Pick<StudySession, 'id' | 'updatedAt'>,
     data: UpdateStudySessionRequest,
-  ): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
+  ): Promise<HttpResponse<ApiResponse<{ session: StudySession }>>> =>
     api.put(`/study-sessions/${session.id}`, {
       ...data,
       expectedUpdatedAt: session.updatedAt,
@@ -305,7 +305,7 @@ export const studySessionsAPI = {
 
   deleteSession: (
     session: Pick<StudySession, 'id' | 'updatedAt'>,
-  ): Promise<AxiosResponse<ApiResponse>> =>
+  ): Promise<HttpResponse<ApiResponse>> =>
     api.delete(`/study-sessions/${session.id}`, {
       data: { expectedUpdatedAt: session.updatedAt },
     }),
@@ -313,7 +313,7 @@ export const studySessionsAPI = {
   startSession: (
     session: Pick<StudySession, 'id' | 'updatedAt'>,
     activityKind?: ActivityKind,
-  ): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
+  ): Promise<HttpResponse<ApiResponse<{ session: StudySession }>>> =>
     api.patch(`/study-sessions/${session.id}/start`, {
       expectedUpdatedAt: session.updatedAt,
       ...(activityKind === undefined ? {} : { activityKind }),
@@ -321,7 +321,7 @@ export const studySessionsAPI = {
 
   pauseSession: (
     session: Pick<StudySession, 'id' | 'updatedAt'>,
-  ): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
+  ): Promise<HttpResponse<ApiResponse<{ session: StudySession }>>> =>
     api.patch(`/study-sessions/${session.id}/pause`, {
       expectedUpdatedAt: session.updatedAt,
     }),
@@ -329,7 +329,7 @@ export const studySessionsAPI = {
   completeSession: (
     session: Pick<StudySession, 'id' | 'updatedAt'>,
     data?: { notes?: string; productivity?: number },
-  ): Promise<AxiosResponse<ApiResponse<{ session: StudySession }>>> =>
+  ): Promise<HttpResponse<ApiResponse<{ session: StudySession }>>> =>
     api.patch(`/study-sessions/${session.id}/complete`, {
       ...data,
       expectedUpdatedAt: session.updatedAt,
@@ -340,27 +340,27 @@ export const studySessionsAPI = {
 export const topicsAPI = {
   createTopic: (
     data: CreateTopicRequest,
-  ): Promise<AxiosResponse<ApiResponse<{ topic: CatalogTopic }>>> =>
+  ): Promise<HttpResponse<ApiResponse<{ topic: CatalogTopic }>>> =>
     api.post('/topics', data),
 
   updateTopic: (
     id: string,
     data: UpdateTopicRequest,
-  ): Promise<AxiosResponse<ApiResponse<{ topic: CatalogTopic }>>> =>
+  ): Promise<HttpResponse<ApiResponse<{ topic: CatalogTopic }>>> =>
     api.put(`/topics/${id}`, data),
 
-  deleteTopic: (id: string): Promise<AxiosResponse<ApiResponse>> =>
+  deleteTopic: (id: string): Promise<HttpResponse<ApiResponse>> =>
     api.delete(`/topics/${id}`),
 
   getTopicProgress: (): Promise<
-    AxiosResponse<ApiResponse<{ progress: TopicProgressEntry[] }>>
+    HttpResponse<ApiResponse<{ progress: TopicProgressEntry[] }>>
   > => api.get('/topics/progress'),
 
   setTopicProgress: (
     id: number,
     status: TopicProgressStatus,
   ): Promise<
-    AxiosResponse<
+    HttpResponse<
       ApiResponse<{
         progress: {
           topicId: number;
@@ -374,7 +374,7 @@ export const topicsAPI = {
   reorderTopics: (
     courseId: string,
     data: ReorderTopicsInput,
-  ): Promise<AxiosResponse<ApiResponse<{ topics: CatalogTopic[] }>>> =>
+  ): Promise<HttpResponse<ApiResponse<{ topics: CatalogTopic[] }>>> =>
     api.put(`/topics/course/${courseId}/reorder`, data),
 };
 
@@ -382,16 +382,16 @@ export const topicsAPI = {
 export const notificationsAPI = {
   channels: async (): Promise<NotificationChannels> =>
     notificationChannelsSchema.parse((await api.get<{ data: unknown }>('/notifications/channels')).data.data),
-  subscribe: (subscription: PushSubscriptionJSON): Promise<AxiosResponse<ApiResponse>> =>
+  subscribe: (subscription: PushSubscriptionJSON): Promise<HttpResponse<ApiResponse>> =>
     api.post('/notifications/push-subscriptions', subscription),
-  unsubscribe: (endpoint: string): Promise<AxiosResponse<ApiResponse>> =>
+  unsubscribe: (endpoint: string): Promise<HttpResponse<ApiResponse>> =>
     api.delete('/notifications/push-subscriptions', { data: { endpoint } }),
-  test: (input: TestNotificationInput): Promise<AxiosResponse<ApiResponse<{ delivered: number }>>> =>
+  test: (input: TestNotificationInput): Promise<HttpResponse<ApiResponse<{ delivered: number }>>> =>
     api.post('/notifications/test', input),
 };
 
 export const onboardingAPI = {
-  complete: (input: CompleteOnboardingInput): Promise<AxiosResponse<ApiResponse<{ user: User }>>> =>
+  complete: (input: CompleteOnboardingInput): Promise<HttpResponse<ApiResponse<{ user: User }>>> =>
     api.post<unknown>('/onboarding', input).then(parseProfileResponse),
 };
 
@@ -401,33 +401,33 @@ export const searchAPI = {
 };
 
 export const settingsAPI = {
-  getSettings: (): Promise<AxiosResponse<ApiResponse<PublicSettings>>> =>
+  getSettings: (): Promise<HttpResponse<ApiResponse<PublicSettings>>> =>
     api.get('/settings'),
 
   updateSettings: (
     data: SettingsPatch,
-  ): Promise<AxiosResponse<ApiResponse<SiteSettings>>> =>
+  ): Promise<HttpResponse<ApiResponse<SiteSettings>>> =>
     api.put('/settings', data),
 
-  getAdminSettings: (): Promise<AxiosResponse<ApiResponse<SiteSettings>>> =>
+  getAdminSettings: (): Promise<HttpResponse<ApiResponse<SiteSettings>>> =>
     api.get('/settings/admin'),
 };
 
 // Backup API
 export const backupAPI = {
-  getBackups: (): Promise<AxiosResponse<ApiResponse<BackupRecord[]>>> =>
+  getBackups: (): Promise<HttpResponse<ApiResponse<BackupRecord[]>>> =>
     api.get('/backup').then((response) => ({
       ...response,
       data: backupListResponseSchema.parse(response.data),
     })),
 
-  createBackup: (): Promise<AxiosResponse<ApiResponse<unknown>>> =>
+  createBackup: (): Promise<HttpResponse<ApiResponse<unknown>>> =>
     api.post('/backup/create').then((response) => ({
       ...response,
       data: backupCreateResponseSchema.parse(response.data),
     })),
 
-  restoreBackup: (id: number): Promise<AxiosResponse<ApiResponse<unknown>>> =>
+  restoreBackup: (id: number): Promise<HttpResponse<ApiResponse<unknown>>> =>
     api
       .post(`/backup/restore/${id}`)
       .then((response) => ({
@@ -437,7 +437,7 @@ export const backupAPI = {
 
   resetData: (
     mode: ResetMode,
-  ): Promise<AxiosResponse<ApiResponse<{ safetyBackupId: number }>>> =>
+  ): Promise<HttpResponse<ApiResponse<{ safetyBackupId: number }>>> =>
     api.post('/backup/reset', { mode }).then((response) => ({
       ...response,
       data: resetDataResponseSchema.parse(response.data),

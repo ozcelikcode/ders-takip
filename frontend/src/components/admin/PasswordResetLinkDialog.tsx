@@ -1,6 +1,6 @@
 import { Description, Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import type { PasswordResetLink } from '@study-tracker/contracts';
-import { isAxiosError } from 'axios';
+import { serverMessage } from '../../services/httpError';
 import { useState } from 'react';
 import { usersAPI } from '../../services/api';
 
@@ -24,7 +24,7 @@ export default function PasswordResetLinkDialog({ userId, name, onClose }: Passw
       setLink(await usersAPI.createPasswordResetLink(userId));
     } catch (failure) {
       setError(
-        (isAxiosError(failure) ? failure.response?.data?.error?.message : undefined) ?? 'Bağlantı oluşturulamadı.',
+        serverMessage(failure) ?? 'Bağlantı oluşturulamadı.',
       );
     } finally {
       setPending(false);
