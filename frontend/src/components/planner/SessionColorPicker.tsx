@@ -1,22 +1,23 @@
 import { useTerms } from './../../hooks/useTerms';
 import type { UseFormRegister, UseFormSetValue } from 'react-hook-form';
 import type { CreateSessionForm } from './sessionForm';
+import { useText } from '../../store/languageStore';
 
 // Session identity colors are independent of the neutral dialog surfaces.
 const SESSION_COLORS = [
-  { name: 'Gök Mavisi', value: '#60A5FA' },
-  { name: 'Nane Yeşili', value: '#34D399' },
-  { name: 'Lavanta', value: '#A78BFA' },
-  { name: 'Mercan', value: '#F87171' },
-  { name: 'Kayısı', value: '#FBBF24' },
-  { name: 'Şakayık', value: '#F472B6' },
-  { name: 'Safir', value: '#818CF8' },
-  { name: 'Deniz', value: '#2DD4BF' },
-  { name: 'Beton', value: '#9CA3AF' },
-  { name: 'Ayçiçeği', value: '#FCD34D' },
-  { name: 'Okyanus', value: '#38BDF8' },
-  { name: 'Çimen', value: '#4ADE80' },
-];
+  { id: 'sky', value: '#60A5FA' },
+  { id: 'mint', value: '#34D399' },
+  { id: 'lavender', value: '#A78BFA' },
+  { id: 'coral', value: '#F87171' },
+  { id: 'apricot', value: '#FBBF24' },
+  { id: 'peony', value: '#F472B6' },
+  { id: 'sapphire', value: '#818CF8' },
+  { id: 'sea', value: '#2DD4BF' },
+  { id: 'concrete', value: '#9CA3AF' },
+  { id: 'sunflower', value: '#FCD34D' },
+  { id: 'ocean', value: '#38BDF8' },
+  { id: 'grass', value: '#4ADE80' },
+] as const;
 
 interface SessionColorPickerProps {
   selected: string | undefined;
@@ -26,10 +27,11 @@ interface SessionColorPickerProps {
 
 const SessionColorPicker = ({ selected, register, setValue }: SessionColorPickerProps) => {
   const t = useTerms();
+  const text = useText().planner;
   return (
   <div>
     <label className="block text-sm font-medium mb-3">
-      Renk Seçimi
+      {text.colorTitle}
     </label>
     <input type="hidden" {...register('color')} />
     <div className="grid grid-cols-6 gap-2">
@@ -49,8 +51,8 @@ const SessionColorPicker = ({ selected, register, setValue }: SessionColorPicker
               : 'border-(--line) hover:ring-2 hover:ring-(--line) hover:ring-offset-2 hover:ring-offset-(--surface)'
           }`}
           style={{ backgroundColor: color.value }}
-          title={color.name}
-          aria-label={`${color.name} ${t.session()} rengi`}
+          title={text.colors[color.id]}
+          aria-label={text.colorLabel(t, text.colors[color.id])}
           aria-pressed={selected === color.value}
         />
       ))}

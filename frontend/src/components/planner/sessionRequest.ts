@@ -11,6 +11,7 @@ import type {
   UpdateStudySessionRequest,
 } from '../../types/planner';
 import type { CreateSessionForm } from './sessionForm';
+import { useLanguageStore } from '../../store/languageStore';
 
 export type DurationMode = 'minutes' | 'timeRange';
 
@@ -53,13 +54,14 @@ export const resolveSessionTitle = (
         ? selectedCourse.name
         : `${selectedCourse.name}${categoryName ? ` (${categoryName})` : ''}`;
     }
-    return 'Çalışma';
+    return useLanguageStore.getState().text.session.types.study;
   }
-  if (data.sessionCategory === 'break') return 'Mola';
+  if (data.sessionCategory === 'break') return useLanguageStore.getState().text.session.types.break;
   if (data.sessionCategory === 'custom' && data.customTitle) {
     return data.customTitle;
   }
-  return 'Çalışma';
+  // A default title is saved with the session, so it is written in the language in use.
+  return useLanguageStore.getState().text.session.types.study;
 };
 
 export const buildSessionPayload = (
@@ -122,10 +124,11 @@ export const rangeDurationLabel = (
   endTime: string | undefined,
   timezone: string,
 ): string => {
-  if (!date || !startTime || !endTime) return '0 dakika';
+  const text = useLanguageStore.getState().text;
+  if (!date || !startTime || !endTime) return text.common.minutesLong(0);
   const minutes = wallTimeMinutes(date, startTime, endTime, timezone);
-  if (minutes === null) return 'Geçersiz saat';
-  return minutes > 0 ? `${minutes} dakika` : '0 dakika';
+  if (minutes === null) return text.planner.invalidTime;
+  return text.common.minutesLong(Math.max(0, minutes));
 };
 
 export const endTimeLabel = (
@@ -139,6 +142,6 @@ export const endTimeLabel = (
     const start = wallTimeToInstant(date, startTime, timezone);
     return formatZonedTime(new Date(start.getTime() + duration * 60000), timezone);
   } catch {
-    return 'Geçersiz saat';
+    return useLanguageStore.getState().text.planner.invalidTime;
   }
 };

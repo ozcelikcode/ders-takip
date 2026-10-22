@@ -17,21 +17,25 @@ import {
   moveSessionTimes,
   type CalendarMode,
 } from './calendarGeometry';
+import { useLanguageStore, useText } from '../../store/languageStore';
 
 type Confirmation = {
   session: StudySession;
   action: 'pause' | 'complete' | 'delete';
 };
-const errorMessage = (error: unknown) =>
-  isHttpError(error)
-    ? (serverMessage(error) ?? 'İşlem tamamlanamadı. Lütfen tekrar deneyin.')
+const errorMessage = (error: unknown) => {
+  const text = useLanguageStore.getState().text;
+  return isHttpError(error)
+    ? (serverMessage(error) ?? text.common.actionFailed)
     : error instanceof Error
       ? error.message
-      : 'İşlem tamamlanamadı.';
+      : text.planner.actionFailed;
+};
 
 export function usePlannerCalendar(mode: CalendarMode, initialDate?: string) {
   const weekStart = useWeekStart();
   const t = useTerms();
+  const text = useText().planner;
   const timezone = useUserPreferencesStore(
     (state) => state.preferences.timezone,
   );
@@ -143,7 +147,7 @@ export function usePlannerCalendar(mode: CalendarMode, initialDate?: string) {
               ).toISOString(),
             }),
       });
-    }, 'Oturum taşındı');
+    }, text.moved(t));
   };
   const resize = async (session: StudySession, minutes: number) => {
     if (!canRepositionSession(session)) return false;
@@ -154,7 +158,7 @@ export function usePlannerCalendar(mode: CalendarMode, initialDate?: string) {
             Date.parse(session.startTime) + minutes * 60000,
           ).toISOString(),
         }),
-      'Süre güncellendi',
+      text.resized,
     );
   };
   const reloadMoving = async () => {
@@ -174,9 +178,7 @@ export function usePlannerCalendar(mode: CalendarMode, initialDate?: string) {
   };
   const startSession = async (session: StudySession) => {
     if (!canStartSession(session)) {
-      toast.error(
-        'Bu oturumun saati geçmiş. Lütfen oturum saatini güncelleyin.',
-      );
+      toast.error(text.overdue(t));
       return;
     }
     if (session.sessionType === 'pomodoro') {
@@ -185,7 +187,7 @@ export function usePlannerCalendar(mode: CalendarMode, initialDate?: string) {
     }
     await perform(
       () => studySessionsAPI.startSession(session),
-      `${t.session({ capitalize: true })} başlatıldı`,
+      text.started(t),
     );
   };
   const confirm = async () => {
@@ -200,10 +202,10 @@ export function usePlannerCalendar(mode: CalendarMode, initialDate?: string) {
     const success = await perform(
       operation,
       action === 'pause'
-        ? `${t.session({ capitalize: true })} duraklatıldı`
+        ? text.paused(t)
         : action === 'complete'
-          ? `${t.session({ capitalize: true })} tamamlandı`
-          : `${t.session({ capitalize: true })} silindi`,
+          ? text.completed(t)
+          : text.deleted(t),
     );
     if (success) setConfirmation(null);
     return success;

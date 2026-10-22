@@ -1,5 +1,6 @@
 import { useTerms } from '../../hooks/useTerms';
 import { BookOpen, Coffee, Target } from 'lucide-react';
+import { useText } from '../../store/languageStore';
 
 export type SessionCategory = 'course' | 'break' | 'custom';
 
@@ -16,15 +17,11 @@ interface SessionCategoryPickerProps {
 
 const SessionCategoryPicker = ({ value, onChange }: SessionCategoryPickerProps) => {
   const t = useTerms();
-  const labels: Record<SessionCategory, string> = {
-    course: `${t.course({ capitalize: true })} çalışması`,
-    break: 'Mola',
-    custom: 'Özel',
-  };
+  const text = useText().planner;
   return (
   <div>
     <label className="block text-sm font-medium mb-3">
-      Çalışma Türü *
+      {text.categoryTitle}
     </label>
     <div className="grid grid-cols-3 gap-3">
       {CATEGORIES.map(({ value: category, Icon }) => (
@@ -43,7 +40,7 @@ const SessionCategoryPicker = ({ value, onChange }: SessionCategoryPickerProps) 
             <Icon
               className={`w-6 h-6 ${value === category ? ' ' : 'text-(--muted)'}`}
             />
-            <span className="font-medium text-xs">{labels[category]}</span>
+            <span className="font-medium text-xs">{text.categories[category](t)}</span>
           </div>
         </button>
       ))}

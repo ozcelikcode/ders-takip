@@ -50,8 +50,9 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
   sourceUnavailable = false,
   onReload,
 }) => {
-  const weekdays = useText().calendar.weekdaysShort;
   const t = useTerms();
+  const { planner: text, common, calendar } = useText();
+  const weekdays = calendar.weekdaysShort;
   const weekStart = useWeekStart();
   const timezone = useUserPreferencesStore(
     (state) => state.preferences.timezone,
@@ -97,9 +98,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
       (sessionDuration !== undefined &&
         !isSessionDurationValid(Number(duration) * 60_000))
     ) {
-      setError(
-        'Saat ve süreyi kontrol edin. Süre 1 dakika ile 24 saat arasında olmalıdır.',
-      );
+      setError(text.moveCheckTime);
       return;
     }
     setError('');
@@ -115,11 +114,9 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
       const result = await onSelectDate(selectedDate ?? currentDate, changes);
       if (result !== false) onClose();
       else
-        setError(
-          'Değişiklik kaydedilemedi. Taslağınız korunuyor; güncel bilgileri kontrol edip tekrar deneyin.',
-        );
+        setError(text.moveRejected);
     } catch {
-      setError('Değişiklik kaydedilemedi. Lütfen tekrar deneyin.');
+      setError(text.moveFailed);
     }
   };
 
@@ -149,16 +146,16 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
           <div className="flex items-center justify-between p-4 border-b border-(--line)">
             <div>
               <DialogTitle className="text-base font-medium">
-                Görevi Taşı
+                {text.moveTitle(t)}
               </DialogTitle>
               <p className="text-sm text-(--muted) mt-1">
-                {sessionTitle} · Taşınacak saat: {format(currentDate, 'HH:mm')}
+                {text.moveFrom(sessionTitle, format(currentDate, 'HH:mm'))}
               </p>
             </div>
             <button
               disabled={pending}
               onClick={onClose}
-              aria-label="Kapat"
+              aria-label={text.close}
               className="p-2 text-(--muted) hover:text-(--text) rounded-lg hover:bg-(--subtle)"
             >
               <X className="h-5 w-5" />
@@ -171,8 +168,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
               className="space-y-2 border-b border-(--line) p-4 text-sm"
             >
               <p>
-                Güncel {t.session()} okunamadı veya bu takvim aralığında bulunamadı.
-                Kaydetmeden önce yeniden yükleyin.
+                {text.sourceUnavailable(t)}
               </p>
               <button
                 type="button"
@@ -180,7 +176,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
                 onClick={onReload}
                 className="btn btn-secondary"
               >
-                {t.session({ case: 'acc', capitalize: true })} yeniden yükle
+                {text.reloadSession(t)}
               </button>
             </div>
           )}
@@ -191,7 +187,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
               <button
                 disabled={pending}
                 onClick={handlePrevMonth}
-                aria-label="Önceki ay"
+                aria-label={text.previousMonth}
                 className="p-2 rounded-lg hover:bg-(--subtle)"
               >
                 <ChevronLeft className="h-5 w-5 text-(--muted)" />
@@ -202,7 +198,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
               <button
                 disabled={pending}
                 onClick={handleNextMonth}
-                aria-label="Sonraki ay"
+                aria-label={text.nextMonth}
                 className="p-2 rounded-lg hover:bg-(--subtle)"
               >
                 <ChevronRight className="h-5 w-5 text-(--muted)" />
@@ -258,7 +254,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
             {selectedDate && (
               <div className="mt-4 p-3 bg-(--subtle) rounded-lg">
                 <p className="text-sm">
-                  Seçilen tarih:{' '}
+                  {text.selectedDate}{' '}
                   <span className="font-semibold">
                     {format(selectedDate, 'd MMMM yyyy, EEEE')}
                   </span>
@@ -270,12 +266,11 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
           {sessionDuration !== undefined && (
             <div className="space-y-3 border-t border-(--line) p-4">
               <p className="text-xs text-(--muted)">
-                Tarihi değiştirmeden saat veya süreyi düzenleyebilirsiniz. Saat
-                dilimi: {timezone}.
+                {text.timeOnlyHint(timezone)}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <label className="text-sm">
-                  Başlangıç saati
+                  {text.startTime}
                   <input
                     type="time"
                     className="input mt-1"
@@ -292,7 +287,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
                   />
                 </label>
                 <label className="text-sm">
-                  Planlanan süre (dakika)
+                  {text.plannedMinutes}
                   <input
                     type="number"
                     className="input mt-1"
@@ -326,7 +321,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
               onClick={onClose}
               className="btn btn-secondary flex-1"
             >
-              İptal
+              {common.cancel}
             </button>
             <button
               onClick={() => void handleConfirm()}
@@ -340,7 +335,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
               }
               className="btn btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {pending ? 'Taşınıyor…' : 'Taşı'}
+              {pending ? text.moving : text.move}
             </button>
           </div>
         </DialogPanel>

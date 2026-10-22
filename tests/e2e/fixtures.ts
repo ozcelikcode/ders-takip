@@ -143,7 +143,7 @@ export async function openMove(page: Page, title = 'Movable session') {
   await page.getByRole('button', { name: `${title}: işlemler` }).click();
   await page.getByRole('button', { name: 'Saat ve süreyi değiştir' }).click();
   await expect(
-    page.getByRole('heading', { name: 'Görevi Taşı', exact: true }),
+    page.getByRole('heading', { name: 'Seansı taşı', exact: true }),
   ).toBeVisible();
 }
 

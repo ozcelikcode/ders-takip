@@ -12,7 +12,7 @@ import { studySessionsAPI } from '../../services/api';
 import { useText } from '../../store/languageStore';
 
 export default function PomodoroPage() {
-  const sessionText = useText().session;
+  const { session: sessionText, pomodoro: text } = useText();
   const t = useTerms();
   const timezone = useUserPreferencesStore(state => state.preferences.timezone);
   const keys = useAccountQueryKeys();
@@ -36,13 +36,13 @@ export default function PomodoroPage() {
   const selected = sessions?.find(session => session.id === selectedId);
   return (
     <div className="space-y-6">
-      <PageHeader title="Pomodoro" description={`Bir ${t.session()} seç. Tek bir işe odaklan, molalarla ritmini koru.`} actions={<Link className="btn btn-secondary" to="/planner">{t.session({ capitalize: true })} planla</Link>} />
-      {query.isPending ? <p role="status">{t.session({ plural: true, capitalize: true })} yükleniyor…</p> : query.isError ? <p role="alert">{t.session({ plural: true, capitalize: true })} yüklenemedi. <button className="underline" onClick={() => void query.refetch()}>Tekrar dene</button></p> : !sessions?.length ? (
-        <div className="panel p-12 text-center"><h2 className="text-lg font-medium">Pomodoro {t.session()} yok</h2><p className="mt-2 text-sm text-(--muted)">Planlayıcıdan Pomodoro türünde bir {t.session()} oluşturun.</p></div>
+      <PageHeader title={text.pageTitle} description={text.pageDescription(t)} actions={<Link className="btn btn-secondary" to="/planner">{text.plan(t)}</Link>} />
+      {query.isPending ? <p role="status">{text.listLoading(t)}</p> : query.isError ? <p role="alert">{text.listFailed(t)} <button className="underline" onClick={() => void query.refetch()}>{text.retry}</button></p> : !sessions?.length ? (
+        <div className="panel p-12 text-center"><h2 className="text-lg font-medium">{text.emptyTitle(t)}</h2><p className="mt-2 text-sm text-(--muted)">{text.emptyHint(t)}</p></div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
-          <section className="panel p-4" aria-label={`Pomodoro ${t.session({ plural: true })}`}>
-            <h2 className="mb-3 text-sm font-medium">{t.session({ plural: true, capitalize: true })}</h2>
+          <section className="panel p-4" aria-label={text.listLabel(t)}>
+            <h2 className="mb-3 text-sm font-medium">{text.listTitle(t)}</h2>
             <div className="max-h-[640px] space-y-2 overflow-y-auto">
               {sessions.map(session => <button key={session.id} className={`w-full rounded-md border p-3 text-left ${selectedId === session.id ? 'border-(--muted) bg-(--subtle)' : 'border-transparent hover:border-(--line)'}`} onClick={() => setSelectedId(session.id)} aria-pressed={selectedId === session.id}>
                 <span className="block text-sm font-medium">{session.title}</span>
@@ -50,7 +50,7 @@ export default function PomodoroPage() {
               </button>)}
             </div>
           </section>
-          <div className="panel p-6 sm:p-8 lg:col-span-2">{selected ? <PomodoroTimer key={selected.id} session={selected} /> : <p>Bir {t.session()} seçin.</p>}</div>
+          <div className="panel p-6 sm:p-8 lg:col-span-2">{selected ? <PomodoroTimer key={selected.id} session={selected} /> : <p>{text.choose(t)}</p>}</div>
         </div>
       )}
     </div>

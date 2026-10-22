@@ -33,6 +33,7 @@ import {
   wallTimeMinutes,
   type DurationMode,
 } from './sessionRequest';
+import { useText } from '../../store/languageStore';
 
 interface CreateSessionModalProps {
   isOpen: boolean;
@@ -48,6 +49,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
   const [{ selectedDate, selectedHour = 9, editSession }] = useState(props);
   const { onClose } = props;
   const t = useTerms();
+  const { sessionEditor: text, session: sessionText, common } = useText();
   const accountKeys = useAccountQueryKeys();
   const livePreferences = useUserPreferencesStore((state) => state.preferences);
   const [preferences] = useState(livePreferences);
@@ -155,8 +157,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
     } catch {
       setError('startTime', {
         type: 'validate',
-        message:
-          'Saat aralığını kontrol edin. Saat diliminde bulunmayan veya iki kez yaşanan saatler seçilemez.',
+        message: text.invalidRange,
       });
       return;
     }
@@ -178,7 +179,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
     if (!request.success) {
       setError('title', {
         type: 'validate',
-        message: `Başlık, ${t.course()} ve ${t.session()} ayarlarını kontrol edin.`,
+        message: text.checkFields(t),
       });
       return;
     }
@@ -190,8 +191,8 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
               createSessionRequestSchema.parse(request.data),
             ),
       isEditMode
-        ? `${t.session({ capitalize: true })} güncellendi.`
-        : `${t.session({ capitalize: true })} oluşturuldu.`,
+        ? text.updated(t)
+        : text.created(t),
     );
     if (saved) onClose();
   };
@@ -357,12 +358,12 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
         >
           <div className="flex items-center justify-between p-5 border-b border-(--line)">
             <DialogTitle className="text-lg font-medium ">
-              {isEditMode ? `${t.session({ case: 'acc', capitalize: true })} düzenle` : `Yeni ${t.session({ capitalize: true })}`}
+              {isEditMode ? text.editTitle(t) : text.newTitle(t)}
             </DialogTitle>
             <button
               onClick={handleClose}
               disabled={mutation.isPending}
-              aria-label="Pencereyi kapat"
+              aria-label={text.close}
               className="p-2 rounded-md text-(--muted) hover:text-(--text) hover:bg-(--subtle) transition-all"
             >
               <X className="w-5 h-5" />
@@ -379,35 +380,34 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
               className="space-y-5 disabled:opacity-60"
             >
               <p className="text-xs text-(--muted)">
-                Takvim saat dilimi: {preferences.timezone}
+                {text.timezone(preferences.timezone)}
               </p>
               {coursesQuery.isError && (
                 <div role="alert">
-                  <p>{t.course({ plural: true, capitalize: true })} yüklenemedi.</p>
+                  <p>{text.recordsFailed(t)}</p>
                   <button
                     type="button"
                     className="btn btn-secondary"
                     onClick={() => void coursesQuery.refetch()}
                   >
-                    {t.course({ case: 'acc', plural: true, capitalize: true })} tekrar yükle
+                    {text.reloadRecords(t)}
                   </button>
                 </div>
               )}
               {conflicted && (
                 <p role="status" className="text-sm">
-                  İşlem çakışma nedeniyle reddedildi. Taslağınız korunuyor;
-                  tekrar kaydetmeden önce değerleri kontrol edin.
+                  {text.conflict}
                 </p>
               )}
               {needsRefresh && (
                 <div role="alert">
-                  <p>Güncel {t.session()} okunmadan işlem yapılamaz.</p>
+                  <p>{text.needsRefresh(t)}</p>
                   <button
                     type="button"
                     className="btn btn-secondary"
                     onClick={() => void reloadSnapshot()}
                   >
-                    Güncel {t.session({ case: 'acc' })} yeniden yükle
+                    {text.reloadLatest(t)}
                   </button>
                 </div>
               )}
@@ -433,14 +433,14 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                     htmlFor="courseId"
                     className="block text-sm font-medium mb-2"
                   >
-                    {t.course({ capitalize: true })} seçimi *
+                    {text.recordChoice(t)}
                   </label>
                   <select
                     {...register('courseId')}
                     id="courseId"
                     className="input"
                   >
-                    <option value="">{t.course({ capitalize: true })} seçin</option>
+                    <option value="">{text.chooseRecord(t)}</option>
                     {coursesData?.map((course) => (
                       <option key={course.id} value={course.id.toString()}>
                         {course.name}{' '}
@@ -462,7 +462,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 <div className="rounded-lg border border-(--line) bg-(--subtle) p-3">
                   <p className="flex items-center gap-2 text-sm text-(--muted)">
                     <Coffee className="w-4 h-4" />
-                    Mola oluşturuyorsunuz. Süreyi ve zamanı ayarlayın.
+                    {text.breakHint}
                   </p>
                 </div>
               )}
@@ -473,14 +473,14 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                     htmlFor="customTitle"
                     className="block text-sm font-medium mb-2"
                   >
-                    Özel Başlık *
+                    {text.customTitle}
                   </label>
                   <input
                     {...register('customTitle')}
                     type="text"
                     id="customTitle"
                     className="input"
-                    placeholder="Başlığı yazın"
+                    placeholder={text.customTitlePlaceholder}
                   />
                   {errors.customTitle && (
                     <p className="mt-1 text-sm text-red-600">
@@ -496,21 +496,21 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                   htmlFor="description"
                   className="block text-sm font-medium mb-2"
                 >
-                  Açıklama
+                  {text.description}
                 </label>
                 <textarea
                   {...register('description')}
                   id="description"
                   rows={3}
                   className="input"
-                  placeholder={`${t.session({ capitalize: true })} açıklaması`}
+                  placeholder={text.descriptionPlaceholder(t)}
                 />
               </div>
 
               {/* Start Date and Time */}
               <div>
                 <label className="block text-sm font-medium mb-3">
-                  Plan Başlangıç Tarihi ve Saati *
+                  {text.startDateTime}
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -518,7 +518,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                       htmlFor="startDate"
                       className="block text-xs text-(--muted) mb-1"
                     >
-                      Tarih
+                      {text.date}
                     </label>
                     <input
                       {...register('startDate')}
@@ -532,7 +532,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                       htmlFor="startTime"
                       className="block text-xs text-(--muted) mb-1"
                     >
-                      Saat
+                      {text.time}
                     </label>
                     <input
                       {...register('startTime')}
@@ -562,16 +562,16 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                     htmlFor="sessionType"
                     className="block text-sm font-medium mb-2"
                   >
-                    {t.session({ capitalize: true })} türü *
+                    {text.type(t)}
                   </label>
                   <select
                     {...register('sessionType')}
                     id="sessionType"
                     className="input"
                   >
-                    <option value="study">Çalışma</option>
-                    <option value="pomodoro">Pomodoro</option>
-                    <option value="review">Tekrar</option>
+                    <option value="study">{sessionText.types.study}</option>
+                    <option value="pomodoro">{sessionText.types.pomodoro}</option>
+                    <option value="review">{sessionText.types.review}</option>
                   </select>
                 </div>
               )}
@@ -620,7 +620,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                   className="btn btn-secondary text-red-600"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Sil
+                  {text.delete}
                 </button>
               )}
             </div>
@@ -633,7 +633,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 disabled={mutation.isPending}
                 className="btn btn-secondary"
               >
-                İptal
+                {common.cancel}
               </button>
               <button
                 type="submit"
@@ -652,11 +652,11 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
               >
                 {mutation.isPending
                   ? isEditMode
-                    ? 'Güncelleniyor...'
-                    : 'Oluşturuluyor...'
+                    ? text.updating
+                    : text.creating
                   : isEditMode
-                    ? 'Güncelle'
-                    : 'Oluştur'}
+                    ? text.update
+                    : text.create}
               </button>
             </div>
           </div>
@@ -666,8 +666,8 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={confirmDelete}
-        title={`${t.session({ case: 'acc', capitalize: true })} sil`}
-        message={`“${editSession?.title}” ${t.session()} ve bu ${t.session({ case: 'dat' })} ait ölçüm kayıtları kalıcı olarak silinecek. Bu işlem geri alınamaz.`}
+        title={text.deleteTitle(t)}
+        message={text.deleteMessage(t, editSession?.title ?? '')}
         type="danger"
       >
         {mutation.errorMessage && (
@@ -677,7 +677,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
         )}
         {needsRefresh && (
           <p role="alert">
-            Güncel {t.session()} okunamadı. Bu onayı kapatıp {t.session({ case: 'acc' })} yeniden yükleyin.
+            {text.deleteNeedsRefresh(t)}
           </p>
         )}
       </ConfirmDialog>

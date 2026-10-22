@@ -4,6 +4,7 @@ import {
   sessionTypeSchema,
   pomodoroSettingsSchema,
 } from '@study-tracker/contracts';
+import { useLanguageStore } from '../../store/languageStore';
 
 export const sessionFormSchema = z
   .object({
@@ -30,14 +31,14 @@ export const sessionFormSchema = z
     if (data.sessionCategory === 'course' && !data.courseId) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Seçim gereklidir',
+        message: useLanguageStore.getState().text.planner.selectionRequired,
         path: ['courseId'],
       });
     }
     if (data.sessionCategory === 'custom' && !data.customTitle) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Başlık gereklidir',
+        message: useLanguageStore.getState().text.planner.titleRequired,
         path: ['customTitle'],
       });
     }

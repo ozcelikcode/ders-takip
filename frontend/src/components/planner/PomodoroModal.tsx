@@ -4,6 +4,7 @@ import { X, Maximize2, Minimize2 } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'motion/react';
 import { StudySession } from '../../types/planner';
 import PomodoroTimer from './PomodoroTimer';
+import { useText } from '../../store/languageStore';
 
 interface PomodoroModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
   isMinimized = false,
   onToggleMinimize,
 }) => {
+  const text = useText().pomodoro;
   if (!session) return null;
 
   return (
@@ -64,14 +66,14 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                 <DialogTitle className="text-lg font-medium">
-                  Pomodoro
+                  {text.modalTitle}
                 </DialogTitle>
                 <div className="flex items-center gap-2">
                   {onToggleMinimize && (
                     <button
                       onClick={onToggleMinimize}
                       aria-label={
-                        isMinimized ? 'Sayacı büyüt' : 'Sayacı küçült'
+                        isMinimized ? text.expand : text.minimize
                       }
                       className="icon-button"
                     >
@@ -84,7 +86,7 @@ const PomodoroModal: React.FC<PomodoroModalProps> = ({
                   )}
                   <button
                     onClick={onClose}
-                    aria-label="Sayacı kapat"
+                    aria-label={text.close}
                     className="icon-button"
                   >
                     <X className="w-5 h-5" />

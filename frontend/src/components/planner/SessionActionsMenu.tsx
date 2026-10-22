@@ -3,6 +3,7 @@ import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { Clock, Edit, MoveRight, Timer, Trash2, X } from 'lucide-react';
 import type { StudySession } from '../../types/planner';
 import { canRepositionSession } from './calendarGeometry';
+import { useText } from '../../store/languageStore';
 
 export interface SessionActionsAnchor {
   session: StudySession;
@@ -31,6 +32,7 @@ export default function SessionActionsMenu({
   onDelete,
 }: SessionActionsMenuProps) {
   const t = useTerms();
+  const text = useText().planner;
   const run = (action: (session: StudySession) => void) => () => {
     if (!anchor) return;
     action(anchor.session);
@@ -45,16 +47,16 @@ export default function SessionActionsMenu({
           style={{ top: anchor.y, left: anchor.x }}
         >
           <DialogTitle className="px-2 py-1 text-xs text-(--muted)">
-            {t.session({ capitalize: true })} işlemleri
+            {text.sessionActions(t)}
           </DialogTitle>
           <button className={itemClass} onClick={run(onEdit)}>
             <Edit className="h-4 w-4" />
-            Düzenle
+            {text.edit}
           </button>
           {anchor.session.sessionType === 'pomodoro' && (
             <button className={itemClass} onClick={run(onOpenTimer)}>
               <Timer className="h-4 w-4" />
-              Sayacı aç
+              {text.openTimerShort}
             </button>
           )}
           <button
@@ -63,7 +65,7 @@ export default function SessionActionsMenu({
             onClick={run(onMove)}
           >
             <MoveRight className="h-4 w-4" />
-            Tarihe taşı
+            {text.moveToDate}
           </button>
           <button
             disabled={!canRepositionSession(anchor.session)}
@@ -71,18 +73,18 @@ export default function SessionActionsMenu({
             onClick={run(onMove)}
           >
             <Clock className="h-4 w-4" />
-            Saat ve süreyi değiştir
+            {text.changeTime}
           </button>
           <button
             className={`${itemClass} text-red-600`}
             onClick={run(onDelete)}
           >
             <Trash2 className="h-4 w-4" />
-            Sil
+            {text.delete}
           </button>
           <button className={itemClass} onClick={onClose}>
             <X className="h-4 w-4" />
-            Kapat
+            {text.close}
           </button>
         </DialogPanel>
       )}

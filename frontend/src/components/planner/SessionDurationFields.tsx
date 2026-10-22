@@ -3,6 +3,7 @@ import { Calendar, Timer } from 'lucide-react';
 import type { FieldErrors, UseFormRegister } from 'react-hook-form';
 import type { CreateSessionForm } from './sessionForm';
 import { endTimeLabel, rangeDurationLabel, type DurationMode } from './sessionRequest';
+import { useText } from '../../store/languageStore';
 
 interface SessionDurationFieldsProps {
   mode: DurationMode;
@@ -31,23 +32,25 @@ const SessionDurationFields = ({
   startDate,
   startTime,
   endTime,
-}: SessionDurationFieldsProps) => (
+}: SessionDurationFieldsProps) => {
+  const text = useText().planner;
+  return (
   <>
     <div>
       <label className="block text-sm font-medium mb-3">
-        Süre Seçim Tipi
+        {text.durationMode}
       </label>
       <div className="grid grid-cols-2 gap-3">
         <button type="button" onClick={() => onModeChange('minutes')} className={modeButtonClass(mode === 'minutes')}>
           <div className="flex items-center justify-center gap-2">
             <Timer className={`w-4 h-4 ${mode === 'minutes' ? 'text-(--text)' : 'text-(--muted)'}`} />
-            <span className="font-medium text-sm">Dakika</span>
+            <span className="font-medium text-sm">{text.minutesMode}</span>
           </div>
         </button>
         <button type="button" onClick={() => onModeChange('timeRange')} className={modeButtonClass(mode === 'timeRange')}>
           <div className="flex items-center justify-center gap-2">
             <Calendar className={`w-4 h-4 ${mode === 'timeRange' ? 'text-(--text)' : 'text-(--muted)'}`} />
-            <span className="font-medium text-sm">Saat Aralığı</span>
+            <span className="font-medium text-sm">{text.rangeMode}</span>
           </div>
         </button>
       </div>
@@ -56,7 +59,7 @@ const SessionDurationFields = ({
     {mode === 'minutes' && (
       <div>
         <label htmlFor="duration" className="block text-sm font-medium mb-2">
-          Süre (dakika) *
+          {text.durationMinutes}
         </label>
         <input
           {...register('duration', { valueAsNumber: true })}
@@ -77,26 +80,27 @@ const SessionDurationFields = ({
       <div className="space-y-3">
         <div>
           <label htmlFor="endTime" className="block text-sm font-medium mb-2">
-            Bitiş Saati *
+            {text.endTimeRequired}
           </label>
           <input {...register('endTime')} type="time" id="endTime" className="input" />
         </div>
 
         <div className="bg-(--subtle) rounded-lg p-3 border border-(--line)">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Toplam süre:</span>
+            <span className="text-sm font-medium">{text.totalDuration}</span>
             <span className="text-base font-medium tabular-nums">
               {rangeDurationLabel(startDate, startTime, endTime, timezone)}
             </span>
           </div>
           <p className="mt-1 text-xs text-(--muted)">
-            Başlangıç ve bitiş saatine göre otomatik hesaplanır
+            {text.totalDurationHint}
           </p>
         </div>
       </div>
     )}
   </>
-);
+  );
+};
 
 /** Read-only end-time summary shown below the session type in minutes mode. */
 export const EndTimeSummary = ({
@@ -106,17 +110,18 @@ export const EndTimeSummary = ({
   duration,
 }: Pick<SessionDurationFieldsProps, 'timezone' | 'startDate' | 'startTime'> & { duration: number | undefined }) => {
   const minutes = duration || 60;
+  const text = useText().planner;
   return (
     <div className="bg-(--subtle) rounded-lg p-3 border border-(--line)">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">Bitiş saati:</span>
+        <span className="text-sm font-medium">{text.endTime}</span>
         <span className="text-base font-medium tabular-nums">
           {endTimeLabel(startDate, startTime, minutes, timezone)}
         </span>
       </div>
       <p className="text-xs text-(--muted) mt-1.5 flex items-center gap-1">
         <Timer className="w-3 h-3" />
-        Başlangıç + {minutes} dakika
+        {text.startPlus(minutes)}
       </p>
     </div>
   );

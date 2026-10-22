@@ -31,7 +31,7 @@ type Confirmation = {
   action: 'pause' | 'complete' | 'reopen';
 };
 export default function TodaysPlans() {
-  const sessionText = useText().session;
+  const { session: sessionText, today: text, planner, pomodoro, common } = useText();
   const t = useTerms();
   const timezone = useUserPreferencesStore(
     (state) => state.preferences.timezone,
@@ -94,7 +94,7 @@ export default function TodaysPlans() {
     }
     await perform(
       () => studySessionsAPI.startSession(session),
-      `${t.session({ capitalize: true })} başlatıldı.`,
+      text.started(t),
     );
   };
   const requestConfirmation = (
@@ -118,10 +118,10 @@ export default function TodaysPlans() {
             ? studySessionsAPI.completeSession(current)
             : studySessionsAPI.updateSession(current, { status: 'planned' }),
       action === 'reopen'
-        ? `${t.session({ capitalize: true })} yeniden planlandı; çalışma geçmişi korundu.`
+        ? text.reopened(t)
         : action === 'pause'
-          ? `${t.session({ capitalize: true })} duraklatıldı.`
-          : `${t.session({ capitalize: true })} tamamlandı.`,
+          ? text.paused(t)
+          : text.completed(t),
     );
     if (saved) setConfirmation(null);
     return saved;
@@ -139,10 +139,10 @@ export default function TodaysPlans() {
           <ChevronDown
             className={`h-4 w-4 text-(--muted) ${expanded ? 'rotate-180' : ''}`}
           />
-          <span className="text-sm font-medium">Bugünün planları</span>
+          <span className="text-sm font-medium">{text.title}</span>
           {query.isSuccess && (
             <span className="text-xs text-(--muted)">
-              {completed}/{sessions.length} tamamlandı
+              {text.progress(completed, sessions.length)}
             </span>
           )}
         </button>
@@ -157,7 +157,7 @@ export default function TodaysPlans() {
           }
         >
           <Plus className="h-4 w-4" />
-          Yeni {t.session()}
+          {text.newSession(t)}
         </button>
       </div>
       {query.isPending ? (
@@ -165,20 +165,20 @@ export default function TodaysPlans() {
           role="status"
           className="border-t px-4 py-4 text-sm text-(--muted)"
         >
-          Bugünün planları yükleniyor…
+          {text.loading}
         </p>
       ) : query.isError ? (
         <div
           role="alert"
           className="flex flex-wrap items-center gap-3 border-t p-4"
         >
-          <p>Bugünün planları alınamadı.</p>
+          <p>{text.failed}</p>
           <button
             className="btn btn-secondary"
             disabled={query.isFetching || mutation.isPending}
             onClick={() => void query.refetch()}
           >
-            Tekrar dene
+            {planner.retry}
           </button>
         </div>
       ) : (
@@ -190,7 +190,7 @@ export default function TodaysPlans() {
           >
             {sessions.length === 0 ? (
               <p className="px-4 py-6 text-sm text-(--muted)">
-                Bugün için planlanmış {t.session()} yok.
+                {text.empty(t)}
               </p>
             ) : (
               <ul className="divide-y divide-(--line)">
@@ -202,8 +202,8 @@ export default function TodaysPlans() {
                     <div className="min-w-0 flex-1 basis-48">
                       <p className="text-xs text-(--muted)">
                         {formatZonedTime(session.startTime, timezone)}–
-                        {formatZonedTime(session.endTime, timezone)} · Plan:{' '}
-                        {session.duration} dk ·{' '}
+                        {formatZonedTime(session.endTime, timezone)} ·{' '}
+                        {text.planned(common.minutesShort(session.duration))} ·{' '}
                         {sessionText.types[session.sessionType]}
                       </p>
                       <h3 className="mt-1 wrap-break-word text-sm font-medium">
@@ -220,7 +220,7 @@ export default function TodaysPlans() {
                         </span>
                         {isSessionMissed(session) && (
                           <span className="text-xs text-(--muted)">
-                            Planlanan bitiş saati geçti
+                            {text.missed}
                           </span>
                         )}
                       </div>
@@ -229,7 +229,7 @@ export default function TodaysPlans() {
                       <button
                         className="icon-button"
                         disabled={busy}
-                        aria-label={`${t.session({ case: 'acc', capitalize: true })} düzenle: ${session.title}`}
+                        aria-label={text.edit(t, session.title)}
                         onClick={() =>
                           setEditor({
                             date: calendarViewDate(session.startTime, timezone),
@@ -243,7 +243,7 @@ export default function TodaysPlans() {
                         <button
                           className="icon-button"
                           disabled={busy}
-                          aria-label={`${session.title}: ${session.sessionType === 'pomodoro' ? 'Pomodoro sayacını aç' : session.status === 'paused' ? 'Devam et' : 'Başlat'}`}
+                          aria-label={text.startAction(session.title, session.sessionType === 'pomodoro' ? planner.openTimer : session.status === 'paused' ? pomodoro.resume : pomodoro.start)}
                           onClick={() => void start(session)}
                         >
                           {session.sessionType === 'pomodoro' ? (
@@ -258,7 +258,7 @@ export default function TodaysPlans() {
                           <button
                             className="icon-button"
                             disabled={busy}
-                            aria-label={`${t.session({ case: 'acc', capitalize: true })} duraklat: ${session.title}`}
+                            aria-label={text.pause(t, session.title)}
                             onClick={() =>
                               requestConfirmation(session, 'pause')
                             }
@@ -268,7 +268,7 @@ export default function TodaysPlans() {
                           <button
                             className="icon-button"
                             disabled={busy}
-                            aria-label={`${t.session({ case: 'acc', capitalize: true })} tamamla: ${session.title}`}
+                            aria-label={text.complete(t, session.title)}
                             onClick={() =>
                               requestConfirmation(session, 'complete')
                             }
@@ -279,7 +279,7 @@ export default function TodaysPlans() {
                             <button
                               className="icon-button"
                               disabled={busy}
-                              aria-label={`${session.title}: Pomodoro sayacını aç`}
+                              aria-label={text.startAction(session.title, planner.openTimer)}
                               onClick={() => setTimer(session)}
                             >
                               <Timer className="h-4 w-4" />
@@ -292,7 +292,7 @@ export default function TodaysPlans() {
                         <button
                           className="icon-button"
                           disabled={busy}
-                          aria-label={`${t.session({ case: 'acc', capitalize: true })} yeniden planla: ${session.title}`}
+                          aria-label={text.reopen(t, session.title)}
                           onClick={() => requestConfirmation(session, 'reopen')}
                         >
                           <RotateCcw className="h-4 w-4" />
@@ -316,12 +316,12 @@ export default function TodaysPlans() {
           isOpen
           title={
             confirmation.action === 'pause'
-              ? `${t.session({ case: 'acc', capitalize: true })} duraklat`
+              ? planner.confirmPause(t)
               : confirmation.action === 'complete'
-                ? `${t.session({ case: 'acc', capitalize: true })} tamamla`
-                : `${t.session({ case: 'acc', capitalize: true })} yeniden planla`
+                ? planner.confirmComplete(t)
+                : text.reopenTitle(t)
           }
-          message={`“${confirmation.session.title}” ${confirmation.action === 'pause' ? 'duraklatılacak.' : confirmation.action === 'complete' ? 'tamamlandı olarak işaretlenecek.' : 'planlandı durumuna dönecek. Notlar ve ölçülen çalışma geçmişi korunur; çalışma kendiliğinden başlamaz.'}`}
+          message={(confirmation.action === 'pause' ? text.pauseMessage : confirmation.action === 'complete' ? text.completeMessage : text.reopenMessage)(confirmation.session.title)}
           onClose={() => setConfirmation(null)}
           onConfirm={confirm}
         >
@@ -332,13 +332,12 @@ export default function TodaysPlans() {
           )}
           {!current && (
             <p role="alert">
-              Bu {t.session()} artık listede bulunmuyor. Pencereyi kapatıp listeyi
-              yenileyin.
+              {text.gone(t)}
             </p>
           )}
           {query.isError && (
             <p role="alert">
-              Güncel {t.session({ plural: true })} alınamadı. Önce listeyi yeniden yükleyin.
+              {text.listFailed(t)}
             </p>
           )}
         </ConfirmDialog>

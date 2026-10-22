@@ -34,6 +34,7 @@ import CreateSessionModal from './CreateSessionModal';
 import MoveSessionModal from './MoveSessionModal';
 import PomodoroModal from './PomodoroModal';
 import ConfirmDialog from '../common/ConfirmDialog';
+import { useText } from '../../store/languageStore';
 
 export interface PlannerCalendarProps {
   onCreateSession?: ((date: Date, hour: number) => void) | undefined;
@@ -54,6 +55,7 @@ type Resize = {
 
 export default function PlannerCalendar({ mode, onCreateSession, initialDate }: Props) {
   const t = useTerms();
+  const text = useText().planner;
   const planner = usePlannerCalendar(mode, initialDate);
   const { days, timezone, query, pending } = planner;
   const weekly = mode === 'weekly';
@@ -315,24 +317,22 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
       />
       {onCreateSession && (
         <p id={slotHelpId} className="text-xs text-(--muted)">
-          Boş saatlerde ok tuşlarıyla gezinip Enter veya boşlukla {t.session()} ekleyin.
-          Home/End günün ilk/son boş saatine gider. {t.session({ capitalize: true })} işlemlerinden tarih,
-          saat ve süre değiştirilebilir.
+          {text.slotHelp(t)}
         </p>
       )}
       {query.isError ? (
         <div role="alert" className="panel p-6 text-center">
-          <p>Planlayıcı verileri alınamadı.</p>
+          <p>{text.loadFailed}</p>
           <button
             className="btn btn-secondary mt-3"
             onClick={() => void query.refetch()}
           >
-            Tekrar dene
+            {text.retry}
           </button>
         </div>
       ) : query.isPending ? (
         <p role="status" className="panel p-6">
-          Takvim yükleniyor…
+          {text.calendarLoading}
         </p>
       ) : (
         <div className="panel overflow-hidden">
@@ -340,7 +340,7 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
             role="region"
             className="relative max-h-[640px] overflow-auto"
             tabIndex={0}
-            aria-label={`${weekly ? 'Haftalık' : 'Günlük'} takvim, saatleri görmek için kaydırın`}
+            aria-label={text.scrollRegion(weekly)}
             ref={initializeCalendarViewport}
           >
             <div
@@ -420,7 +420,7 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
                               navigateSlot(event, index, hour)
                             }
                             disabled={pending}
-                            aria-label={`${format(day, 'd MMMM')} ${String(hour).padStart(2, '0')}:00 ${t.session()} ekle`}
+                            aria-label={text.addAt(t, format(day, 'd MMMM'), String(hour).padStart(2, '0'))}
                             className="absolute inset-0 flex items-center justify-center text-(--muted) opacity-100 sm:opacity-0 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-[-3px]"
                             style={{ scrollMarginTop: 56 }}
                             onClick={() => create(index, hour)}
@@ -535,8 +535,7 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
                 shiftDragged(direction);
               }}
             >
-              {direction < 0 ? 'Önceki' : 'Sonraki'}{' '}
-              {weekly ? 'haftaya' : 'güne'} taşı
+              {text.dropTo(weekly, direction)}
             </div>
           ))}
         </div>
@@ -610,15 +609,15 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
         onConfirm={planner.confirm}
         title={
           planner.confirmation?.action === 'pause'
-            ? `${t.session({ case: 'acc', capitalize: true })} duraklat`
+            ? text.confirmPause(t)
             : planner.confirmation?.action === 'complete'
-              ? `${t.session({ case: 'acc', capitalize: true })} tamamla`
-              : `${t.session({ case: 'acc', capitalize: true })} sil`
+              ? text.confirmComplete(t)
+              : text.confirmDelete(t)
         }
         message={
           planner.confirmation?.action === 'delete'
-            ? `“${planner.confirmation.session.title}” ve bu ${t.session({ case: 'gen' })} ölçüm kayıtları silinecek. Bu işlem geri alınamaz.`
-            : 'Bu işlemi onaylıyor musunuz?'
+            ? text.deleteMessage(t, planner.confirmation.session.title)
+            : text.confirmQuestion
         }
         type={planner.confirmation?.action === 'delete' ? 'danger' : 'info'}
       />

@@ -4,18 +4,14 @@ import { StudySession } from '../types/planner';
 import { formatMeasuredSeconds, type Language } from '@study-tracker/contracts';
 import type { Text } from '../i18n';
 
-/**
- * Oturumun vakti geçmiş mi kontrol eder
- */
+/** Whether the session's planned end is already past. */
 const isSessionOverdue = (session: StudySession): boolean => {
   const now = new Date();
   const sessionEnd = parseISO(session.endTime);
   return sessionEnd < now;
 };
 
-/**
- * Oturum kaçırılmış mı (tamamlanmamış ve vakti geçmiş)
- */
+/** Whether the session was missed: not finished and its planned end is past. */
 export const isSessionMissed = (session: StudySession): boolean => {
   return (
     isSessionOverdue(session) &&
@@ -24,14 +20,12 @@ export const isSessionMissed = (session: StudySession): boolean => {
   );
 };
 
-/**
- * Oturum başlatılabilir mi kontrol eder
- */
+/** Whether the session can be started now. */
 export const canStartSession = (session: StudySession): boolean => {
   const now = new Date();
   const sessionEnd = parseISO(session.endTime);
 
-  // Vakti geçmişse başlatılamaz
+  // A session whose planned end has passed cannot start.
   if (sessionEnd < now) {
     return false;
   }
@@ -45,7 +39,7 @@ export const getRecentSessions = <T extends { endTime: string; completedAt?: str
     .slice(0, limit)
 );
 
-/** "5 dk 0 sn çalışma (kısmi)" or "Süre ölçülmedi", in the interface language. */
+/** Measured study with a partial marker, or that it was not measured, in the interface language. */
 export const measuredSessionLabel = (
   session: Pick<StudySession, 'trackingCoverage' | 'studySeconds'>,
   text: Text['session'],
