@@ -12,6 +12,7 @@ import {
   UserCircle,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { useText } from '../../store/languageStore';
 import NotificationsPanel from './NotificationsPanel';
 
 interface HeaderProps {
@@ -20,20 +21,21 @@ interface HeaderProps {
 export default function Header({ onMenuClick }: HeaderProps) {
   const { user } = useAuthStore();
   const t = useTerms();
+  const text = useText().nav;
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const sectionName = pathname.startsWith('/admin')
-    ? 'Yönetim'
+    ? text.admin
     : {
-        dashboard: 'Genel bakış',
-        planner: 'Planlayıcı',
-        stats: 'İstatistikler',
-        search: 'Arama',
-        courses: t.course({ capitalize: true, plural: true }),
-        pomodoro: 'Pomodoro',
-        profile: 'Profil',
-        settings: 'Ayarlar',
-      }[pathname.split('/')[1] || ''] || 'Çalışma alanı';
+        dashboard: text.overview,
+        planner: text.planner,
+        stats: text.stats,
+        search: text.search,
+        courses: text.records(t),
+        pomodoro: text.pomodoro,
+        profile: text.profile,
+        settings: text.settings,
+      }[pathname.split('/')[1] || ''] || text.workspace;
   const [searchTerm, setSearchTerm] = useState('');
   return (
     <header className="sticky top-0 z-30 border-b bg-(--surface)">
@@ -43,13 +45,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <button
               type="button"
               className="icon-button lg:hidden"
-              aria-label="Menüyü aç"
+              aria-label={text.openMenu}
               onClick={onMenuClick}
             >
               <Menu className="h-5 w-5" />
             </button>
             <span className="hidden items-center gap-3 text-xs text-(--muted) lg:flex">
-              Çalışma alanı <span aria-hidden="true">/</span>
+              {text.workspace} <span aria-hidden="true">/</span>
               <span className="font-medium text-(--text)">
                 {sectionName}
               </span>
@@ -69,23 +71,23 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 className="pointer-events-none absolute left-3 top-2 h-4 w-4 text-(--muted)"
               />
               <input
-                aria-label="Çalışma alanında ara"
+                aria-label={text.searchLabel}
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder={`${t.course({ capitalize: true })}, ${t.topic()} veya ${t.session()} ara…`}
+                placeholder={text.searchPlaceholder(t)}
                 className="input h-8 pl-9 pr-12 text-xs"
               />
               <button
                 type="submit"
                 className="absolute inset-y-0 right-2 min-w-6 text-xs text-(--muted) hover:text-(--text)"
               >
-                Ara
+                {text.searchSubmit}
               </button>
             </form>
           </div>
           <PopoverGroup className="flex items-center gap-2">
-            <Link to="/search" className="icon-button md:hidden" aria-label="Ara">
+            <Link to="/search" className="icon-button md:hidden" aria-label={text.searchSubmit}>
               <Search className="h-4 w-4" />
             </Link>
             <NotificationsPanel key={`${user?.id ?? 'anonymous'}`} />
@@ -98,7 +100,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   <PopoverButton
                     className="flex items-center gap-2 rounded-md p-1.5 hover:bg-(--subtle)"
                   >
-                    <span className="sr-only">Hesap menüsü</span>
+                    <span className="sr-only">{text.accountMenu}</span>
                     {' '}
                     <span className="avatar h-8 w-8">
                       {user?.profileImage ? (
@@ -127,7 +129,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   <PopoverPanel
                     focus
                     className="dropdown-panel w-56 py-2"
-                    aria-label="Hesap bağlantıları"
+                    aria-label={text.accountLinks}
                   >
                     <div className="border-b border-(--line) px-4 py-3">
                       <p className="text-sm font-medium">{user?.fullName}</p>
@@ -135,14 +137,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         {user?.email}
                       </p>
                     </div>
-                    <nav aria-label="Hesap">
+                    <nav aria-label={text.account}>
                       <Link
                         to="/profile"
                         onClick={() => close()}
                         className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-(--subtle)"
                       >
                         <UserCircle aria-hidden="true" className="h-4 w-4" />
-                        Profil
+                        {text.profile}
                       </Link>
                       <Link
                         to="/settings"
@@ -150,7 +152,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-(--subtle)"
                       >
                         <Settings aria-hidden="true" className="h-4 w-4" />
-                        Ayarlar
+                        {text.settings}
                       </Link>
                     </nav>
                     <button
@@ -162,7 +164,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       className="flex w-full items-center gap-3 border-t border-(--line) px-4 py-3 text-left text-sm text-red-600 hover:bg-(--subtle)"
                     >
                       <LogOut aria-hidden="true" className="h-4 w-4" />
-                      Çıkış Yap
+                      {text.logout}
                     </button>
                   </PopoverPanel>
                 </>

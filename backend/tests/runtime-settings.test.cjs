@@ -48,6 +48,15 @@ it('starts a new account in the time zone sent by the browser and rejects unknow
   assert.equal(fallback.body.data.user.preferences.timezone, 'Europe/Istanbul');
 });
 
+it('starts a new account in the language sent by the browser, else Turkish', async () => {
+  const payload = { username: 'london', email: 'london@example.com', password: 'fixture-password', firstName: 'Ada', lastName: 'Byron' };
+  await write('/api/auth/register').send({ ...payload, language: 'de' }).expect(400);
+  const created = await write('/api/auth/register').send({ ...payload, language: 'en' }).expect(201);
+  assert.equal(created.body.data.user.preferences.language, 'en');
+  const fallback = await write('/api/auth/register').send({ ...payload, username: 'ankara', email: 'ankara@example.com' }).expect(201);
+  assert.equal(fallback.body.data.user.preferences.language, 'tr');
+});
+
 it('keeps maintenance mode open to administrators only', async () => {
   const studentToken = (await login(student).expect(200)).body.data.tokens.accessToken;
   const adminToken = (await login(admin).expect(200)).body.data.tokens.accessToken;

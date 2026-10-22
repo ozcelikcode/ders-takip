@@ -9,9 +9,11 @@ import App from './App';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import './index.css';
 import { queryClient } from './lib/queryClient';
+import { initialLanguage } from './i18n';
+import { useLanguageStore } from './store/languageStore';
 
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+const render = () => ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
@@ -46,3 +48,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </ErrorBoundary>
   </React.StrictMode>
 );
+
+// Paint in the right language: a non-Turkish catalog is fetched first; if that fails, Turkish shows.
+void useLanguageStore.getState().setLanguage(initialLanguage()).catch(() => undefined).finally(render);

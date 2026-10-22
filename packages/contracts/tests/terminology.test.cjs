@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const {
   inflect, createTerms, terminologyPresets, terminologyPresetIds, publicSettingsSchema, defaultSiteSettings, settingsPatchSchema,
   accusativeFits, suggestAccusative, customTerminologySchema, customTerminologyFrom, resolveTerminology, preferencesPatchSchema,
+  inflectEnglish, preferredLanguage, registerSchema, defaultPreferences,
 } = require('../dist/cjs');
 
 // Hand-verified Turkish forms: [word, acc, dat, gen, loc, abl, plural, pluralDat]
@@ -33,7 +34,7 @@ it('inflects every preset word with Turkish vowel harmony and buffer consonants'
 it('covers every word used by a preset in the golden table', () => {
   const covered = new Set(golden.map(([word]) => word));
   for (const id of terminologyPresetIds)
-    for (const word of Object.values(terminologyPresets[id].words)) assert.ok(covered.has(word), `${id}: ${word}`);
+    for (const word of Object.values(terminologyPresets[id].tr)) assert.ok(covered.has(word), `${id}: ${word}`);
 });
 
 it('capitalizes with Turkish casing and falls back to the default preset', () => {
@@ -121,4 +122,33 @@ it('accepts custom words in settings and preference patches, null clearing them'
   assert.equal(settingsPatchSchema.safeParse({ customTerminology: customTerminologyFrom('general') }).success, true);
   assert.equal(preferencesPatchSchema.safeParse({ customTerminology: customTerminologyFrom('general') }).success, true);
   assert.equal(preferencesPatchSchema.safeParse({ customTerminology: { course: { word: 'x', accusative: 'x' } } }).success, false);
+});
+
+it('pluralizes English nouns and ignores the Turkish cases', () => {
+  for (const [word, plural] of [['project', 'projects'], ['task', 'tasks'], ['session', 'sessions'], ['class', 'classes'], ['box', 'boxes'], ['match', 'matches'], ['study', 'studies'], ['day', 'days']])
+    assert.equal(inflectEnglish(word, { plural: true }), plural, word);
+  assert.equal(inflectEnglish('Course', { case: 'acc' }), 'course');
+});
+
+it('gives every preset an English vocabulary and keeps custom words as typed in English', () => {
+  for (const id of terminologyPresetIds)
+    for (const word of Object.values(terminologyPresets[id].en)) assert.match(word, /^[a-z]+$/, `${id}: ${word}`);
+  const english = createTerms('education', 'en');
+  assert.equal(english.course({ capitalize: true, plural: true }), 'Courses');
+  assert.equal(english.topic({ case: 'acc', plural: true }), 'topics');
+  assert.equal(createTerms(undefined, 'en').course(), 'project');
+  const book = { ...customTerminologyFrom('general'), course: { word: 'kitap', accusative: 'kitabı' } };
+  assert.equal(createTerms(book, 'en').course({ plural: true, capitalize: true }), 'Kitaps');
+  assert.equal(createTerms(book).course({ case: 'dat' }), 'kitaba');
+});
+
+it('picks the first supported browser language by its primary subtag', () => {
+  assert.equal(preferredLanguage(['en-GB', 'tr']), 'en');
+  assert.equal(preferredLanguage(['de-DE', 'TR-tr']), 'tr');
+  assert.equal(preferredLanguage(['de', 'fr']), null);
+  assert.equal(preferredLanguage([]), null);
+  assert.equal(defaultPreferences.language, 'tr');
+  const account = { username: 'reader', email: 'reader@example.com', password: 'long-enough-password', firstName: 'Ada', lastName: 'Byron' };
+  assert.equal(registerSchema.safeParse({ ...account, language: 'en' }).success, true);
+  assert.equal(registerSchema.safeParse({ ...account, language: 'de' }).success, false);
 });

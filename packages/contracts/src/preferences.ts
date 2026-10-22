@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { timezoneSchema, weekStartSchema, defaultWeekStart, type WeekStart } from './time.js';
 import { customTerminologySchema, terminologyPresetSchema, type CustomTerminology, type TerminologyPresetId } from './terminology.js';
+import { defaultLanguage, languageSchema } from './language.js';
 import { defaultNotificationPreferences, notificationPreferencesSchema, type NotificationPreferences } from './notifications.js';
 
 export const onboardingStateSchema = z.enum(['pending', 'done']);
@@ -20,8 +21,8 @@ export const preferencesSchema = z.object({
     .array(z.number().int().min(0).max(6))
     .max(7)
     .refine((days) => new Set(days).size === days.length),
-  // Reserved for interface translation; the UI is Turkish-only until the i18n package (R10).
-  language: z.enum(['tr', 'en']),
+  // Interface language (R10); new accounts start from the browser's language.
+  language: languageSchema,
   timezone: timezoneSchema,
   // Optional so accounts stored before this field keep validating; absent means Monday.
   weekStartsOn: weekStartSchema.optional(),
@@ -51,7 +52,7 @@ export const defaultPreferences: UserPreferences = {
   weeklyStudyGoal: 28,
   dailyStudyGoal: 4,
   activeStudyDays: [1, 2, 3, 4, 5, 6, 0],
-  language: 'tr',
+  language: defaultLanguage,
   timezone: 'Europe/Istanbul',
   weekStartsOn: defaultWeekStart,
   studyField: null,

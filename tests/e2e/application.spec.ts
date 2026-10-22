@@ -497,3 +497,27 @@ test('reads the weekly chart as a table of measured study, not as an application
   await expect(measured).toHaveText(/^\d+ (dk|sa)/);
 });
 
+test.describe('English browser', () => {
+  test.use({ locale: 'en-US' });
+  test('opens in English and starts a new account in English', async ({ page }) => {
+    await page.goto('/login');
+    await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await page.getByRole('link', { name: 'Sign up' }).click();
+    await page.getByLabel('First name').fill('Ada');
+    await page.getByLabel('Last name').fill('Byron');
+    await page.getByLabel('Username').fill('englishreader');
+    await page.getByLabel('Email address').fill('englishreader@example.test');
+    await page.getByLabel('Password', { exact: true }).fill('fixture-password-2026');
+    await page.getByRole('button', { name: 'Sign up', exact: true }).click();
+    await expect(page).toHaveURL(/\/welcome$/);
+    // The setup wizard is translated in R10b; skipping it shows the translated shell.
+    await page.getByRole('button', { name: 'Şimdilik atla' }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await page.reload();
+    // Desktop shows the side navigation; phones show the button that opens it.
+    await expect(page.getByRole('link', { name: 'Overview' }).or(page.getByRole('button', { name: 'Open menu' }))).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  });
+});
+

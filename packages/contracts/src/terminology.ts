@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { defaultLanguage, type Language } from './language.js';
 
 /** The three catalog/planning concepts whose display words an admin can switch. */
 export const termKeys = ['course', 'topic', 'session'] as const;
@@ -10,34 +11,12 @@ export type TerminologyPresetId = z.infer<typeof terminologyPresetSchema>;
 
 export const defaultTerminologyPreset: TerminologyPresetId = 'general';
 
-interface TerminologyPreset {
-  label: string;
-  description: string;
-  /** Lower-case nominative singular forms; every other form is derived by `inflect`. */
-  words: Record<TermKey, string>;
-}
-
-export const terminologyPresets: Record<TerminologyPresetId, TerminologyPreset> = {
-  general: {
-    label: 'Genel',
-    description: 'Proje, görev ve seans: her tür iş ve çalışma için nötr kelimeler.',
-    words: { course: 'proje', topic: 'görev', session: 'seans' },
-  },
-  education: {
-    label: 'Eğitim',
-    description: 'Ders, konu ve seans: öğrenme ve sınav hazırlığı için.',
-    words: { course: 'ders', topic: 'konu', session: 'seans' },
-  },
-  goals: {
-    label: 'Hedef',
-    description: 'Hedef, adım ve seans: kişisel hedefleri adım adım ilerletmek için.',
-    words: { course: 'hedef', topic: 'adım', session: 'seans' },
-  },
-  skills: {
-    label: 'Beceri',
-    description: 'Beceri, alıştırma ve seans: pratik gerektiren beceriler için.',
-    words: { course: 'beceri', topic: 'alıştırma', session: 'seans' },
-  },
+/** Lower-case nominative singular words per language; every other form is derived by `inflect`. */
+export const terminologyPresets: Record<TerminologyPresetId, Record<Language, Record<TermKey, string>>> = {
+  general: { tr: { course: 'proje', topic: 'görev', session: 'seans' }, en: { course: 'project', topic: 'task', session: 'session' } },
+  education: { tr: { course: 'ders', topic: 'konu', session: 'seans' }, en: { course: 'course', topic: 'topic', session: 'session' } },
+  goals: { tr: { course: 'hedef', topic: 'adım', session: 'seans' }, en: { course: 'goal', topic: 'step', session: 'session' } },
+  skills: { tr: { course: 'beceri', topic: 'alıştırma', session: 'seans' }, en: { course: 'skill', topic: 'exercise', session: 'session' } },
 };
 
 export type TermCase = 'nom' | 'acc' | 'dat' | 'gen' | 'loc' | 'abl';
@@ -108,7 +87,7 @@ export type CustomTerminology = z.infer<typeof customTerminologySchema>;
 
 /** Starts a custom vocabulary from a preset's words so a person changes only what they need. */
 export const customTerminologyFrom = (preset: TerminologyPresetId): CustomTerminology => {
-  const words = terminologyPresets[preset].words;
+  const words = terminologyPresets[preset].tr;
   const entry = (key: TermKey) => ({ word: words[key], accusative: suggestAccusative(words[key]) });
   return { course: entry('course'), topic: entry('topic'), session: entry('session') };
 };
@@ -145,17 +124,36 @@ export const inflect = (term: string | TermWord, { case: nounCase = 'nom', plura
   }
 };
 
-const capitalizeFirst = (text: string) => text.charAt(0).toLocaleUpperCase('tr') + text.slice(1);
+/** English nouns take only a plural; the Turkish case options do not apply. */
+export const inflectEnglish = (word: string, { plural = false }: TermOptions = {}): string => {
+  const base = word.toLowerCase();
+  if (!plural) return base;
+  if (/(s|x|z|ch|sh)$/.test(base)) return `${base}es`;
+  if (/[^aeiou]y$/.test(base)) return `${base.slice(0, -1)}ies`;
+  return `${base}s`;
+};
+
+const capitalizeFirst = (text: string, language: Language) =>
+  text.charAt(0).toLocaleUpperCase(language) + text.slice(1);
 
 export type Terms = Record<TermKey, (options?: TermOptions) => string>;
 
-/** Builds the term formatter for a preset or a custom vocabulary; nothing given means the default preset. */
-export const createTerms = (source: TerminologyPresetId | CustomTerminology | null | undefined): Terms => {
+/**
+ * Builds the term formatter for a preset or a custom vocabulary in an interface language;
+ * nothing given means the default preset. Custom words are typed in Turkish with their
+ * accusative; in English they keep their spelling and take the English plural.
+ */
+export const createTerms = (
+  source: TerminologyPresetId | CustomTerminology | null | undefined,
+  language: Language = defaultLanguage,
+): Terms => {
   const words: Record<TermKey, string | TermWord> =
-    source && typeof source === 'object' ? source : terminologyPresets[source ?? defaultTerminologyPreset].words;
+    source && typeof source === 'object' ? source : terminologyPresets[source ?? defaultTerminologyPreset][language];
   const format = (key: TermKey) => (options: TermOptions = {}) => {
-    const text = inflect(words[key], options);
-    return options.capitalize ? capitalizeFirst(text) : text;
+    const word = words[key];
+    const text =
+      language === 'en' ? inflectEnglish(typeof word === 'string' ? word : word.word, options) : inflect(word, options);
+    return options.capitalize ? capitalizeFirst(text, language) : text;
   };
   return { course: format('course'), topic: format('topic'), session: format('session') };
 };

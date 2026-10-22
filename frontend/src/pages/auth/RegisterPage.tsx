@@ -1,4 +1,5 @@
 import { browserTimezone } from '../../lib/locale';
+import { useLanguage, useText } from '../../store/languageStore';
 import AuthCard from '../../components/auth/AuthCard';
 import { Brand } from '../../components/common/Brand';
 import { useState } from 'react';
@@ -18,6 +19,8 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { register: registerUser, isAuthenticated } = useAuthStore();
+  const text = useText().auth;
+  const language = useLanguage();
   const allowRegistration = useSettingsStore(
     (state) => state.settings.allowRegistration,
   );
@@ -38,8 +41,9 @@ const RegisterPage = () => {
     setIsLoading(true);
     try {
       const timezone = browserTimezone();
-      await registerUser(timezone ? { ...data, timezone } : data);
-      toast.success('Hesap başarıyla oluşturuldu');
+      // The new account keeps the language this page was shown in.
+      await registerUser({ ...data, ...(timezone ? { timezone } : {}), language });
+      toast.success(text.register.success);
     } catch {
       // The auth store presents a safe error without logging credentials.
     } finally {
@@ -58,14 +62,13 @@ const RegisterPage = () => {
             <Brand />
           </div>
           <h1 className="text-[28px] font-semibold tracking-tight">
-            Kayıtlar kapalı
+            {text.register.closedTitle}
           </h1>
           <p className="text-sm text-(--muted)">
-            Yeni hesap oluşturma şu anda kapalı. Mevcut hesabınızla giriş
-            yapabilirsiniz.
+            {text.register.closedHint}
           </p>
           <Link to="/login" className="btn btn-secondary">
-            Giriş yap
+            {text.register.login}
           </Link>
         </div>
       </main>
@@ -73,7 +76,7 @@ const RegisterPage = () => {
   }
 
   return (
-    <AuthCard title="Kayıt Ol" description="Yeni hesap oluştur">
+    <AuthCard title={text.register.title} description={text.register.description}>
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -81,7 +84,7 @@ const RegisterPage = () => {
                   htmlFor="firstName"
                   className="block text-sm font-medium"
                 >
-                  Ad
+                  {text.register.firstName}
                 </label>
                 <div className="mt-1">
                   <input
@@ -89,7 +92,7 @@ const RegisterPage = () => {
                     id="firstName"
                     type="text"
                     className={`input ${errors.firstName ? 'input-error' : ''}`}
-                    placeholder="Adınız"
+                    placeholder={text.register.firstNamePlaceholder}
                   />
                   {errors.firstName && (
                     <p className="mt-1 text-sm text-red-600">
@@ -104,7 +107,7 @@ const RegisterPage = () => {
                   htmlFor="lastName"
                   className="block text-sm font-medium"
                 >
-                  Soyad
+                  {text.register.lastName}
                 </label>
                 <div className="mt-1">
                   <input
@@ -112,7 +115,7 @@ const RegisterPage = () => {
                     id="lastName"
                     type="text"
                     className={`input ${errors.lastName ? 'input-error' : ''}`}
-                    placeholder="Soyadınız"
+                    placeholder={text.register.lastNamePlaceholder}
                   />
                   {errors.lastName && (
                     <p className="mt-1 text-sm text-red-600">
@@ -128,7 +131,7 @@ const RegisterPage = () => {
                 htmlFor="username"
                 className="block text-sm font-medium"
               >
-                Kullanıcı Adı
+                {text.register.username}
               </label>
               <div className="mt-1">
                 <input
@@ -136,7 +139,7 @@ const RegisterPage = () => {
                   id="username"
                   type="text"
                   className={`input ${errors.username ? 'input-error' : ''}`}
-                  placeholder="kullaniciadi"
+                  placeholder={text.register.usernamePlaceholder}
                 />
                 {errors.username && (
                   <p className="mt-1 text-sm text-red-600">
@@ -151,7 +154,7 @@ const RegisterPage = () => {
                 htmlFor="email"
                 className="block text-sm font-medium"
               >
-                E-posta Adresi
+                {text.email}
               </label>
               <div className="mt-1">
                 <input
@@ -160,7 +163,7 @@ const RegisterPage = () => {
                   type="email"
                   autoComplete="email"
                   className={`input ${errors.email ? 'input-error' : ''}`}
-                  placeholder="ornek@email.com"
+                  placeholder={text.emailPlaceholder}
                 />
                 {errors.email && (
                   <p className="mt-1 text-sm text-red-600">
@@ -175,7 +178,7 @@ const RegisterPage = () => {
                 htmlFor="password"
                 className="block text-sm font-medium"
               >
-                Şifre
+                {text.password}
               </label>
               <div className="mt-1 relative">
                 <input
@@ -189,7 +192,7 @@ const RegisterPage = () => {
                 <button
                   type="button"
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                  aria-label={showPassword ? text.hidePassword : text.showPassword}
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -215,22 +218,22 @@ const RegisterPage = () => {
                 {isLoading ? (
                   <div className="flex items-center justify-center">
                     <div className="spinner w-5 h-5 mr-2" />
-                    Hesap oluşturuluyor...
+                    {text.register.submitting}
                   </div>
                 ) : (
-                  'Kayıt Ol'
+                  text.register.submit
                 )}
               </button>
             </div>
 
             <div className="text-center">
               <p className="text-sm text-(--muted)">
-                Zaten hesabınız var mı?{' '}
+                {text.register.haveAccount}{' '}
                 <Link
                   to="/login"
                   className="font-medium text-(--text) underline underline-offset-4 hover:no-underline"
                 >
-                  Giriş yap
+                  {text.register.login}
                 </Link>
               </p>
             </div>

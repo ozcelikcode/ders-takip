@@ -9,6 +9,7 @@ import { Eye, EyeOff } from 'lucide-react';
 
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useText } from '../../store/languageStore';
 
 type LoginFormData = LoginInput;
 
@@ -16,6 +17,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated } = useAuthStore();
+  const text = useText().auth;
   const allowRegistration = useSettingsStore(
     (state) => state.settings.allowRegistration,
   );
@@ -36,7 +38,7 @@ const LoginPage = () => {
     setIsLoading(true);
     try {
       await login(data);
-      toast.success('Başarıyla giriş yapıldı');
+      toast.success(text.login.success);
     } catch {
       // The auth store presents a safe error without logging credentials.
     } finally {
@@ -45,14 +47,14 @@ const LoginPage = () => {
   };
 
   return (
-    <AuthCard title="Giriş Yap" description="Hesabınızla çalışma alanınıza giriş yapın">
+    <AuthCard title={text.login.title} description={text.login.description}>
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div>
               <label
                 htmlFor="email"
                 className="block text-sm font-medium"
               >
-                E-posta Adresi
+                {text.email}
               </label>
               <div className="mt-1">
                 <input
@@ -61,7 +63,7 @@ const LoginPage = () => {
                   type="email"
                   autoComplete="email"
                   className={`input ${errors.email ? 'input-error' : ''}`}
-                  placeholder="ornek@email.com"
+                  placeholder={text.emailPlaceholder}
                 />
                 {errors.email && (
                   <p className="mt-1 text-sm text-red-600">
@@ -77,13 +79,13 @@ const LoginPage = () => {
                   htmlFor="password"
                   className="block text-sm font-medium"
                 >
-                  Şifre
+                  {text.password}
                 </label>
                 <Link
                   to="/forgot-password"
                   className="text-xs text-(--muted) underline underline-offset-4 hover:text-(--text)"
                 >
-                  Şifremi unuttum
+                  {text.login.forgotPassword}
                 </Link>
               </div>
               <div className="mt-1 relative">
@@ -98,7 +100,7 @@ const LoginPage = () => {
                 <button
                   type="button"
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                  aria-label={showPassword ? text.hidePassword : text.showPassword}
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -124,10 +126,10 @@ const LoginPage = () => {
                 {isLoading ? (
                   <div className="flex items-center justify-center">
                     <div className="spinner w-5 h-5 mr-2" />
-                    Giriş yapılıyor...
+                    {text.login.submitting}
                   </div>
                 ) : (
-                  'Giriş Yap'
+                  text.login.submit
                 )}
               </button>
             </div>
@@ -135,12 +137,12 @@ const LoginPage = () => {
             {allowRegistration && (
               <div className="text-center">
                 <p className="text-sm text-(--muted)">
-                  Hesabınız yok mu?{' '}
+                  {text.login.noAccount}{' '}
                   <Link
                     to="/register"
                     className="font-medium text-(--text) underline underline-offset-4 hover:no-underline"
                   >
-                    Kayıt ol
+                    {text.login.register}
                   </Link>
                 </p>
               </div>

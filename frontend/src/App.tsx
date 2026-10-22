@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useUserPreferencesStore } from './store/userPreferencesStore';
+import { useLanguageStore } from './store/languageStore';
 
 // Components
 import AdminRoute from './components/auth/AdminRoute';
@@ -38,6 +39,7 @@ function App() {
   const { user, isLoading, initializeAuth } = useAuthStore();
   const { settings, fetchSettings } = useSettingsStore();
   const preferences = useUserPreferencesStore(state => state.preferences);
+  const setLanguage = useLanguageStore(state => state.setLanguage);
 
   useEffect(() => {
     void initializeAuth();
@@ -50,6 +52,11 @@ function App() {
     window.addEventListener('focus', refresh);
     return () => { window.clearInterval(interval); window.removeEventListener('focus', refresh); };
   }, [fetchSettings]);
+
+  // A signed-in account's own language wins over the device's last one.
+  useEffect(() => {
+    if (user) void setLanguage(preferences.language).catch(() => undefined);
+  }, [user, preferences.language, setLanguage]);
 
   useEffect(() => {
     const apply = () => applyAppearance(preferences, settings);
