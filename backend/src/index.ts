@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import app from './app';
 import { connectDB, sequelize } from './config/database';
 import { getEnvironment } from './config/environment';
-import { reconcileBackupCatalog, runScheduledBackup } from './services/backups';
+import { mirrorBackups, reconcileBackupCatalog, runScheduledBackup } from './services/backups';
 import { runDueNotifications } from './services/notifications';
 import { assertDatabaseReady } from './database/migrations';
 import { runDuePomodoros, startPomodoroScheduler } from './services/pomodoroClocks';
@@ -14,6 +14,8 @@ const startServer = async () => {
   await assertDatabaseReady();
 
   await reconcileBackupCatalog();
+  // Catch up on copies a crash or an unreachable copy folder left behind.
+  void mirrorBackups();
   await runDuePomodoros();
   const pomodoroScheduler = startPomodoroScheduler();
   const backupJob = cron.schedule('*/5 * * * *', async () => {

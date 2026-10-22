@@ -47,6 +47,7 @@ Giriş ekranındaki **Şifremi unuttum** bağlantısı e-posta ile tek kullanım
 | `FRONTEND_URL` | İzin verilen tarayıcı origin'i; varsayılan `http://localhost:3000`, production'da HTTPS zorunlu. |
 | `DB_PATH` | Mutlak yol veya backend klasörüne göre göreli SQLite yolu; varsayılan `database.sqlite`. |
 | `BACKUP_DIR` | Mutlak yol veya backend klasörüne göre göreli yedek dizini. |
+| `BACKUP_COPY_DIR` | İsteğe bağlı ikinci yedek klasörü (başka disk ya da eşitlenen klasör); `BACKUP_DIR` ile aynı olamaz. |
 | `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS` | Production API sınırı; varsayılan 15 dakikada 100 istek. |
 | `VITE_API_BASE_URL` | Varsayılan `/api`; ayrı origin kullanılacaksa frontend build öncesi tanımlanır. |
 
@@ -78,7 +79,7 @@ Yönetim ekranı canlı SQLite dosyasından native Online Backup API ile tutarl�
 
 Restore önce kaynak doğrulaması ve mevcut verinin güvenlik yedeğini alır, SQLite destination transaction ile geri yükler, şemayı kontrol eder ve eski oturumların tamamını iptal eder. Son kontrol başarısızsa güvenlik yedeğine döner; bu da başarısızsa API bakım durumunda kalır. İşlem sırasında yeni veri istekleri 503/Retry-After alır; sunucu kapanmaz. Manifesti bulunmayan eski kayıtlar arayüzde doğrulanmamış görünür ve geri yüklenemez.
 
-Otomatik yedek kontrolü her 5 dakikada çalışır. Son başarılı otomatik yedekten itibaren 1, 5 veya 7 **tam gün** dolması esas alınır; aralık ayarı her çalışmada yeniden okunur. Yedekler otomatik silinmez. Kapasite takibi, şifreli/ayrı diskte yedek, saklama politikası ve gerçek ortam kurtarma tatbikatı ayrıca kurulmalıdır.
+Otomatik yedek kontrolü her 5 dakikada çalışır. Son başarılı otomatik yedekten itibaren 1, 5 veya 7 **tam gün** dolması esas alınır; aralık ayarı her çalışmada yeniden okunur. Otomatik yedeklerden en yeni 14'ü saklanır; daha eskileri (kayıt, manifest, dosya sırasıyla) silinir. Elle alınan yedekler ve geri yükleme/sıfırlama öncesi güvenlik yedekleri hiç silinmez. `BACKUP_COPY_DIR` verilirse her doğrulanmış yedek ve manifesti oraya da kopyalanır (SHA-256 kontrolüyle, yarım dosya + yeniden adlandırma); silinen otomatik yedeklerin kopyası da kaldırılır, klasördeki başka dosyalara dokunulmaz. Kopyalama veritabanı kilidi dışında yapılır; başarısız olursa yedek yine geçerlidir, açılışta ve sonraki yedekte eksik kopyalar tamamlanır. Kapasite takibi, şifreli yedek ve gerçek ortam kurtarma tatbikatı ayrıca kurulmalıdır.
 
 `settings_only` yalnız site ayarlarını sıfırlar. `all`, admin olmayan hesapları ve kayıt/çalışma verilerini temizler; adminleri ve yedekleri korur. İki işlem de önce güvenlik yedeği alır ve silmeleri transaction içinde yürütür. Doğrulama testleri geçici veritabanlarında çalışır. Koordinasyon tek backend süreci içindir; çoklu instance ve harici SQLite yazıcıları bu kilide dahil değildir.
 

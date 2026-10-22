@@ -7,6 +7,11 @@ export const databasePath = environment.DB_PATH === ':memory:'
   ? ':memory:'
   : path.resolve(backendDirectory, environment.DB_PATH);
 export const backupDirectory = path.resolve(backendDirectory, environment.BACKUP_DIR);
+export const backupCopyDirectory = environment.BACKUP_COPY_DIR
+  ? path.resolve(backendDirectory, environment.BACKUP_COPY_DIR)
+  : null;
+// The copy is pruned like the primary folder, so sharing one folder would delete real snapshots.
+if (backupCopyDirectory === backupDirectory) throw new Error('BACKUP_COPY_DIR must differ from BACKUP_DIR');
 
 export const sequelize = new Sequelize({
   dialect: 'sqlite',

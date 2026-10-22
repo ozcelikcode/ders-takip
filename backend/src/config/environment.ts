@@ -22,6 +22,8 @@ const environmentSchema = z.object({
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(30).default(7),
   DB_PATH: z.string().min(1).default('database.sqlite'),
   BACKUP_DIR: z.string().min(1).default('backups'),
+  // Optional second folder (another disk or a synced folder) that receives a copy of every verified snapshot.
+  BACKUP_COPY_DIR: optional(z.string().min(1)),
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(12).max(16).default(12),
   FRONTEND_URL: z.url({ protocol: /^https?$/ }).default('http://localhost:3000'),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900000),

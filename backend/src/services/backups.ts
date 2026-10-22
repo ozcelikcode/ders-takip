@@ -6,7 +6,7 @@ import path from 'node:path';
 import { z } from 'zod';
 import { Transaction } from 'sequelize';
 import type { Response } from 'express';
-import { backupDirectory, databasePath, sequelize } from '../config/database';
+import { backupCopyDirectory, backupDirectory, databasePath, sequelize } from '../config/database';
 import { AuthSession, Backup, Category, Course, Plan, Settings, StudySession, Topic, User } from '../models';
 import { assertDatabaseReady } from '../database/migrations';
 import { keepDatabaseUnavailable, withDatabaseMaintenance } from './databaseMaintenance';
@@ -81,9 +81,72 @@ const createSnapshot = async (type: 'auto' | 'manual'): Promise<Backup> => {
     throw error;
   }
 };
-export const performBackup = (type: 'auto' | 'manual', response?: Response) => withDatabaseMaintenance(() => createSnapshot(type), response);
+export const performBackup = async (type: 'auto' | 'manual', response?: Response) => {
+  const entry = await withDatabaseMaintenance(() => createSnapshot(type), response);
+  void mirrorBackups();
+  return entry;
+};
 
-export const restoreSnapshot = (id: number, response?: Response): Promise<void> => withDatabaseMaintenance(async () => {
+/** Automatic snapshots kept; manual snapshots, including the safety copies taken before a restore or reset, are never removed. */
+export const automaticBackupsKept = 14;
+const newestFirst = (first: BackupManifest, second: BackupManifest) => Date.parse(second.createdAt) - Date.parse(first.createdAt);
+const removeSnapshot = async (manifest: BackupManifest) => {
+  // Catalog row, then manifest, then data: an interrupted removal never brings a snapshot back.
+  await Backup.destroy({ where: { id: manifest.id } });
+  await fs.rm(manifestPath(manifest.filename), { force: true });
+  await fs.rm(snapshotPath(manifest.filename), { force: true });
+};
+const pruneAutomaticBackups = async () => {
+  const automatic = (await verifiedManifests()).filter(manifest => manifest.type === 'auto').sort(newestFirst);
+  for (const manifest of automatic.slice(automaticBackupsKept)) await removeSnapshot(manifest);
+};
+
+const copyVerified = async (source: string, destination: string, expected?: string) => {
+  const temporary = `${destination}.partial`;
+  try {
+    await fs.copyFile(source, temporary);
+    await syncFile(temporary);
+    if (expected && (await checksum(temporary)) !== expected) throw new Error(`Copied snapshot checksum mismatch: ${path.basename(destination)}`);
+    await fs.rename(temporary, destination);
+  } finally {
+    await fs.rm(temporary, { force: true });
+  }
+};
+let mirroring: Promise<void> = Promise.resolve();
+/**
+ * Brings BACKUP_COPY_DIR in line with the verified snapshots: copies new ones (data first, then
+ * its manifest, each checked and renamed into place) and drops copies of pruned automatic ones.
+ * Files there that are not snapshot copies are left alone. A failure is logged, never thrown,
+ * and the next run catches up; runs are queued so two never write the same file.
+ */
+export const mirrorBackups = (): Promise<void> => {
+  const target = backupCopyDirectory;
+  if (!target) return Promise.resolve();
+  mirroring = mirroring.then(async () => {
+    await fs.mkdir(target, { recursive: true, mode: 0o700 });
+    const manifests = await verifiedManifests();
+    for (const manifest of manifests) {
+      const copy = path.join(target, manifest.filename);
+      const copied = await fs.stat(copy).then(stats => stats.size === manifest.size, () => false);
+      const described = await fs.access(`${copy}.json`).then(() => true, () => false);
+      if (copied && described) continue;
+      await copyVerified(snapshotPath(manifest.filename), copy, manifest.checksum);
+      await copyVerified(manifestPath(manifest.filename), `${copy}.json`);
+    }
+    const current = new Set(manifests.map(manifest => manifest.filename));
+    for (const name of await fs.readdir(target)) {
+      const match = /^(backup-auto-[a-f0-9-]+\.sqlite)(\.json)?$/.exec(name);
+      if (match?.[1] && !current.has(match[1])) await fs.rm(path.join(target, name), { force: true });
+    }
+  }).catch(error => console.error('Backup copy failed:', error));
+  return mirroring;
+};
+
+export const restoreSnapshot = async (id: number, response?: Response): Promise<void> => {
+  await restoreFromSnapshot(id, response);
+  void mirrorBackups();
+};
+const restoreFromSnapshot = (id: number, response?: Response): Promise<void> => withDatabaseMaintenance(async () => {
   const entry = await Backup.findByPk(id);
   if (!entry) throw new Error('Backup not found');
   const manifest = await readManifest(entry.filename);
@@ -111,7 +174,12 @@ export const restoreSnapshot = (id: number, response?: Response): Promise<void> 
   }
 }, response);
 
-export const resetApplicationData = (mode: 'settings_only' | 'all', response?: Response) => withDatabaseMaintenance(async () => {
+export const resetApplicationData = async (mode: 'settings_only' | 'all', response?: Response) => {
+  const result = await resetWithSafetyCopy(mode, response);
+  void mirrorBackups();
+  return result;
+};
+const resetWithSafetyCopy = (mode: 'settings_only' | 'all', response?: Response) => withDatabaseMaintenance(async () => {
   const safety = await createSnapshot('manual');
   await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
     if (mode === 'all') {
@@ -130,14 +198,20 @@ export const resetApplicationData = (mode: 'settings_only' | 'all', response?: R
 
 export const isBackupDue = (last: Date | null, days: number, now: Date) => !last || now.getTime() - last.getTime() >= days * 86400000;
 
-export const runScheduledBackup = (now = new Date()): Promise<boolean> => withDatabaseMaintenance(async () => {
+export const runScheduledBackup = async (now = new Date()): Promise<boolean> => {
+  const created = await scheduledSnapshot(now);
+  if (created) await mirrorBackups();
+  return created;
+};
+const scheduledSnapshot = (now: Date): Promise<boolean> => withDatabaseMaintenance(async () => {
   await purgeExpiredSessions();
   const setting = await Settings.findOne({ where: { key: 'backup_interval' } });
   const days = setting ? Number(setting.value) : 7;
   if (![1, 5, 7].includes(days)) throw new Error('Invalid backup interval');
-  const latest = (await verifiedManifests()).filter(manifest => manifest.type === 'auto').sort((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt))[0];
+  const latest = (await verifiedManifests()).filter(manifest => manifest.type === 'auto').sort(newestFirst)[0];
   if (!isBackupDue(latest ? new Date(latest.createdAt) : null, days, now)) return false;
   await createSnapshot('auto');
+  await pruneAutomaticBackups();
   return true;
 });
 
