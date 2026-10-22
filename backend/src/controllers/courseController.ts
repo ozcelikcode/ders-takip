@@ -85,7 +85,7 @@ export const getCourse = async (req: Request, res: Response, next: NextFunction)
     if (!course) {
       res.status(404).json({
         success: false,
-        error: { message: 'Kayıt bulunamadı' },
+        error: { code: 'recordNotFound' },
       });
       return;
     }
@@ -102,21 +102,21 @@ export const getCourse = async (req: Request, res: Response, next: NextFunction)
 export const createCourse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const course = await catalog.createCourse(req.user!, req.body);
-    res.status(201).json({ success: true, message: 'Kayıt başarıyla oluşturuldu', data: { course } });
+    res.status(201).json({ success: true, data: { course } });
   } catch (error) { next(error); }
 };
 
 export const updateCourse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const course = await catalog.updateCourse(req.user!, Number(req.params.id), req.body);
-    res.json({ success: true, message: 'Kayıt başarıyla güncellendi', data: { course } });
+    res.json({ success: true, data: { course } });
   } catch (error) { next(error); }
 };
 
 export const deleteCourse = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     await catalog.deleteCourse(req.user!, Number(req.params.id));
-    res.json({ success: true, message: 'Kayıt ve bağlı alt kayıtlar silindi. Çalışma geçmişi korundu' });
+    res.json({ success: true });
   } catch (error) { next(error); }
 };
 
@@ -130,7 +130,7 @@ export const getCourseTopics = async (req: Request, res: Response, next: NextFun
     if (!course) {
       res.status(404).json({
         success: false,
-        error: { message: 'Kayıt bulunamadı' },
+        error: { code: 'recordNotFound' },
       });
       return;
     }

@@ -81,7 +81,7 @@ export const getPlan = async (
     if (!plan) {
       res.status(404).json({
         success: false,
-        error: { message: 'Plan bulunamadı' },
+        error: { code: 'planNotFound' },
       });
       return;
     }
@@ -105,7 +105,6 @@ export const createPlan = async (
 
     res.status(201).json({
       success: true,
-      message: 'Plan başarıyla oluşturuldu',
       data: { plan },
     });
   } catch (error) {
@@ -127,7 +126,6 @@ export const updatePlan = async (
 
     res.json({
       success: true,
-      message: 'Plan başarıyla güncellendi',
       data: { plan },
     });
   } catch (error) {
@@ -145,7 +143,6 @@ export const deletePlan = async (
 
     res.json({
       success: true,
-      message: 'Plan başarıyla silindi',
     });
   } catch (error) {
     next(error);
@@ -169,7 +166,7 @@ export const getPlanStats = async (
     if (!plan) {
       res.status(404).json({
         success: false,
-        error: { message: 'Plan bulunamadı' },
+        error: { code: 'planNotFound' },
       });
       return;
     }

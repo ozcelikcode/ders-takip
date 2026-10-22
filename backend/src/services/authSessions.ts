@@ -1,3 +1,4 @@
+import { fail } from '@study-tracker/contracts';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { Op, Transaction, type Transaction as DatabaseTransaction } from 'sequelize';
 import { sequelize } from '../config/database';
@@ -16,7 +17,7 @@ const tokensFor = (user: User, session: AuthSession) => ({
 
 export const createAuthSession = async (user: User) => sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
   const currentUser = await User.findByPk(user.id, { attributes: { include: ['password'] }, transaction });
-  if (!currentUser?.isActive || (user.password && user.password !== currentUser.password)) throw Object.assign(new Error('Kimlik bilgileri değişti. Yeniden giriş yapın'), { statusCode: 401 });
+  if (!currentUser?.isActive || (user.password && user.password !== currentUser.password)) fail(401, 'credentialsChanged');
   const session = await AuthSession.create({ id: randomUUID(), userId: user.id, expiresAt: new Date(Date.now() + getEnvironment().SESSION_TTL_DAYS * 86400000) }, { transaction });
   const credential = newCredential();
   await RefreshCredential.create({ hash: hashCredential(credential), sessionId: session.id }, { transaction });

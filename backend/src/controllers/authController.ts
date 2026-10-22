@@ -1,5 +1,5 @@
 import { userResponse } from '../services/userResponses';
-import { defaultPreferences, mergePreferences } from '@study-tracker/contracts';
+import { defaultPreferences, mergePreferences, fail } from '@study-tracker/contracts';
 import { NextFunction, Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { User } from '../models/User';
@@ -36,7 +36,7 @@ export const register = async (
         .status(403)
         .json({
           success: false,
-          error: { message: 'Yeni kayıtlar şu anda kapalı' },
+          error: { code: 'registrationClosed' },
         });
       return;
     }
@@ -50,12 +50,7 @@ export const register = async (
     if (existingUser) {
       res.status(400).json({
         success: false,
-        error: {
-          message:
-            existingUser.email === email
-              ? 'Bu e-posta adresi zaten kullanılıyor'
-              : 'Bu kullanıcı adı zaten alınmış',
-        },
+        error: { code: existingUser.email === email ? 'emailTaken' : 'usernameTaken' },
       });
       return;
     }
@@ -80,7 +75,6 @@ export const register = async (
 
     res.status(201).json({
       success: true,
-      message: 'Hesap başarıyla oluşturuldu',
       data: {
         user: profile,
         tokens,
@@ -107,7 +101,7 @@ export const login = async (
     if (!user) {
       res.status(401).json({
         success: false,
-        error: { message: 'E-posta veya şifre hatalı' },
+        error: { code: 'invalidCredentials' },
       });
       return;
     }
@@ -117,7 +111,7 @@ export const login = async (
     if (!isPasswordValid) {
       res.status(401).json({
         success: false,
-        error: { message: 'E-posta veya şifre hatalı' },
+        error: { code: 'invalidCredentials' },
       });
       return;
     }
@@ -125,10 +119,7 @@ export const login = async (
     if (!user.isActive) {
       res.status(401).json({
         success: false,
-        error: {
-          message:
-            'Hesabınız deaktif durumda. Lütfen yöneticiyle iletişime geçin',
-        },
+        error: { code: 'accountDisabled' },
       });
       return;
     }
@@ -149,7 +140,6 @@ export const login = async (
 
     res.json({
       success: true,
-      message: 'Giriş başarılı',
       data: {
         user: profile,
         tokens,
@@ -173,7 +163,7 @@ export const refreshToken = async (
         .status(401)
         .json({
           success: false,
-          error: { message: 'Oturum sona erdi. Lütfen yeniden giriş yapın' },
+          error: { code: 'sessionExpired' },
         });
       return;
     }
@@ -181,7 +171,6 @@ export const refreshToken = async (
     const user = result.user;
     res.json({
       success: true,
-      message: 'Oturum yenilendi',
       data: { tokens: result.tokens, user: userResponse(user) },
     });
   } catch (error) {
@@ -197,7 +186,7 @@ export const logout = async (
   try {
     await revokeCredential(readRefreshCookie(req));
     clearRefreshCookie(res);
-    res.json({ success: true, message: 'Çıkış başarılı' });
+    res.json({ success: true });
   } catch (error) {
     next(error);
   }
@@ -235,9 +224,7 @@ export const updateProfile = async (
       async (transaction) => {
         const current = await User.findByPk(req.user!.id, { transaction });
         if (!current?.isActive)
-          throw Object.assign(new Error('Kullanıcı bulunamadı'), {
-            statusCode: 404,
-          });
+          fail(404, 'userNotFound');
         if (firstName) current.firstName = firstName;
         if (lastName) current.lastName = lastName;
         if (username) current.username = username;
@@ -251,7 +238,6 @@ export const updateProfile = async (
     );
     res.json({
       success: true,
-      message: 'Profil başarıyla güncellendi',
       data: { user: userResponse(user) },
     });
   } catch (error) {
@@ -275,7 +261,7 @@ export const changePassword = async (
     if (!user) {
       res.status(404).json({
         success: false,
-        error: { message: 'Kullanıcı bulunamadı' },
+        error: { code: 'userNotFound' },
       });
       return;
     }
@@ -285,7 +271,7 @@ export const changePassword = async (
     if (!isCurrentPasswordValid) {
       res.status(400).json({
         success: false,
-        error: { message: 'Mevcut şifre hatalı' },
+        error: { code: 'wrongCurrentPassword' },
       });
       return;
     }
@@ -298,10 +284,7 @@ export const changePassword = async (
           transaction,
         });
         if (!current?.isActive || current.password !== user.password)
-          throw Object.assign(
-            new Error('Kimlik bilgileri değişti. Yeniden giriş yapın'),
-            { statusCode: 409 },
-          );
+          fail(409, 'credentialsChanged');
         current.password = newPassword;
         await current.save({ transaction });
         await revokeUserSessions(user.id, transaction);
@@ -311,7 +294,6 @@ export const changePassword = async (
 
     res.json({
       success: true,
-      message: 'Şifre başarıyla değiştirildi',
     });
   } catch (error) {
     next(error);

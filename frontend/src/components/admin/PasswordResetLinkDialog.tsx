@@ -1,6 +1,6 @@
 import { Description, Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import type { PasswordResetLink } from '@study-tracker/contracts';
-import { serverMessage } from '../../services/httpError';
+import { serverMessage } from '../../lib/messages';
 import { useState } from 'react';
 import { usersAPI } from '../../services/api';
 import { useText } from '../../store/languageStore';

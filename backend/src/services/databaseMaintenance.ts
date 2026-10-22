@@ -18,7 +18,7 @@ export async function withDatabaseActivity<T>(operation: () => Promise<T>): Prom
 export const trackDatabaseRequests = (_request: Request, response: Response, next: NextFunction): void => {
   if (isDatabaseUnavailable()) {
     response.setHeader('Retry-After', '5');
-    response.status(503).json({ success: false, error: { message: 'Veritabanı bakım işlemi sürüyor. Lütfen tekrar deneyin' } });
+    response.status(503).json({ success: false, error: { code: 'databaseMaintenance' } });
     return;
   }
   requests.add(response);

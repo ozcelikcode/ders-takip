@@ -11,7 +11,7 @@ const catalogName = z.string().trim().min(1).max(100);
 export const onboardingWorkspaceSchema = z.object({
   categoryName: catalogName,
   courseNames: z.array(catalogName).min(1).max(onboardingCourseLimit)
-    .refine(names => new Set(names.map(name => name.toLocaleLowerCase('tr'))).size === names.length, 'Aynı ad iki kez kullanılamaz'),
+    .refine(names => new Set(names.map(name => name.toLocaleLowerCase('tr'))).size === names.length, 'duplicateName'),
 }).strict();
 
 export const completeOnboardingSchema = z.object({

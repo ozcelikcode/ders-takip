@@ -8,6 +8,7 @@ import {
   type TermKey,
 } from '@study-tracker/contracts';
 import { useText } from '../../store/languageStore';
+import { issueMessage } from '../../lib/messages';
 
 interface CustomTerminologyEditorProps {
   idPrefix: string;
@@ -20,7 +21,7 @@ interface CustomTerminologyEditorProps {
 const fieldErrors = (value: CustomTerminology) => {
   const result = customTerminologySchema.safeParse(value);
   if (result.success) return {};
-  return Object.fromEntries(result.error.issues.map((issue) => [issue.path.join('.'), issue.message]));
+  return Object.fromEntries(result.error.issues.map((issue) => [issue.path.join('.'), issueMessage(issue.message)]));
 };
 
 const forms = (value: CustomTerminology[TermKey]) =>

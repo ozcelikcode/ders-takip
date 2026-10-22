@@ -72,12 +72,12 @@ export const accusativeFits = (word: string, accusative: string): boolean => {
 
 export const termWordSchema = z
   .object({
-    word: z.string().regex(termWordPattern, 'Tek kelime yazın: yalnız küçük harf, 2–24 harf'),
+    word: z.string().regex(termWordPattern, 'termWord'),
     accusative: z.string(),
   })
   .strict()
   .refine(({ word, accusative }) => accusativeFits(word, accusative), {
-    message: '"-ı" hâli bu kelimeye uymuyor (ör. kitap → kitabı, saat → saati)',
+    message: 'termAccusative',
     path: ['accusative'],
   });
 export const customTerminologySchema = z

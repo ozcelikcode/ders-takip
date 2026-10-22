@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { sessionStatusSchema } from './studySessions.js';
 
 export const searchQuerySchema = z
-  .object({ q: z.string().trim().min(2, 'En az 2 karakter girin').max(100) })
+  .object({ q: z.string().trim().min(2, 'searchTooShort').max(100) })
   .strict();
 export type SearchQuery = z.infer<typeof searchQuerySchema>;
 

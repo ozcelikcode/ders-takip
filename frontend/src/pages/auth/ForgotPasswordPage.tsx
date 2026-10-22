@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import AuthCard from '../../components/auth/AuthCard';
 import { authAPI } from '../../services/api';
 import { useText } from '../../store/languageStore';
+import { issueMessage } from '../../lib/messages';
 
 export default function ForgotPasswordPage() {
   const auth = useText().auth;
@@ -17,7 +18,7 @@ export default function ForgotPasswordPage() {
     event.preventDefault();
     const parsed = forgotPasswordSchema.safeParse({ email: email.trim() });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? text.checkEmail);
+      setError(parsed.error.issues[0] ? issueMessage(parsed.error.issues[0].message) : text.checkEmail);
       return;
     }
     setError('');

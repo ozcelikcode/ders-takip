@@ -1,3 +1,4 @@
+import { defaultLanguage, fail, notificationText } from '@study-tracker/contracts';
 import { createHash, randomBytes } from 'node:crypto';
 import { Op, Transaction } from 'sequelize';
 import { sequelize } from '../config/database';
@@ -12,9 +13,6 @@ const lifetimeMs = 30 * 60 * 1000;
 const resendCooldownMs = 2 * 60 * 1000;
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
-const fail = (statusCode: number, message: string): never => {
-  throw Object.assign(new Error(message), { statusCode });
-};
 
 /** Issues a fresh token for the user and invalidates every earlier unused one. */
 async function issueToken(userId: number, issuedBy: 'self' | 'admin', transaction: Transaction) {
@@ -43,12 +41,13 @@ export async function requestPasswordReset(email: string): Promise<'email' | 'ad
     issueToken(user.id, 'self', transaction),
   );
   const { siteName } = await readSiteSettings();
+  const text = notificationText[user.preferences.language ?? defaultLanguage];
   // Not awaited: the response must not reveal, by timing or by an SMTP error, that the account exists.
   void mailer.send({
     to: user.email,
-    subject: `${siteName} şifre sıfırlama`,
-    text: `Şifrenizi sıfırlamak için bağlantıyı 30 dakika içinde açın:\n${link.url}\n\nBu isteği siz yapmadıysanız bu e-postayı yok sayabilirsiniz; şifreniz değişmez.`,
-    html: `<p>Şifrenizi sıfırlamak için bağlantıyı 30 dakika içinde açın:</p><p><a href="${link.url}">Şifremi sıfırla</a></p><p>Bu isteği siz yapmadıysanız bu e-postayı yok sayabilirsiniz; şifreniz değişmez.</p>`,
+    subject: text.resetSubject(siteName),
+    text: `${text.resetIntro}\n${link.url}\n\n${text.resetIgnore}`,
+    html: `<p>${text.resetIntro}</p><p><a href="${link.url}">${text.resetAction}</a></p><p>${text.resetIgnore}</p>`,
   }).catch((error: unknown) => {
     console.error('Password reset mail failed:', error instanceof Error ? error.name : 'UnknownError');
   });
@@ -59,8 +58,8 @@ export async function requestPasswordReset(email: string): Promise<'email' | 'ad
 export async function createAdminResetLink(targetId: number) {
   return sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async (transaction) => {
     const user = await User.findByPk(targetId, { transaction });
-    if (!user) return fail(404, 'Kullanıcı bulunamadı');
-    if (!user.isActive) return fail(409, 'Pasif hesap için sıfırlama bağlantısı oluşturulamaz');
+    if (!user) return fail(404, 'userNotFound');
+    if (!user.isActive) return fail(409, 'resetLinkInactiveUser');
     const link = await issueToken(user.id, 'admin', transaction);
     return { url: link.url, expiresAt: link.expiresAt.toISOString() };
   });
@@ -71,9 +70,9 @@ export async function resetPassword(token: string, password: string): Promise<vo
   await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async (transaction) => {
     const record = await PasswordResetToken.findOne({ where: { tokenHash: hashToken(token) }, transaction });
     if (!record || record.usedAt || record.expiresAt.getTime() <= Date.now())
-      return fail(400, 'Bağlantı geçersiz veya süresi dolmuş. Yeni bir bağlantı isteyin');
+      return fail(400, 'resetLinkExpired');
     const user = await User.findByPk(record.userId, { transaction });
-    if (!user?.isActive) return fail(400, 'Bağlantı geçersiz veya süresi dolmuş. Yeni bir bağlantı isteyin');
+    if (!user?.isActive) return fail(400, 'resetLinkExpired');
     user.password = password;
     await user.save({ transaction });
     await PasswordResetToken.update({ usedAt: new Date() }, { where: { userId: user.id, usedAt: null }, transaction });

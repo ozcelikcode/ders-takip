@@ -5,14 +5,18 @@ import {
   dateKeyInZone,
   dayBounds,
   daysSinceWeekStart,
+  defaultLanguage,
+  fail,
   formatGoalMinutes,
   formatZonedTime,
+  notificationText,
   resolveNotifications,
   resolveTerminology,
   resolveWeekStart,
   weeklyGoalHours,
   weeklySummaryHour,
   type NotificationChannels,
+  type NotificationText,
   type PushPayload,
   type PushSubscriptionInput,
   type SiteSettings,
@@ -28,8 +32,6 @@ import { pushSender } from './pushSender';
 import { readSiteSettings } from './siteSettings';
 import { getStudyStats } from './studyTracking';
 
-function fail(statusCode: number, message: string): never { throw Object.assign(new Error(message), { statusCode }); }
-
 /** A channel works only when the operator configured it and the admin's site switch allows it. */
 export const channelsFor = (settings: Pick<SiteSettings, 'emailNotifications' | 'pushNotifications'>): NotificationChannels => ({
   email: { configured: mailer.enabled(), enabled: mailer.enabled() && settings.emailNotifications },
@@ -39,7 +41,7 @@ export const readChannels = async () => channelsFor(await readSiteSettings());
 
 /** Stores this browser for the account; an endpoint moves to whoever subscribed last on that browser. */
 export async function savePushSubscription(userId: number, input: PushSubscriptionInput): Promise<void> {
-  if (!(await readChannels()).push.enabled) fail(400, 'Tarayıcı bildirimleri bu sitede kapalı');
+  if (!(await readChannels()).push.enabled) fail(400, 'pushDisabled');
   const values = { userId, endpoint: input.endpoint, p256dh: input.keys.p256dh, auth: input.keys.auth };
   const existing = await PushSubscription.findOne({ where: { endpoint: input.endpoint } });
   if (existing) await existing.update(values);
@@ -66,13 +68,14 @@ const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (char) => `&#${cha
 const appLink = (path: string) => new URL(path, getEnvironment().FRONTEND_URL).toString();
 
 /** Plain text and a minimal HTML twin with the same lines and one link. */
-function composeMail(to: string, siteName: string, subject: string, lines: string[], link: { label: string; path: string }): MailMessage {
+function composeMail(to: string, siteName: string, text: NotificationText, subject: string, lines: string[], link: { label: string; path: string }): MailMessage {
   const url = appLink(link.path);
+  const footer = text.footer(siteName);
   return {
     to,
     subject: `${subject} · ${siteName}`,
-    text: [...lines, '', `${link.label}: ${url}`, '', `Bu e-postayı ${siteName} bildirim ayarlarına göre aldın; Ayarlar › Bildirimler'den kapatabilirsin.`].join('\n'),
-    html: `<div style="font-family:system-ui,sans-serif;font-size:14px;line-height:1.6;color:#18181b">${lines.map((line) => (line ? `<p style="margin:0 0 8px">${escapeHtml(line)}</p>` : '')).join('')}<p style="margin:16px 0"><a href="${escapeHtml(url)}">${escapeHtml(link.label)}</a></p><p style="margin:16px 0 0;font-size:12px;color:#71717a">Bu e-postayı ${escapeHtml(siteName)} bildirim ayarlarına göre aldın; Ayarlar › Bildirimler'den kapatabilirsin.</p></div>`,
+    text: [...lines, '', `${link.label}: ${url}`, '', footer].join('\n'),
+    html: `<div style="font-family:system-ui,sans-serif;font-size:14px;line-height:1.6;color:#18181b">${lines.map((line) => (line ? `<p style="margin:0 0 8px">${escapeHtml(line)}</p>` : '')).join('')}<p style="margin:16px 0"><a href="${escapeHtml(url)}">${escapeHtml(link.label)}</a></p><p style="margin:16px 0 0;font-size:12px;color:#71717a">${escapeHtml(footer)}</p></div>`,
   };
 }
 
@@ -93,7 +96,7 @@ const weekday = (date: string) => new Date(`${date}T12:00:00Z`).getUTCDay();
 const sessionLine = (session: StudySession, timezone: string, courseName?: string) =>
   `${formatZonedTime(session.startTime, timezone)}–${formatZonedTime(session.endTime, timezone)} · ${session.title}${courseName ? ` (${courseName})` : ''}`;
 
-interface Recipient { user: User; preferences: UserPreferences; terms: Terms }
+interface Recipient { user: User; preferences: UserPreferences; terms: Terms; text: NotificationText }
 
 async function sendSessionReminders(now: Date, recipients: Recipient[], channels: NotificationChannels, siteName: string) {
   const byId = new Map(recipients.map((recipient) => [recipient.user.id, recipient]));
@@ -114,10 +117,11 @@ async function sendSessionReminders(now: Date, recipients: Recipient[], channels
     const minutes = Math.max(1, Math.round((session.startTime.getTime() - now.getTime()) / 60_000));
     const courseName = (session as StudySession & { course?: Course }).course?.name;
     const date = dateKeyInZone(session.startTime, timezone);
-    const title = `“${session.title}” ${minutes} dk sonra başlıyor`;
+    const { text } = recipient;
+    const title = text.reminderTitle(session.title, minutes);
     const body = sessionLine(session, timezone, courseName);
     if (email) {
-      await mailer.send(composeMail(recipient.user.email, siteName, title, [`Merhaba ${recipient.user.firstName},`, `${recipient.terms.session({ capitalize: true })} ${minutes} dakika sonra başlıyor:`, body], { label: 'Planlayıcıda aç', path: `/planner?date=${date}` }))
+      await mailer.send(composeMail(recipient.user.email, siteName, text, title, [text.reminderGreeting(recipient.user.firstName), text.reminderLead(recipient.terms, minutes), body], { label: text.openPlanner, path: `/planner?date=${date}` }))
         .catch((error: unknown) => console.error('Reminder mail failed:', error instanceof Error ? error.message : error));
     }
     if (push) await pushTo(recipient.user.id, { title, body, url: `/planner?date=${date}`, tag: `session-${session.id}` });
@@ -125,7 +129,7 @@ async function sendSessionReminders(now: Date, recipients: Recipient[], channels
 }
 
 async function sendDailyPlans(now: Date, recipients: Recipient[], siteName: string) {
-  for (const { user, preferences, terms } of recipients) {
+  for (const { user, preferences, terms, text } of recipients) {
     if (!resolveNotifications(preferences).dailyPlanEmail) continue;
     const { timezone } = preferences;
     const today = dateKeyInZone(now, timezone);
@@ -142,18 +146,18 @@ async function sendDailyPlans(now: Date, recipients: Recipient[], siteName: stri
     const goal = Math.round(preferences.dailyStudyGoal * 60);
     if (!sessions.length && !goal) continue;
     const lines = [
-      `Günaydın ${user.firstName},`,
-      goal ? `Bugünkü hedefin: ${formatGoalMinutes(goal)}.` : '',
-      sessions.length ? `Bugün planlı ${sessions.length} ${terms.session()}:` : `Bugün için planlı ${terms.session()} yok.`,
+      text.dailyGreeting(user.firstName),
+      goal ? text.dailyGoal(formatGoalMinutes(goal, preferences.language)) : '',
+      sessions.length ? text.dailySessions(terms, sessions.length) : text.dailyNoSessions(terms),
       ...sessions.map((session) => `• ${sessionLine(session, timezone, (session as StudySession & { course?: Course }).course?.name)}`),
     ];
-    await mailer.send(composeMail(user.email, siteName, sessions.length ? `Bugünün planı: ${sessions.length} ${terms.session()}` : 'Bugün için plan yok', lines, { label: 'Günü planla', path: `/planner?date=${today}` }))
+    await mailer.send(composeMail(user.email, siteName, text, sessions.length ? text.dailySubject(terms, sessions.length) : text.dailyNoPlan, lines, { label: text.planDay, path: `/planner?date=${today}` }))
       .catch((error: unknown) => console.error('Daily plan mail failed:', error instanceof Error ? error.message : error));
   }
 }
 
 async function sendWeeklySummaries(now: Date, recipients: Recipient[], siteName: string) {
-  for (const { user, preferences, terms } of recipients) {
+  for (const { user, preferences, terms, text } of recipients) {
     if (!resolveNotifications(preferences).weeklySummaryEmail) continue;
     const { timezone } = preferences;
     const today = dateKeyInZone(now, timezone);
@@ -166,14 +170,16 @@ async function sendWeeklySummaries(now: Date, recipients: Recipient[], siteName:
     const studied = Math.floor(stats.studySeconds / 60);
     const named = stats.courses.filter((row) => row.courseId !== null).slice(0, 5);
     const courses = named.length ? await Course.findAll({ where: { id: named.map((row) => row.courseId!) }, attributes: ['id', 'name'] }) : [];
+    const { language } = preferences;
+    const studiedText = studied ? formatGoalMinutes(studied, language) : text.noStudy;
     const lines = [
-      `Merhaba ${user.firstName}, haftanın özeti:`,
-      `Ölçülen çalışma: ${studied ? formatGoalMinutes(studied) : '0 dk'}${goalMinutes ? ` / hedef ${formatGoalMinutes(goalMinutes)} (%${Math.min(999, Math.round((studied / goalMinutes) * 100))})` : ''}.`,
-      `Tamamlanan ${terms.session()}: ${stats.completedSessions}.`,
-      ...(named.length ? [`En çok zaman ayırdığın ${terms.course({ plural: true })}:`] : []),
-      ...named.map((row) => `• ${courses.find((course) => course.id === row.courseId)?.name ?? '—'}: ${formatGoalMinutes(Math.max(1, Math.floor(row.studySeconds / 60)))}`),
+      text.weeklyGreeting(user.firstName),
+      text.weeklyStudied(studiedText, goalMinutes ? formatGoalMinutes(goalMinutes, language) : null, goalMinutes ? Math.min(999, Math.round((studied / goalMinutes) * 100)) : 0),
+      text.weeklyCompleted(terms, stats.completedSessions),
+      ...(named.length ? [text.weeklyTopRecords(terms)] : []),
+      ...named.map((row) => `• ${courses.find((course) => course.id === row.courseId)?.name ?? '—'}: ${formatGoalMinutes(Math.max(1, Math.floor(row.studySeconds / 60)), language)}`),
     ];
-    await mailer.send(composeMail(user.email, siteName, `Haftalık özet: ${studied ? formatGoalMinutes(studied) : '0 dk'}`, lines, { label: 'İstatistikleri aç', path: '/stats' }))
+    await mailer.send(composeMail(user.email, siteName, text, text.weeklySubject(studiedText), lines, { label: text.openStats, path: '/stats' }))
       .catch((error: unknown) => console.error('Weekly summary mail failed:', error instanceof Error ? error.message : error));
   }
 }
@@ -188,7 +194,12 @@ export async function runDueNotifications(now = new Date()): Promise<void> {
       const options = resolveNotifications(user.preferences);
       return options.sessionReminderEmail || options.sessionReminderPush || options.dailyPlanEmail || options.weeklySummaryEmail;
     })
-    .map((user) => ({ user, preferences: user.preferences, terms: createTerms(resolveTerminology(user.preferences, settings)) }));
+    .map((user) => ({
+      user,
+      preferences: user.preferences,
+      terms: createTerms(resolveTerminology(user.preferences, settings), user.preferences.language),
+      text: notificationText[user.preferences.language ?? defaultLanguage],
+    }));
   if (!recipients.length) return;
   await sendSessionReminders(now, recipients, channels, settings.siteName);
   if (channels.email.enabled) {
@@ -204,14 +215,15 @@ export async function sendTestNotification(userId: number, channel: 'email' | 'p
   const settings = await readSiteSettings();
   const channels = channelsFor(settings);
   const user = await User.findByPk(userId);
-  if (!user) fail(404, 'Kullanıcı bulunamadı');
+  if (!user) fail(404, 'userNotFound');
+  const text = notificationText[user.preferences.language ?? defaultLanguage];
   if (channel === 'email') {
-    if (!channels.email.enabled) fail(400, 'E-posta bildirimleri bu sitede kapalı');
-    await mailer.send(composeMail(user.email, settings.siteName, 'Deneme bildirimi', [`Merhaba ${user.firstName},`, 'E-posta bildirimleri çalışıyor.'], { label: 'Bildirim ayarları', path: '/settings' }));
+    if (!channels.email.enabled) fail(400, 'emailDisabled');
+    await mailer.send(composeMail(user.email, settings.siteName, text, text.testTitle, [text.testGreeting(user.firstName), text.testEmailBody], { label: text.notificationSettings, path: '/settings' }));
     return { delivered: 1 };
   }
-  if (!channels.push.enabled) fail(400, 'Tarayıcı bildirimleri bu sitede kapalı');
-  const delivered = await pushTo(user.id, { title: 'Deneme bildirimi', body: 'Tarayıcı bildirimleri çalışıyor.', url: '/settings', tag: 'test' });
-  if (!delivered) fail(409, 'Bu hesap için bildirime abone bir tarayıcı yok');
+  if (!channels.push.enabled) fail(400, 'pushDisabled');
+  const delivered = await pushTo(user.id, { title: text.testTitle, body: text.testPushBody, url: '/settings', tag: 'test' });
+  if (!delivered) fail(409, 'noPushSubscription');
   return { delivered };
 }

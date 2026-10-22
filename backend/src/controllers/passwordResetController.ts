@@ -12,7 +12,7 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
 export const completePasswordReset = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     await resetPassword(req.body.token, req.body.password);
-    res.json({ success: true, message: 'Şifre güncellendi. Yeni şifrenizle giriş yapın' });
+    res.json({ success: true });
   } catch (error) {
     next(error);
   }

@@ -1,9 +1,8 @@
 import { Op, Transaction } from 'sequelize';
-import { mergePreferences, needsOnboarding, type CompleteOnboardingInput, type OnboardingWorkspace } from '@study-tracker/contracts';
+import { mergePreferences, needsOnboarding, type CompleteOnboardingInput, type OnboardingWorkspace, fail } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
 import { Category, Course, User } from '../models';
 
-function fail(statusCode: number, message: string): never { throw Object.assign(new Error(message), { statusCode }); }
 
 // A name the user can already see is reused, so onboarding never duplicates a shared or earlier record.
 async function personalCategory(userId: number, name: string, transaction: Transaction) {
@@ -27,8 +26,8 @@ async function firstCourses(userId: number, workspace: OnboardingWorkspace, tran
 export async function completeOnboarding(userId: number, input: CompleteOnboardingInput): Promise<User> {
   return sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
     const user = await User.findByPk(userId, { transaction });
-    if (!user?.isActive) fail(404, 'Kullanıcı bulunamadı');
-    if (!needsOnboarding(user.preferences)) fail(409, 'Kurulum zaten tamamlandı');
+    if (!user?.isActive) fail(404, 'userNotFound');
+    if (!needsOnboarding(user.preferences)) fail(409, 'onboardingDone');
     if (input.workspace) await firstCourses(userId, input.workspace, transaction);
     user.preferences = mergePreferences(user.preferences, { ...input.preferences, onboarding: 'done' });
     await user.save({ transaction });

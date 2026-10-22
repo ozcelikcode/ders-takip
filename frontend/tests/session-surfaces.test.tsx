@@ -98,7 +98,7 @@ const conflict = () =>
     status: 409,
     data: {
       success: false,
-      error: { message: 'Seans değişti. Yeniden kontrol edin.' },
+      error: { code: 'sessionChanged' },
     },
   });
 function mount(ui: React.ReactNode) {
@@ -189,7 +189,7 @@ it('keeps a failed daily confirmation open, then retries with a refreshed snapsh
     screen.getByRole('button', { name: 'Seansı duraklat: Fixture session' }),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Onayla' }));
-  await screen.findByText('Seans değişti. Yeniden kontrol edin.');
+  await screen.findByText('Kayıt başka bir işlemde değiştirildi. Güncel veriyi yükleyip tekrar deneyin');
   expect(screen.getByRole('dialog')).toBeTruthy();
   expect(studySessionsAPI.pauseSession).toHaveBeenCalledTimes(1);
   await waitFor(() =>
@@ -324,7 +324,7 @@ it('keeps rejected editor input and retries a version conflict with the refreshe
   const { onClose } = await editable();
   fireEvent.change(title(), { target: { value: 'Draft title' } });
   submit();
-  await screen.findByText('Seans değişti. Yeniden kontrol edin.');
+  await screen.findByText('Kayıt başka bir işlemde değiştirildi. Güncel veriyi yükleyip tekrar deneyin');
   expect((title() as HTMLInputElement).value).toBe('Draft title');
   expect(onClose).not.toHaveBeenCalled();
   await waitFor(() =>
@@ -375,7 +375,7 @@ it('retains the editor under a nested delete confirmation, with an acknowledged 
   const { onClose } = await editable();
   fireEvent.click(screen.getByRole('button', { name: 'Sil' }));
   fireEvent.click(screen.getByRole('button', { name: 'Onayla' }));
-  await screen.findByText('Seans değişti. Yeniden kontrol edin.');
+  await screen.findByText('Kayıt başka bir işlemde değiştirildi. Güncel veriyi yükleyip tekrar deneyin');
   expect(onClose).not.toHaveBeenCalled();
   await waitFor(() =>
     expect(

@@ -171,6 +171,21 @@ it('sends the weekly summary on the week\'s last evening with the derived weekly
   assert.match(mails[0].text, /Ölçülen çalışma: 0 dk \/ hedef 3 sa \(%0\)\./);
 });
 
+it('writes emails and browser notifications in the recipient\'s own interface language', async (t) => {
+  const { mails, pushes } = capture(t);
+  await setNotifications(ada, { dailyPlanEmail: true, sessionReminderEmail: true, sessionReminderPush: true, reminderLeadMinutes: 10 }, { language: 'en', terminologyPreset: 'education' });
+  await PushSubscription.create({ userId: ada.id, endpoint: 'https://fcm.googleapis.com/fcm/send/ada', p256dh: 'k', auth: 'a' });
+  await session(ada, new Date('2026-10-21T01:00:00Z'), { title: 'Japanese' });
+  await runDueNotifications(new Date('2026-10-20T22:30:00Z')); // 07:30 in Tokyo
+  await runDueNotifications(new Date('2026-10-21T00:51:00Z')); // 9 minutes before the session
+  assert.deepEqual(mails.map((mail) => mail.subject), ['Today\'s plan: 1 session · Görev Takip Sistemi', '“Japanese” starts in 9 min · Görev Takip Sistemi']);
+  assert.match(mails[0].text, /Good morning ada,\nToday's goal: 1 h 30 min\.\n1 session planned for today:/);
+  assert.match(mails[1].text, /Your session starts in 9 minutes:/);
+  assert.match(mails[1].text, /notification settings; turn it off in Settings › Notifications\./);
+  assert.deepEqual(pushes.map((push) => push.title), ['“Japanese” starts in 9 min']);
+  await setNotifications(ada, {}, { language: 'tr', terminologyPreset: undefined });
+});
+
 it('respects the admin switch for scheduled delivery and the channel test', async (t) => {
   const { mails } = capture(t);
   await setNotifications(ben, { sessionReminderEmail: true });
@@ -185,5 +200,5 @@ it('respects the admin switch for scheduled delivery and the channel test', asyn
   assert.deepEqual((await call('post', '/api/notifications/test', ben, { channel: 'email' })).body.data, { delivered: 1 });
   assert.equal(mails.at(-1).to, 'ben@example.com');
   const noBrowser = await call('post', '/api/notifications/test', ben, { channel: 'push' });
-  assert.deepEqual([noBrowser.status, noBrowser.body.error.message], [409, 'Bu hesap için bildirime abone bir tarayıcı yok']);
+  assert.deepEqual([noBrowser.status, noBrowser.body.error.code], [409, 'noPushSubscription']);
 });

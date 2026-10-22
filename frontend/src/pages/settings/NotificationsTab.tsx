@@ -1,6 +1,6 @@
 import { reminderLeadOptions, resolveNotifications, type NotificationPreferences, type PreferencesPatch, type UserPreferences } from '@study-tracker/contracts';
 import { useQuery } from '@tanstack/react-query';
-import { serverMessage } from '../../services/httpError';
+import { serverMessage } from '../../lib/messages';
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';

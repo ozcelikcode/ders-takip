@@ -1,17 +1,16 @@
-import { accountExportFormat, type AccountExport } from '@study-tracker/contracts';
+import { accountExportFormat, type AccountExport, fail } from '@study-tracker/contracts';
 import { Op, Transaction } from 'sequelize';
 import { sequelize } from '../config/database';
 import { Category, Course, Plan, SessionInterval, StudySession, Topic, User, UserTopicProgress } from '../models';
 import { revokeUserSessions } from './authSessions';
 import { userResponse } from './userResponses';
 
-function fail(statusCode: number, message: string): never { throw Object.assign(new Error(message), { statusCode }); }
 
 // The site must keep at least one active administrator who can sign in and manage it.
 async function assertNotLastAdmin(user: User, transaction: Transaction) {
   if (user.role !== 'admin' || !user.isActive) return;
   const others = await User.count({ where: { role: 'admin', isActive: true, id: { [Op.ne]: user.id } }, transaction });
-  if (!others) fail(409, 'Son etkin yönetici hesabı silinemez. Önce başka bir yönetici atayın.');
+  if (!others) fail(409, 'lastAdmin');
 }
 
 /**
@@ -38,8 +37,8 @@ export async function deleteAccount(user: User, transaction: Transaction): Promi
 export async function deleteOwnAccount(userId: number, password: string): Promise<void> {
   await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
     const user = await User.findByPk(userId, { transaction });
-    if (!user) fail(404, 'Kullanıcı bulunamadı');
-    if (!(await user.comparePassword(password))) fail(400, 'Şifre hatalı');
+    if (!user) fail(404, 'userNotFound');
+    if (!(await user.comparePassword(password))) fail(400, 'wrongPassword');
     await deleteAccount(user, transaction);
   });
 }
@@ -50,7 +49,7 @@ const plain = <T extends { get: (options: { plain: true }) => unknown }>(rows: T
 export async function exportAccount(userId: number): Promise<AccountExport> {
   return sequelize.transaction(async transaction => {
     const user = await User.findByPk(userId, { transaction });
-    if (!user) fail(404, 'Kullanıcı bulunamadı');
+    if (!user) fail(404, 'userNotFound');
     const [categories, courses, topicProgress, sessions, plans] = await Promise.all([
       Category.findAll({ where: { userId }, order: [['id', 'ASC']], transaction }),
       Course.findAll({ where: { userId }, include: [{ model: Topic, as: 'topics' }], order: [['id', 'ASC']], transaction }),

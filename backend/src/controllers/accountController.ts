@@ -14,6 +14,6 @@ export const deleteMyAccount = async (req: Request, res: Response, next: NextFun
   try {
     await deleteOwnAccount(req.user!.id, req.body.password);
     clearRefreshCookie(res);
-    res.json({ success: true, message: 'Hesabınız ve verileriniz silindi' });
+    res.json({ success: true });
   } catch (error) { next(error); }
 };

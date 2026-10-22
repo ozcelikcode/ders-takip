@@ -14,7 +14,7 @@ export const readRefreshCookie = (request: Request): string => {
 export const requireTrustedAuthRequest = (request: Request, response: Response, next: NextFunction): void => {
   const origin = request.get('origin');
   if (request.get('X-Requested-With') !== 'StudyTracker' || (origin && origin !== new URL(getEnvironment().FRONTEND_URL).origin) || request.get('sec-fetch-site') === 'cross-site') {
-    response.status(403).json({ success: false, error: { message: 'İstek kaynağı doğrulanamadı' } });
+    response.status(403).json({ success: false, error: { code: 'originRejected' } });
     return;
   }
   response.setHeader('Cache-Control', 'no-store');

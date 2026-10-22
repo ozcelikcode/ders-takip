@@ -115,7 +115,7 @@ describe('revocable browser sessions', () => {
     const stale = await User.findByPk(user.id,{attributes:{include:['password']}});
     user.password='replacement-password';await user.save();
     const { createAuthSession }=require('../dist/services/authSessions');
-    await assert.rejects(createAuthSession(stale),/Kimlik bilgileri değişti/);
+    await assert.rejects(createAuthSession(stale),(error)=>error.code==='credentialsChanged');
   });
   it('recovers exactly the active admin and preserves other accounts', async () => {
     const admin = await account('admin'); const other = await account(); const first = await login(admin);

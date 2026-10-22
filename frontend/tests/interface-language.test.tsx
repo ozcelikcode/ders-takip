@@ -67,3 +67,20 @@ it('inflects the record words in the interface language', async () => {
   render(<Words />);
   expect(screen.getByText('Courses')).toBeTruthy();
 });
+
+it('words server codes and schema issues in the interface language', async () => {
+  const { HttpError } = await import('../src/services/httpError');
+  const { issueMessage, serverMessage } = await import('../src/lib/messages');
+  const { loginSchema } = await import('@study-tracker/contracts');
+  const refused = new HttpError('x', { status: 400, data: { error: { code: 'invalidCredentials' } } });
+  const invalid = new HttpError('x', { status: 400, data: { error: { code: 'validation', details: [{ field: 'body.email', code: 'email' }] } } });
+  const unknown = new HttpError('x', { status: 400, data: { error: { code: 'not-a-code' } as never } });
+  const issue = loginSchema.safeParse({ email: 'nope', password: 'x' }).error!.issues[0]!.message;
+  expect([serverMessage(refused), serverMessage(invalid), serverMessage(unknown), issueMessage(issue)]).toEqual([
+    'E-posta veya şifre hatalı', 'Geçerli bir e-posta adresi giriniz', undefined, 'Geçerli bir e-posta adresi giriniz',
+  ]);
+  await useLanguageStore.getState().setLanguage('en');
+  expect([serverMessage(refused), serverMessage(invalid), issueMessage(issue), issueMessage('Too small: expected number')]).toEqual([
+    'Wrong email or password', 'Enter a valid email address', 'Enter a valid email address', 'Enter a valid value.',
+  ]);
+});

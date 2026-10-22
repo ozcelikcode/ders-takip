@@ -1,5 +1,5 @@
 import { Op, Transaction, type Includeable } from 'sequelize';
-import { canTransitionSession, reservesSessionTime, isSessionDurationValid, type CreateSessionInput, type UpdateSessionInput, type PomodoroCommand } from '@study-tracker/contracts';
+import { canTransitionSession, reservesSessionTime, isSessionDurationValid, type CreateSessionInput, type UpdateSessionInput, type PomodoroCommand, fail } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
 import { Category, Course, Plan, StudySession, Topic, SessionInterval, PomodoroClock } from '../models';
 import { createPomodoroClock, settlePomodoroClock, updatePomodoroClock, savePomodoroClock } from './pomodoroClocks';
@@ -17,14 +17,11 @@ export const sessionIncludes: Includeable[] = [
   { model: Topic, as: 'topic', attributes: ['id', 'name', 'difficulty'] },
 ];
 
-function fail(statusCode: number, message: string): never {
-  throw Object.assign(new Error(message), { statusCode });
-}
 
 function scheduledDuration(start: Date, end: Date): number {
   const milliseconds = end.getTime() - start.getTime();
   if (!isSessionDurationValid(milliseconds)) {
-    fail(400, 'Bitiş, başlangıçtan sonra olmalı; süre 1 dakika ile 24 saat arasında olmalıdır');
+    fail(400, 'sessionTimeRange');
   }
   return Math.round(milliseconds / 60_000);
 }
@@ -36,7 +33,7 @@ async function validateRelations(
   existing?: { courseId?: number | null | undefined; topicId?: number | null | undefined },
 ) {
   if (values.planId !== undefined && !await Plan.findOne({ where: { id: values.planId, userId: actor.id }, transaction })) {
-    fail(400, 'Geçersiz plan ID');
+    fail(400, 'invalidPlan');
   }
   let courseId = values.courseId;
   if (values.topicId !== undefined) {
@@ -49,13 +46,13 @@ async function validateRelations(
       ],
       transaction,
     });
-    if (!topic || (courseId !== undefined && courseId !== topic.courseId)) fail(400, 'Geçersiz üst kayıt seçimi');
+    if (!topic || (courseId !== undefined && courseId !== topic.courseId)) fail(400, 'invalidParent');
     courseId = topic.courseId;
   }
   if (courseId !== undefined) {
     const requireActiveCourse = existing?.courseId !== courseId;
     if (!await Course.findOne({ where: { ...visibleCourseWhere(actor), id: courseId, ...(requireActiveCourse ? { isActive: true } : {}) }, transaction })) {
-      fail(400, 'Geçersiz üst kayıt seçimi');
+      fail(400, 'invalidParent');
     }
   }
   return courseId;
@@ -67,14 +64,14 @@ async function assertAvailable(userId: number, startTime: Date, endTime: Date, t
     ...(excludeId === undefined ? {} : { id: { [Op.ne]: excludeId } }),
     startTime: { [Op.lt]: endTime }, endTime: { [Op.gt]: startTime },
   }, transaction });
-  if (conflict) fail(409, 'Bu zaman aralığında başka bir kayıt mevcut');
+  if (conflict) fail(409, 'sessionOverlap');
 }
 
 async function loadOwned(actor: Actor, id: number, expectedUpdatedAt: string, transaction: Transaction) {
   const session = await StudySession.findOne({ where: { id, userId: actor.id }, transaction });
-  if (!session) fail(404, 'Kayıt bulunamadı');
+  if (!session) fail(404, 'recordNotFound');
   if (session.updatedAt.getTime() !== new Date(expectedUpdatedAt).getTime()) {
-    fail(409, 'Kayıt başka bir işlemde değiştirildi. Güncel veriyi yükleyip tekrar deneyin');
+    fail(409, 'sessionChanged');
   }
   return session;
 }
@@ -100,16 +97,16 @@ export async function updateSession(actor: Actor, id: number, input: UpdateSessi
   return sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
     const session = await loadOwned(actor, id, input.expectedUpdatedAt, transaction);
     let clock = await PomodoroClock.findByPk(id, { transaction });
-    if (timerCommand && session.sessionType !== 'pomodoro') fail(409, 'Bu kayıt Pomodoro türünde değil');
+    if (timerCommand && session.sessionType !== 'pomodoro') fail(409, 'notPomodoro');
     if (clock) await settlePomodoroClock(session, clock, transaction);
     if (input.sessionType && input.sessionType !== session.sessionType && clock) {
-      if ((input.status ?? session.status) !== 'planned') fail(409, 'Sayaç türünü değiştirmeden önce kaydı sıfırlayın');
+      if ((input.status ?? session.status) !== 'planned') fail(409, 'resetBeforeTypeChange');
       await clock.destroy({ transaction }); clock = null;
     }
     const nextStatus = input.status ?? session.status;
-    if (timerCommand?.command === 'configure' && (session.status === 'completed' || session.status === 'cancelled')) fail(409, 'Tamamlanan veya iptal edilen sayaç değiştirilemez');
-    if (clock && input.pomodoroSettings && (session.status !== 'planned' || nextStatus !== 'planned')) fail(409, 'Süreleri değiştirmeden önce sayacı sıfırlayın');
-    if (!canTransitionSession(session.status, nextStatus)) fail(409, 'Bu durum geçişine izin verilmiyor');
+    if (timerCommand?.command === 'configure' && (session.status === 'completed' || session.status === 'cancelled')) fail(409, 'finishedTimerLocked');
+    if (clock && input.pomodoroSettings && (session.status !== 'planned' || nextStatus !== 'planned')) fail(409, 'resetBeforeDurations');
+    if (!canTransitionSession(session.status, nextStatus)) fail(409, 'transitionNotAllowed');
     const startTime = input.startTime === undefined ? session.startTime : new Date(input.startTime);
     const endTime = input.endTime === undefined ? session.endTime : new Date(input.endTime);
     const scheduleChanged = startTime.getTime() !== session.startTime.getTime() || endTime.getTime() !== session.endTime.getTime();
@@ -119,9 +116,9 @@ export async function updateSession(actor: Actor, id: number, input: UpdateSessi
       await assertAvailable(actor.id, startTime, endTime, transaction, session.id);
     }
     if (nextStatus === 'in_progress' && session.status !== 'in_progress') {
-      if (endTime.getTime() <= Date.now()) fail(409, 'Planlanan bitiş geçmiş. Önce saatini güncelleyin');
+      if (endTime.getTime() <= Date.now()) fail(409, 'plannedEndPassed');
       const active = await StudySession.findOne({ where: { userId: actor.id, status: 'in_progress', id: { [Op.ne]: id } }, transaction });
-      if (active) fail(409, 'Önce devam eden çalışmayı duraklatın veya tamamlayın');
+      if (active) fail(409, 'pauseActiveFirst');
     }
     if (input.planId !== undefined || input.courseId !== undefined || input.topicId !== undefined) {
       const nextPlanId = input.planId === undefined ? (session.planId ?? undefined) : (input.planId ?? undefined);
@@ -157,7 +154,7 @@ export async function updateSession(actor: Actor, id: number, input: UpdateSessi
       clock = await createPomodoroClock(session, transaction);
       session.changed('trackingCoverage', true);
     }
-    if (clock && input.activityKind !== undefined && input.activityKind !== (clock.phase === 'work' ? 'study' : 'break')) fail(409, 'Pomodoro fazını sayaç yönetir');
+    if (clock && input.activityKind !== undefined && input.activityKind !== (clock.phase === 'work' ? 'study' : 'break')) fail(409, 'pomodoroPhaseManaged');
     const activityTime = await recordActivity(session, nextStatus, nextStatus === 'in_progress' && clock ? clock.phase === 'work' ? 'study' : 'break' : input.activityKind, transaction);
     if (clock) {
       if (timerCommand?.autoStartBreaks !== undefined) clock.autoStartBreaks = timerCommand.autoStartBreaks;

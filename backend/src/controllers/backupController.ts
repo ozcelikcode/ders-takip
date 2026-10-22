@@ -10,23 +10,18 @@ import {
 } from '../services/backups';
 export { performBackup } from '../services/backups';
 
-const fail = (response: Response, error: unknown) =>
+const respondFailure = (response: Response, error: unknown) =>
   response
     .status(error instanceof MaintenanceConflict ? 409 : 500)
     .json({
       success: false,
-      error: {
-        message:
-          error instanceof MaintenanceConflict
-            ? 'Başka bir bakım işlemi sürüyor'
-            : 'İşlem tamamlanamadı; sunucu kayıtlarını kontrol edin',
-      },
+      error: { code: error instanceof MaintenanceConflict ? 'maintenanceBusy' : 'maintenanceFailed' },
     });
 export const getBackups = async (_request: Request, response: Response) => {
   try {
     return response.json({ success: true, data: await listBackups() });
   } catch (error) {
-    return fail(response, error);
+    return respondFailure(response, error);
   }
 };
 export const createManualBackup = async (
@@ -46,11 +41,10 @@ export const createManualBackup = async (
     return response.json({
       success: true,
       data,
-      message: 'Yedek doğrulandı ve kaydedildi',
     });
   } catch (error) {
     console.error('Snapshot failed:', error);
-    return fail(response, error);
+    return respondFailure(response, error);
   }
 };
 export const restoreBackup = async (request: Request, response: Response) => {
@@ -60,11 +54,10 @@ export const restoreBackup = async (request: Request, response: Response) => {
     clearRefreshCookie(response);
     return response.json({
       success: true,
-      message: 'Yedek geri yüklendi. Lütfen yeniden giriş yapın',
     });
   } catch (error) {
     console.error('Restore failed:', error);
-    return fail(response, error);
+    return respondFailure(response, error);
   }
 };
 export const resetData = async (request: Request, response: Response) => {
@@ -73,10 +66,9 @@ export const resetData = async (request: Request, response: Response) => {
     return response.json({
       success: true,
       data: await resetApplicationData(mode, response),
-      message: 'İşlem öncesi yedek alındı ve seçilen veriler sıfırlandı',
     });
   } catch (error) {
     console.error('Reset failed:', error);
-    return fail(response, error);
+    return respondFailure(response, error);
   }
 };

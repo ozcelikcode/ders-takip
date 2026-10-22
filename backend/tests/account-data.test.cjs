@@ -73,7 +73,7 @@ it('exports only the account\'s own data, as a downloadable file without secrets
 
 it('deletes an account only with its password and removes everything it owned', async () => {
   const wrong = await call('delete', '/api/auth/account', owner, { password: 'not-the-password' });
-  assert.deepEqual([wrong.status, wrong.body.error.message], [400, 'Şifre hatalı']);
+  assert.deepEqual([wrong.status, wrong.body.error.code], [400, 'wrongPassword']);
   assert.ok(await User.findByPk(owner.id));
   assert.equal((await call('delete', '/api/auth/account', owner, {})).status, 400);
 
@@ -96,7 +96,7 @@ it('deletes an account only with its password and removes everything it owned', 
 
 it('keeps the last active administrator', async () => {
   const last = await call('delete', '/api/auth/account', admin, { password: 'fixture-password' });
-  assert.deepEqual([last.status, last.body.error.message], [409, 'Son etkin yönetici hesabı silinemez. Önce başka bir yönetici atayın.']);
+  assert.deepEqual([last.status, last.body.error.code], [409, 'lastAdmin']);
   const second = await create('second', { role: 'admin' });
   assert.equal((await call('delete', '/api/auth/account', admin, { password: 'fixture-password' })).status, 200);
   // The remaining administrator still manages accounts through the admin route, which shares the deletion rules.

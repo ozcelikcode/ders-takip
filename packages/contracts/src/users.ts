@@ -11,28 +11,28 @@ export const userRoleSchema = z.enum(['student', 'admin']);
 export const usernameSchema = z
   .string()
   .trim()
-  .min(3, 'Kullanıcı adı en az 3 karakter olmalıdır')
-  .max(20)
+  .min(3, 'usernameLength')
+  .max(20, 'usernameLength')
   .regex(
     /^[A-Za-z0-9]+$/,
-    'Kullanıcı adı yalnızca İngilizce harf ve rakam içerebilir',
+    'usernameCharacters',
   );
 export const personNameSchema = z
   .string()
   .trim()
-  .min(2, 'Ad ve soyad en az 2 karakter olmalıdır')
-  .max(50);
+  .min(2, 'nameLength')
+  .max(50, 'nameLength');
 export const newPasswordSchema = z
   .string()
-  .min(12, 'Şifre en az 12 karakter olmalıdır')
+  .min(12, 'passwordLength')
   .refine(
     (value) => new TextEncoder().encode(value).length <= 72,
-    'Şifre en fazla 72 UTF-8 baytı olabilir',
+    'passwordBytes',
   );
 export const createManagedUserSchema = z
   .object({
     username: usernameSchema,
-    email: z.email({ error: 'Geçerli bir e-posta adresi giriniz' }),
+    email: z.email({ error: 'email' }),
     password: newPasswordSchema,
     firstName: personNameSchema,
     lastName: personNameSchema,
@@ -52,7 +52,7 @@ export const managedUserPatchSchema = z
   .strict()
   .refine(
     (value) => Object.keys(value).length > 0,
-    'Güncellenecek alan gerekli',
+    'nothingToUpdate',
   );
 export type ManagedUserPatch = z.infer<typeof managedUserPatchSchema>;
 export const userListQuerySchema = z
@@ -83,7 +83,7 @@ export const userListQuerySchema = z
   .refine(
     (value) =>
       Number.isSafeInteger((Number(value.page) - 1) * Number(value.limit)),
-    'Sayfa aralığı geçersiz',
+    'invalid',
   );
 export type ManagedUser = Pick<
   UserResponse,
@@ -179,7 +179,7 @@ export const adminOverviewResponseSchema = z.object({
 });
 
 /** Self-service account deletion is confirmed with the current password. */
-export const deleteAccountSchema = z.object({ password: z.string().min(1, 'Şifrenizi girin') }).strict();
+export const deleteAccountSchema = z.object({ password: z.string().min(1, 'passwordRequired') }).strict();
 export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;
 
 export const accountExportFormat = 'study-tracker-account-export';

@@ -2,7 +2,8 @@ import toast from 'react-hot-toast';
 import { queryClient } from '../lib/queryClient';
 import { accountQueryKeys } from '../lib/queryKeys';
 import { useAuthStore } from '../store/authStore';
-import { CanceledError, HttpError, isHttpError, serverMessage, type ApiErrorBody, type HttpRequestConfig, type HttpResponse } from './httpError';
+import { CanceledError, HttpError, isHttpError, type ApiErrorBody, type HttpRequestConfig, type HttpResponse } from './httpError';
+import { serverMessage } from '../lib/messages';
 import { useLanguageStore } from '../store/languageStore';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';

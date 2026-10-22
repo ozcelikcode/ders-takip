@@ -1,6 +1,6 @@
 import { userResponse } from '../services/userResponses';
 import { getAllTimeSummaries, getStudyStats } from '../services/studyTracking';
-import { defaultPreferences, mergePreferences, preferencesSchema } from '@study-tracker/contracts';
+import { defaultPreferences, mergePreferences, preferencesSchema, fail } from '@study-tracker/contracts';
 import { columnContains } from '../utils/textSearch';
 import { Op, Transaction, type WhereOptions } from 'sequelize';
 import { sequelize } from '../config/database';
@@ -113,14 +113,7 @@ export const createUser = async (
         });
 
         if (existingUser) {
-          throw Object.assign(
-            new Error(
-              existingUser.email === email
-                ? 'Bu e-posta adresi zaten kullanılıyor'
-                : 'Bu kullanıcı adı zaten alınmış',
-            ),
-            { statusCode: 400 },
-          );
+          fail(400, existingUser.email === email ? 'emailTaken' : 'usernameTaken');
         }
 
         return User.create(
@@ -143,7 +136,6 @@ export const createUser = async (
 
     res.status(201).json({
       success: true,
-      message: 'Kullanıcı başarıyla oluşturuldu',
       data: { user: profile },
     });
   } catch (error) {
@@ -165,20 +157,12 @@ export const updateUser = async (
       async (transaction) => {
         const current = await User.findByPk(id, { transaction });
         if (!current)
-          throw Object.assign(new Error('Kullanıcı bulunamadı'), {
-            statusCode: 404,
-          });
+          fail(404, 'userNotFound');
         if (current.id === req.user!.id) {
           if (isActive === false)
-            throw Object.assign(
-              new Error('Kendi hesabınızı pasifleştiremezsiniz'),
-              { statusCode: 400 },
-            );
+            fail(400, 'cannotDeactivateSelf');
           if (role !== undefined && role !== 'admin')
-            throw Object.assign(
-              new Error('Kendi yönetici yetkinizi kaldıramazsınız'),
-              { statusCode: 400 },
-            );
+            fail(400, 'cannotRemoveOwnAdmin');
         }
         if (firstName !== undefined) current.firstName = firstName;
         if (lastName !== undefined) current.lastName = lastName;
@@ -199,7 +183,6 @@ export const updateUser = async (
 
     res.json({
       success: true,
-      message: 'Kullanıcı başarıyla güncellendi',
       data: { user: profile },
     });
   } catch (error) {
@@ -218,7 +201,7 @@ export const deleteUser = async (
     if (req.user!.id.toString() === id) {
       res.status(400).json({
         success: false,
-        error: { message: 'Kendi hesabınızı silemezsiniz' },
+        error: { code: 'cannotDeleteSelf' },
       });
       return;
     }
@@ -228,9 +211,7 @@ export const deleteUser = async (
       async (transaction) => {
         const user = await User.findByPk(id, { transaction });
         if (!user) {
-          throw Object.assign(new Error('Kullanıcı bulunamadı'), {
-            statusCode: 404,
-          });
+          fail(404, 'userNotFound');
         }
 
         await deleteAccount(user, transaction);
@@ -239,7 +220,6 @@ export const deleteUser = async (
 
     res.json({
       success: true,
-      message: 'Kullanıcı başarıyla silindi',
     });
   } catch (error) {
     next(error);
@@ -259,14 +239,14 @@ export const getUserStudyStats = async (
     ) {
       res
         .status(404)
-        .json({ success: false, error: { message: 'Kullanıcı bulunamadı' } });
+        .json({ success: false, error: { code: 'userNotFound' } });
       return;
     }
     const targetUser = await User.findByPk(id);
     if (!targetUser) {
       res
         .status(404)
-        .json({ success: false, error: { message: 'Kullanıcı bulunamadı' } });
+        .json({ success: false, error: { code: 'userNotFound' } });
       return;
     }
     const targetTimezone = preferencesSchema.parse(

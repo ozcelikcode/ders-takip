@@ -1,5 +1,5 @@
 import { Op, type Transaction, type WhereOptions } from 'sequelize';
-import { addDateDays, dayBounds, defaultPreferences, type ActivityKind, type SessionQuery, type SessionStats, type StudyTotals, type SessionStatus, type UserStudySummary } from '@study-tracker/contracts';
+import { addDateDays, dayBounds, defaultPreferences, type ActivityKind, type SessionQuery, type SessionStats, type StudyTotals, type SessionStatus, type UserStudySummary, fail } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
 import { SessionInterval, StudySession, PomodoroClock } from '../models';
 
@@ -8,7 +8,7 @@ const totalKey = (kind: SessionInterval['kind']) => kind === 'study' ? 'studySec
 
 export async function recordActivity(session: StudySession, nextStatus: SessionStatus, activityKind: ActivityKind | undefined, transaction: Transaction, at = new Date(Date.now())) {
   if (nextStatus === session.status && activityKind === undefined) return;
-  if (activityKind !== undefined && nextStatus !== 'in_progress') throw Object.assign(new Error('Etkinlik türü yalnız çalışan kayıtta değiştirilebilir'), { statusCode: 409 });
+  if (activityKind !== undefined && nextStatus !== 'in_progress') fail(409, 'activityKindRunningOnly');
   const intervals = await SessionInterval.findAll({ where: { sessionId: session.id }, order: [['startedAt', 'ASC'], ['id', 'ASC']], transaction });
   const open = intervals.find(interval => !interval.endedAt);
   const lastActive = [...intervals].reverse().find(interval => interval.kind !== 'pause');
@@ -40,11 +40,11 @@ export function sessionDTO(session: StudySession, asOf = new Date(Date.now())) {
 }
 
 export async function getStudyStats(userId: number, timezone: string, query: SessionQuery): Promise<SessionStats> {
-  if (!!query.startDate !== !!query.endDate) throw Object.assign(new Error('İstatistik için başlangıç ve bitiş günü birlikte gereklidir'), { statusCode: 400 });
+  if (!!query.startDate !== !!query.endDate) fail(400, 'statsRangeIncomplete');
   const days: SessionStats['days'] = [];
   if (query.startDate && query.endDate) {
     for (let date = query.startDate; date <= query.endDate; date = addDateDays(date, 1)) {
-      if (days.length >= 366) throw Object.assign(new Error('İstatistik aralığı en fazla 366 gün olabilir'), { statusCode: 400 });
+      if (days.length >= 366) fail(400, 'statsRangeTooLong');
       days.push({ date, ...emptyTotals() });
     }
   }

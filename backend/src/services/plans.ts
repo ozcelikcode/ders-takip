@@ -1,6 +1,7 @@
 import { Op, Transaction } from 'sequelize';
 import {
   defaultPlanGoals,
+  fail,
   planGoalsSchema,
   planRecordSchema,
   type CreatePlanInput,
@@ -9,12 +10,9 @@ import {
 import { sequelize } from '../config/database';
 import { Plan, StudySession } from '../models';
 
-function fail(statusCode: number, message: string): never {
-  throw Object.assign(new Error(message), { statusCode });
-}
 async function loadOwned(userId: number, id: number, transaction: Transaction) {
   const plan = await Plan.findOne({ where: { id, userId }, transaction });
-  if (!plan) fail(404, 'Plan bulunamadı');
+  if (!plan) fail(404, 'planNotFound');
   return plan;
 }
 async function assertRange(
@@ -26,7 +24,7 @@ async function assertRange(
   excludeId?: number,
 ) {
   if (endDate <= startDate)
-    fail(400, 'Bitiş tarihi başlangıçtan sonra olmalıdır');
+    fail(400, 'planEndBeforeStart');
   if (!isActive) return;
   // Goal periods retain their inclusive boundary contract.
   const conflict = await Plan.findOne({
@@ -39,7 +37,7 @@ async function assertRange(
     },
     transaction,
   });
-  if (conflict) fail(409, 'Bu tarih aralığında aktif bir plan zaten mevcut');
+  if (conflict) fail(409, 'planOverlap');
 }
 export async function createPlan(userId: number, input: CreatePlanInput) {
   return sequelize.transaction(

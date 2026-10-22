@@ -87,7 +87,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
     setError,
     formState: { errors, isValid },
   } = useForm<CreateSessionForm>({
-    resolver: contractResolver(sessionFormSchema),
+    resolver: contractResolver(sessionFormSchema, (message) => message),
     mode: 'onChange',
     defaultValues: {
       sessionCategory: 'course',

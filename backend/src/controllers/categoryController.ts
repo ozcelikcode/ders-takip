@@ -26,6 +26,6 @@ export const updateCategory = async (req: Request, res: Response, next: NextFunc
 export const deleteCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const migratedCoursesCount = await catalog.deleteCategory(req.user!, Number(req.params.id), req.body);
-    res.json({ success: true, data: { message: 'Kategori başarıyla silindi', migratedCoursesCount } });
+    res.json({ success: true, data: { migratedCoursesCount } });
   } catch (error) { next(error); }
 };

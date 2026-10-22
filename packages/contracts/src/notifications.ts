@@ -55,7 +55,7 @@ export const isKnownPushService = (endpoint: string): boolean => {
 
 /** A browser's Push API subscription, as `PushSubscription.toJSON()` returns it. */
 export const pushSubscriptionSchema = z.object({
-  endpoint: z.url({ protocol: /^https$/ }).max(1000).refine(isKnownPushService, 'Tanınmayan bildirim servisi'),
+  endpoint: z.url({ protocol: /^https$/ }).max(1000).refine(isKnownPushService, 'unknownPushService'),
   expirationTime: z.number().nullable().optional(),
   keys: z.object({ p256dh: z.string().min(1).max(200), auth: z.string().min(1).max(100) }).strict(),
 }).strict();

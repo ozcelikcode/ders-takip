@@ -71,7 +71,7 @@ const ok = { data: { success: true } } as HttpResponse<ApiResponse<never>>;
 const failed = () =>
   new HttpError('Conflict', {
     status: 409,
-    data: { success: false, error: { message: 'Bu ad zaten kullanılıyor.' } },
+    data: { success: false, error: { code: 'duplicateRecordName' } },
   });
 function mount(children: ReactNode) {
   const client = new QueryClient({
@@ -192,7 +192,7 @@ it('keeps course input after a server rejection and retries only explicitly', as
   });
   fireEvent.click(screen.getByRole('button', { name: 'Kaydet' }));
   expect((await screen.findByRole('alert')).textContent).toContain(
-    'Bu ad zaten kullanılıyor.',
+    'Bu kategoride aynı isimde erişilebilir bir kayıt zaten mevcut',
   );
   expect(close).not.toHaveBeenCalled();
   expect((screen.getByLabelText('Ders adı') as HTMLInputElement).value).toBe(

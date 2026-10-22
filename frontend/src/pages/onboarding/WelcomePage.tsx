@@ -1,6 +1,6 @@
 import { createTerms, needsOnboarding, weekStartDays } from '@study-tracker/contracts';
 import { useQueryClient } from '@tanstack/react-query';
-import { serverMessage } from '../../services/httpError';
+import { serverMessage } from '../../lib/messages';
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { Navigate } from 'react-router-dom';

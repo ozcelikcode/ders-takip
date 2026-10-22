@@ -1,6 +1,7 @@
 import { useTerms } from '../../hooks/useTerms';
 import { useEffect, useRef, useState } from 'react';
-import { isHttpError, serverMessage } from '../../services/httpError';
+import { isHttpError } from '../../services/httpError';
+import { serverMessage } from '../../lib/messages';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarDate, calendarViewDate } from '@study-tracker/contracts';
 import toast from 'react-hot-toast';

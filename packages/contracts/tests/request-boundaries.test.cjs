@@ -131,18 +131,20 @@ it('shares actual elapsed session limits without rounding out-of-range values', 
     assert.equal(c.isSessionDurationValid(value), false);
 });
 
-it('exposes validation paths and messages without request values or internal Zod structures', () => {
+it('exposes validation paths and codes without request values or internal Zod structures', () => {
   assert.deepEqual(
     c.validationError([
-      {
-        path: ['body', 'password'],
-        message: 'Invalid password',
-        input: 'private-value',
-      },
+      { path: ['body', 'password'], message: 'passwordLength', input: 'private-value' },
+      { path: ['body', 'email'], message: 'Invalid input: expected string' },
     ]),
     {
-      message: 'Doğrulama hatası',
-      details: [{ field: 'body.password', message: 'Invalid password' }],
+      code: 'validation',
+      details: [
+        { field: 'body.password', code: 'passwordLength' },
+        // Zod's own English messages never reach a screen; they become the generic code.
+        { field: 'body.email', code: 'invalid' },
+      ],
     },
   );
+  assert.throws(() => c.fail(409, 'planOverlap'), (error) => error instanceof c.ApiFailure && error.statusCode === 409 && error.code === 'planOverlap');
 });

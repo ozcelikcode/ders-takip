@@ -33,7 +33,7 @@ if (environment.NODE_ENV === 'production') {
     limit: environment.RATE_LIMIT_MAX_REQUESTS,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
-    message: { success: false, error: { message: 'Çok fazla istek gönderildi. Lütfen daha sonra tekrar deneyin.' } },
+    message: { success: false, error: { code: 'tooManyRequests' } },
   }));
   app.use(morgan('combined'));
 }
@@ -43,7 +43,6 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.get('/api/health', (req, res) => {
   res.status(isDatabaseUnavailable() ? 503 : 200).json({
     status: isDatabaseUnavailable() ? 'MAINTENANCE' : 'OK',
-    message: isDatabaseUnavailable() ? 'Veritabanı bakım modunda' : 'API çalışıyor',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
   });

@@ -12,7 +12,7 @@ export const getStudySessions = async (req: Request, res: Response, next: NextFu
     if (!userId) {
       res.status(401).json({
         success: false,
-        error: { message: 'Kullanıcı kimlik doğrulaması gerekli' },
+        error: { code: 'loginRequired' },
       });
       return;
     }
@@ -47,7 +47,7 @@ export const getStudySession = async (req: Request, res: Response, next: NextFun
     if (!id) {
       res.status(400).json({
         success: false,
-        error: { message: 'Kayıt ID gerekli' },
+        error: { code: 'recordNotFound' },
       });
       return;
     }
@@ -55,7 +55,7 @@ export const getStudySession = async (req: Request, res: Response, next: NextFun
     if (!userId) {
       res.status(401).json({
         success: false,
-        error: { message: 'Kullanıcı kimlik doğrulaması gerekli' },
+        error: { code: 'loginRequired' },
       });
       return;
     }
@@ -68,7 +68,7 @@ export const getStudySession = async (req: Request, res: Response, next: NextFun
     if (!session) {
       res.status(404).json({
         success: false,
-        error: { message: 'Kayıt bulunamadı' },
+        error: { code: 'recordNotFound' },
       });
       return;
     }
@@ -85,14 +85,14 @@ export const getStudySession = async (req: Request, res: Response, next: NextFun
 export const createStudySession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const session = await createSession(req.user!, req.body);
-    res.status(201).json({ success: true, message: 'Kayıt başarıyla oluşturuldu', data: { session: sessionDTO(session) } });
+    res.status(201).json({ success: true, data: { session: sessionDTO(session) } });
   } catch (error) { next(error); }
 };
 
 const writeSession = (status?: UpdateSessionInput['status']) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const session = await updateSession(req.user!, Number(req.params.id), { ...req.body, ...(status === undefined ? {} : { status }) });
-    res.json({ success: true, message: 'Kayıt başarıyla güncellendi', data: { session: sessionDTO(session) } });
+    res.json({ success: true, data: { session: sessionDTO(session) } });
   } catch (error) { next(error); }
 };
 
@@ -113,7 +113,7 @@ export const controlPomodoro = async (req: Request, res: Response, next: NextFun
 export const deleteStudySession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     await deleteSession(req.user!, Number(req.params.id), req.body.expectedUpdatedAt);
-    res.json({ success: true, message: 'Kayıt başarıyla silindi' });
+    res.json({ success: true });
   } catch (error) { next(error); }
 };
 

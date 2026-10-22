@@ -2,7 +2,7 @@ import { useUserPreferencesStore } from './userPreferencesStore';
 import { useSettingsStore } from './settingsStore';
 import type { ProfileUpdate } from '../types/auth';
 import toast from 'react-hot-toast';
-import { serverMessage } from '../services/httpError';
+import { serverMessage } from '../lib/messages';
 import { create } from 'zustand';
 import { queryClient } from '../lib/queryClient';
 import { authAPI, onboardingAPI } from '../services/api';

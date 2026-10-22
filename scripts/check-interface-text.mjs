@@ -12,6 +12,7 @@ const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclud
 const turkish = /[çğıöşüÇĞİÖŞÜ]/;
 const letters = /\p{L}{2,}/u;
 const textAttributes = new Set(['aria-label', 'title', 'placeholder', 'alt', 'aria-description', 'aria-roledescription']);
+const schemaChecks = new Set(['min', 'max', 'length', 'regex', 'refine']);
 const found = new Map();
 
 for (const file of files) {
@@ -35,6 +36,10 @@ for (const file of files) {
     } else if (ts.isCallExpression(node) && /^toast(\.\w+)?$/.test(node.expression.getText(source))) {
       const value = node.arguments[0] && literalText(node.arguments[0]);
       if (value && letters.test(value)) report(node, value);
+    } else if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && schemaChecks.has(node.expression.name.text)) {
+      // A schema check's literal message would bypass the catalog (shared schemas use validation codes).
+      const value = node.arguments.slice(1).map(literalText).find((text) => text && letters.test(text));
+      if (value) report(node, value);
     } else {
       const value = literalText(node);
       if (value && turkish.test(value)) report(node, value);

@@ -1,3 +1,5 @@
+import type { ApiError } from '@study-tracker/contracts';
+
 /** HTTP error and response shapes shared by the transport, the API modules and their callers; free of side effects. */
 export type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
@@ -17,10 +19,10 @@ export interface HttpResponse<T = unknown> {
   status: number;
   config: HttpRequestConfig;
 }
-/** The error body every API route sends: `{ success: false, error: { message } }`. */
+/** The error body every API route sends: `{ success: false, error: { code, params?, details? } }`. */
 export interface ApiErrorBody {
   success?: boolean;
-  error?: { message?: string };
+  error?: Partial<ApiError>;
 }
 
 /** A failed request: `response` is set when the server answered with a non-2xx status. */
@@ -43,6 +45,3 @@ export class CanceledError extends Error {
   }
 }
 export const isHttpError = (error: unknown): error is HttpError => error instanceof HttpError;
-/** The server's own message for a failed request, if it sent one. */
-export const serverMessage = (error: unknown): string | undefined =>
-  isHttpError(error) ? error.response?.data?.error?.message : undefined;

@@ -89,3 +89,4 @@ export const pomodoroDefaults = (preferences: UserPreferences) => ({
 });
 
 export * from './http.js';
+export * from './notificationText.js';

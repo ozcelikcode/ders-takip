@@ -64,6 +64,6 @@ export const sessionQuerySchema = z
   .refine(
     (value) =>
       !value.startDate || !value.endDate || value.startDate <= value.endDate,
-    { message: 'Invalid date range' },
+    { message: 'dateRange' },
   );
 export type SessionQuery = z.infer<typeof sessionQuerySchema>;

@@ -34,7 +34,7 @@ const planFieldsSchema = z
   .strict();
 export const createPlanSchema = planFieldsSchema.refine(
   (value) => value.startDate < value.endDate,
-  { path: ['endDate'], message: 'Bitiş tarihi başlangıçtan sonra olmalıdır' },
+  { path: ['endDate'], message: 'endBeforeStart' },
 );
 export const updatePlanSchema = planFieldsSchema
   .partial()
@@ -45,12 +45,12 @@ export const updatePlanSchema = planFieldsSchema
   .strict()
   .refine(
     (value) => Object.keys(value).length > 0,
-    'Güncellenecek alan gerekli',
+    'nothingToUpdate',
   )
   .refine(
     (value) =>
       !value.startDate || !value.endDate || value.startDate < value.endDate,
-    { path: ['endDate'], message: 'Bitiş tarihi başlangıçtan sonra olmalıdır' },
+    { path: ['endDate'], message: 'endBeforeStart' },
   );
 export const planQuerySchema = z
   .object({

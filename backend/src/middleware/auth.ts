@@ -25,7 +25,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
     if (!token) {
       res.status(401).json({
         success: false,
-        error: { message: 'Bu işlem için giriş yapmanız gerekiyor' },
+        error: { code: 'loginRequired' },
       });
       return;
     }
@@ -34,7 +34,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
 
     const session = await AuthSession.findByPk(decoded.sid);
     if (!session || String(session.userId) !== decoded.id || session.revokedAt || session.expiresAt.getTime() <= Date.now()) {
-      res.status(401).json({ success: false, error: { message: 'Oturum sona erdi. Lütfen yeniden giriş yapın' } });
+      res.status(401).json({ success: false, error: { code: 'sessionExpired' } });
       return;
     }
     res.setHeader('Cache-Control', 'no-store');
@@ -45,7 +45,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
     if (!user) {
       res.status(401).json({
         success: false,
-        error: { message: 'Token geçersiz - kullanıcı bulunamadı' },
+        error: { code: 'invalidToken' },
       });
       return;
     }
@@ -53,7 +53,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
     if (!user.isActive) {
       res.status(401).json({
         success: false,
-        error: { message: 'Hesabınız deaktif durumda' },
+        error: { code: 'accountInactive' },
       });
       return;
     }
@@ -66,7 +66,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
     if (!(error instanceof JsonWebTokenError) && !(error instanceof ZodError)) { next(error); return; }
     res.status(401).json({
       success: false,
-      error: { message: 'Token geçersiz' },
+      error: { code: 'invalidToken' },
     });
   }
 };
@@ -76,7 +76,7 @@ export const authorize = (...roles: string[]) => {
     if (!req.user) {
       res.status(401).json({
         success: false,
-        error: { message: 'Giriş yapmanız gerekiyor' },
+        error: { code: 'loginRequired' },
       });
       return;
     }
@@ -84,7 +84,7 @@ export const authorize = (...roles: string[]) => {
     if (!roles.includes(req.user.role)) {
       res.status(403).json({
         success: false,
-        error: { message: 'Bu işlem için yetkiniz yok' },
+        error: { code: 'forbidden' },
       });
       return;
     }

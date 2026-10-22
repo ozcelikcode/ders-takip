@@ -14,7 +14,6 @@ interface TokenResponse {
 }
 export interface AuthResponse {
   success: boolean;
-  message: string;
   data: {
     user: User;
     tokens: TokenResponse;

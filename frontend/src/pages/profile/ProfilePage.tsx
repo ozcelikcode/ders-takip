@@ -4,7 +4,7 @@ import {
   type ProfilePatch,
   type ChangePasswordInput,
 } from '@study-tracker/contracts';
-import { serverMessage } from '../../services/httpError';
+import { issueMessage, serverMessage } from '../../lib/messages';
 import { useMutation } from '@tanstack/react-query';
 import { Mail, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -101,7 +101,7 @@ const ProfilePage = () => {
     });
     if (!parsed.success) {
       toast.error(
-        parsed.error.issues[0]?.message ?? text.checkProfile,
+        parsed.error.issues[0] ? issueMessage(parsed.error.issues[0].message) : text.checkProfile,
       );
       return;
     }
@@ -132,7 +132,7 @@ const ProfilePage = () => {
     });
     if (!parsed.success) {
       toast.error(
-        parsed.error.issues[0]?.message ?? text.checkPassword,
+        parsed.error.issues[0] ? issueMessage(parsed.error.issues[0].message) : text.checkPassword,
       );
       return;
     }

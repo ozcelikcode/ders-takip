@@ -1,5 +1,5 @@
 import { passwordResetTokenSchema, resetPasswordSchema } from '@study-tracker/contracts';
-import { serverMessage } from '../../services/httpError';
+import { issueMessage, serverMessage } from '../../lib/messages';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -25,7 +25,7 @@ export default function ResetPasswordPage() {
     }
     const parsed = resetPasswordSchema.safeParse({ token, password });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? text.checkPassword);
+      setError(parsed.error.issues[0] ? issueMessage(parsed.error.issues[0].message) : text.checkPassword);
       return;
     }
     setError('');

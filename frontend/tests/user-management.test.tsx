@@ -93,7 +93,7 @@ function rejected() {
     status: 409,
     data: {
       success: false,
-      error: { message: 'İşlem şu anda tamamlanamıyor.' },
+      error: { code: 'requestFailed' },
     },
   });
 }
@@ -279,7 +279,7 @@ it('waits for role acknowledgement, blocks duplicates and keeps a rejected confi
     within(await menu()).getByRole('menuitem', { name: 'Kullanıcıyı sil' }),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Kullanıcıyı sil' }));
-  await screen.findByText('İşlem şu anda tamamlanamıyor.');
+  await screen.findByText('İstek tamamlanamadı. Lütfen tekrar deneyin.');
   expect(screen.getByRole('dialog')).toBeTruthy();
   expect(usersAPI.deleteUser).toHaveBeenCalledTimes(1);
   const invalidate = vi.spyOn(client, 'invalidateQueries');
@@ -377,7 +377,7 @@ it('retains create input after a rejection and only clears it on a new opening',
   await openCreate();
   fillUser();
   save();
-  await screen.findByText('İşlem şu anda tamamlanamıyor.');
+  await screen.findByText('İstek tamamlanamadı. Lütfen tekrar deneyin.');
   expect((screen.getByLabelText('E-posta') as HTMLInputElement).value).toBe(
     'new@example.com',
   );

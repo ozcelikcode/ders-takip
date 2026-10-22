@@ -18,8 +18,8 @@ export const sessionFormSchema = z
     durationMode: z.enum(['minutes', 'timeRange']),
     duration: z
       .number()
-      .min(sessionDurationLimits.minMinutes, 'Minimum 1 dakika')
-      .max(sessionDurationLimits.maxMinutes, 'Maximum 24 saat'),
+      .min(sessionDurationLimits.minMinutes, { error: () => useLanguageStore.getState().text.planner.durationMin })
+      .max(sessionDurationLimits.maxMinutes, { error: () => useLanguageStore.getState().text.planner.durationMax }),
     endTime: z.string().optional(),
     sessionType: sessionTypeSchema,
     color: z.string().optional(),

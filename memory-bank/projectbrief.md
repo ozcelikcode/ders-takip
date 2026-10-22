@@ -49,7 +49,7 @@ Mobil uygulama, sosyal/rekabet özellikleri, yapay zekâ entegrasyonu, çevrimd�
 
 ## Kısıtlar
 
-- Arayüz Türkçe ve İngilizce (R10b); sunucu/e-posta metinleri R10c'ye dek Türkçe; tarih/sayı biçimi `lib/locale.ts` tek kaynağından.
+- Arayüz Türkçe ve İngilizce; sunucu yalnız kod döner, e-postalar alıcının dilinde; tarih/sayı biçimi `lib/locale.ts` tek kaynağından.
 - İnternet bağlantısı gerekir; SQLite tek dosya veritabanı.
 - Modern tarayıcılar; E2E Chromium, WebKit ve mobil Chromium üzerinde koşar.
 

@@ -16,12 +16,10 @@ export const backupListResponseSchema = z.object({
 });
 export const backupCreateResponseSchema = z.object({
   success: z.literal(true),
-  message: z.string(),
   data: backupRecordSchema,
 });
 export const resetDataResponseSchema = z.object({
   success: z.literal(true),
-  message: z.string(),
   data: z.object({ safetyBackupId: z.number().int().positive() }),
 });
 export type BackupRecord = z.infer<typeof backupRecordSchema>;

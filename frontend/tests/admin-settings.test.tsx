@@ -80,7 +80,7 @@ const denied = () =>
     status: 409,
     data: {
       success: false,
-      error: { message: 'Başka bir bakım işlemi sürüyor' },
+      error: { code: 'maintenanceBusy' },
     },
   });
 const backup: BackupRecord = {

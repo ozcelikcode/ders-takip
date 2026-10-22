@@ -1,3 +1,4 @@
+import type { ApiErrorCode } from '@study-tracker/contracts';
 import { HttpError } from '../src/services/httpError';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -72,10 +73,10 @@ function response(items = categories) {
     config: { url: '' },
   };
 }
-function rejection(message = 'Hedefte aynı adlı ders var.') {
+function rejection(code: ApiErrorCode = 'duplicateRecordName') {
   return new HttpError('Conflict', {
     status: 409,
-    data: { success: false, error: { message } },
+    data: { success: false, error: { code } },
   });
 }
 function mount() {
@@ -225,7 +226,7 @@ it('preserves drafts across refetches, clears descriptions explicitly and sends 
 });
 it('keeps failed edits open without automatic write retry and invalidates all affected views on success', async () => {
   vi.mocked(categoriesAPI.updateCategory)
-    .mockRejectedValueOnce(rejection('Kategori adı zaten var.'))
+    .mockRejectedValueOnce(rejection('sharedCategoryNameTaken'))
     .mockResolvedValueOnce(response());
   const { client } = mount();
   const invalidate = vi.spyOn(client, 'invalidateQueries');
@@ -234,7 +235,7 @@ it('keeps failed edits open without automatic write retry and invalidates all af
     target: { value: 'New category' },
   });
   save();
-  await screen.findByText('Kategori adı zaten var.');
+  await screen.findByText('Bu adla ortak bir kategori zaten var');
   expect(categoriesAPI.updateCategory).toHaveBeenCalledTimes(1);
   expect(
     (screen.getByLabelText('Kategori adı') as HTMLInputElement).value,
@@ -321,7 +322,7 @@ it('does not send a no-op edit or retain a cancelled draft on a new opening', as
 });
 it('requires an explicit migration choice, preserves it on failure, and waits for a successful deletion', async () => {
   vi.mocked(categoriesAPI.deleteCategory)
-    .mockRejectedValueOnce(rejection('Önce bir hedef kategori seçin.'))
+    .mockRejectedValueOnce(rejection('categoryInUse'))
     .mockRejectedValueOnce(rejection())
     .mockResolvedValueOnce(response());
   const { client } = mount();
@@ -335,11 +336,11 @@ it('requires an explicit migration choice, preserves it on failure, and waits fo
   expect(target.value).toBe('');
   expect(within(target).queryByRole('option', { name: 'Eğitim' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Kategoriyi sil' }));
-  await screen.findByText('Önce bir hedef kategori seçin.');
+  await screen.findByText('Bu kategoride kayıtlar var. Önce bir hedef kategori seçin');
   expect(categoriesAPI.deleteCategory).toHaveBeenCalledWith('1', undefined);
   fireEvent.change(target, { target: { value: '2' } });
   fireEvent.click(screen.getByRole('button', { name: 'Kategoriyi sil' }));
-  await screen.findByText('Hedefte aynı adlı ders var.');
+  await screen.findByText('Bu kategoride aynı isimde erişilebilir bir kayıt zaten mevcut');
   expect(target.value).toBe('2');
   expect(categoriesAPI.deleteCategory).toHaveBeenCalledTimes(2);
   vi.mocked(categoriesAPI.getCategories).mockResolvedValue(

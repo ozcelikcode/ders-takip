@@ -95,7 +95,6 @@ const parseProfileResponse = (
     ...response,
     data: {
       success: parsed.success,
-      ...(parsed.message === undefined ? {} : { message: parsed.message }),
       data: { user: { ...parsed.data.user, id: String(parsed.data.user.id) } },
     },
   };

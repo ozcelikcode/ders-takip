@@ -108,9 +108,9 @@ it('owners create, rename and delete their own personal categories', async () =>
   const id = created.body.data.category.id;
   assert.equal((await call('post', '/api/categories', other, { name: 'Ortak olsun', scope: 'shared' })).status, 403);
   const duplicate = await call('post', '/api/categories', other, { name: 'Okuma' });
-  assert.deepEqual([duplicate.status, duplicate.body.error.message], [409, 'Bu adla bir kategorin zaten var']);
+  assert.deepEqual([duplicate.status, duplicate.body.error.code], [409, 'personalCategoryNameTaken']);
   const clash = await call('post', '/api/categories', other, { name: 'Genel' });
-  assert.deepEqual([clash.status, clash.body.error.message], [409, 'Bu adla ortak bir kategori zaten var']);
+  assert.deepEqual([clash.status, clash.body.error.code], [409, 'sharedCategoryNameTaken']);
   // Another owner may use the same name.
   assert.equal((await call('post', '/api/categories', owner, { name: 'Okuma' })).status, 201);
 

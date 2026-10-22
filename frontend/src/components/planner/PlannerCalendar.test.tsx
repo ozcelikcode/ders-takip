@@ -283,7 +283,7 @@ describe.each([
     });
   });
   it('keeps a failed date move open and does not automatically retry a stale write', async () => {
-    const conflict = new HttpError('Conflict', { status: 409, data: { error: { message: 'Eski sürüm' } } });
+    const conflict = new HttpError('Conflict', { status: 409, data: { error: { code: 'sessionChanged' } } });
     vi.mocked(studySessionsAPI.updateSession)
       .mockRejectedValueOnce(conflict)
       .mockResolvedValue(response({ success: true, data: { session: base } }));
@@ -421,7 +421,7 @@ describe.each([
     );
   });
   it('preserves a time/duration draft after 409 and retries only with an explicit new confirmation', async () => {
-    const conflict = new HttpError('Conflict', { status: 409, data: { error: { message: 'Eski sürüm' } } });
+    const conflict = new HttpError('Conflict', { status: 409, data: { error: { code: 'sessionChanged' } } });
     vi.mocked(studySessionsAPI.updateSession)
       .mockRejectedValueOnce(conflict)
       .mockResolvedValue(response({ success: true, data: { session: base } }));
@@ -496,7 +496,7 @@ describe.each([
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
   it('blocks a stale schedule write after a failed refresh and supports reading the source again', async () => {
-    const conflict = new HttpError('Conflict', { status: 409, data: { error: { message: 'Eski sürüm' } } });
+    const conflict = new HttpError('Conflict', { status: 409, data: { error: { code: 'sessionChanged' } } });
     vi.mocked(studySessionsAPI.updateSession)
       .mockRejectedValueOnce(conflict)
       .mockResolvedValue(response({ success: true, data: { session: base } }));

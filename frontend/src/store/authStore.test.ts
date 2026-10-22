@@ -46,7 +46,7 @@ describe('account cache boundaries', () => {
 });
 
 const sessionResponse = (id: string, token: string): HttpResponse<AuthResponse> => ({
-  data: { success: true, message: '', data: { user: user(id), tokens: { accessToken: token, expiresIn: '15m' } } },
+  data: { success: true, data: { user: user(id), tokens: { accessToken: token, expiresIn: '15m' } } },
   status: 200, config: { url: '' },
 });
 

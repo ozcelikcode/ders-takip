@@ -1,4 +1,4 @@
-import { serverMessage } from '../../services/httpError';
+import { serverMessage } from '../../lib/messages';
 import { Download, Trash2 } from 'lucide-react';
 import { useId, useState } from 'react';
 import toast from 'react-hot-toast';

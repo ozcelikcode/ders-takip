@@ -46,7 +46,7 @@ export const updateSettings = async (
       .status(400)
       .json({
         success: false,
-        error: validationError(parsed.error.issues, 'Ayarlar geçersiz'),
+        error: validationError(parsed.error.issues, 'invalidSettings'),
       });
     return;
   }
@@ -89,7 +89,6 @@ export const updateSettings = async (
     );
     res.json({
       success: true,
-      message: 'Ayarlar güncellendi',
       data: await readSiteSettings(),
     });
   } catch (error) {

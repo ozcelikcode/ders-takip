@@ -9,6 +9,7 @@ import { useTerms } from '../../hooks/useTerms';
 import { searchAPI } from '../../services/api';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useText } from '../../store/languageStore';
+import { issueMessage } from '../../lib/messages';
 
 
 function ResultGroup({ title, count, children }: { title: string; count: number; children: ReactNode }) {
@@ -77,7 +78,7 @@ export default function SearchPage() {
       {!query ? (
         <p className="text-sm text-(--muted)">{text.prompt}</p>
       ) : !valid.success ? (
-        <p role="alert" className="text-sm text-red-600">{valid.error.issues[0]?.message}</p>
+        <p role="alert" className="text-sm text-red-600">{valid.error.issues[0] && issueMessage(valid.error.issues[0].message)}</p>
       ) : results.isPending ? (
         <p role="status" className="text-sm text-(--muted)">{text.searching}</p>
       ) : results.isError ? (

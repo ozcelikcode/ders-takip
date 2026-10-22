@@ -503,6 +503,11 @@ test.describe('English browser', () => {
     await page.goto('/login');
     await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    // The server sends a code; the screen words it in the interface language.
+    await page.getByLabel('Email address').fill('nobody@example.test');
+    await page.getByLabel('Password', { exact: true }).fill('wrong-password-2026');
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await expect(page.getByText('Wrong email or password')).toBeVisible();
     await page.getByRole('link', { name: 'Sign up' }).click();
     await page.getByLabel('First name').fill('Ada');
     await page.getByLabel('Last name').fill('Byron');

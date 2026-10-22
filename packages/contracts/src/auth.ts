@@ -18,13 +18,13 @@ export const registerSchema = createManagedUserSchema
   .strict();
 export const loginSchema = z
   .object({
-    email: z.email({ error: 'Geçerli bir e-posta adresi giriniz' }),
-    password: z.string().min(1, 'Şifre zorunludur'),
+    email: z.email({ error: 'email' }),
+    password: z.string().min(1, 'passwordRequired'),
   })
   .strict();
 export const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, 'Mevcut şifre zorunludur'),
+    currentPassword: z.string().min(1, 'currentPasswordRequired'),
     newPassword: newPasswordSchema,
   })
   .strict();
@@ -43,7 +43,7 @@ export const profileImageSchema = z
     } catch {
       return false;
     }
-  }, 'Geçerli bir HTTP(S) adresi veya desteklenen resim giriniz')
+  }, 'imageAddress')
   .nullable();
 export const profilePatchSchema = z
   .object({
@@ -56,11 +56,10 @@ export const profilePatchSchema = z
   .strict()
   .refine(
     (value) => Object.keys(value).length > 0,
-    'Güncellenecek alan gerekli',
+    'nothingToUpdate',
   );
 export const authResponseSchema = z.object({
   success: z.literal(true),
-  message: z.string(),
   data: z.object({
     user: userResponseSchema,
     tokens: z.object({
@@ -71,7 +70,6 @@ export const authResponseSchema = z.object({
 });
 export const profileResponseSchema = z.object({
   success: z.literal(true),
-  message: z.string().optional(),
   data: z.object({ user: userResponseSchema }),
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -80,9 +78,9 @@ export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type ProfilePatch = z.infer<typeof profilePatchSchema>;
 
 /** 32 random bytes in base64url. */
-export const passwordResetTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'Bağlantı geçersiz');
+export const passwordResetTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'resetLinkInvalid');
 export const forgotPasswordSchema = z
-  .object({ email: z.email({ error: 'Geçerli bir e-posta adresi giriniz' }) })
+  .object({ email: z.email({ error: 'email' }) })
   .strict();
 export const resetPasswordSchema = z
   .object({ token: passwordResetTokenSchema, password: newPasswordSchema })

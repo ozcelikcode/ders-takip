@@ -1,3 +1,4 @@
+import { fail } from '@study-tracker/contracts';
 import { Transaction } from 'sequelize';
 import type { TopicProgressEntry, TopicProgressStatus } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
@@ -24,7 +25,7 @@ export async function setTopicProgress(actor: Actor, topicId: number, status: To
       include: [{ model: Course, as: 'course', required: true, where: visibleCourseWhere(actor), attributes: [] }],
       transaction,
     });
-    if (!topic) throw Object.assign(new Error('Kayıt bulunamadı'), { statusCode: 404 });
+    if (!topic) fail(404, 'recordNotFound');
     if (status === 'not_started') await UserTopicProgress.destroy({ where: { userId: actor.id, topicId }, transaction });
     else await UserTopicProgress.upsert({ userId: actor.id, topicId, status }, { transaction });
     return { topicId, courseId: topic.courseId, status };

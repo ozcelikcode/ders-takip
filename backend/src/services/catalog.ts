@@ -1,3 +1,4 @@
+import { fail } from '@study-tracker/contracts';
 import { Op, Transaction, type Includeable, type WhereOptions } from 'sequelize';
 import type { CreateCategoryInput, UpdateCategoryInput, DeleteCategoryInput, CreateCourseInput, UpdateCourseInput, CreateTopicInput, UpdateTopicInput, ReorderTopicsInput } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
@@ -7,12 +8,11 @@ interface Actor { id: number; role: string }
 const categoryInclude: Includeable = { model: Category, as: 'category', attributes: ['id', 'name', 'color', 'icon'] };
 const topicIncludes: Includeable[] = [{ model: Course, as: 'course', attributes: ['id', 'name', 'color', 'icon'], include: [categoryInclude] }];
 const write = <T>(operation: (transaction: Transaction) => Promise<T>) => sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, operation);
-function fail(statusCode: number, message: string): never { throw Object.assign(new Error(message), { statusCode }); }
-function requireAdmin(actor: Actor) { if (actor.role !== 'admin') fail(403, 'Bu işlem için yönetici yetkisi gereklidir'); }
+function requireAdmin(actor: Actor) { if (actor.role !== 'admin') fail(403, 'adminRequired'); }
 async function writableCourse(actor: Actor, id: number, transaction: Transaction) {
   const course = await Course.findByPk(id, { transaction });
-  if (!course) fail(404, 'Kayıt bulunamadı');
-  if (actor.role !== 'admin' && (course.isGlobal || course.userId !== actor.id)) fail(403, 'Bu kaydı değiştirme yetkiniz yok');
+  if (!course) fail(404, 'recordNotFound');
+  if (actor.role !== 'admin' && (course.isGlobal || course.userId !== actor.id)) fail(403, 'recordForbidden');
   return course;
 }
 /** Categories a user may list and file records under: shared ones plus their own personal ones. */
@@ -21,7 +21,7 @@ export const visibleCategoryWhere = (actor: Actor): WhereOptions => ({ [Op.or]: 
 // A shared category is visible to all, so refusing it is 403; someone else's personal one reads as missing.
 async function managedCategoryById(actor: Actor, id: number, transaction: Transaction) {
   const category = await Category.findByPk(id, { transaction });
-  if (!category || (category.userId !== null && category.userId !== actor.id)) fail(404, 'Kategori bulunamadı');
+  if (!category || (category.userId !== null && category.userId !== actor.id)) fail(404, 'categoryNotFound');
   if (category.userId === null) requireAdmin(actor);
   return category;
 }
@@ -32,18 +32,18 @@ async function assertCategoryName(name: string, ownerId: number | null, transact
     ...(excludeId === undefined ? {} : { id: { [Op.ne]: excludeId } }),
     ...(ownerId === null ? { userId: null } : { [Op.or]: [{ userId: null }, { userId: ownerId }] }),
   }, transaction });
-  if (conflict) fail(409, conflict.userId === null ? 'Bu adla ortak bir kategori zaten var' : 'Bu adla bir kategorin zaten var');
+  if (conflict) fail(409, conflict.userId === null ? 'sharedCategoryNameTaken' : 'personalCategoryNameTaken');
 }
 // Someone else's personal category reads as missing so its existence does not leak.
 async function categoryForCourse(id: number, course: { userId?: number | null | undefined; isGlobal: boolean }, transaction: Transaction) {
   const category = await Category.findByPk(id, { transaction });
-  if (!category || (category.userId !== null && category.userId !== course.userId)) fail(404, 'Kategori bulunamadı');
-  if (category.userId !== null && course.isGlobal) fail(400, 'Ortak kayıtlar yalnız ortak kategorilerde yer alabilir');
+  if (!category || (category.userId !== null && category.userId !== course.userId)) fail(404, 'categoryNotFound');
+  if (category.userId !== null && course.isGlobal) fail(400, 'sharedNeedsSharedCategory');
   return category;
 }
 async function writableTopic(actor: Actor, id: number, transaction: Transaction) {
   const topic = await Topic.findByPk(id, { transaction });
-  if (!topic) fail(404, 'Kayıt bulunamadı');
+  if (!topic) fail(404, 'recordNotFound');
   await writableCourse(actor, topic.courseId, transaction);
   return topic;
 }
@@ -53,17 +53,17 @@ async function assertCourseName(values: { id?: number; name: string; categoryId:
     ...(values.id === undefined ? {} : { id: { [Op.ne]: values.id } }),
     ...(values.isGlobal ? {} : { [Op.or]: [{ userId: values.userId ?? null }, { isGlobal: true }] }),
   }, transaction });
-  if (conflict) fail(409, 'Bu kategoride aynı isimde erişilebilir bir kayıt zaten mevcut');
+  if (conflict) fail(409, 'duplicateRecordName');
 }
 async function assertTopicName(courseId: number, name: string, transaction: Transaction, excludeId?: number) {
   if (await Topic.findOne({ where: { courseId, name, isActive: true, ...(excludeId === undefined ? {} : { id: { [Op.ne]: excludeId } }) }, transaction })) {
-    fail(409, 'Bu kayıtta aynı isimde bir alt kayıt zaten mevcut');
+    fail(409, 'duplicateSubRecordName');
   }
 }
 async function appendTopicOrder(courseId: number, transaction: Transaction) {
   const maximum = await Topic.max<number, Topic>('order', { where: { courseId, isActive: true }, transaction });
   const order = (maximum || 0) + 1;
-  if (!Number.isSafeInteger(order)) fail(409, 'Sıra numarası sınırı aşıldı');
+  if (!Number.isSafeInteger(order)) fail(409, 'orderLimit');
   return order;
 }
 
@@ -94,14 +94,14 @@ export async function updateCategory(actor: Actor, id: number, input: UpdateCate
 export async function deleteCategory(actor: Actor, id: number, input: DeleteCategoryInput) {
   return write(async transaction => {
     const category = await managedCategoryById(actor, id, transaction);
-    if (input.migrateToCategoryId === id) fail(400, 'Hedef kategori silinen kategoriyle aynı olamaz');
+    if (input.migrateToCategoryId === id) fail(400, 'sameTargetCategory');
     if (input.migrateToCategoryId !== undefined) {
       // Records may only move where their owner can see them: a shared category, or the same owner's personal one.
       const target = await Category.findByPk(input.migrateToCategoryId, { transaction });
-      if (!target || (target.userId !== null && target.userId !== category.userId)) fail(404, 'Hedef kategori bulunamadı');
+      if (!target || (target.userId !== null && target.userId !== category.userId)) fail(404, 'targetCategoryNotFound');
     }
     const courses = await Course.findAll({ where: { categoryId: id }, transaction });
-    if (courses.length && input.migrateToCategoryId === undefined) fail(409, 'Bu kategoride kayıtlar var. Önce bir hedef kategori seçin');
+    if (courses.length && input.migrateToCategoryId === undefined) fail(409, 'categoryInUse');
     for (const course of courses) {
       const categoryId = input.migrateToCategoryId!;
       await assertCourseName({ id: course.id, name: course.name, categoryId, userId: course.userId, isGlobal: course.isGlobal }, transaction);
@@ -113,7 +113,7 @@ export async function deleteCategory(actor: Actor, id: number, input: DeleteCate
 }
 export async function createCourse(actor: Actor, input: CreateCourseInput) {
   return write(async transaction => {
-    if (input.isGlobal && actor.role !== 'admin') fail(403, 'Ortak kayıt oluşturma yetkiniz yok');
+    if (input.isGlobal && actor.role !== 'admin') fail(403, 'sharedCreateForbidden');
     await categoryForCourse(input.categoryId, { userId: actor.id, isGlobal: input.isGlobal ?? false }, transaction);
     await assertCourseName({ name: input.name, categoryId: input.categoryId, userId: actor.id, isGlobal: input.isGlobal ?? false }, transaction);
     const course = Course.build({ name: input.name, categoryId: input.categoryId, userId: actor.id, isGlobal: input.isGlobal ?? false, color: input.color ?? '#3b82f6', order: input.order ?? 1 });
@@ -127,7 +127,7 @@ export async function createCourse(actor: Actor, input: CreateCourseInput) {
 export async function updateCourse(actor: Actor, id: number, input: UpdateCourseInput) {
   return write(async transaction => {
     const course = await writableCourse(actor, id, transaction);
-    if (input.isGlobal !== undefined && input.isGlobal !== course.isGlobal && actor.role !== 'admin') fail(403, 'Ortak kayıt ayarını değiştirme yetkiniz yok');
+    if (input.isGlobal !== undefined && input.isGlobal !== course.isGlobal && actor.role !== 'admin') fail(403, 'sharedChangeForbidden');
     for (const field of ['name', 'description', 'color', 'icon', 'order', 'isActive', 'categoryId', 'isGlobal'] as const) {
       if (input[field] !== undefined) course.set(field, input[field]);
     }
@@ -176,7 +176,7 @@ export async function updateTopic(actor: Actor, id: number, input: UpdateTopicIn
       if (input[field] !== undefined) topic.set(field, input[field]);
     }
     if (topic.isActive && (input.order !== undefined || reactivating) && await Topic.findOne({ where: { courseId: topic.courseId, isActive: true, order: topic.order, id: { [Op.ne]: id } }, transaction })) {
-      if (!reactivating || input.order !== undefined) fail(409, 'Bu sıra numarası başka bir aktif kayıt tarafından kullanılıyor');
+      if (!reactivating || input.order !== undefined) fail(409, 'orderTaken');
       topic.order = await appendTopicOrder(topic.courseId, transaction);
     }
     if (topic.changed()) await topic.save({ transaction });
@@ -195,7 +195,7 @@ export async function reorderTopics(actor: Actor, courseId: number, input: Reord
     const topics = await Topic.findAll({ where: { courseId, isActive: true }, transaction });
     const expected = new Map(input.expectedTopics.map(topic => [topic.id, new Date(topic.updatedAt).getTime()]));
     if (topics.length !== expected.size || topics.some(topic => expected.get(topic.id) !== topic.updatedAt.getTime())) {
-      fail(409, 'Liste değişti. Güncel listeyi yükleyip tekrar sıralayın');
+      fail(409, 'listChanged');
     }
     const orders = new Map(input.topicOrders.map(topic => [topic.id, topic.order]));
     for (const topic of topics) {

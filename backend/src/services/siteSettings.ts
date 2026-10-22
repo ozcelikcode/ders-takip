@@ -16,5 +16,5 @@ export const readSiteSettings = async (): Promise<SiteSettings> => {
 
 export const sendMaintenance = (res: Response): void => {
   res.setHeader('Retry-After', '300');
-  res.status(503).json({ success: false, error: { message: 'Site bakımda. Lütfen daha sonra tekrar deneyin' } });
+  res.status(503).json({ success: false, error: { code: 'siteMaintenance' } });
 };
