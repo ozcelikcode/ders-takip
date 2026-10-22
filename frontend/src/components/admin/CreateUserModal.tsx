@@ -15,7 +15,7 @@ interface Props {
   onClose: () => void;
 }
 function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
-  const roles = useText().roles;
+  const { roles, admin: text } = useText();
   const keys = useAccountQueryKeys();
   const mutation = useAccountMutation([keys.resource()]);
   const prefix = useId();
@@ -57,35 +57,34 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
     const { confirmPassword, ...input } = form;
     const result = createManagedUserSchema.safeParse(input);
     const messages: Record<string, string> = {
-      username:
-        'Kullanıcı adı 3–20 karakter olmalı; yalnızca İngilizce harf ve rakam içermelidir.',
-      email: 'Geçerli bir e-posta adresi girin.',
-      password: 'Parola en az 12 karakter, en fazla 72 UTF-8 baytı olmalıdır.',
-      firstName: 'Ad 2–50 karakter olmalıdır.',
-      lastName: 'Soyad 2–50 karakter olmalıdır.',
+      username: text.usernameRule,
+      email: text.emailRule,
+      password: text.passwordRule,
+      firstName: text.firstNameRule,
+      lastName: text.lastNameRule,
     };
     const nextErrors = result.success
       ? {}
       : Object.fromEntries(
           result.error.issues.map((issue) => [
             String(issue.path[0]),
-            messages[String(issue.path[0])] ?? 'Geçerli bir değer girin.',
+            messages[String(issue.path[0])] ?? text.invalidValue,
           ]),
         );
     if (form.password !== confirmPassword)
-      nextErrors.confirmPassword = 'Parolalar eşleşmiyor.';
+      nextErrors.confirmPassword = text.passwordsMismatch;
     setErrors(nextErrors);
     if (!result.success || Object.keys(nextErrors).length > 0) return;
     const saved = await mutation.save(
       () => usersAPI.createUser(result.data),
-      'Kullanıcı oluşturuldu.',
+      text.userCreated,
     );
     if (saved) onClose();
   };
   return (
     <EditorDialog
-      title="Kullanıcı oluştur"
-      description="Hesabın kimlik bilgilerini ve erişim yetkisini belirleyin."
+      title={text.createUser}
+      description={text.createUserDescription}
       pending={mutation.isPending}
       error={mutation.errorMessage}
       onClose={onClose}
@@ -93,7 +92,7 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          {label('firstName', 'Ad')}
+          {label('firstName', text.firstName)}
           <input
             {...field('firstName')}
             className="input"
@@ -104,7 +103,7 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
           {error('firstName')}
         </div>
         <div>
-          {label('lastName', 'Soyad')}
+          {label('lastName', text.lastName)}
           <input
             {...field('lastName')}
             className="input"
@@ -116,7 +115,7 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
         </div>
       </div>
       <div>
-        {label('username', 'Kullanıcı adı')}
+        {label('username', text.username)}
         <input
           {...field('username')}
           className="input"
@@ -127,7 +126,7 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
         {error('username')}
       </div>
       <div>
-        {label('email', 'E-posta')}
+        {label('email', text.email)}
         <input
           {...field('email')}
           className="input"
@@ -140,7 +139,7 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          {label('password', 'Parola')}
+          {label('password', text.password)}
           <input
             {...field('password')}
             className="input"
@@ -152,7 +151,7 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
           {error('password')}
         </div>
         <div>
-          {label('confirmPassword', 'Parola tekrarı')}
+          {label('confirmPassword', text.confirmPassword)}
           <input
             {...field('confirmPassword')}
             className="input"
@@ -167,7 +166,7 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
         </div>
       </div>
       <div>
-        {label('role', 'Rol')}
+        {label('role', text.role)}
         <select
           {...field('role')}
           className="input"
@@ -184,8 +183,7 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
         </select>
         {form.role === 'admin' && (
           <p className="mt-2 text-sm text-(--muted)">
-            Yöneticiler kullanıcıları, ortak içerikleri ve sistem ayarlarını
-            yönetebilir.
+            {text.adminRoleHint}
           </p>
         )}
       </div>
@@ -195,7 +193,7 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
           checked={form.isActive}
           onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
         />
-        Hesap aktif
+        {text.accountActive}
       </label>
     </EditorDialog>
   );

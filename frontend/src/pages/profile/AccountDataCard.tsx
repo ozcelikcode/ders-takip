@@ -7,9 +7,11 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { unsubscribeBrowser } from '../../lib/push';
 import { authAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
+import { useText } from '../../store/languageStore';
 
 /** Lets a user take their data with them and close their account. */
 export default function AccountDataCard() {
+  const text = useText().profile;
   const navigate = useNavigate();
   const passwordId = useId();
   const [downloading, setDownloading] = useState(false);
@@ -24,12 +26,12 @@ export default function AccountDataCard() {
       const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
       const link = document.createElement('a');
       link.href = url;
-      link.download = `hesap-verisi-${data.exportedAt.slice(0, 10)}.json`;
+      link.download = text.exportFile(data.exportedAt.slice(0, 10));
       link.click();
       URL.revokeObjectURL(url);
-      toast.success('Verilerin indirildi.');
+      toast.success(text.exported);
     } catch (failure) {
-      toast.error(serverMessage(failure) || 'Veriler indirilemedi. Lütfen tekrar deneyin.');
+      toast.error(serverMessage(failure) || text.exportFailed);
     } finally {
       setDownloading(false);
     }
@@ -37,16 +39,16 @@ export default function AccountDataCard() {
 
   const closeDelete = () => { setDeleting(false); setPassword(''); setError(null); };
   const confirmDelete = async () => {
-    if (!password) { setError('Şifrenizi girin.'); return false; }
+    if (!password) { setError(text.enterPassword); return false; }
     try {
       await authAPI.deleteAccount({ password });
     } catch (failure) {
-      setError(serverMessage(failure) || 'Hesap silinemedi. Lütfen tekrar deneyin.');
+      setError(serverMessage(failure) || text.deleteFailed);
       return false;
     }
     void unsubscribeBrowser().catch(() => undefined);
     useAuthStore.getState().clearAuth();
-    toast.success('Hesabın ve verilerin silindi.');
+    toast.success(text.deleted);
     navigate('/login', { replace: true });
     return true;
   };
@@ -54,31 +56,31 @@ export default function AccountDataCard() {
   return (
     <section aria-labelledby="account-data-heading" className="panel">
       <div className="panel-heading">
-        <h2 id="account-data-heading" className="text-base font-medium">Verilerin</h2>
+        <h2 id="account-data-heading" className="text-base font-medium">{text.dataTitle}</h2>
       </div>
       <div className="divide-y divide-(--line)">
         <div className="flex flex-wrap items-center justify-between gap-4 p-5">
           <div className="min-w-0 flex-1 basis-64">
-            <h3 className="text-sm font-medium">Verilerimi indir</h3>
+            <h3 className="text-sm font-medium">{text.exportTitle}</h3>
             <p className="mt-1 text-sm text-(--muted)">
-              Profilin, tercihlerin, kendi kayıt ve kategorilerin, seansların, planların ve ilerlemen tek bir JSON dosyasında.
+              {text.exportHint}
             </p>
           </div>
           <button type="button" className="btn btn-secondary" onClick={() => void download()} disabled={downloading}>
             <Download className="h-4 w-4" />
-            {downloading ? 'Hazırlanıyor…' : 'İndir'}
+            {downloading ? text.preparing : text.download}
           </button>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4 p-5">
           <div className="min-w-0 flex-1 basis-64">
-            <h3 className="text-sm font-medium">Hesabı sil</h3>
+            <h3 className="text-sm font-medium">{text.deleteTitle}</h3>
             <p className="mt-1 text-sm text-(--muted)">
-              Hesabın ve sana ait bütün veriler kalıcı olarak silinir. Geri alınamaz; önce verilerini indirmen önerilir.
+              {text.deleteHint}
             </p>
           </div>
           <button type="button" className="btn btn-secondary text-red-600 dark:text-red-400" onClick={() => setDeleting(true)}>
             <Trash2 className="h-4 w-4" />
-            Hesabı sil
+            {text.deleteTitle}
           </button>
         </div>
       </div>
@@ -86,13 +88,13 @@ export default function AccountDataCard() {
         isOpen={deleting}
         onClose={closeDelete}
         onConfirm={confirmDelete}
-        title="Hesabı sil"
-        message="Hesabın, kişisel kategori ve kayıtların, seansların, planların ve ilerlemen kalıcı olarak silinecek. Ortak kayıtlar etkilenmez."
-        confirmText="Hesabımı kalıcı olarak sil"
+        title={text.deleteTitle}
+        message={text.deleteMessage}
+        confirmText={text.deleteConfirm}
         type="danger"
       >
         <div className="space-y-2">
-          <label htmlFor={passwordId} className="block text-sm font-medium">Onay için şifren</label>
+          <label htmlFor={passwordId} className="block text-sm font-medium">{text.confirmPassword}</label>
           <input
             id={passwordId}
             type="password"

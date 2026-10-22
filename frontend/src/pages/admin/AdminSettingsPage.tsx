@@ -21,19 +21,13 @@ import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { backupAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useText } from '../../store/languageStore';
 
 // Custom words are an object; compare settings by value, not identity.
 const sameSetting = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
 
-const sections = [
-  ['general', 'Genel'],
-  ['security', 'Güvenlik'],
-  ['appearance', 'Görünüm'],
-  ['terminology', 'Kelimeler'],
-  ['notifications', 'Bildirimler'],
-  ['backup', 'Yedekleme ve sıfırlama'],
-] as const;
-type Section = (typeof sections)[number][0];
+const sections = ['general', 'security', 'appearance', 'terminology', 'notifications', 'backup'] as const;
+type Section = (typeof sections)[number];
 function SettingsForm({
   initial,
   onReset,
@@ -41,6 +35,7 @@ function SettingsForm({
   initial: SiteSettings;
   onReset: () => Promise<void>;
 }) {
+  const text = useText().siteSettings;
   const { adminSettings, updateSettings, isLoading } = useSettingsStore();
   const [baseline, setBaseline] = useState(initial);
   const [draft, setDraft] = useState(initial);
@@ -155,7 +150,7 @@ function SettingsForm({
         Object.fromEntries(
           result.error.issues.map((issue) => [
             String(issue.path[0]),
-            'Geçerli bir değer girin.',
+            text.invalidValue,
           ]),
         ),
       );
@@ -175,7 +170,7 @@ function SettingsForm({
     setErrors({});
     const saved = await mutation.save(
       () => updateSettings(patch),
-      'Site ayarları kaydedildi ve uygulandı.',
+      text.saved,
     );
     const confirmed = useSettingsStore.getState().adminSettings;
     if (saved && current() && confirmed) resetDraft(confirmed);
@@ -188,8 +183,8 @@ function SettingsForm({
           ? backupAPI.restoreBackup(action.backup.id)
           : backupAPI.resetData(action.mode),
       action.kind === 'restore'
-        ? 'Yedek geri yüklendi. Yeniden giriş yapın.'
-        : 'Seçilen veriler sıfırlandı; güvenlik yedeği saklandı.',
+        ? text.restored
+        : text.resetDone,
     );
     if (!saved || !current()) return false;
     if (action.kind === 'restore') {
@@ -203,17 +198,17 @@ function SettingsForm({
   const t = useTerms();
   const message =
     action?.kind === 'restore'
-      ? 'Mevcut verinin güvenlik yedeği alınacak. Seçilen yedekteki hesaplar, parolalar, ayarlar ve çalışma verileri geri gelecek; sonradan yapılan değişiklikler yerini yedekteki verilere bırakacak. Bütün oturumlar kapanacak ve yeniden giriş gerekecek.'
+      ? text.restoreMessage
       : action?.kind === 'reset' && action.mode === 'all'
-        ? `Kullanıcı hesapları, bütün ${t.course({ plural: true })}, ${t.topic({ plural: true })}, planlar, ${t.session({ plural: true })}, ölçülen çalışma geçmişi, ${t.topic()} ilerlemeleri ve site ayarları silinecek. Yönetici hesapları ve yedekler korunacak. Önce güvenlik yedeği alınır; geri dönüş yedeği geri yüklemeyi gerektirir.`
-        : `Yalnızca site ayarları varsayılanlara dönecek. Hesaplar, ${t.course({ plural: true })}, ${t.topic({ plural: true })} ve çalışma geçmişi korunacak. Önce güvenlik yedeği alınır.`;
+        ? text.resetAllMessage(t)
+        : text.resetSettingsMessage(t);
   return (
     <>
       <nav
-        aria-label="Site ayarı bölümleri"
+        aria-label={text.sectionNav}
         className="flex flex-wrap gap-2 border-b border-(--line) pb-4"
       >
-        {sections.map(([id, label]) => (
+        {sections.map((id) => (
           <button
             key={id}
             type="button"
@@ -222,7 +217,7 @@ function SettingsForm({
             disabled={busy}
             onClick={() => setSection(id)}
           >
-            {label}
+            {text.sections[id]}
           </button>
         ))}
       </nav>
@@ -233,7 +228,7 @@ function SettingsForm({
           void save();
         }}
         className="panel space-y-6 p-5 sm:p-6"
-        aria-label="Site ayarları formu"
+        aria-label={text.form}
         aria-busy={busy}
       >
         <fieldset
@@ -242,14 +237,14 @@ function SettingsForm({
         >
           {section === 'general' && (
             <>
-              <h2 className="text-base font-medium">Site kimliği</h2>
+              <h2 className="text-base font-medium">{text.identity}</h2>
               <div className="grid gap-5 sm:grid-cols-2">
-                {input('siteName', 'Site adı')}
-                {input('siteUrl', 'Site URL', 'url')}
+                {input('siteName', text.siteName)}
+                {input('siteUrl', text.siteUrl, 'url')}
               </div>
               {field(
                 'siteDescription',
-                'Site açıklaması',
+                text.siteDescription,
                 <textarea
                   id={`${prefix}-siteDescription`}
                   className="input"
@@ -266,55 +261,53 @@ function SettingsForm({
                   }
                 />,
               )}
-              {input('adminEmail', 'Yönetici iletişim e-postası', 'email')}
+              {input('adminEmail', text.adminEmail, 'email')}
               <p className="text-xs text-(--muted)">
-                Site adı bütün görünen marka alanlarına uygulanır. Site URL
-                alanı hosting adresinizi veya alan adınızı değiştirmez.
+                {text.identityHint}
               </p>
             </>
           )}
           {section === 'security' && (
             <>
-              <h2 className="text-base font-medium">Erişim kuralları</h2>
+              <h2 className="text-base font-medium">{text.access}</h2>
               {toggle(
                 'allowRegistration',
-                'Yeni kayıtlara izin ver',
-                'Kapatıldığında yeni kullanıcı kaydı sunucuda reddedilir.',
+                text.allowRegistration,
+                text.allowRegistrationHint,
               )}
               {toggle(
                 'maintenanceMode',
-                'Bakım modu',
-                'Yalnızca yöneticiler giriş yapabilir ve korunan alanlara erişebilir.',
+                text.maintenanceMode,
+                text.maintenanceModeHint,
               )}
               {input(
                 'sessionTimeout',
-                'Boşta oturum süresi (dakika)',
+                text.sessionTimeout,
                 'number',
               )}
               <p className="text-xs text-(--muted)">
-                1–1440 dakika. Etkin alt sınır erişim anahtarının ömrüdür (en
-                fazla 15 dakika); süre yenileme sırasında denetlenir.
+                {text.sessionTimeoutHint}
               </p>
             </>
           )}
           {section === 'notifications' && (
             <>
-              <h2 className="text-base font-medium">Bildirim kanalları</h2>
+              <h2 className="text-base font-medium">{text.channels}</h2>
               <p className="text-sm text-(--muted)">
-                Kullanıcılar hatırlatma ve özetleri kendileri seçer; burada kapatılan kanal kimseye sunulmaz.
+                {text.channelsHint}
               </p>
-              {toggle('emailNotifications', 'E-posta bildirimleri', 'Seans hatırlatmaları, sabah planı ve haftalık özet e-postaları.')}
-              {toggle('pushNotifications', 'Tarayıcı bildirimleri', 'Sekme kapalıyken de gelen seans hatırlatmaları.')}
+              {toggle('emailNotifications', text.emailNotifications, text.emailNotificationsHint)}
+              {toggle('pushNotifications', text.pushNotifications, text.pushNotificationsHint)}
               <NotificationChannelStatus />
             </>
           )}
           {section === 'appearance' && (
             <>
-              <h2 className="text-base font-medium">Marka görünümü</h2>
-              {input('siteLogo', 'Logo URL', 'url')}
+              <h2 className="text-base font-medium">{text.brand}</h2>
+              {input('siteLogo', text.siteLogo, 'url')}
               {field(
                 'siteIcon',
-                'Site ikonu veya ikon URL',
+                text.siteIcon,
                 <input
                   id={`${prefix}-siteIcon`}
                   className="input"
@@ -335,20 +328,18 @@ function SettingsForm({
                 ))}
               </datalist>
               <p className="text-xs text-(--muted)">
-                Yerleşik ikon adlarından birini veya HTTP(S) görsel adresini
-                kullanın. Logo URL boşsa site ikonu gösterilir.
+                {text.brandHint}
               </p>
               <div className="grid gap-5 sm:grid-cols-2">
-                {input('primaryColor', 'Ana renk (HEX)')}
+                {input('primaryColor', text.primaryColor)}
               </div>
             </>
           )}
           {section === 'terminology' && (
             <>
-              <h2 className="text-base font-medium">Kelime seti</h2>
+              <h2 className="text-base font-medium">{text.terminology}</h2>
               <p className="text-sm text-(--muted)">
-                Arayüzdeki ana kavramların adı seçtiğiniz sete göre değişir. Kayıtlı veriler ve
-                yetkiler etkilenmez; yalnızca görünen kelimeler değişir.
+                {text.terminologyHint}
               </p>
               <TerminologyPresetPicker
                 name={`${prefix}-terminologyPreset`}
@@ -371,10 +362,10 @@ function SettingsForm({
           )}
           {section === 'backup' && (
             <>
-              <h2 className="text-base font-medium">Otomatik yedekleme</h2>
+              <h2 className="text-base font-medium">{text.autoBackup}</h2>
               {field(
                 'backup_interval',
-                'Otomatik yedekleme aralığı',
+                text.backupInterval,
                 <select
                   id={`${prefix}-backup_interval`}
                   className="input"
@@ -387,38 +378,24 @@ function SettingsForm({
                     })
                   }
                 >
-                  <option value="1">Her gün</option>
-                  <option value="5">5 günde bir</option>
-                  <option value="7">7 günde bir</option>
+                  <option value="1">{text.intervals['1']}</option>
+                  <option value="5">{text.intervals['5']}</option>
+                  <option value="7">{text.intervals['7']}</option>
                 </select>,
               )}
               <p className="text-sm text-(--muted)">
-                Son başarılı otomatik yedekten itibaren seçilen süre dolduğunda
-                yeni yedek alınır. Sistem her 5 dakikada bir kontrol eder.
+                {text.backupIntervalHint}
               </p>
             </>
           )}
         </fieldset>
         {Object.keys(errors).length > 0 && (
           <p role="alert" className="text-sm text-red-600">
-            Geçersiz alanlar:{' '}
-            {Object.keys(errors)
-              .map(
-                (key) =>
-                  ({
-                    siteName: 'Site adı',
-                    siteUrl: 'Site URL',
-                    siteDescription: 'Site açıklaması',
-                    adminEmail: 'Yönetici e-postası',
-                    sessionTimeout: 'Oturum süresi',
-                    primaryColor: 'Ana renk',
-                    customTerminology: 'Özel kelimeler',
-                    siteLogo: 'Logo URL',
-                    siteIcon: 'Site ikonu',
-                  })[key] ?? key,
-              )
-              .join(', ')}
-            . İlgili bölümdeki değerleri kontrol edin.
+            {text.invalidFields(
+              Object.keys(errors)
+                .map((key) => text.fieldNames[key] ?? key)
+                .join(', '),
+            )}
           </p>
         )}
         {!action && mutation.errorMessage && (
@@ -429,10 +406,10 @@ function SettingsForm({
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-(--line) pt-5">
           <p className="text-sm text-(--muted)" role="status">
             {mutation.isPending
-              ? 'İşlem sürüyor…'
+              ? text.working
               : dirty
-                ? 'Kaydedilmemiş değişiklikler var.'
-                : 'Kaydedilmemiş değişiklik yok.'}
+                ? text.unsaved
+                : text.noChanges}
           </p>
           <div className="flex gap-2">
             <button
@@ -441,14 +418,14 @@ function SettingsForm({
               disabled={busy || !dirty}
               onClick={() => resetDraft(adminSettings ?? baseline)}
             >
-              Değişikliklerden vazgeç
+              {text.discard}
             </button>
             <button
               type="submit"
               className="btn btn-primary"
               disabled={busy || !dirty}
             >
-              {mutation.isPending ? 'Bekleniyor…' : 'Değişiklikleri kaydet'}
+              {mutation.isPending ? text.waiting : text.saveChanges}
             </button>
           </div>
         </div>
@@ -467,7 +444,7 @@ function SettingsForm({
               void mutation
                 .save(
                   () => backupAPI.createBackup(),
-                  'Yedek doğrulandı ve sunucuda saklandı.',
+                  text.backupCreated,
                 )
                 .then((saved) => {
                   if (saved && current())
@@ -484,17 +461,17 @@ function SettingsForm({
           isOpen
           title={
             action.kind === 'restore'
-              ? `Yedeği geri yükle (#${action.backup.id})`
+              ? text.restoreTitle(action.backup.id)
               : action.mode === 'all'
-                ? 'Kullanıcı ve çalışma verilerini temizle'
-                : 'Site ayarlarını sıfırla'
+                ? text.resetAllTitle
+                : text.resetSettingsTitle
           }
           message={message}
           type="danger"
           confirmText={
             action.kind === 'restore'
-              ? 'Yedeği geri yükle'
-              : 'Sıfırlamayı uygula'
+              ? text.restoreConfirm
+              : text.resetConfirm
           }
           onClose={() => setAction(null)}
           onConfirm={confirm}
@@ -510,6 +487,7 @@ function SettingsForm({
   );
 }
 function SettingsWorkspace() {
+  const text = useText().siteSettings;
   const {
     adminSettings,
     fetchAdminSettings,
@@ -524,8 +502,8 @@ function SettingsWorkspace() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Site ayarları"
-        description="Site kimliğini, erişim kurallarını ve yedeklemeyi yönetin."
+        title={text.title}
+        description={text.description}
       />
       {error && (
         <div
@@ -538,7 +516,7 @@ function SettingsWorkspace() {
             disabled={isLoading}
             onClick={() => void fetchAdminSettings()}
           >
-            Ayarları tekrar yükle
+            {text.reload}
           </button>
         </div>
       )}
@@ -553,7 +531,7 @@ function SettingsWorkspace() {
           }}
         />
       ) : (
-        !error && <p role="status">Yönetim ayarları yükleniyor…</p>
+        !error && <p role="status">{text.loading}</p>
       )}
     </div>
   );

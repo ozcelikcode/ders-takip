@@ -13,10 +13,12 @@ import CatalogDeleteDialog, {
 } from '../../components/catalog/CatalogDeleteDialog';
 import { catalogIcon } from '../../components/catalog/catalogIcons';
 import PageHeader from '../../components/common/PageHeader';
+import { useText } from '../../store/languageStore';
 
 export default function AdminCoursesPage() {
   const keys = useAccountQueryKeys();
   const t = useTerms();
+  const text = useText().admin;
   const [search, setSearch] = useState('');
   const [editor, setEditor] = useState<{ course: CatalogCourse | null } | null>(
     null,
@@ -37,8 +39,8 @@ export default function AdminCoursesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`${t.course({ capitalize: true })} yönetimi`}
-        description={`${courses.length} ${t.course()} · Ortak ve kişisel ${t.course({ case: 'acc', plural: true })} yönetin.`}
+        title={text.coursesTitle(t)}
+        description={text.coursesDescription(t, courses.length)}
         actions={
           <>
             <button
@@ -46,21 +48,21 @@ export default function AdminCoursesPage() {
               onClick={() => setCategoryOpen(true)}
             >
               <Tag className="h-4 w-4" />
-              Kategoriler
+              {text.categories}
             </button>
             <button
               className="btn btn-primary"
               onClick={() => setEditor({ course: null })}
             >
               <Plus className="h-4 w-4" />
-              Ortak {t.course()} ekle
+              {text.addSharedCourse(t)}
             </button>
           </>
         }
       />
       <div className="relative max-w-lg">
         <label htmlFor="admin-course-search" className="sr-only">
-          {t.course({ capitalize: true })} veya kategori ara
+          {text.courseSearch(t)}
         </label>
         <Search className="absolute left-3 top-3 h-4 w-4 text-(--muted)" />
         <input
@@ -68,21 +70,21 @@ export default function AdminCoursesPage() {
           className="input pl-9"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder={`${t.course({ capitalize: true })} veya kategori ara…`}
+          placeholder={text.courseSearchPlaceholder(t)}
         />
       </div>
       {query.isPending ? (
         <p role="status" className="text-sm text-(--muted)">
-          {t.course({ plural: true, capitalize: true })} yükleniyor…
+          {text.coursesLoading(t)}
         </p>
       ) : query.isError ? (
         <div role="alert" className="panel p-6">
-          {t.course({ plural: true, capitalize: true })} yüklenemedi.{' '}
+          {text.coursesFailed(t)}{' '}
           <button
             className="btn btn-secondary ml-2"
             onClick={() => void query.refetch()}
           >
-            Tekrar dene
+            {text.retry}
           </button>
         </div>
       ) : (
@@ -95,9 +97,9 @@ export default function AdminCoursesPage() {
                   <Icon className="h-5 w-5" style={{ color: course.color }} />
                   <div className="flex gap-2">
                     <span className="badge">
-                      {course.isGlobal ? `Ortak ${t.course()}` : `Kişisel ${t.course()}`}
+                      {course.isGlobal ? text.sharedCourse(t) : text.personalCourse(t)}
                     </span>
-                    {!course.isActive && <span className="badge">Pasif</span>}
+                    {!course.isActive && <span className="badge">{text.inactive}</span>}
                   </div>
                 </div>
                 <p className="mt-4 text-xs text-(--muted)">
@@ -110,20 +112,20 @@ export default function AdminCoursesPage() {
                   </p>
                 )}
                 <p className="mb-4 mt-3 text-xs text-(--muted)">
-                  Sıra: {course.order}
+                  {text.order(course.order)}
                 </p>
                 <div className="mt-auto flex justify-end gap-2 border-t border-(--line) pt-4">
                   <button
                     className="btn btn-secondary"
-                    aria-label={`${t.course({ case: 'acc', capitalize: true })} düzenle: ${course.name}`}
+                    aria-label={text.editCourse(t, course.name)}
                     onClick={() => setEditor({ course })}
                   >
                     <Pencil className="h-3.5 w-3.5" />
-                    Düzenle
+                    {text.edit}
                   </button>
                   <button
                     className="btn btn-secondary text-red-600"
-                    aria-label={`${t.course({ case: 'acc', capitalize: true })} sil: ${course.name}`}
+                    aria-label={text.deleteCourse(t, course.name)}
                     onClick={() =>
                       setDeleting({
                         kind: 'course',
@@ -133,7 +135,7 @@ export default function AdminCoursesPage() {
                     }
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    Sil
+                    {text.delete}
                   </button>
                 </div>
               </article>
@@ -142,8 +144,8 @@ export default function AdminCoursesPage() {
           {filtered.length === 0 && (
             <p className="panel col-span-full p-8 text-center text-sm text-(--muted)">
               {term
-                ? `Aramaya uygun ${t.course()} bulunamadı.`
-                : `Henüz ${t.course()} eklenmedi.`}
+                ? text.noCourseMatch(t)
+                : text.noCourses(t)}
             </p>
           )}
         </div>

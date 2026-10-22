@@ -3,6 +3,7 @@ import { FolderOpen, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useLocale } from '../../lib/locale';
 import { addCourseName, removeCourseName, suggestedCourseNames, type OnboardingDraft } from './onboardingModel';
+import { useText } from '../../store/languageStore';
 
 interface FirstRecordsStepProps {
   id: string;
@@ -16,11 +17,11 @@ const tile = 'relative flex aspect-square flex-col rounded-xl border p-4';
 
 /** The first records as square tiles: typed in place, picked from suggestions, removed one by one. */
 export default function FirstRecordsStep({ id, draft, terms, onChange, onError }: FirstRecordsStepProps) {
+  const text = useText().onboarding;
   const { tag: localeTag } = useLocale();
   const [adding, setAdding] = useState(() => draft.pendingCourseName !== '');
   const inputRef = useRef<HTMLInputElement>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
-  const courseWord = terms.course({ capitalize: true });
   const full = draft.courseNames.length >= onboardingCourseLimit;
   const suggestions = full ? [] : suggestedCourseNames(draft);
 
@@ -61,12 +62,12 @@ export default function FirstRecordsStep({ id, draft, terms, onChange, onError }
   return (
     <div className="space-y-6">
       <div>
-        <label htmlFor={`${id}-category`} className="mb-2 block text-sm font-medium">Kategori</label>
+        <label htmlFor={`${id}-category`} className="mb-2 block text-sm font-medium">{text.category}</label>
         <div className="relative">
           <FolderOpen aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--muted)" />
           <input id={`${id}-category`} className="input pl-9" maxLength={100} value={draft.categoryName} onChange={(event) => onChange({ ...draft, categoryName: event.target.value })} />
         </div>
-        <p className="mt-2 text-xs text-(--muted)">Yalnız sana görünen kişisel bir kategori olarak oluşturulur; aynı adlı ortak bir kategori varsa o kullanılır.</p>
+        <p className="mt-2 text-xs text-(--muted)">{text.categoryHint}</p>
       </div>
 
       <div>
@@ -81,7 +82,7 @@ export default function FirstRecordsStep({ id, draft, terms, onChange, onError }
                 {courseName.charAt(0).toLocaleUpperCase(localeTag)}
               </span>
               <span className="line-clamp-3 wrap-break-word pr-1 text-sm font-medium">{courseName}</span>
-              <button type="button" aria-label={`${courseName} kaldır`} onClick={() => remove(courseName)} className="icon-button absolute right-2 top-2">
+              <button type="button" aria-label={text.remove(courseName)} onClick={() => remove(courseName)} className="icon-button absolute right-2 top-2">
                 <X className="h-4 w-4" />
               </button>
             </li>
@@ -90,7 +91,7 @@ export default function FirstRecordsStep({ id, draft, terms, onChange, onError }
             <li className="aspect-square">
               {adding ? (
                 <div className={`${tile} h-full justify-between gap-2 border-dashed border-(--solid) p-3`}>
-                  <label htmlFor={`${id}-new`} className="text-xs font-medium text-(--muted)">Yeni {terms.course()}</label>
+                  <label htmlFor={`${id}-new`} className="text-xs font-medium text-(--muted)">{text.newRecord(terms)}</label>
                   <input
                     ref={inputRef}
                     id={`${id}-new`}
@@ -102,8 +103,8 @@ export default function FirstRecordsStep({ id, draft, terms, onChange, onError }
                     onKeyDown={onKeyDown}
                   />
                   <div className="flex gap-2">
-                    <button type="button" className="btn btn-primary flex-1 px-2" onClick={submitTyped}>Ekle</button>
-                    <button type="button" className="btn btn-secondary px-2" onClick={cancel} aria-label="Eklemeyi bırak">
+                    <button type="button" className="btn btn-primary flex-1 px-2" onClick={submitTyped}>{text.add}</button>
+                    <button type="button" className="btn btn-secondary px-2" onClick={cancel} aria-label={text.stopAdding}>
                       <X className="h-4 w-4" />
                     </button>
                   </div>
@@ -116,26 +117,26 @@ export default function FirstRecordsStep({ id, draft, terms, onChange, onError }
                   className={`${tile} h-full w-full items-center justify-center gap-2 border-dashed border-(--line) text-sm text-(--muted) transition-colors hover:border-(--solid) hover:text-(--text)`}
                 >
                   <Plus aria-hidden="true" className="h-5 w-5" />
-                  {courseWord} ekle
+                  {text.addRecord(terms)}
                 </button>
               )}
             </li>
           )}
         </ul>
         {draft.courseNames.length === 0 && (
-          <p className="mt-3 text-xs text-(--muted)">Boş bırakırsan bu adım atlanır; {terms.course({ plural: true })} sonra da eklenebilir.</p>
+          <p className="mt-3 text-xs text-(--muted)">{text.emptyHint(terms)}</p>
         )}
       </div>
 
       {suggestions.length > 0 && (
         <div>
-          <p className="text-xs font-medium text-(--muted)">Hızlı ekle</p>
-          <div role="group" aria-label="Önerilen adlar" className="mt-2 flex flex-wrap gap-2">
+          <p className="text-xs font-medium text-(--muted)">{text.quickAdd}</p>
+          <div role="group" aria-label={text.suggestions} className="mt-2 flex flex-wrap gap-2">
             {suggestions.map((suggestion) => (
               <button
                 key={suggestion}
                 type="button"
-                aria-label={`${suggestion} ekle`}
+                aria-label={text.addSuggestion(suggestion)}
                 onClick={() => add(suggestion)}
                 className="inline-flex items-center gap-1 rounded-full border border-(--line) px-3 py-1.5 text-xs font-medium text-(--muted) transition-colors hover:bg-(--subtle) hover:text-(--text)"
               >

@@ -19,13 +19,12 @@ import {
   purposeIds,
   purposes,
   rhythmIds,
-  rhythms,
   stepError,
   steps,
   toOnboardingInput,
   type OnboardingDraft,
 } from './onboardingModel';
-import { useText } from '../../store/languageStore';
+import { useLanguage, useText } from '../../store/languageStore';
 
 const lastStep = steps.length - 1;
 
@@ -43,7 +42,8 @@ function ChoiceCard({ name, checked, onChange, title, children }: { name: string
 
 
 export default function WelcomePage() {
-  const calendarText = useText().calendar;
+  const { calendar: calendarText, onboarding: text } = useText();
+  const language = useLanguage();
   const preferences = useUserPreferencesStore((state) => state.preferences);
   const updatePreferences = useUserPreferencesStore((state) => state.updatePreferences);
   const firstName = useAuthStore((state) => state.user?.firstName);
@@ -56,7 +56,7 @@ export default function WelcomePage() {
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<'finish' | 'skip' | null>(null);
-  const terms = draft.purpose ? createTerms(purposes[draft.purpose].preset) : siteTerms;
+  const terms = draft.purpose ? createTerms(purposes[draft.purpose].preset, language) : siteTerms;
   const zones = useMemo(() => listTimezones(draft.timezone, browserTimezone()), [draft.timezone]);
   const mounted = useRef(false);
 
@@ -73,14 +73,14 @@ export default function WelcomePage() {
 
   const finish = async () => {
     const input = toOnboardingInput(draft);
-    if (!input) { setError('Cevaplardan biri geçersiz. Önceki adımları kontrol edin.'); return; }
+    if (!input) { setError(text.invalidAnswers); return; }
     setBusy('finish');
     try {
       await completeOnboarding(input);
       await queryClient.invalidateQueries();
-      toast.success('Her şey hazır.');
+      toast.success(text.ready);
     } catch (failure) {
-      setError(serverMessage(failure) || 'Kurulum kaydedilemedi. Lütfen tekrar deneyin.');
+      setError(serverMessage(failure) || text.saveFailed);
       setBusy(null);
     }
   };
@@ -89,9 +89,9 @@ export default function WelcomePage() {
     setBusy('skip');
     try {
       await updatePreferences({ onboarding: 'done' });
-      toast("Kurulumu istediğin zaman Ayarlar › Çalışma Tercihleri'nden yeniden başlatabilirsin.");
+      toast(text.skipped);
     } catch {
-      setError('Şu anda atlanamadı. Lütfen tekrar deneyin.');
+      setError(text.skipFailed);
       setBusy(null);
     }
   };
@@ -106,44 +106,44 @@ export default function WelcomePage() {
 
   const content: { title: string; description: string; body: ReactNode }[] = [
     {
-      title: firstName ? `Hoş geldin, ${firstName}` : 'Hoş geldin',
-      description: "Birkaç soruyla sayfanı sana göre hazırlayalım. Hepsini sonra Ayarlar'dan değiştirebilirsin.",
+      title: text.welcome(firstName),
+      description: text.welcomeHint,
       body: (
         <div className="space-y-6">
           <fieldset className="space-y-3">
-            <legend className="mb-3 text-sm font-medium">Bu hesabı ne için kullanacaksın?</legend>
+            <legend className="mb-3 text-sm font-medium">{text.purposeQuestion}</legend>
             {purposeIds.map((id) => {
-              const purpose = purposes[id];
-              const words = createTerms(purpose.preset);
+              const purpose = text.purposes[id];
+              const words = createTerms(purposes[id].preset, language);
               return (
                 <ChoiceCard key={id} name={`${prefix}-purpose`} checked={draft.purpose === id} onChange={() => { setDraft(choosePurpose(draft, id)); setError(null); }} title={purpose.label}>
                   {purpose.description}
-                  <span className="mt-1 block text-xs">Kelimeler: {words.course({ capitalize: true })} → {words.topic({ capitalize: true })}</span>
+                  <span className="mt-1 block text-xs">{text.words(words.course({ capitalize: true }), words.topic({ capitalize: true }))}</span>
                 </ChoiceCard>
               );
             })}
           </fieldset>
           <div>
-            <label htmlFor={`${prefix}-studyField`} className="mb-2 block text-sm font-medium">Odak alanı <span className="font-normal text-(--muted)">(isteğe bağlı)</span></label>
-            <input id={`${prefix}-studyField`} className="input" maxLength={60} value={draft.studyField} onChange={(event) => update({ studyField: event.target.value })} placeholder="Örn. üniversite hazırlığı, ürün yönetimi, İspanyolca" />
+            <label htmlFor={`${prefix}-studyField`} className="mb-2 block text-sm font-medium">{text.studyField} <span className="font-normal text-(--muted)">{text.optional}</span></label>
+            <input id={`${prefix}-studyField`} className="input" maxLength={60} value={draft.studyField} onChange={(event) => update({ studyField: event.target.value })} placeholder={text.studyFieldPlaceholder} />
           </div>
         </div>
       ),
     },
     {
-      title: 'Zamanını planlayalım',
-      description: 'Günlük hedefini saat ya da dakika olarak seç; haftalık hedef aktif günlerinden hesaplanır.',
+      title: text.timeTitle,
+      description: text.timeHint,
       body: (
         <div className="space-y-6">
           <div>
-            <label htmlFor={`${prefix}-timezone`} className="mb-2 block text-sm font-medium">Saat dilimi</label>
+            <label htmlFor={`${prefix}-timezone`} className="mb-2 block text-sm font-medium">{text.timezone}</label>
             <select id={`${prefix}-timezone`} className="input" value={draft.timezone} onChange={(event) => update({ timezone: event.target.value })}>
               {zones.map((zone) => <option key={zone} value={zone}>{zone}</option>)}
             </select>
           </div>
           <div>
-            <p className="mb-2 text-sm font-medium">Hafta başlangıcı</p>
-            <div role="group" aria-label="Hafta başlangıcı" className="segmented-control">
+            <p className="mb-2 text-sm font-medium">{text.weekStart}</p>
+            <div role="group" aria-label={text.weekStart} className="segmented-control">
               {weekStartDays.map((day) => (
                 <button key={day} type="button" aria-pressed={draft.weekStartsOn === day} onClick={() => update({ weekStartsOn: day })} className={`segment ${draft.weekStartsOn === day ? 'segment-active' : ''}`}>
                   {calendarText.weekStarts[day]}
@@ -152,51 +152,51 @@ export default function WelcomePage() {
             </div>
           </div>
           <div>
-            <p className="mb-2 text-sm font-medium">Aktif günler</p>
-            <WeekdayPicker label="Aktif günler" value={draft.activeStudyDays} weekStart={draft.weekStartsOn} onChange={(activeStudyDays) => update({ activeStudyDays })} />
-            <p className="mt-2 text-xs text-(--muted)">Günlük hedef yalnız bu günlerde uygulanır.</p>
+            <p className="mb-2 text-sm font-medium">{text.activeDays}</p>
+            <WeekdayPicker label={text.activeDays} value={draft.activeStudyDays} weekStart={draft.weekStartsOn} onChange={(activeStudyDays) => update({ activeStudyDays })} />
+            <p className="mt-2 text-xs text-(--muted)">{text.activeDaysHint}</p>
           </div>
-          <GoalDurationInput id={`${prefix}-daily`} label="Günlük hedef" minutes={draft.dailyGoalMinutes} onChange={(dailyGoalMinutes) => update({ dailyGoalMinutes })} />
+          <GoalDurationInput id={`${prefix}-daily`} label={text.dailyGoal} minutes={draft.dailyGoalMinutes} onChange={(dailyGoalMinutes) => update({ dailyGoalMinutes })} />
           <WeeklyGoalSummary dailyMinutes={draft.dailyGoalMinutes} activeDays={draft.activeStudyDays.length} />
         </div>
       ),
     },
     {
-      title: 'Çalışma ritmin',
-      description: 'Odak zamanlayıcısı bu sürelerle başlar; istediğin an değiştirebilirsin.',
+      title: text.rhythmTitle,
+      description: text.rhythmHint,
       body: (
         <fieldset className="space-y-3">
-          <legend className="sr-only">Çalışma ritmi</legend>
+          <legend className="sr-only">{text.rhythmLegend}</legend>
           {rhythmIds.map((id) => (
-            <ChoiceCard key={id} name={`${prefix}-rhythm`} checked={draft.rhythm === id} onChange={() => update({ rhythm: id })} title={rhythms[id].label}>
-              {rhythms[id].description}
+            <ChoiceCard key={id} name={`${prefix}-rhythm`} checked={draft.rhythm === id} onChange={() => update({ rhythm: id })} title={text.rhythms[id].label}>
+              {text.rhythms[id].description}
             </ChoiceCard>
           ))}
         </fieldset>
       ),
     },
     {
-      title: `İlk ${terms.course({ plural: true })}`,
-      description: `Üzerinde çalışacağın ${terms.course({ plural: true })} ekle; panon bunlarla hazırlanır.`,
+      title: text.recordsTitle(terms),
+      description: text.recordsHint(terms),
       body: (
         <FirstRecordsStep id={prefix} draft={draft} terms={terms} onChange={(next) => setDraft(next)} onError={setError} />
       ),
     },
     {
-      title: 'Özet',
-      description: 'Onaylarsan sayfan bu cevaplara göre hazırlanır.',
+      title: text.summaryTitle,
+      description: text.summaryHint,
       body: (
         <dl className="divide-y divide-(--line) rounded-lg border border-(--line) text-sm">
           {[
-            ['Kullanım', draft.purpose ? purposes[draft.purpose].label : '—'],
-            ['Kelimeler', `${terms.course({ capitalize: true })} → ${terms.topic({ capitalize: true })} · ${terms.session({ capitalize: true })}`],
-            ['Odak alanı', draft.studyField.trim() || 'Belirtilmedi'],
-            ['Saat dilimi', draft.timezone],
-            ['Hafta başlangıcı', calendarText.weekStarts[draft.weekStartsOn]],
-            ['Aktif günler', orderedWeekdays(draft.weekStartsOn).filter((day) => draft.activeStudyDays.includes(day)).map((day) => calendarText.weekdaysShort[day]).join(', ') || 'Seçilmedi'],
-            ['Hedefler', draft.dailyGoalMinutes ? `Günde ${formatGoalMinutes(draft.dailyGoalMinutes)} · Haftada ${formatGoalMinutes(draft.dailyGoalMinutes * draft.activeStudyDays.length)}` : 'Hedef yok'],
-            ['Ritim', `${rhythms[draft.rhythm].label}: ${rhythms[draft.rhythm].description}`],
-            ['İlk kayıtlar', draft.courseNames.length ? `${draft.categoryName.trim()}: ${draft.courseNames.join(', ')}` : 'Eklenmeyecek'],
+            [text.summary.purpose, draft.purpose ? text.purposes[draft.purpose].label : '—'],
+            [text.summary.words, `${terms.course({ capitalize: true })} → ${terms.topic({ capitalize: true })} · ${terms.session({ capitalize: true })}`],
+            [text.summary.studyField, draft.studyField.trim() || text.notSet],
+            [text.summary.timezone, draft.timezone],
+            [text.summary.weekStart, calendarText.weekStarts[draft.weekStartsOn]],
+            [text.summary.activeDays, orderedWeekdays(draft.weekStartsOn).filter((day) => draft.activeStudyDays.includes(day)).map((day) => calendarText.weekdaysShort[day]).join(', ') || text.noneSelected],
+            [text.summary.goals, draft.dailyGoalMinutes ? text.goalsLine(formatGoalMinutes(draft.dailyGoalMinutes, language), formatGoalMinutes(draft.dailyGoalMinutes * draft.activeStudyDays.length, language)) : text.noGoal],
+            [text.summary.rhythm, `${text.rhythms[draft.rhythm].label}: ${text.rhythms[draft.rhythm].description}`],
+            [text.summary.records, draft.courseNames.length ? `${draft.categoryName.trim()}: ${draft.courseNames.join(', ')}` : text.noRecords],
           ].map(([term, detail]) => (
             <div key={term} className="grid gap-1 px-4 py-3 sm:grid-cols-[10rem_1fr]">
               <dt className="text-(--muted)">{term}</dt>
@@ -215,19 +215,19 @@ export default function WelcomePage() {
         <div className="flex items-center justify-between gap-4">
           <Brand />
           <button type="button" className="text-sm text-(--muted) underline-offset-4 hover:text-(--text) hover:underline disabled:opacity-50" onClick={() => void skip()} disabled={busy !== null}>
-            Şimdilik atla
+            {text.skip}
           </button>
         </div>
         <div className="space-y-2">
-          <ol aria-label="Kurulum adımları" className="grid grid-cols-5 gap-2">
-            {steps.map((label, index) => (
-              <li key={label} aria-current={index === step ? 'step' : undefined} className="space-y-1.5">
+          <ol aria-label={text.stepsLabel} className="grid grid-cols-5 gap-2">
+            {steps.map((id, index) => (
+              <li key={id} aria-current={index === step ? 'step' : undefined} className="space-y-1.5">
                 <span aria-hidden="true" className={`block h-1 rounded-full ${index <= step ? 'bg-(--solid)' : 'bg-(--line)'}`} />
-                <span className={`hidden text-xs sm:block ${index === step ? 'font-medium text-(--text)' : 'text-(--muted)'}`}>{label}</span>
+                <span className={`hidden text-xs sm:block ${index === step ? 'font-medium text-(--text)' : 'text-(--muted)'}`}>{text.steps[id]}</span>
               </li>
             ))}
           </ol>
-          <p className="text-xs text-(--muted)">Adım {step + 1} / {steps.length}</p>
+          <p className="text-xs text-(--muted)">{text.stepOf(step + 1, steps.length)}</p>
         </div>
         <form className="panel" onSubmit={submit} noValidate>
           <div className="space-y-6 p-6 sm:p-8">
@@ -240,10 +240,10 @@ export default function WelcomePage() {
           </div>
           <div className="flex items-center justify-between gap-3 border-t border-(--line) px-6 py-4 sm:px-8">
             <button type="button" className="btn btn-secondary" onClick={() => goTo(step - 1)} disabled={step === 0 || busy !== null}>
-              Geri
+              {text.back}
             </button>
             <button type="submit" className="btn btn-primary" disabled={busy !== null}>
-              {step < lastStep ? 'İleri' : busy === 'finish' ? 'Hazırlanıyor…' : 'Kurulumu bitir'}
+              {step < lastStep ? text.next : busy === 'finish' ? text.preparing : text.finish}
             </button>
           </div>
         </form>

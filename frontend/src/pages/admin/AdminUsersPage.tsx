@@ -25,6 +25,7 @@ import { usersAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useText } from '../../store/languageStore';
+import { useLocale } from '../../lib/locale';
 
 type UserAction = { user: ManagedUser; kind: 'delete' | 'role' | 'status' };
 
@@ -35,7 +36,7 @@ function UserActionDialog({
   action: UserAction;
   onClose: () => void;
 }) {
-  const roles = useText().roles;
+  const { roles, admin: text } = useText();
   const t = useTerms();
   const keys = useAccountQueryKeys();
   const mutation = useAccountMutation([keys.resource()]);
@@ -44,24 +45,24 @@ function UserActionDialog({
   const name = `${user.firstName} ${user.lastName}`;
   const title =
     kind === 'delete'
-      ? 'Kullanıcıyı sil'
+      ? text.deleteUser
       : kind === 'role'
-        ? 'Kullanıcı rolünü değiştir'
+        ? text.changeRole
         : user.isActive
-          ? 'Hesabı pasifleştir'
-          : 'Hesabı aktifleştir';
+          ? text.deactivate
+          : text.activate;
   const message =
     kind === 'delete'
-      ? `“${name}” hesabı, bu hesaba ait özel ${t.course({ plural: true })}, ${t.topic({ plural: true })}, planlar, ${t.session({ plural: true })} ve ilerleme kayıtları kalıcı olarak silinecek. Ortak ${t.course({ plural: true })} korunur. Bu işlem geri alınamaz.`
+      ? text.deleteUserMessage(t, name)
       : kind === 'role'
-        ? `“${name}” hesabının yeni rolü: ${roles[nextRole]}. ${nextRole === 'admin' ? 'Yönetim paneline ve sistem ayarlarına erişebilecek.' : 'Yönetim paneline erişimi kaldırılacak.'} Rol değişikliği mevcut oturumlarını kapatır.`
-        : `“${name}” hesabı ${user.isActive ? 'pasifleştirilecek ve giriş yapamayacak' : 'aktifleştirilecek ve yeniden giriş yapabilecek'}. Verileri korunur. Hesap durumu değişikliği mevcut oturumlarını kapatır.`;
+        ? text.roleMessage(name, roles[nextRole], nextRole === 'admin')
+        : text.statusMessage(name, user.isActive);
   return (
     <ConfirmDialog
       isOpen
       title={title}
       message={message}
-      confirmText={kind === 'delete' ? 'Kullanıcıyı sil' : 'Uygula'}
+      confirmText={kind === 'delete' ? text.deleteUser : text.apply}
       type={kind === 'delete' ? 'danger' : 'warning'}
       onClose={onClose}
       onConfirm={() => {
@@ -78,7 +79,7 @@ function UserActionDialog({
                     ? { role: nextRole }
                     : { isActive: !user.isActive },
                 ),
-          kind === 'delete' ? 'Kullanıcı silindi.' : 'Kullanıcı güncellendi.',
+          kind === 'delete' ? text.userDeleted : text.userUpdated,
         );
       }}
     >
@@ -92,7 +93,8 @@ function UserActionDialog({
 }
 
 function UserManagement() {
-  const roles = useText().roles;
+  const { roles, admin: text } = useText();
+  const { tag } = useLocale();
   const t = useTerms();
   const { user: currentUser } = useAuthStore();
   const keys = useAccountQueryKeys();
@@ -124,19 +126,19 @@ function UserManagement() {
   }, [data, filters.page]);
   const date = (value?: string | null) =>
     value
-      ? new Intl.DateTimeFormat('tr-TR', {
+      ? new Intl.DateTimeFormat(tag, {
           dateStyle: 'medium',
           timeZone: timezone,
         }).format(new Date(value))
-      : 'Henüz yok';
+      : text.never;
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Kullanıcı yönetimi"
+        title={text.usersTitle}
         description={
           data
-            ? `${data.pagination.total} ${filters.search ? 'sonuç' : 'kullanıcı'} · Hesapları ve erişim yetkilerini yönetin.`
-            : 'Hesapları ve erişim yetkilerini yönetin.'
+            ? `${text.usersCount(data.pagination.total, !!filters.search)} · ${text.usersDescription}`
+            : text.usersDescription
         }
         actions={
           <button
@@ -145,7 +147,7 @@ function UserManagement() {
             onClick={() => setCreating(true)}
           >
             <Plus className="h-4 w-4" />
-            Kullanıcı oluştur
+            {text.createUser}
           </button>
         }
       />
@@ -156,11 +158,11 @@ function UserManagement() {
         }}
         className="flex max-w-2xl flex-wrap items-center gap-2"
         role="search"
-        aria-label="Kullanıcılarda ara"
+        aria-label={text.searchUsers}
       >
         <div className="relative min-w-0 flex-1 basis-56">
           <label className="sr-only" htmlFor="admin-user-search">
-            Kullanıcı ara
+            {text.userSearch}
           </label>
           <Search className="absolute left-3 top-3 h-4 w-4 text-(--muted)" />
           <input
@@ -168,13 +170,13 @@ function UserManagement() {
             className="input pl-9 pr-9"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Ad, e-posta veya kullanıcı adı…"
+            placeholder={text.userSearchPlaceholder}
           />
           {search && (
             <button
               type="button"
               className="absolute right-2 top-2 p-1 text-(--muted)"
-              aria-label="Aramayı temizle"
+              aria-label={text.clearSearch}
               onClick={() => {
                 setSearch('');
                 setFilters({ search: '', page: 1 });
@@ -185,7 +187,7 @@ function UserManagement() {
           )}
         </div>
         <button className="btn btn-secondary" type="submit">
-          Ara
+          {text.search}
         </button>
       </form>
       {query.isPending ? (
@@ -193,16 +195,16 @@ function UserManagement() {
           className="py-8 text-center text-sm text-(--muted)"
           role="status"
         >
-          Kullanıcılar yükleniyor…
+          {text.usersLoading}
         </p>
       ) : query.isError ? (
         <div className="panel p-6" role="alert">
-          Kullanıcılar yüklenemedi.{' '}
+          {text.usersLoadFailed}{' '}
           <button
             className="btn btn-secondary ml-2"
             onClick={() => void query.refetch()}
           >
-            Tekrar dene
+            {text.retry}
           </button>
         </div>
       ) : (
@@ -230,12 +232,12 @@ function UserManagement() {
                             </span>
                             {!user.isActive && (
                               <span className="badge border text-(--muted)">
-                                Pasif
+                                {text.inactive}
                               </span>
                             )}
                             {self && (
                               <span className="text-xs text-(--muted)">
-                                Siz
+                                {text.you}
                               </span>
                             )}
                           </div>
@@ -243,14 +245,14 @@ function UserManagement() {
                             @{user.username} · {user.email}
                           </p>
                           <p className="mt-1 text-xs text-(--muted)">
-                            Katılma: {date(user.createdAt)}
+                            {text.joinedOn(date(user.createdAt))}
                           </p>
                         </div>
                       </div>
                       <Menu as="div" className="relative shrink-0">
                         <MenuButton
                           className="icon-button"
-                          aria-label={`${name} için işlemler`}
+                          aria-label={text.userActions(name)}
                         >
                           <MoreHorizontal className="h-5 w-5" />
                         </MenuButton>
@@ -260,21 +262,21 @@ function UserManagement() {
                               {
                                 kind: 'status',
                                 label: user.isActive
-                                  ? 'Pasifleştir'
-                                  : 'Aktifleştir',
+                                  ? text.deactivateAction
+                                  : text.activateAction,
                                 icon: Shield,
                               },
                               {
                                 kind: 'role',
                                 label:
                                   user.role === 'admin'
-                                    ? 'Kullanıcı yap'
-                                    : 'Yönetici yap',
+                                    ? text.makeUser
+                                    : text.makeAdmin,
                                 icon: UserRound,
                               },
                               {
                                 kind: 'delete',
-                                label: 'Kullanıcıyı sil',
+                                label: text.deleteUser,
                                 icon: Trash2,
                               },
                             ] as const
@@ -305,14 +307,13 @@ function UserManagement() {
                                 className={`flex w-full items-center gap-2 border-t px-4 py-2 text-left text-sm disabled:opacity-40 ${focus ? 'bg-(--subtle)' : ''}`}
                               >
                                 <KeyRound className="h-4 w-4" />
-                                Şifre sıfırlama bağlantısı
+                                {text.resetLinkTitle}
                               </button>
                             )}
                           </MenuItem>
                           {self && (
                             <p className="border-t px-4 py-2 text-xs text-(--muted)">
-                              Kendi yönetici erişiminizi buradan
-                              değiştiremezsiniz.
+                              {text.selfLocked}
                             </p>
                           )}
                         </MenuItems>
@@ -320,16 +321,16 @@ function UserManagement() {
                     </div>
                     <dl className="mt-5 grid grid-cols-2 gap-4 border-t pt-4 sm:grid-cols-4">
                       {[
-                        [`Toplam ${t.session()}`, user.stats?.totalSessions ?? '—'],
-                        ['Tamamlanan', user.stats?.completedSessions ?? '—'],
+                        [text.totalSessions(t), user.stats?.totalSessions ?? '—'],
+                        [text.completed, user.stats?.completedSessions ?? '—'],
                         [
-                          'Ölçülen çalışma',
+                          text.measuredStudy,
                           user.stats
-                            ? `${Math.round(user.stats.studySeconds / 360) / 10} sa`
+                            ? text.hours(Math.round(user.stats.studySeconds / 360) / 10)
                             : '—',
                         ],
                         [
-                          'Son aktivite',
+                          text.lastActivity,
                           user.stats ? date(user.stats.lastActivity) : '—',
                         ],
                       ].map(([label, value]) => (
@@ -349,19 +350,18 @@ function UserManagement() {
               {data.users.length === 0 && (
                 <p className="panel p-10 text-center text-sm text-(--muted)">
                   {filters.search
-                    ? 'Aramanıza uygun kullanıcı bulunamadı.'
-                    : 'Henüz kullanıcı bulunmuyor.'}
+                    ? text.noUserMatch
+                    : text.noUsersYet}
                 </p>
               )}
             </div>
             <nav
-              aria-label="Kullanıcı sayfaları"
+              aria-label={text.userPages}
               className="flex flex-wrap items-center justify-between gap-3 border-t pt-4"
             >
               <p className="text-sm text-(--muted)">
-                Sayfa {data.pagination.current} /{' '}
-                {Math.max(1, data.pagination.pages)} · {data.pagination.total}{' '}
-                {filters.search ? 'sonuç' : 'kullanıcı'}
+                {text.page(data.pagination.current, Math.max(1, data.pagination.pages))} ·{' '}
+                {text.usersCount(data.pagination.total, !!filters.search)}
               </p>
               <div className="flex gap-2">
                 <button
@@ -375,7 +375,7 @@ function UserManagement() {
                   }
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Önceki
+                  {text.previous}
                 </button>
                 <button
                   className="btn btn-secondary"
@@ -389,7 +389,7 @@ function UserManagement() {
                     }))
                   }
                 >
-                  Sonraki
+                  {text.next}
                   <ChevronRight className="h-4 w-4" />
                 </button>
               </div>

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
 // Interface text lives in frontend/src/i18n; this guard finds text written straight into screens.
-// `--list` prints a per-file count instead of failing (used while screens are being moved over).
+// `--list` prints a per-file count instead of failing.
 const listOnly = process.argv.includes('--list');
 const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z', 'frontend/src'])
   .toString().split('\0')

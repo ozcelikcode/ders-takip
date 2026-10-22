@@ -70,7 +70,7 @@ Tasarım paketi kapanışında: 22 backend + 8 frontend = 30 test (tarihsel), st
 ## Kontroller ve kanıt
 
 - `npm run setup`: npm ci → configure → build; DB'ye yazmaz.
-- `npm run check`: ASCII teknik adlandırma → iki workspace typecheck → sıfır uyarılı lint → testler → build.
+- `npm run check`: ASCII teknik adlandırma → ekranlarda sabit arayüz metni yok (`check:text`) → iki workspace typecheck → sıfır uyarılı lint → testler → build.
 - TypeScript strict/optional/no-unused ayarları gevşetilmedi. ESLint temel JS/TS doğruluk ve unused kurallarını, hooks rules-of-hooks kuralını uygular. Frontend transport `services/httpClient.ts`'tedir (fetch; hesap taşıması `api` ve çerez-yalnız `authTransport`; eski axios kesicilerinin mantığı `request` içinde açıkça yazılı); hata/yanıt tipleri yan etkisiz `services/httpError.ts`'te (`HttpError`, `CanceledError`, `isHttpError`, `serverMessage`); `services/api.ts` kaynak API'lerini toplar. `@typescript-eslint/no-explicit-any` artık `error`dur ve kaynakta 0 `any` vardır (19 Ekim temizliği); bütün hooks/exhaustive-deps sorunları kapatılmış değildir; disable yorumuyla bastırma eklenmedi.
 - Güncel check: **18 contracts + 143 backend + 200 frontend = 361 workspace testi**, ayrıca **36 browser yürütmesi/150 axe taraması ve 12 Lighthouse ölçümü**, atlanan yok; strict typecheck, sıfır uyarılı lint ve iki production build başarılı. Backend WAL/restore/rollback ve oturum yarışları, frontend gerçek HTTP transport ile eşzamanlı/geç 401 dahil.
 - Yerel yeni admin ile giriş, reload/cookie bootstrap ve manuel snapshot tarayıcıda doğrulandı; gerçek DB'de reset/restore/seed yapılmadı.

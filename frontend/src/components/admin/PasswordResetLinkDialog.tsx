@@ -3,6 +3,8 @@ import type { PasswordResetLink } from '@study-tracker/contracts';
 import { serverMessage } from '../../services/httpError';
 import { useState } from 'react';
 import { usersAPI } from '../../services/api';
+import { useText } from '../../store/languageStore';
+import { useLocale } from '../../lib/locale';
 
 interface PasswordResetLinkDialogProps {
   userId: string;
@@ -12,6 +14,8 @@ interface PasswordResetLinkDialogProps {
 
 /** Issues a one-time reset link the administrator hands over out of band. */
 export default function PasswordResetLinkDialog({ userId, name, onClose }: PasswordResetLinkDialogProps) {
+  const text = useText().admin;
+  const { tag } = useLocale();
   const [link, setLink] = useState<PasswordResetLink | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
@@ -24,7 +28,7 @@ export default function PasswordResetLinkDialog({ userId, name, onClose }: Passw
       setLink(await usersAPI.createPasswordResetLink(userId));
     } catch (failure) {
       setError(
-        serverMessage(failure) ?? 'Bağlantı oluşturulamadı.',
+        serverMessage(failure) ?? text.resetLinkFailed,
       );
     } finally {
       setPending(false);
@@ -36,7 +40,7 @@ export default function PasswordResetLinkDialog({ userId, name, onClose }: Passw
       await navigator.clipboard.writeText(link.url);
       setCopied(true);
     } catch {
-      setError('Kopyalanamadı; bağlantıyı seçip elle kopyalayın.');
+      setError(text.copyFailed);
     }
   };
 
@@ -45,33 +49,32 @@ export default function PasswordResetLinkDialog({ userId, name, onClose }: Passw
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel className="panel w-full max-w-lg space-y-4 p-6 shadow-xl">
-          <DialogTitle className="text-lg font-medium">Şifre sıfırlama bağlantısı</DialogTitle>
+          <DialogTitle className="text-lg font-medium">{text.resetLinkTitle}</DialogTitle>
           <Description className="text-sm text-(--muted)">
-            “{name}” için tek kullanımlık, 30 dakika geçerli bir bağlantı oluşturulur ve önceki bağlantılar geçersiz olur.
-            Bağlantıyı yalnızca hesap sahibine güvenli bir kanaldan iletin.
+            {text.resetLinkDescription(name)}
           </Description>
           {link ? (
             <div className="space-y-2">
-              <label htmlFor="reset-link" className="block text-sm font-medium">Bağlantı</label>
+              <label htmlFor="reset-link" className="block text-sm font-medium">{text.link}</label>
               <input id="reset-link" readOnly className="input font-mono text-xs" value={link.url} onFocus={(event) => event.target.select()} />
               <p className="text-xs text-(--muted)">
-                Son geçerlilik: {new Date(link.expiresAt).toLocaleString('tr-TR')}
+                {text.expiresAt(new Date(link.expiresAt).toLocaleString(tag))}
               </p>
             </div>
           ) : null}
           {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-          {copied && <p role="status" className="text-sm">Bağlantı kopyalandı.</p>}
+          {copied && <p role="status" className="text-sm">{text.copied}</p>}
           <div className="flex justify-end gap-2">
             <button type="button" className="btn btn-secondary" disabled={pending} onClick={onClose}>
-              Kapat
+              {text.close}
             </button>
             {link ? (
               <button type="button" className="btn btn-primary" onClick={() => void copy()}>
-                Kopyala
+                {text.copy}
               </button>
             ) : (
               <button type="button" className="btn btn-primary" disabled={pending} onClick={() => void create()}>
-                {pending ? 'Oluşturuluyor…' : 'Bağlantı oluştur'}
+                {pending ? text.creating : text.createLink}
               </button>
             )}
           </div>

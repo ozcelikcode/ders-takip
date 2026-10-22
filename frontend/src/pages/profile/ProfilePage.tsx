@@ -17,9 +17,11 @@ import AccountInfoCard from './AccountInfoCard';
 import PasswordCard from './PasswordCard';
 import ProfilePictureCard from './ProfilePictureCard';
 import type { PasswordFormState, ProfileFormState } from './profileForm';
+import { useText } from '../../store/languageStore';
 
 const ProfilePage = () => {
   const { user } = useAuthStore();
+  const text = useText().profile;
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingPassword, setIsEditingPassword] = useState(false);
   const [imageInputType, setImageInputType] = useState<'url' | 'file'>('url');
@@ -57,12 +59,12 @@ const ProfilePage = () => {
     mutationFn: (data: ProfilePatch) =>
       useAuthStore.getState().updateProfile(data),
     onSuccess: () => {
-      toast.success('Profil başarıyla güncellendi');
+      toast.success(text.profileUpdated);
       setIsEditingProfile(false);
     },
     onError: (error: unknown) => {
       toast.error(
-        serverMessage(error) || 'Profil güncellenirken hata oluştu',
+        serverMessage(error) || text.profileUpdateFailed,
       );
     },
   });
@@ -73,7 +75,7 @@ const ProfilePage = () => {
       return authAPI.changePassword(data);
     },
     onSuccess: () => {
-      toast.success('Şifre başarıyla değiştirildi');
+      toast.success(text.passwordChanged);
       setPasswordForm({
         currentPassword: '',
         newPassword: '',
@@ -83,7 +85,7 @@ const ProfilePage = () => {
     },
     onError: (error: unknown) => {
       toast.error(
-        serverMessage(error) || 'Şifre değiştirilirken hata oluştu',
+        serverMessage(error) || text.passwordChangeFailed,
       );
     },
   });
@@ -99,7 +101,7 @@ const ProfilePage = () => {
     });
     if (!parsed.success) {
       toast.error(
-        parsed.error.issues[0]?.message ?? 'Profil alanlarını kontrol edin',
+        parsed.error.issues[0]?.message ?? text.checkProfile,
       );
       return;
     }
@@ -115,12 +117,12 @@ const ProfilePage = () => {
       !passwordForm.newPassword ||
       !passwordForm.confirmPassword
     ) {
-      toast.error('Lütfen tüm alanları doldurun');
+      toast.error(text.fillAll);
       return;
     }
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error('Yeni şifreler eşleşmiyor');
+      toast.error(text.passwordsMismatch);
       return;
     }
 
@@ -130,7 +132,7 @@ const ProfilePage = () => {
     });
     if (!parsed.success) {
       toast.error(
-        parsed.error.issues[0]?.message ?? 'Şifre alanlarını kontrol edin',
+        parsed.error.issues[0]?.message ?? text.checkPassword,
       );
       return;
     }
@@ -155,7 +157,7 @@ const ProfilePage = () => {
     // Check file size (max 5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      toast.error('Dosya boyutu en fazla 5MB olabilir');
+      toast.error(text.fileTooLarge);
       return;
     }
 
@@ -168,7 +170,7 @@ const ProfilePage = () => {
       'image/bmp',
     ];
     if (!allowedTypes.includes(file.type.toLowerCase())) {
-      toast.error('Desteklenen formatlar: WebP, JPG, JPEG, PNG, BMP');
+      toast.error(text.fileTypes);
       return;
     }
 
@@ -176,10 +178,10 @@ const ProfilePage = () => {
     const reader = new FileReader();
     reader.onloadend = () => {
       setProfileForm({ ...profileForm, profileImage: reader.result as string });
-      toast.success('Resim başarıyla yüklendi');
+      toast.success(text.imageLoaded);
     };
     reader.onerror = () => {
-      toast.error('Dosya yüklenirken hata oluştu');
+      toast.error(text.imageFailed);
     };
     reader.readAsDataURL(file);
   };
@@ -187,7 +189,7 @@ const ProfilePage = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Profil" description="Profil bilgilerinizi ve ayarlarınızı yönetin" />
+      <PageHeader title={text.title} description={text.description} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Profile Picture & Account Info */}
@@ -210,14 +212,14 @@ const ProfilePage = () => {
           <div className="panel">
             <div className="panel-heading">
               <h2 className="text-base font-medium">
-                Profil Bilgileri
+                {text.infoTitle}
               </h2>
               {!isEditingProfile && (
                 <button
                   onClick={() => setIsEditingProfile(true)}
                   className="btn btn-secondary text-sm py-1.5 px-3"
                 >
-                  Düzenle
+                  {text.edit}
                 </button>
               )}
             </div>
@@ -226,7 +228,7 @@ const ProfilePage = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="profile-firstName" className="mb-2 block text-sm font-medium">
-                      Ad *
+                      {text.firstName}
                     </label>
                     {isEditingProfile ? (
                       <input id="profile-firstName"
@@ -249,7 +251,7 @@ const ProfilePage = () => {
                   </div>
                   <div>
                     <label htmlFor="profile-lastName" className="mb-2 block text-sm font-medium">
-                      Soyad *
+                      {text.lastName}
                     </label>
                     {isEditingProfile ? (
                       <input id="profile-lastName"
@@ -274,7 +276,7 @@ const ProfilePage = () => {
 
                 <div>
                   <label htmlFor="profile-username" className="mb-2 block text-sm font-medium">
-                    Kullanıcı Adı *
+                    {text.username}
                   </label>
                   {isEditingProfile ? (
                     <input id="profile-username"
@@ -298,7 +300,7 @@ const ProfilePage = () => {
 
                 <div>
                   <label className="mb-2 block text-sm font-medium">
-                    E-posta
+                    {text.email}
                   </label>
                   <div className="flex items-center gap-2 py-2">
                     <Mail className="h-4 w-4 text-(--muted)" />
@@ -306,14 +308,14 @@ const ProfilePage = () => {
                       {user?.email}
                     </p>
                     <span className="text-xs text-(--muted)">
-                      (değiştirilemez)
+                      {text.emailFixed}
                     </span>
                   </div>
                 </div>
 
                 <div>
                   <label htmlFor="profile-studyField" className="mb-2 block text-sm font-medium">
-                    Odak alanı
+                    {text.studyField}
                   </label>
                   {isEditingProfile ? (
                     <input
@@ -327,12 +329,12 @@ const ProfilePage = () => {
                           studyField: e.target.value,
                         })
                       }
-                      placeholder="Örn. Yazılım, tasarım, sınav hazırlığı"
+                      placeholder={text.studyFieldPlaceholder}
                       className="input"
                     />
                   ) : (
                     <p className="py-2">
-                      {user?.preferences?.studyField || 'Belirtilmemiş'}
+                      {user?.preferences?.studyField || text.notSet}
                     </p>
                   )}
                 </div>
@@ -346,8 +348,8 @@ const ProfilePage = () => {
                     >
                       <Save className="h-4 w-4" />
                       {updateProfileMutation.isPending
-                        ? 'Kaydediliyor...'
-                        : 'Kaydet'}
+                        ? text.saving
+                        : text.save}
                     </button>
                     <button
                       type="button"
@@ -355,7 +357,7 @@ const ProfilePage = () => {
                       disabled={updateProfileMutation.isPending}
                       className="btn btn-secondary"
                     >
-                      İptal
+                      {text.cancel}
                     </button>
                   </div>
                 )}

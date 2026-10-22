@@ -10,8 +10,7 @@ import { useLanguage, useText } from '../../store/languageStore';
 import { formatMeasuredSeconds } from '@study-tracker/contracts';
 
 function AdminOverview() {
-  const roles = useText().roles;
-  const sessionText = useText().session;
+  const { roles, session: sessionText, admin: text } = useText();
   const language = useLanguage();
   const keys = useAccountQueryKeys();
   const t = useTerms();
@@ -37,43 +36,43 @@ function AdminOverview() {
   const stats = data
     ? [
         {
-          label: 'Kullanıcılar',
+          label: text.users,
           value: data.users.total,
-          detail: `${data.users.active} aktif hesap`,
+          detail: text.activeAccounts(data.users.active),
         },
         {
           label: t.course({ plural: true, capitalize: true }),
           value: data.courses.total,
-          detail: `${data.courses.active} aktif ${t.course()}`,
+          detail: text.activeCourses(t, data.courses.active),
         },
         {
           label: t.session({ plural: true, capitalize: true }),
           value: data.sessions.totalSessions,
-          detail: `${data.sessions.completedSessions} tamamlanan`,
+          detail: text.completedCount(data.sessions.completedSessions),
         },
         {
-          label: 'Ölçülen çalışma',
+          label: text.measuredStudy,
           value: formatMeasuredSeconds(data.sessions.studySeconds, language),
-          detail: 'Tüm kullanıcılar · Mola ve duraklama hariç',
+          detail: text.measuredStudyDetail,
         },
       ]
     : [];
   const shortcuts = [
     {
-      title: 'Kullanıcı yönetimi',
-      detail: 'Hesaplar ve erişim yetkileri',
+      title: text.usersShortcut,
+      detail: text.usersShortcutDetail,
       href: '/admin/users',
       icon: Users,
     },
     {
-      title: `${t.course({ capitalize: true })} yönetimi`,
-      detail: `Ortak ve kişisel ${t.course({ plural: true })}`,
+      title: text.coursesShortcut(t),
+      detail: text.coursesShortcutDetail(t),
       href: '/admin/courses',
       icon: BookOpen,
     },
     {
-      title: 'Site ayarları',
-      detail: 'Site kimliği, kurallar ve yedekler',
+      title: text.settingsShortcut,
+      detail: text.settingsShortcutDetail,
       href: '/admin/settings',
       icon: Settings,
     },
@@ -81,26 +80,26 @@ function AdminOverview() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Yönetim özeti"
-        description={`Tüm kullanıcıların hesap, ${t.course()} ve çalışma verilerine genel bakış.`}
+        title={text.overviewTitle}
+        description={text.overviewDescription(t)}
       />
-      <section aria-label="Sistem özeti" aria-busy={overview.isFetching}>
+      <section aria-label={text.systemSummary} aria-busy={overview.isFetching}>
         {overview.isPending ? (
           <p role="status" className="panel p-6 text-sm text-(--muted)">
-            Yönetim özeti yükleniyor…
+            {text.overviewLoading}
           </p>
         ) : overview.isError ? (
           <div
             role="alert"
             className="panel flex flex-wrap items-center gap-3 p-6"
           >
-            <p>Yönetim özeti alınamadı.</p>
+            <p>{text.overviewFailed}</p>
             <button
               className="btn btn-secondary"
               disabled={overview.isFetching}
               onClick={() => void overview.refetch()}
             >
-              Özeti tekrar yükle
+              {text.overviewRetry}
             </button>
           </div>
         ) : (
@@ -120,7 +119,7 @@ function AdminOverview() {
         )}
       </section>
       <nav
-        aria-label="Yönetim kısayolları"
+        aria-label={text.shortcuts}
         className="grid gap-3 lg:grid-cols-3"
       >
         {shortcuts.map((item) => (
@@ -151,34 +150,34 @@ function AdminOverview() {
         >
           <div className="panel-heading">
             <h2 id="recent-admin-users" className="text-sm font-medium">
-              Son kullanıcılar
+              {text.recentUsers}
             </h2>
             <Link
               to="/admin/users"
               className="text-xs text-(--muted) underline"
             >
-              Tüm kullanıcılar
+              {text.allUsers}
             </Link>
           </div>
           <div className="p-5">
             {users.isPending ? (
               <p role="status" className="text-sm text-(--muted)">
-                Kullanıcılar yükleniyor…
+                {text.usersLoading}
               </p>
             ) : users.isError ? (
               <div role="alert" className="space-y-3">
-                <p>Kullanıcılar alınamadı.</p>
+                <p>{text.usersFailed}</p>
                 <button
                   className="btn btn-secondary"
                   disabled={users.isFetching}
                   onClick={() => void users.refetch()}
                 >
-                  Kullanıcıları tekrar yükle
+                  {text.usersRetry}
                 </button>
               </div>
             ) : users.data.length === 0 ? (
               <p className="text-sm text-(--muted)">
-                Henüz kullanıcı yok.
+                {text.noUsers}
               </p>
             ) : (
               <ul className="divide-y divide-(--line)">
@@ -217,21 +216,21 @@ function AdminOverview() {
         >
           <div className="panel-heading">
             <h2 id="recent-admin-sessions" className="text-sm font-medium">
-              Son {t.session({ plural: true })}
+              {text.recentSessions(t)}
             </h2>
           </div>
           <div className="p-5">
             {overview.isPending ? (
               <p role="status" className="text-sm text-(--muted)">
-                {t.session({ plural: true, capitalize: true })} yükleniyor…
+                {text.sessionsLoading(t)}
               </p>
             ) : overview.isError ? (
               <p role="status" className="text-sm text-(--muted)">
-                {t.session({ plural: true, capitalize: true })} için yönetim özetini tekrar yükleyin.
+                {text.sessionsNeedOverview(t)}
               </p>
             ) : data?.recentSessions.length === 0 ? (
               <p className="text-sm text-(--muted)">
-                Henüz {t.session()} yok.
+                {text.noSessions(t)}
               </p>
             ) : (
               <ul className="divide-y divide-(--line)">
@@ -245,8 +244,11 @@ function AdminOverview() {
                         {session.title}
                       </p>
                       <p className="mt-1 wrap-break-word text-xs leading-5 text-(--muted)">
-                        {session.userName} · Plan: {session.duration} dakika ·{' '}
-                        {sessionText.types[session.sessionType as keyof typeof sessionText.types] ?? sessionText.otherType}
+                        {text.sessionLine(
+                          session.userName,
+                          session.duration,
+                          sessionText.types[session.sessionType as keyof typeof sessionText.types] ?? sessionText.otherType,
+                        )}
                       </p>
                     </div>
                     <span className="badge">

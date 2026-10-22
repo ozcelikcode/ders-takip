@@ -58,7 +58,7 @@ Kullanıcıları ve ortak kataloğu yönetir, site kimliğini ve varsayılan kel
 1. **Alan bağımsız ve kişiye uyarlanabilir:** Kelime seti, kişisel kategori, hedef ve ritim kullanıcıda.
 2. **Ölçülen süre:** Plan ile gerçekleşen ayrılır.
 3. **Planlama + odak + istatistik tek yerde.**
-4. **Türkçe öncelikli, sade arayüz;** çeviri altyapısı yol haritasında (R10).
+4. **Türkçe öncelikli, sade arayüz;** İngilizce arayüz de var (R10b); sunucu mesajları R10c'de.
 
 ## Bilinçli olarak şimdilik yok
 
