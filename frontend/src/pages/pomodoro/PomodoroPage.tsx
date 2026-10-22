@@ -9,9 +9,10 @@ import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useCurrentDateKey } from '../../hooks/useCurrentDateKey';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { studySessionsAPI } from '../../services/api';
+import { useText } from '../../store/languageStore';
 
-const statusLabels = { planned: 'Planlandı', in_progress: 'Devam ediyor', paused: 'Duraklatıldı', completed: 'Tamamlandı', cancelled: 'İptal edildi' };
 export default function PomodoroPage() {
+  const sessionText = useText().session;
   const t = useTerms();
   const timezone = useUserPreferencesStore(state => state.preferences.timezone);
   const keys = useAccountQueryKeys();
@@ -45,7 +46,7 @@ export default function PomodoroPage() {
             <div className="max-h-[640px] space-y-2 overflow-y-auto">
               {sessions.map(session => <button key={session.id} className={`w-full rounded-md border p-3 text-left ${selectedId === session.id ? 'border-(--muted) bg-(--subtle)' : 'border-transparent hover:border-(--line)'}`} onClick={() => setSelectedId(session.id)} aria-pressed={selectedId === session.id}>
                 <span className="block text-sm font-medium">{session.title}</span>
-                <span className="mt-1 block text-xs text-(--muted)">{dateKeyInZone(new Date(session.startTime), timezone)} · {formatZonedTime(session.startTime, timezone)} · {statusLabels[session.status]}</span>
+                <span className="mt-1 block text-xs text-(--muted)">{dateKeyInZone(new Date(session.startTime), timezone)} · {formatZonedTime(session.startTime, timezone)} · {sessionText.statuses[session.status]}</span>
               </button>)}
             </div>
           </section>

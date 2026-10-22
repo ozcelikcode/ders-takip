@@ -1,9 +1,9 @@
 import { CalendarDate, calendarViewDate, daysSinceWeekStart, defaultWeekStart, type WeekStart } from '@study-tracker/contracts';
 import { DateTime } from 'luxon';
-import { appLocale } from '../lib/locale';
+import { currentLocaleTag } from '../lib/locale';
 
 const fromView = (date: Date) => DateTime.fromMillis(date.getTime(), { zone: 'UTC' });
-export const format = (date: Date, pattern: string, _options?: unknown) => fromView(date).setLocale(appLocale).toFormat(pattern.replace('EEEE', 'cccc'));
+export const format = (date: Date, pattern: string, _options?: unknown) => fromView(date).setLocale(currentLocaleTag()).toFormat(pattern.replace('EEEE', 'cccc'));
 export const addDays = (date: Date, days: number) => new CalendarDate(fromView(date).plus({ days }).toMillis());
 export const startOfWeek = (date: Date, weekStart: WeekStart = defaultWeekStart) => {
   const day = fromView(date).startOf('day');

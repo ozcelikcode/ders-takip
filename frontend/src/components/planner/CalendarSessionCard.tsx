@@ -5,6 +5,7 @@ import { formatZonedTime } from '@study-tracker/contracts';
 import type { StudySession } from '../../types/planner';
 import { canStartSession } from '../../utils/sessionHelpers';
 import { canRepositionSession } from './calendarGeometry';
+import { useText } from '../../store/languageStore';
 
 interface Props {
   session: StudySession;
@@ -35,13 +36,8 @@ export default function CalendarSessionCard(props: Props) {
   const { session, timezone, top, height, pending } = props;
   const compact = height < 68;
   const canStart = canStartSession(session);
-  const status = {
-    planned: 'Planlandı',
-    in_progress: 'Devam ediyor',
-    paused: 'Duraklatıldı',
-    completed: 'Tamamlandı',
-    cancelled: 'İptal edildi',
-  }[session.status];
+  const { common, planner: text, session: sessionText } = useText();
+  const status = sessionText.statuses[session.status];
   return (
     <div
       className={`absolute group rounded-sm border border-(--line) bg-(--surface) text-(--text) ${props.dragging ? 'opacity-30' : ''} ${session.status === 'completed' || session.status === 'cancelled' ? 'opacity-60' : ''}`}
@@ -61,7 +57,7 @@ export default function CalendarSessionCard(props: Props) {
         event.stopPropagation();
         props.onEdit();
       }}
-      title={`${session.title} (${formatZonedTime(session.startTime, timezone)} · ${session.duration} dk · ${status})`}
+      title={`${session.title} (${formatZonedTime(session.startTime, timezone)} · ${common.minutesShort(session.duration)} · ${status})`}
     >
       <div
         className={`flex h-full overflow-hidden ${compact ? 'items-center gap-1 px-1' : 'flex-col gap-1 p-1.5'}`}
@@ -77,7 +73,7 @@ export default function CalendarSessionCard(props: Props) {
           {compact && (
             <button
               className="min-h-6 min-w-0 flex-1 truncate text-left text-[11px] font-medium"
-              aria-description={`${formatZonedTime(session.startTime, timezone)} · ${session.duration} dakika · ${status}`}
+              aria-description={`${formatZonedTime(session.startTime, timezone)} · ${common.minutesLong(session.duration)} · ${status}`}
               onClick={(event) => {
                 event.stopPropagation();
                 props.onEdit();
@@ -96,8 +92,8 @@ export default function CalendarSessionCard(props: Props) {
                 disabled={pending || !canStart}
                 aria-label={
                   session.sessionType === 'pomodoro'
-                    ? 'Pomodoro sayacını aç'
-                    : `${t.session({ case: 'acc', capitalize: true })} başlat`
+                    ? text.openTimer
+                    : text.start(t)
                 }
                 onClick={props.onStart}
                 className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm hover:bg-(--subtle) disabled:opacity-40"
@@ -110,7 +106,7 @@ export default function CalendarSessionCard(props: Props) {
                 {session.sessionType === 'pomodoro' && (
                   <button
                     disabled={pending}
-                    aria-label="Pomodoro sayacını aç"
+                    aria-label={text.openTimer}
                     onClick={props.onTimer}
                     className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm hover:bg-(--subtle)"
                   >
@@ -119,7 +115,7 @@ export default function CalendarSessionCard(props: Props) {
                 )}
                 <button
                   disabled={pending}
-                  aria-label={`${t.session({ case: 'acc', capitalize: true })} duraklat`}
+                  aria-label={text.pause(t)}
                   onClick={props.onPause}
                   className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm hover:bg-(--subtle)"
                 >
@@ -127,7 +123,7 @@ export default function CalendarSessionCard(props: Props) {
                 </button>
                 <button
                   disabled={pending}
-                  aria-label={`${t.session({ case: 'acc', capitalize: true })} tamamla`}
+                  aria-label={text.complete(t)}
                   onClick={props.onComplete}
                   className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm hover:bg-(--subtle)"
                 >
@@ -138,7 +134,7 @@ export default function CalendarSessionCard(props: Props) {
             <button
               disabled={pending}
               ref={props.actionRef}
-              aria-label={`${session.title}: işlemler`}
+              aria-label={text.actions(session.title)}
               onClick={props.onActions}
               className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm hover:bg-(--subtle)"
             >
@@ -149,7 +145,7 @@ export default function CalendarSessionCard(props: Props) {
         {!compact && (
           <button
             className="min-h-6 min-w-0 truncate text-left text-xs font-medium"
-            aria-description={`${formatZonedTime(session.startTime, timezone)} · ${session.duration} dakika · ${status}`}
+            aria-description={`${formatZonedTime(session.startTime, timezone)} · ${common.minutesLong(session.duration)} · ${status}`}
             onClick={(event) => {
               event.stopPropagation();
               props.onEdit();
@@ -160,7 +156,7 @@ export default function CalendarSessionCard(props: Props) {
         )}
         {height >= 90 && (
           <span className="truncate text-[10px] text-(--muted)">
-            {session.duration} dk · {status}
+            {common.minutesShort(session.duration)} · {status}
           </span>
         )}
       </div>

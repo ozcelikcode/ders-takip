@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { useText } from '../../store/languageStore';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -7,10 +8,11 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { isAuthenticated, isLoading } = useAuthStore();
+  const loading = useText().common.loading;
   const location = useLocation();
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div role="status">{loading}</div>;
   }
 
   if (!isAuthenticated) {

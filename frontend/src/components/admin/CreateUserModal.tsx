@@ -1,4 +1,3 @@
-import { roleLabel } from '../../lib/roleLabels';
 import { useId, useState, type FormEvent } from 'react';
 import {
   createManagedUserSchema,
@@ -9,12 +8,14 @@ import { useAuthStore } from '../../store/authStore';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useAccountMutation } from '../../hooks/useAccountMutation';
 import EditorDialog from '../common/EditorDialog';
+import { useText } from '../../store/languageStore';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
 }
 function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
+  const roles = useText().roles;
   const keys = useAccountQueryKeys();
   const mutation = useAccountMutation([keys.resource()]);
   const prefix = useId();
@@ -178,8 +179,8 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
             })
           }
         >
-          <option value="student">{roleLabel('student')}</option>
-          <option value="admin">Yönetici</option>
+          <option value="student">{roles.student}</option>
+          <option value="admin">{roles.admin}</option>
         </select>
         {form.role === 'admin' && (
           <p className="mt-2 text-sm text-(--muted)">

@@ -1,10 +1,13 @@
 import { createTerms } from '@study-tracker/contracts';
+import { tr } from '../i18n/tr';
 import { describe, expect, it } from 'vitest';
 import { buildRecommendations, type RecommendationInput } from './recommendations';
 
 const hour = 3600;
 const base: RecommendationInput = {
   terms: createTerms('education'),
+  text: tr.recommendations,
+  language: 'tr',
   courses: [
     { id: 1, name: 'Matematik', topicCount: 3, editable: true },
     { id: 2, name: 'Fizik', topicCount: 2, editable: true },

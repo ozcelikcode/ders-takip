@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { timezoneSchema, weekStartSchema, defaultWeekStart, type WeekStart } from './time.js';
 import { customTerminologySchema, terminologyPresetSchema, type CustomTerminology, type TerminologyPresetId } from './terminology.js';
-import { defaultLanguage, languageSchema } from './language.js';
+import { defaultLanguage, languageSchema, type Language } from './language.js';
 import { defaultNotificationPreferences, notificationPreferencesSchema, type NotificationPreferences } from './notifications.js';
 
 export const onboardingStateSchema = z.enum(['pending', 'done']);
@@ -89,12 +89,25 @@ export const mergePreferences = <T extends UserPreferences>(stored: T, patch: Pr
 export const resolveNotifications = (preferences: Pick<UserPreferences, 'notifications'>): NotificationPreferences =>
   preferences.notifications ?? defaultNotificationPreferences;
 
-/** A goal or duration in whole minutes: "45 dk", "2 sa", "1 sa 30 dk"; "Hedef yok" for zero. */
-export const formatGoalMinutes = (minutes: number): string => {
+const durationUnits: Record<Language, { hours: string; minutes: string; seconds: string; noGoal: string }> = {
+  tr: { hours: 'sa', minutes: 'dk', seconds: 'sn', noGoal: 'Hedef yok' },
+  en: { hours: 'h', minutes: 'min', seconds: 's', noGoal: 'No goal' },
+};
+/** A goal or duration in whole minutes: "45 dk", "2 sa", "1 sa 30 dk" ("45 min", "2 h"); "Hedef yok" for zero. */
+export const formatGoalMinutes = (minutes: number, language: Language = defaultLanguage): string => {
+  const unit = durationUnits[language];
   const total = Math.max(0, Math.round(minutes));
-  if (total === 0) return 'Hedef yok';
+  if (total === 0) return unit.noGoal;
   const hours = Math.floor(total / 60);
   const rest = total % 60;
-  if (!hours) return `${rest} dk`;
-  return rest ? `${hours} sa ${rest} dk` : `${hours} sa`;
+  if (!hours) return `${rest} ${unit.minutes}`;
+  return rest ? `${hours} ${unit.hours} ${rest} ${unit.minutes}` : `${hours} ${unit.hours}`;
+};
+/** Measured time from seconds: "40 sn", "5 dk 0 sn", "2 sa 5 dk" ("40 s", "5 min 0 s", "2 h 5 min"). */
+export const formatMeasuredSeconds = (seconds: number, language: Language = defaultLanguage): string => {
+  const unit = durationUnits[language];
+  const value = Math.max(0, Math.floor(seconds));
+  if (value < 60) return `${value} ${unit.seconds}`;
+  if (value < 3600) return `${Math.floor(value / 60)} ${unit.minutes} ${value % 60} ${unit.seconds}`;
+  return `${Math.floor(value / 3600)} ${unit.hours} ${Math.floor((value % 3600) / 60)} ${unit.minutes}`;
 };

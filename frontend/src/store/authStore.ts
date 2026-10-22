@@ -9,6 +9,7 @@ import { authAPI, onboardingAPI } from '../services/api';
 import { unsubscribeBrowser } from '../lib/push';
 import type { CompleteOnboardingInput } from '@study-tracker/contracts';
 import type { LoginCredentials, RegisterData, User } from '../types/auth';
+import { useLanguageStore } from './languageStore';
 
 interface AuthState {
   user: User | null;
@@ -51,7 +52,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     if (localStorage.getItem('auth-logout-pending')) await finishLogout();
     const epoch = get().epoch + 1;
     set({ epoch });
-    const response = await authAPI.login(credentials).catch(error => { toast.error(serverMessage(error) || 'Giriş yapılamadı'); throw error; });
+    const response = await authAPI.login(credentials).catch(error => { toast.error(serverMessage(error) || useLanguageStore.getState().text.errors.signInFailed); throw error; });
     if (get().epoch !== epoch) throw new Error('Authentication attempt superseded');
     set({ user: response.data.data.user, accessToken: response.data.data.tokens.accessToken, isAuthenticated: true, isLoading: false });
     notifyPeers();
@@ -62,7 +63,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     if (localStorage.getItem('auth-logout-pending')) await finishLogout();
     const epoch = get().epoch + 1;
     set({ epoch });
-    const response = await authAPI.register(data).catch(error => { toast.error(serverMessage(error) || 'Kayıt oluşturulamadı'); throw error; });
+    const response = await authAPI.register(data).catch(error => { toast.error(serverMessage(error) || useLanguageStore.getState().text.errors.signUpFailed); throw error; });
     if (get().epoch !== epoch) throw new Error('Authentication attempt superseded');
     set({ user: response.data.data.user, accessToken: response.data.data.tokens.accessToken, isAuthenticated: true, isLoading: false });
     notifyPeers();

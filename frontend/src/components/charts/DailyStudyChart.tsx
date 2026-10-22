@@ -2,7 +2,8 @@ import { formatGoalMinutes } from '@study-tracker/contracts';
 import { format } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, LabelList, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { dateFnsLocale, weekdayLabel } from '../../lib/locale';
+import { useLocale } from '../../lib/locale';
+import { useText } from '../../store/languageStore';
 
 interface DailyStudyChartProps {
   days: readonly { date: string; studySeconds: number }[];
@@ -10,13 +11,15 @@ interface DailyStudyChartProps {
   dailyGoal: number;
 }
 
-const studied = (minutes: number) => (Math.round(minutes) === 0 ? 'Çalışma yok' : formatGoalMinutes(minutes));
-
 /**
  * Measured study per day as bars with the daily goal as a reference line. The drawing is hidden
  * from assistive technology; a visually hidden table carries the same numbers.
  */
 const DailyStudyChart = ({ days, dailyGoal }: DailyStudyChartProps) => {
+  const weekdays = useText().calendar.weekdaysShort;
+  const text = useText().chart;
+  const { language, dateFns } = useLocale();
+  const studied = (minutes: number) => (Math.round(minutes) === 0 ? text.noStudyDay : formatGoalMinutes(minutes, language));
   // Detect dark mode reactively
   const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
 
@@ -42,14 +45,14 @@ const DailyStudyChart = ({ days, dailyGoal }: DailyStudyChartProps) => {
         const minutes = studySeconds / 60;
         return {
           key,
-          name: days.length <= 7 ? weekdayLabel(date.getDay()) : format(date, 'd.MM'),
-          fullName: format(date, 'EEEE', { locale: dateFnsLocale }),
-          date: format(date, 'dd MMM', { locale: dateFnsLocale }),
+          name: days.length <= 7 ? weekdays[date.getDay()]! : format(date, 'd.MM'),
+          fullName: format(date, 'EEEE', { locale: dateFns }),
+          date: format(date, 'dd MMM', { locale: dateFns }),
           hours: minutes / 60,
           minutes,
         };
       }),
-    [days],
+    [days, dateFns, weekdays],
   );
 
   // Show measured activity without converting historical plans into actual work.
@@ -57,8 +60,8 @@ const DailyStudyChart = ({ days, dailyGoal }: DailyStudyChartProps) => {
   if (totalMinutes === 0) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400">
-        <p className="text-sm font-medium mb-2">Henüz ölçülmüş çalışma yok</p>
-        <p className="text-sm">Çalışmayı başlattığınızda ölçülen süre burada görünecek</p>
+        <p className="text-sm font-medium mb-2">{text.emptyTitle}</p>
+        <p className="text-sm">{text.emptyHint}</p>
       </div>
     );
   }
@@ -100,7 +103,7 @@ const DailyStudyChart = ({ days, dailyGoal }: DailyStudyChartProps) => {
               labelStyle={{ color: isDarkMode ? '#f3f4f6' : '#171717', fontWeight: 600, marginBottom: '4px' }}
               formatter={(value, name) =>
                 name === 'hours' && typeof value === 'number'
-                  ? [`${Math.round(value * 60 * 10) / 10} dakika`, 'Çalışma Süresi']
+                  ? [text.tooltipMinutes(Math.round(value * 60 * 10) / 10), text.tooltipStudy]
                   : value
               }
               labelFormatter={(label, payload) => {
@@ -113,7 +116,7 @@ const DailyStudyChart = ({ days, dailyGoal }: DailyStudyChartProps) => {
                 y={dailyGoal}
                 stroke={isDarkMode ? '#a1a1a1' : '#666666'}
                 strokeDasharray="4 4"
-                label={{ value: 'Günlük hedef', position: 'insideTopRight', fill: isDarkMode ? '#a1a1a1' : '#666666', fontSize: 11 }}
+                label={{ value: text.dailyGoal, position: 'insideTopRight', fill: isDarkMode ? '#a1a1a1' : '#666666', fontSize: 11 }}
               />
             )}
             <Bar
@@ -127,7 +130,7 @@ const DailyStudyChart = ({ days, dailyGoal }: DailyStudyChartProps) => {
                 position="top"
                 style={{ fill: isDarkMode ? '#d1d5db' : '#4b5563', fontSize: 10, fontWeight: 600 }}
                 offset={10}
-                formatter={(val) => (typeof val === 'number' && val > 0 ? `${Math.round(val * 60)} dk` : '')}
+                formatter={(val) => (typeof val === 'number' && val > 0 ? text.barMinutes(Math.round(val * 60)) : '')}
               />}
             </Bar>
           </BarChart>
@@ -135,12 +138,12 @@ const DailyStudyChart = ({ days, dailyGoal }: DailyStudyChartProps) => {
       </div>
       <table className="sr-only">
         <caption>
-          Günlük ölçülen çalışma{dailyGoal > 0 ? `; günlük hedef ${formatGoalMinutes(dailyGoal * 60)}` : ''}
+          {text.caption(dailyGoal > 0 ? formatGoalMinutes(dailyGoal * 60, language) : undefined)}
         </caption>
         <thead>
           <tr>
-            <th scope="col">Gün</th>
-            <th scope="col">Ölçülen çalışma</th>
+            <th scope="col">{text.day}</th>
+            <th scope="col">{text.measured}</th>
           </tr>
         </thead>
         <tbody>

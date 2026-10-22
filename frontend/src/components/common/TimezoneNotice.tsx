@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { browserTimezone } from '../../lib/locale';
 import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
+import { useText } from '../../store/languageStore';
 
 const dismissKey = (userId: string, zone: string) => `timezone-notice:${userId}:${zone}`;
 const isDismissed = (key: string) => {
@@ -19,6 +20,7 @@ export default function TimezoneNotice() {
   const timezone = useUserPreferencesStore((state) => state.preferences.timezone);
   const updatePreferences = useUserPreferencesStore((state) => state.updatePreferences);
   const [hidden, setHidden] = useState(false);
+  const text = useText().timezone;
   const detected = browserTimezone();
   if (!userId || !detected || detected === timezone || hidden) return null;
   const key = dismissKey(userId, detected);
@@ -33,12 +35,12 @@ export default function TimezoneNotice() {
   };
   return (
     <section
-      aria-label="Saat dilimi önerisi"
+      aria-label={text.label}
       className="panel mb-6 flex flex-wrap items-center justify-between gap-3 p-4 text-sm"
     >
       <p>
-        Tarayıcınızın saat dilimi <strong className="font-medium">{detected}</strong>, hesabınız{' '}
-        <strong className="font-medium">{timezone}</strong> kullanıyor.
+        {text.mismatch[0]}<strong className="font-medium">{detected}</strong>{text.mismatch[1]}
+        <strong className="font-medium">{timezone}</strong>{text.mismatch[2]}
       </p>
       <div className="flex gap-2">
         <button
@@ -46,14 +48,14 @@ export default function TimezoneNotice() {
           className="btn btn-primary"
           onClick={() =>
             void updatePreferences({ timezone: detected })
-              .then(() => toast.success('Saat dilimi güncellendi'))
-              .catch(() => toast.error('Saat dilimi güncellenemedi'))
+              .then(() => toast.success(text.updated))
+              .catch(() => toast.error(text.updateFailed))
           }
         >
-          {detected} kullan
+          {text.use(detected)}
         </button>
         <button type="button" className="btn btn-secondary" onClick={dismiss}>
-          Böyle kalsın
+          {text.keep}
         </button>
       </div>
     </section>

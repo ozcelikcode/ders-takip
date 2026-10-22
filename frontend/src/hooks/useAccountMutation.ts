@@ -3,6 +3,7 @@ import { serverMessage } from '../services/httpError';
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
+import { useLanguageStore } from '../store/languageStore';
 
 export function useAccountMutation(invalidateKeys: readonly QueryKey[]) {
   const client = useQueryClient();
@@ -41,7 +42,7 @@ export function useAccountMutation(invalidateKeys: readonly QueryKey[]) {
     } catch (error) {
       if (mounted.current && useAuthStore.getState().epoch === epoch) {
         setErrorMessage(
-          serverMessage(error) ?? 'İşlem tamamlanamadı. Lütfen tekrar deneyin.',
+          serverMessage(error) ?? useLanguageStore.getState().text.common.actionFailed,
         );
       }
       return false;

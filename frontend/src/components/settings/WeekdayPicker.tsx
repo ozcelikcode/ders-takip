@@ -1,5 +1,6 @@
 import type { WeekStart } from '@study-tracker/contracts';
-import { orderedWeekdays, weekdayLabel } from '../../lib/locale';
+import { orderedWeekdays } from '../../lib/locale';
+import { useText } from '../../store/languageStore';
 
 interface WeekdayPickerProps {
   label: string;
@@ -10,6 +11,7 @@ interface WeekdayPickerProps {
 
 /** Toggle buttons for JS weekdays (0 = Sunday), listed from the chosen week start. */
 export default function WeekdayPicker({ label, value, weekStart, onChange }: WeekdayPickerProps) {
+  const weekdays = useText().calendar.weekdaysShort;
   return (
     <div role="group" aria-label={label} className="flex flex-wrap gap-2">
       {orderedWeekdays(weekStart).map((day) => {
@@ -26,7 +28,7 @@ export default function WeekdayPicker({ label, value, weekStart, onChange }: Wee
                 : 'border-(--line) text-(--muted) hover:bg-(--subtle) hover:text-(--text)'
             }`}
           >
-            {weekdayLabel(day)}
+            {weekdays[day]}
           </button>
         );
       })}

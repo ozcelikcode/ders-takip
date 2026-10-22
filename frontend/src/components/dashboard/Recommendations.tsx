@@ -12,6 +12,7 @@ import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import type { CatalogCourse } from '../../types/catalog';
 import { buildRecommendations, type RecommendationKind } from '../../utils/recommendations';
 import { isActiveStudyDay, summarizeGoals } from '../../utils/studyGoals';
+import { useLanguage, useText } from '../../store/languageStore';
 
 const icons: Record<RecommendationKind, LucideIcon> = {
   'first-course': BookOpen,
@@ -30,6 +31,8 @@ const openStatuses = new Set(['planned', 'in_progress', 'paused']);
 /** Next steps built from the user's own records, plans, goals and measured time. */
 export default function Recommendations() {
   const t = useTerms();
+  const text = useText().recommendations;
+  const language = useLanguage();
   const keys = useAccountQueryKeys();
   const user = useAuthStore((state) => state.user);
   const preferences = useUserPreferencesStore((state) => state.preferences);
@@ -60,6 +63,8 @@ export default function Recommendations() {
         const accountStart = user?.createdAt ? dateKeyInZone(new Date(user.createdAt), preferences.timezone) : today;
         return buildRecommendations({
           terms: t,
+          text,
+          language,
           courses: (courses.data ?? []).filter((course) => course.isActive && isOwnOrShared(course, user)).map((course) => ({
             id: course.id,
             name: course.name,
@@ -78,14 +83,14 @@ export default function Recommendations() {
     <section aria-labelledby="recommendations-heading" className="panel">
       <div className="panel-heading">
         <div>
-          <h2 id="recommendations-heading" className="text-sm font-medium">Öneriler</h2>
-          <p className="mt-1 text-xs text-(--muted)">Hedeflerine, planına ve bu haftaki çalışmana göre</p>
+          <h2 id="recommendations-heading" className="text-sm font-medium">{text.title}</h2>
+          <p className="mt-1 text-xs text-(--muted)">{text.hint}</p>
         </div>
       </div>
       {loading ? (
-        <p role="status" className="p-5 text-sm text-(--muted)">Öneriler yükleniyor…</p>
+        <p role="status" className="p-5 text-sm text-(--muted)">{text.loading}</p>
       ) : failed ? (
-        <p className="p-5 text-sm text-red-600 dark:text-red-400">Öneriler şu anda hazırlanamadı.</p>
+        <p className="p-5 text-sm text-red-600 dark:text-red-400">{text.failed}</p>
       ) : (
         <ul className="grid divide-y divide-(--line) md:grid-cols-3 md:divide-x md:divide-y-0">
           {items.map((item) => {

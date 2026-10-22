@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Bell, Check, CheckCheck, X } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { dateFnsLocale } from '../../lib/locale';
+import { useLocale } from '../../lib/locale';
 import { CanceledError } from '../../services/httpError';
 import { useAuthStore } from '../../store/authStore';
 import { useReadNotifications } from '../../hooks/useReadNotifications';
@@ -14,8 +14,13 @@ import {
   getRecentSessions,
   measuredSessionLabel,
 } from '../../utils/sessionHelpers';
+import { useLanguage, useText } from '../../store/languageStore';
 
 export default function NotificationsPanel() {
+  const language = useLanguage();
+  const sessionText = useText().session;
+  const text = useText().notifications;
+  const { dateFns } = useLocale();
   const t = useTerms();
   const { user, epoch } = useAuthStore();
   const keys = useAccountQueryKeys();
@@ -43,7 +48,7 @@ export default function NotificationsPanel() {
   const fresh = query.isSuccess;
   const mark = (values: number[]) => {
     markRead(values);
-    setAnnouncement(`${values.length} bildirim okundu olarak işaretlendi.`);
+    setAnnouncement(text.marked(values.length));
     closeRef.current?.focus();
   };
   return (
@@ -55,8 +60,8 @@ export default function NotificationsPanel() {
             disabled={!user}
             aria-label={
               fresh && unread.length
-                ? `Bildirimler, ${unread.length} okunmamış`
-                : 'Bildirimler'
+                ? text.buttonUnread(unread.length)
+                : text.title
             }
           >
             <Bell aria-hidden="true" className="h-5 w-5" />
@@ -75,14 +80,14 @@ export default function NotificationsPanel() {
           >
             <div className="flex items-center justify-between gap-2 border-b border-(--line) p-4">
               <h2 id={headingId} className="text-sm font-medium">
-                Bildirimler
+                {text.title}
               </h2>
               <button
                 ref={closeRef}
                 type="button"
                 onClick={() => close()}
                 className="icon-button"
-                aria-label="Bildirimleri kapat"
+                aria-label={text.close}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -91,7 +96,7 @@ export default function NotificationsPanel() {
               {announcement}
             </p>
             <p className="px-4 pt-3 text-xs text-(--muted)">
-              Son 5 tamamlanan {t.session()}. Okundu bilgisi bu tarayıcıda saklanır.
+              {text.hint(t)}
             </p>
             <div
               className="max-h-80 overflow-y-auto"
@@ -99,16 +104,14 @@ export default function NotificationsPanel() {
             >
               {query.isPending && (
                 <p role="status" className="p-4 text-sm">
-                  Bildirimler yükleniyor…
+                  {text.loading}
                 </p>
               )}
               {query.isError && (
                 <div role="alert" className="space-y-3 p-4 text-sm">
                   <p>
-                    Bildirimler alınamadı.
-                    {sessions.length > 0
-                      ? ' Son alınan kayıtlar gösteriliyor.'
-                      : ''}
+                    {text.failed}
+                    {sessions.length > 0 ? text.showingLast : ''}
                   </p>
                   <button
                     type="button"
@@ -116,15 +119,13 @@ export default function NotificationsPanel() {
                     className="btn btn-secondary"
                     onClick={() => void query.refetch()}
                   >
-                    {query.isFetching
-                      ? 'Yeniden yükleniyor…'
-                      : 'Bildirimleri tekrar yükle'}
+                    {query.isFetching ? text.reloading : text.reload}
                   </button>
                 </div>
               )}
               {fresh && sessions.length === 0 && (
                 <p role="status" className="p-4 text-sm text-(--muted)">
-                  Henüz bildirim yok
+                  {text.empty}
                 </p>
               )}
               {sessions.length > 0 && (
@@ -141,14 +142,14 @@ export default function NotificationsPanel() {
                             {session.title}
                           </p>
                           <p className="mt-1 text-xs text-(--muted)">
-                            {measuredSessionLabel(session)} ·{' '}
+                            {measuredSessionLabel(session, sessionText, language)} ·{' '}
                             {formatDistanceToNow(
                               new Date(session.completedAt || session.endTime),
-                              { addSuffix: true, locale: dateFnsLocale },
+                              { addSuffix: true, locale: dateFns },
                             )}
                           </p>
                           <p className="mt-1 text-xs text-(--muted)">
-                            {read ? 'Okundu' : 'Okunmamış'}
+                            {read ? text.read : text.unread}
                           </p>
                         </div>
                         {!read && (
@@ -156,7 +157,7 @@ export default function NotificationsPanel() {
                             type="button"
                             className="icon-button shrink-0"
                             disabled={!fresh}
-                            aria-label={`${session.title}: okundu olarak işaretle`}
+                            aria-label={text.markRead(session.title)}
                             onClick={() => mark([session.id])}
                           >
                             <Check aria-hidden="true" className="h-4 w-4" />
@@ -176,7 +177,7 @@ export default function NotificationsPanel() {
                   onClick={() => mark(unread.map((session) => session.id))}
                 >
                   <CheckCheck aria-hidden="true" className="h-4 w-4" />
-                  Görünenleri okundu işaretle
+                  {text.markAllRead}
                 </button>
               </div>
             )}

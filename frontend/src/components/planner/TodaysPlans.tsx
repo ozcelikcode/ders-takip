@@ -21,19 +21,17 @@ import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import type { StudySession } from '../../types/planner';
 import { canStartSession, isSessionMissed } from '../../utils/sessionHelpers';
-import {
-  sessionStatusLabels,
-  sessionTypeLabels,
-} from '../../utils/sessionPresentation';
 import ConfirmDialog from '../common/ConfirmDialog';
 import CreateSessionModal from './CreateSessionModal';
 import PomodoroModal from './PomodoroModal';
+import { useText } from '../../store/languageStore';
 
 type Confirmation = {
   session: StudySession;
   action: 'pause' | 'complete' | 'reopen';
 };
 export default function TodaysPlans() {
+  const sessionText = useText().session;
   const t = useTerms();
   const timezone = useUserPreferencesStore(
     (state) => state.preferences.timezone,
@@ -206,7 +204,7 @@ export default function TodaysPlans() {
                         {formatZonedTime(session.startTime, timezone)}–
                         {formatZonedTime(session.endTime, timezone)} · Plan:{' '}
                         {session.duration} dk ·{' '}
-                        {sessionTypeLabels[session.sessionType]}
+                        {sessionText.types[session.sessionType]}
                       </p>
                       <h3 className="mt-1 wrap-break-word text-sm font-medium">
                         {session.title}
@@ -218,7 +216,7 @@ export default function TodaysPlans() {
                       )}
                       <div className="mt-2 flex flex-wrap gap-2">
                         <span className="badge">
-                          {sessionStatusLabels[session.status]}
+                          {sessionText.statuses[session.status]}
                         </span>
                         {isSessionMissed(session) && (
                           <span className="text-xs text-(--muted)">

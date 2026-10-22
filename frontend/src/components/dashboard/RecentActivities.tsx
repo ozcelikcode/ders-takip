@@ -4,10 +4,15 @@ import { getRecentSessions } from '../../utils/sessionHelpers';
 import { useQuery } from '@tanstack/react-query';
 import { studySessionsAPI } from '../../services/api';
 import { formatDistanceToNow } from 'date-fns';
-import { dateFnsLocale } from '../../lib/locale';
+import { useLocale } from '../../lib/locale';
 import { CheckCircle, Clock, Book } from 'lucide-react';
+import { useLanguage, useText } from '../../store/languageStore';
 
 const RecentActivities = () => {
+  const language = useLanguage();
+  const sessionText = useText().session;
+  const text = useText().activity;
+  const { dateFns } = useLocale();
   const accountKeys = useAccountQueryKeys();
   // Fetch the most recently completed sessions
   const { data: recentSessions, isLoading, isError } = useQuery({
@@ -36,7 +41,7 @@ const RecentActivities = () => {
     return (
       <div className="text-center py-8">
         <p className="text-sm text-red-600 dark:text-red-400">
-          Son aktiviteler yüklenirken bir hata oluştu
+          {text.failed}
         </p>
       </div>
     );
@@ -47,7 +52,7 @@ const RecentActivities = () => {
       <div className="text-center py-8">
         <Clock className="h-6 w-6 text-(--muted) mx-auto mb-3" />
         <p className="text-sm text-(--muted)">
-          Henüz tamamlanmış aktivite yok
+          {text.empty}
         </p>
       </div>
     );
@@ -69,13 +74,13 @@ const RecentActivities = () => {
             </div>
             <div className="flex items-center gap-2 mt-1">
               <p className="text-xs text-(--muted) shrink-0">
-                {measuredSessionLabel(session)}
+                {measuredSessionLabel(session, sessionText, language)}
               </p>
               <span className="text-(--muted)">•</span>
               <p className="text-xs text-(--muted) truncate">
                 {formatDistanceToNow(new Date(session.completedAt || session.endTime), {
                   addSuffix: true,
-                  locale: dateFnsLocale,
+                  locale: dateFns,
                 })}
               </p>
             </div>

@@ -1,5 +1,4 @@
 import { useTerms } from '../../hooks/useTerms';
-import { roleLabel } from '../../lib/roleLabels';
 import { Popover, PopoverButton, PopoverGroup, PopoverPanel } from '@headlessui/react';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -22,6 +21,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const { user } = useAuthStore();
   const t = useTerms();
   const text = useText().nav;
+  const roles = useText().roles;
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const sectionName = pathname.startsWith('/admin')
@@ -122,7 +122,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       </span>
                       {' '}
                       <span className="block text-xs text-(--muted)">
-                        {user ? roleLabel(user.role) : ''}
+                        {user ? roles[user.role] : ''}
                       </span>
                     </span>
                   </PopoverButton>

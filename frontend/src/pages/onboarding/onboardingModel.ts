@@ -7,7 +7,7 @@ import {
   type UserPreferences,
   type WeekStart,
 } from '@study-tracker/contracts';
-import { appLocale } from '../../lib/locale';
+import { currentLocaleTag } from '../../lib/locale';
 import { goalHoursToMinutes, goalMinutesToHours, maxDailyGoalMinutes } from '../../utils/studyGoals';
 
 export const purposeIds = ['education', 'work', 'personal', 'skills', 'other'] as const;
@@ -77,7 +77,7 @@ export const choosePurpose = (draft: OnboardingDraft, purpose: PurposeId): Onboa
   return { ...draft, purpose, dailyGoalMinutes: suggestion.dailyGoalMinutes, rhythm: suggestion.rhythm, categoryName: suggestion.categoryName };
 };
 
-const sameName = (first: string, second: string) => first.toLocaleLowerCase(appLocale) === second.toLocaleLowerCase(appLocale);
+const sameName = (first: string, second: string) => first.toLocaleLowerCase(currentLocaleTag()) === second.toLocaleLowerCase(currentLocaleTag());
 
 /** Adds a first record, or explains why it cannot be added. */
 export const addCourseName = (draft: OnboardingDraft, raw: string): { draft: OnboardingDraft } | { error: string } => {

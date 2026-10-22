@@ -1,4 +1,5 @@
-import type { Terms } from '@study-tracker/contracts';
+import type { Language, Terms } from '@study-tracker/contracts';
+import type { Text } from '../i18n';
 import { formatGoalMinutes } from './studyGoals';
 
 export type RecommendationKind =
@@ -23,6 +24,8 @@ export interface Recommendation {
 
 export interface RecommendationInput {
   terms: Terms;
+  text: Text['recommendations'];
+  language: Language;
   /** Active records the user can study, in display order. */
   courses: readonly { id: number; name: string; topicCount: number; editable: boolean }[];
   /** Measured study this week per course id. */
@@ -35,26 +38,26 @@ export interface RecommendationInput {
 }
 
 export const recommendationLimit = 3;
-// Measured or remaining time: "0 dk" rather than the goal formatter's "Hedef yok".
-const minutes = (seconds: number) => (seconds < 60 ? '0 dk' : formatGoalMinutes(Math.floor(seconds / 60)));
-const remainingMinutes = (seconds: number) => formatGoalMinutes(Math.max(1, Math.ceil(seconds / 60)));
 
 /**
  * Personal next steps from the user's own records, plans, goals and measured time.
  * Rules run in priority order: missing setup first, then today, then the week, then upkeep.
  */
 export function buildRecommendations(input: RecommendationInput): Recommendation[] {
-  const { terms: t, courses, today, week } = input;
+  const { terms: t, text, language, courses, today, week } = input;
+  // Measured time: zero minutes rather than the goal formatter's "no goal".
+  const minutes = (seconds: number) => (seconds < 60 ? text.zeroMinutes : formatGoalMinutes(Math.floor(seconds / 60), language));
+  const remainingMinutes = (seconds: number) => formatGoalMinutes(Math.max(1, Math.ceil(seconds / 60)), language);
   const result: Recommendation[] = [];
   const add = (recommendation: Recommendation) => { if (result.length < recommendationLimit) result.push(recommendation); };
 
   if (!courses.length) {
     add({
       kind: 'first-course',
-      title: `İlk ${t.course({ case: 'acc' })} ekle`,
-      detail: `Planlama ve istatistikler ${t.course({ plural: true })} üzerinden çalışır.`,
+      title: text.firstRecord(t),
+      detail: text.firstRecordHint(t),
       href: '/courses',
-      action: `${t.course({ capitalize: true })} ekle`,
+      action: text.addRecord(t),
     });
   }
 
@@ -63,26 +66,26 @@ export function buildRecommendations(input: RecommendationInput): Recommendation
     if (remaining <= 0) {
       add({
         kind: 'goal-done',
-        title: 'Bugünkü hedefini tamamladın',
-        detail: `Bugün ${minutes(today.studySeconds)} çalıştın. Sıradaki günü planlayabilirsin.`,
+        title: text.goalDone,
+        detail: text.goalDoneHint(minutes(today.studySeconds)),
         href: '/stats',
-        action: 'İstatistikler',
+        action: text.stats,
       });
     } else if (courses.length && today.openSessions === 0) {
       add({
         kind: 'plan-today',
-        title: `Bugün için bir ${t.session()} planla`,
-        detail: `Günlük hedefine ${remainingMinutes(remaining)} kaldı ve bugün için planın yok.`,
+        title: text.planToday(t),
+        detail: text.planTodayHint(remainingMinutes(remaining)),
         href: '/planner',
-        action: 'Planla',
+        action: text.plan,
       });
     } else if (courses.length) {
       add({
         kind: 'focus-now',
-        title: `${input.focusMinutes} dakikalık bir odak turu başlat`,
-        detail: `Günlük hedefine ${remainingMinutes(remaining)} kaldı.`,
+        title: text.focusNow(input.focusMinutes),
+        detail: text.remaining(remainingMinutes(remaining)),
         href: '/pomodoro',
-        action: 'Başlat',
+        action: text.start,
       });
     }
   }
@@ -92,10 +95,10 @@ export function buildRecommendations(input: RecommendationInput): Recommendation
     if (week.studySeconds < expected * 0.8) {
       add({
         kind: 'week-behind',
-        title: 'Bu hafta hedefin gerisindesin',
-        detail: `Şu ana kadar ${minutes(week.studySeconds)} çalıştın; geçen aktif günlere göre beklenen ${minutes(expected)}.`,
+        title: text.weekBehind,
+        detail: text.weekBehindHint(minutes(week.studySeconds), minutes(expected)),
         href: '/planner',
-        action: 'Haftayı planla',
+        action: text.planWeek,
       });
     }
   }
@@ -104,10 +107,10 @@ export function buildRecommendations(input: RecommendationInput): Recommendation
   if (withoutTopics) {
     add({
       kind: 'add-topics',
-      title: `${withoutTopics.name} için ${t.topic({ plural: true })} ekle`,
-      detail: `Küçük ${t.topic({ plural: true })} ilerlemeni görünür kılar.`,
+      title: text.addSubRecords(t, withoutTopics.name),
+      detail: text.addSubRecordsHint(t),
       href: `/courses/${withoutTopics.id}`,
-      action: `${t.topic({ capitalize: true })} ekle`,
+      action: text.addSubRecord(t),
     });
   }
 
@@ -116,38 +119,38 @@ export function buildRecommendations(input: RecommendationInput): Recommendation
   if (studiedThisWeek && neglected && courses.length > 1) {
     add({
       kind: 'neglected-course',
-      title: `${neglected.name} bu hafta boş kaldı`,
-      detail: `Bu hafta ${neglected.name} için ölçülen çalışma yok; kısa bir ${t.session()} dengeyi korur.`,
+      title: text.neglected(neglected.name),
+      detail: text.neglectedHint(t, neglected.name),
       href: '/planner',
-      action: 'Planla',
+      action: text.plan,
     });
   }
 
   if (!input.dailyGoalSet) {
     add({
       kind: 'set-goal',
-      title: 'Günlük hedef belirle',
-      detail: 'Hedef olunca panoda ve istatistiklerde ilerlemeni görürsün.',
+      title: text.setGoal,
+      detail: text.setGoalHint,
       href: '/settings',
-      action: 'Hedef belirle',
+      action: text.setGoalAction,
     });
   } else if (!today.activeDay) {
     add({
       kind: 'rest-day',
-      title: 'Bugün dinlenme günün',
-      detail: "Günlük hedef bugün uygulanmıyor. Aktif günlerini Ayarlar'dan değiştirebilirsin.",
+      title: text.restDay,
+      detail: text.restDayHint,
       href: '/settings',
-      action: 'Ayarlar',
+      action: text.settings,
     });
   }
 
   if (!result.length) {
     add({
       kind: 'review-week',
-      title: 'Haftana göz at',
-      detail: `Hangi ${t.course({ case: 'dat', plural: true })} ne kadar zaman ayırdığını gör.`,
+      title: text.reviewWeek,
+      detail: text.reviewWeekHint(t),
       href: '/stats',
-      action: 'İstatistikler',
+      action: text.stats,
     });
   }
   return result;

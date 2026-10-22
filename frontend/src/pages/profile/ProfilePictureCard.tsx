@@ -1,8 +1,8 @@
-import { roleLabel } from '../../lib/roleLabels';
 import { Camera, Upload, User as UserIcon, X } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import type { User } from '../../types/auth';
 import type { ProfileFormState } from './profileForm';
+import { useText } from '../../store/languageStore';
 
 interface ProfilePictureCardProps {
   user: User | null;
@@ -23,6 +23,7 @@ const ProfilePictureCard = ({
   setImageInputType,
   onFileUpload: handleFileUpload,
 }: ProfilePictureCardProps) => {
+  const roles = useText().roles;
   return (
     <div className="panel">
       <div className="space-y-4 p-5 text-center">
@@ -50,7 +51,7 @@ const ProfilePictureCard = ({
           <h2 className="text-base font-medium">{user?.fullName}</h2>
           <p className="text-sm text-(--muted)">@{user?.username}</p>
           <p className="mt-1 text-xs text-(--muted)">
-            {user ? roleLabel(user.role) : ''}
+            {user ? roles[user.role] : ''}
           </p>
         </div>
 

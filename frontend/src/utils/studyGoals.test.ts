@@ -31,7 +31,7 @@ describe('study goals', () => {
   });
 
   it('shows goals in minutes and hours', () => {
-    expect([0, 30, 45, 60, 90, 1440].map(formatGoalMinutes)).toEqual(['Hedef yok', '30 dk', '45 dk', '1 sa', '1 sa 30 dk', '24 sa']);
+    expect([0, 30, 45, 60, 90, 1440].map((minutes) => formatGoalMinutes(minutes))).toEqual(['Hedef yok', '30 dk', '45 dk', '1 sa', '1 sa 30 dk', '24 sa']);
     expect(goalHoursToMinutes(50 / 60)).toBe(50);
   });
 

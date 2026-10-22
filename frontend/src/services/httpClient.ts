@@ -3,6 +3,7 @@ import { queryClient } from '../lib/queryClient';
 import { accountQueryKeys } from '../lib/queryKeys';
 import { useAuthStore } from '../store/authStore';
 import { CanceledError, HttpError, isHttpError, serverMessage, type ApiErrorBody, type HttpRequestConfig, type HttpResponse } from './httpError';
+import { useLanguageStore } from '../store/languageStore';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 const TIMEOUT_MS = 30000;
@@ -144,11 +145,8 @@ const afterFailure = (error: HttpError) => {
   }
 
   // Handle common errors with debouncing
-  const errorMessage =
-    serverMessage(error) ??
-    (error.code === 'ERR_NETWORK'
-      ? 'Bağlantı hatası. Lütfen internet bağlantınızı kontrol edin.'
-      : 'Beklenmeyen bir hata oluştu');
+  const text = useLanguageStore.getState().text.errors;
+  const errorMessage = serverMessage(error) ?? (error.code === 'ERR_NETWORK' ? text.network : text.unexpected);
 
   // Prevent duplicate toast messages
   const errorKey = `${config?.url || 'unknown'}-${errorMessage}`;

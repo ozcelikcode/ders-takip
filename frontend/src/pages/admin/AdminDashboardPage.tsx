@@ -1,5 +1,4 @@
 import { useTerms } from '../../hooks/useTerms';
-import { roleLabel } from '../../lib/roleLabels';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, BookOpen, Settings, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -7,13 +6,13 @@ import PageHeader from '../../components/common/PageHeader';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { usersAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
-import { formatMeasuredTime } from '../../utils/sessionHelpers';
-import {
-  sessionStatusLabels,
-  sessionTypeLabels,
-} from '../../utils/sessionPresentation';
+import { useLanguage, useText } from '../../store/languageStore';
+import { formatMeasuredSeconds } from '@study-tracker/contracts';
 
 function AdminOverview() {
+  const roles = useText().roles;
+  const sessionText = useText().session;
+  const language = useLanguage();
   const keys = useAccountQueryKeys();
   const t = useTerms();
   const overview = useQuery({
@@ -54,7 +53,7 @@ function AdminOverview() {
         },
         {
           label: 'Ölçülen çalışma',
-          value: formatMeasuredTime(data.sessions.studySeconds),
+          value: formatMeasuredSeconds(data.sessions.studySeconds, language),
           detail: 'Tüm kullanıcılar · Mola ve duraklama hariç',
         },
       ]
@@ -204,7 +203,7 @@ function AdminOverview() {
                       </span>
                     </span>
                     <span className="badge shrink-0">
-                      {roleLabel(user.role)}
+                      {roles[user.role]}
                     </span>
                   </li>
                 ))}
@@ -247,13 +246,11 @@ function AdminOverview() {
                       </p>
                       <p className="mt-1 wrap-break-word text-xs leading-5 text-(--muted)">
                         {session.userName} · Plan: {session.duration} dakika ·{' '}
-                        {sessionTypeLabels[
-                          session.sessionType as keyof typeof sessionTypeLabels
-                        ] ?? 'Diğer'}
+                        {sessionText.types[session.sessionType as keyof typeof sessionText.types] ?? sessionText.otherType}
                       </p>
                     </div>
                     <span className="badge">
-                      {sessionStatusLabels[session.status]}
+                      {sessionText.statuses[session.status]}
                     </span>
                   </li>
                 ))}

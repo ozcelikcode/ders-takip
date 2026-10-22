@@ -1,6 +1,6 @@
 const { it } = require('node:test');
 const assert = require('node:assert/strict');
-const { isKnownPushService, defaultPreferences, preferencesPatchSchema, preferencesSchema, pushSubscriptionSchema, resolveNotifications, defaultNotificationPreferences, formatGoalMinutes } = require('../dist/cjs');
+const { isKnownPushService, defaultPreferences, preferencesPatchSchema, preferencesSchema, pushSubscriptionSchema, resolveNotifications, defaultNotificationPreferences, formatGoalMinutes, formatMeasuredSeconds } = require('../dist/cjs');
 
 it('notifications are opt-in: stored accounts without the field have everything off', () => {
   assert.deepEqual(resolveNotifications(preferencesSchema.parse(defaultPreferences)), defaultNotificationPreferences);
@@ -25,7 +25,10 @@ it('push subscriptions must point at an https push service', () => {
 });
 
 it('formats durations the same way for screens and emails', () => {
-  assert.deepEqual([0, 45, 60, 90].map(formatGoalMinutes), ['Hedef yok', '45 dk', '1 sa', '1 sa 30 dk']);
+  assert.deepEqual([0, 45, 60, 90].map((minutes) => formatGoalMinutes(minutes)), ['Hedef yok', '45 dk', '1 sa', '1 sa 30 dk']);
+  assert.deepEqual([0, 45, 60, 90].map((minutes) => formatGoalMinutes(minutes, 'en')), ['No goal', '45 min', '1 h', '1 h 30 min']);
+  assert.deepEqual([40, 300, 7500].map((seconds) => formatMeasuredSeconds(seconds)), ['40 sn', '5 dk 0 sn', '2 sa 5 dk']);
+  assert.deepEqual([40, 300, 7500].map((seconds) => formatMeasuredSeconds(seconds, 'en')), ['40 s', '5 min 0 s', '2 h 5 min']);
 });
 
 it('accepts only known browser push services as endpoints', () => {

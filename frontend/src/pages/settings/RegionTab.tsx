@@ -1,6 +1,7 @@
 import { weekStartDays, resolveWeekStart, type PreferencesPatch, type UserPreferences } from '@study-tracker/contracts';
 import { useMemo } from 'react';
-import { browserTimezone, listTimezones, weekStartLabels } from '../../lib/locale';
+import { browserTimezone, listTimezones } from '../../lib/locale';
+import { useText } from '../../store/languageStore';
 
 interface RegionTabProps {
   preferences: UserPreferences;
@@ -8,6 +9,7 @@ interface RegionTabProps {
 }
 
 const RegionTab = ({ preferences, onSave }: RegionTabProps) => {
+  const calendarText = useText().calendar;
   const detected = browserTimezone();
   const zones = useMemo(() => listTimezones(preferences.timezone, detected), [preferences.timezone, detected]);
   const weekStart = resolveWeekStart(preferences);
@@ -54,7 +56,7 @@ const RegionTab = ({ preferences, onSave }: RegionTabProps) => {
               onClick={() => onSave({ weekStartsOn: day })}
               className={`segment ${weekStart === day ? 'segment-active' : ''}`}
             >
-              {weekStartLabels[day]}
+              {calendarText.weekStarts[day]}
             </button>
           ))}
         </div>

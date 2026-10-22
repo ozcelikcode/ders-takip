@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { defaultPreferences, mergePreferences, preferencesSchema, preferencesPatchSchema, type PreferencesPatch, type UserPreferences } from '@study-tracker/contracts';
 import { authAPI } from '../services/api';
 import { archiveUnscopedState } from '../lib/archiveUnscopedState';
+import { useLanguageStore } from './languageStore';
 export type { ThemeMode } from '@study-tracker/contracts';
 
 interface PreferencesState {
@@ -36,12 +37,12 @@ export const useUserPreferencesStore = create<PreferencesState>()((set, get) => 
     unsaved = [];
     const parsed = preferencesSchema.safeParse(stored);
     confirmed = id && parsed.success ? parsed.data : { ...defaultPreferences };
-    set({ revision: get().revision + 1, userId: id === null ? null : String(id), preferences: confirmed, pending: 0, error: id && !parsed.success ? 'Tercihler yüklenemedi' : null });
+    set({ revision: get().revision + 1, userId: id === null ? null : String(id), preferences: confirmed, pending: 0, error: id && !parsed.success ? useLanguageStore.getState().text.errors.preferencesLoadFailed : null });
   },
   updatePreferences: patch => {
     const parsed = preferencesPatchSchema.safeParse(patch);
     if (!parsed.success || !get().userId) {
-      set({ error: 'Tercihler geçersiz veya oturum kapalı' });
+      set({ error: useLanguageStore.getState().text.errors.preferencesInvalid });
       return Promise.reject(new Error('Preferences require a valid account and payload'));
     }
     const operationGeneration = generation;
@@ -63,7 +64,7 @@ export const useUserPreferencesStore = create<PreferencesState>()((set, get) => 
       // Only this change is undone; later ones stay on screen until their own answer arrives.
       if (operationGeneration === generation) {
         settle();
-        set({ error: 'Tercihler kaydedilemedi. Lütfen tekrar deneyin.' });
+        set({ error: useLanguageStore.getState().text.errors.preferencesSaveFailed });
       }
       throw error;
     }).finally(() => {

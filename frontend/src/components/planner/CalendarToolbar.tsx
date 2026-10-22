@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from '../../utils/calendarDates';
+import { useText } from '../../store/languageStore';
 
 interface CalendarToolbarProps {
   weekly: boolean;
@@ -25,11 +26,12 @@ export default function CalendarToolbar({
   onHoverDirection,
   onDropOnNavigation,
 }: CalendarToolbarProps) {
+  const text = useText().planner;
   return (
     <div className="calendar-toolbar">
       <div className="calendar-toolbar-title">
         <h2 className="text-sm font-medium">
-          {weekly ? 'Haftalık Planlayıcı' : 'Günlük Planlayıcı'}
+          {weekly ? text.weeklyTitle : text.dailyTitle}
         </h2>
         <p className="text-xs text-(--muted)">
           {weekly
@@ -46,8 +48,10 @@ export default function CalendarToolbar({
             className="btn btn-secondary"
             aria-label={
               direction
-                ? `${direction < 0 ? 'Önceki' : 'Sonraki'} ${weekly ? 'hafta' : 'gün'}`
-                : 'Bugün'
+                ? weekly
+                  ? direction < 0 ? text.previousWeek : text.nextWeek
+                  : direction < 0 ? text.previousDay : text.nextDay
+                : text.today
             }
             onClick={() => (direction ? onNavigate(direction) : onToday())}
             onDragOver={(event) => {
@@ -68,7 +72,7 @@ export default function CalendarToolbar({
             ) : direction === 1 ? (
               <ChevronRight className="h-4 w-4" />
             ) : (
-              'Bugün'
+              text.today
             )}
           </button>
         ))}

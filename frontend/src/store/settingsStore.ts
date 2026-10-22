@@ -9,6 +9,7 @@ import {
   type SettingsPatch,
 } from '@study-tracker/contracts';
 import { settingsAPI } from '../services/api';
+import { useLanguageStore } from './languageStore';
 
 interface SettingsState {
   settings: PublicSettings;
@@ -84,7 +85,7 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
         readRevision === adminReadRevision &&
         writeRevision === adminWriteRevision
       )
-        set({ isLoading: false, error: 'Yönetim ayarları yüklenemedi' });
+        set({ isLoading: false, error: useLanguageStore.getState().text.errors.adminSettingsLoadFailed });
     }
   },
   clearAdminSettings: () => {

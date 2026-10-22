@@ -1,8 +1,10 @@
 import { useWeeklyStats } from '../../hooks/useWeeklyStats';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import DailyStudyChart from '../charts/DailyStudyChart';
+import { useText } from '../../store/languageStore';
 
 const WeeklyProgressChart = () => {
+  const text = useText().chart;
   const { weekDates, query: { data: statsData, isLoading, isError } } = useWeeklyStats();
   const dailyGoal = useUserPreferencesStore((state) => state.preferences.dailyStudyGoal);
 
@@ -14,7 +16,7 @@ const WeeklyProgressChart = () => {
     );
   }
 
-  if (isError) return <p className="p-5 text-sm text-red-600">Çalışma ölçümleri alınamadı. Lütfen yeniden deneyin.</p>;
+  if (isError) return <p className="p-5 text-sm text-red-600">{text.loadFailed}</p>;
 
   const days = weekDates.map((date) => ({
     date,

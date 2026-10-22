@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { calendarViewDate, calendarViewInstant } from '@study-tracker/contracts';
 import { addDays, endOfWeek, format, startOfWeek, sessionDayBounds } from './calendarDates';
-import { orderedWeekdays, weekdayLabel } from '../lib/locale';
+import { orderedWeekdays } from '../lib/locale';
+import { tr } from '../i18n/tr';
+
+const weekdayLabel = (day: number) => tr.calendar.weekdaysShort[day];
 describe('timezone calendar adapters', () => {
   it('moves a wall time across a DST boundary without shifting the selected hour', () => {
     const view = calendarViewDate('2026-03-07T14:30:00Z', 'America/New_York');

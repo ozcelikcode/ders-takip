@@ -1,6 +1,8 @@
 import { parseISO } from 'date-fns';
 import { canTransitionSession } from '@study-tracker/contracts';
 import { StudySession } from '../types/planner';
+import { formatMeasuredSeconds, type Language } from '@study-tracker/contracts';
+import type { Text } from '../i18n';
 
 /**
  * Oturumun vakti geçmiş mi kontrol eder
@@ -43,10 +45,12 @@ export const getRecentSessions = <T extends { endTime: string; completedAt?: str
     .slice(0, limit)
 );
 
-export const formatMeasuredTime = (seconds: number): string => {
-  const value = Math.max(0, Math.floor(seconds));
-  if (value < 60) return `${value} sn`;
-  if (value < 3600) return `${Math.floor(value / 60)} dk ${value % 60} sn`;
-  return `${Math.floor(value / 3600)} sa ${Math.floor(value % 3600 / 60)} dk`;
-};
-export const measuredSessionLabel = (session: Pick<StudySession, 'trackingCoverage' | 'studySeconds'>) => session.trackingCoverage === undefined || session.trackingCoverage === 'untracked' ? 'Süre ölçülmedi' : `${formatMeasuredTime(session.studySeconds ?? 0)} çalışma${session.trackingCoverage === 'partial' ? ' (kısmi)' : ''}`;
+/** "5 dk 0 sn çalışma (kısmi)" or "Süre ölçülmedi", in the interface language. */
+export const measuredSessionLabel = (
+  session: Pick<StudySession, 'trackingCoverage' | 'studySeconds'>,
+  text: Text['session'],
+  language: Language,
+) =>
+  session.trackingCoverage === undefined || session.trackingCoverage === 'untracked'
+    ? text.untracked
+    : text.studied(formatMeasuredSeconds(session.studySeconds ?? 0, language), session.trackingCoverage === 'partial');

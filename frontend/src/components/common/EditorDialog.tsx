@@ -1,6 +1,7 @@
 import { Description, Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { X } from 'lucide-react';
 import type { ReactNode, FormEvent } from 'react';
+import { useText } from '../../store/languageStore';
 
 export default function EditorDialog({
   title,
@@ -21,6 +22,7 @@ export default function EditorDialog({
   children: ReactNode;
   disabled?: boolean;
 }) {
+  const common = useText().common;
   const close = () => {
     if (!pending) onClose();
   };
@@ -41,7 +43,7 @@ export default function EditorDialog({
                 type="button"
                 onClick={close}
                 disabled={pending}
-                aria-label="Düzenleyiciyi kapat"
+                aria-label={common.closeEditor}
                 className="rounded-sm p-1 text-(--muted) hover:bg-(--subtle) disabled:opacity-50"
               >
                 <X className="h-5 w-5" />
@@ -69,7 +71,7 @@ export default function EditorDialog({
                   disabled={pending}
                   className="btn btn-secondary"
                 >
-                  İptal
+                  {common.cancel}
                 </button>
                 <button
                   type="submit"

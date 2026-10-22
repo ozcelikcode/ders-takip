@@ -8,7 +8,7 @@ import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useTerms } from '../../hooks/useTerms';
 import { searchAPI } from '../../services/api';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
-import { sessionStatusLabels } from '../../utils/sessionPresentation';
+import { useText } from '../../store/languageStore';
 
 const MATCH_LABELS = { title: 'başlıkta', description: 'açıklamada', notes: 'notlarda' } as const;
 
@@ -33,6 +33,7 @@ function ResultGroup({ title, count, children }: { title: string; count: number;
 const rowClass = 'flex flex-wrap items-baseline justify-between gap-2 px-5 py-3 text-sm hover:bg-(--subtle)';
 
 export default function SearchPage() {
+  const sessionText = useText().session;
   const t = useTerms();
   const keys = useAccountQueryKeys();
   const timezone = useUserPreferencesStore((state) => state.preferences.timezone);
@@ -116,7 +117,7 @@ export default function SearchPage() {
                   <Link to={`/planner?date=${day}`} className={rowClass}>
                     <span className="font-medium">{session.title}</span>
                     <span className="text-xs text-(--muted)">
-                      {day} · {sessionStatusLabels[session.status]} · {MATCH_LABELS[session.matchedIn]}
+                      {day} · {sessionText.statuses[session.status]} · {MATCH_LABELS[session.matchedIn]}
                     </span>
                   </Link>
                 </li>

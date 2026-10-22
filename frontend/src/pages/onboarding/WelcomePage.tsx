@@ -10,7 +10,7 @@ import WeekdayPicker from '../../components/settings/WeekdayPicker';
 import { formatGoalMinutes } from '../../utils/studyGoals';
 import FirstRecordsStep from './FirstRecordsStep';
 import { useTerms } from '../../hooks/useTerms';
-import { browserTimezone, listTimezones, orderedWeekdays, weekdayLabel, weekStartLabels } from '../../lib/locale';
+import { browserTimezone, listTimezones, orderedWeekdays } from '../../lib/locale';
 import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import {
@@ -25,6 +25,7 @@ import {
   toOnboardingInput,
   type OnboardingDraft,
 } from './onboardingModel';
+import { useText } from '../../store/languageStore';
 
 const lastStep = steps.length - 1;
 
@@ -42,6 +43,7 @@ function ChoiceCard({ name, checked, onChange, title, children }: { name: string
 
 
 export default function WelcomePage() {
+  const calendarText = useText().calendar;
   const preferences = useUserPreferencesStore((state) => state.preferences);
   const updatePreferences = useUserPreferencesStore((state) => state.updatePreferences);
   const firstName = useAuthStore((state) => state.user?.firstName);
@@ -144,7 +146,7 @@ export default function WelcomePage() {
             <div role="group" aria-label="Hafta başlangıcı" className="segmented-control">
               {weekStartDays.map((day) => (
                 <button key={day} type="button" aria-pressed={draft.weekStartsOn === day} onClick={() => update({ weekStartsOn: day })} className={`segment ${draft.weekStartsOn === day ? 'segment-active' : ''}`}>
-                  {weekStartLabels[day]}
+                  {calendarText.weekStarts[day]}
                 </button>
               ))}
             </div>
@@ -190,8 +192,8 @@ export default function WelcomePage() {
             ['Kelimeler', `${terms.course({ capitalize: true })} → ${terms.topic({ capitalize: true })} · ${terms.session({ capitalize: true })}`],
             ['Odak alanı', draft.studyField.trim() || 'Belirtilmedi'],
             ['Saat dilimi', draft.timezone],
-            ['Hafta başlangıcı', weekStartLabels[draft.weekStartsOn]],
-            ['Aktif günler', orderedWeekdays(draft.weekStartsOn).filter((day) => draft.activeStudyDays.includes(day)).map(weekdayLabel).join(', ') || 'Seçilmedi'],
+            ['Hafta başlangıcı', calendarText.weekStarts[draft.weekStartsOn]],
+            ['Aktif günler', orderedWeekdays(draft.weekStartsOn).filter((day) => draft.activeStudyDays.includes(day)).map((day) => calendarText.weekdaysShort[day]).join(', ') || 'Seçilmedi'],
             ['Hedefler', draft.dailyGoalMinutes ? `Günde ${formatGoalMinutes(draft.dailyGoalMinutes)} · Haftada ${formatGoalMinutes(draft.dailyGoalMinutes * draft.activeStudyDays.length)}` : 'Hedef yok'],
             ['Ritim', `${rhythms[draft.rhythm].label}: ${rhythms[draft.rhythm].description}`],
             ['İlk kayıtlar', draft.courseNames.length ? `${draft.categoryName.trim()}: ${draft.courseNames.join(', ')}` : 'Eklenmeyecek'],

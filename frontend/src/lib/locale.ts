@@ -1,21 +1,22 @@
-import { timezoneSchema, type WeekStart } from '@study-tracker/contracts';
-import { tr } from 'date-fns/locale';
+import { languageTags, timezoneSchema, type Language, type WeekStart } from '@study-tracker/contracts';
+import type { Locale } from 'date-fns';
+import { enUS, tr } from 'date-fns/locale';
+import { useLanguage, useLanguageStore } from '../store/languageStore';
 
-// Single source for the interface locale. The UI is Turkish-only until the i18n package (R10);
-// switching languages later starts here instead of in every component.
-export const appLocale = 'tr';
-export const dateFnsLocale = tr;
+// Formatting follows the interface language; the words themselves live in the i18n catalogs.
+const dateFnsLocales: Record<Language, Locale> = { tr, en: enUS };
 
-/** Short weekday labels indexed by JS weekday (0 = Sunday). */
-const shortWeekdayLabels = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'] as const;
+/** Locale details for formatting in the current interface language. */
+export const useLocale = () => {
+  const language = useLanguage();
+  return { language, tag: languageTags[language], dateFns: dateFnsLocales[language] };
+};
+/** The current BCP 47 tag for helpers outside components (sorting, Luxon formatting). */
+export const currentLocaleTag = () => languageTags[useLanguageStore.getState().language];
 
 /** JS weekday numbers in display order for the configured week start. */
 export const orderedWeekdays = (weekStart: WeekStart) =>
   Array.from({ length: 7 }, (_, index) => (weekStart + index) % 7);
-
-export const weekdayLabel = (jsWeekday: number) => shortWeekdayLabels[jsWeekday % 7]!;
-
-export const weekStartLabels: Record<WeekStart, string> = { 1: 'Pazartesi', 0: 'Pazar', 6: 'Cumartesi' };
 
 /** The browser's IANA time zone when it is one the server also accepts. */
 export const browserTimezone = (): string | null => {

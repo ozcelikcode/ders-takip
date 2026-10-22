@@ -1,6 +1,7 @@
 import { Description, Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { AlertTriangle, X } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useText } from '../../store/languageStore';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -20,11 +21,12 @@ export default function ConfirmDialog({
   onConfirm,
   title,
   message,
-  confirmText = 'Onayla',
-  cancelText = 'İptal',
+  confirmText,
+  cancelText,
   type = 'warning',
   children,
 }: ConfirmDialogProps) {
+  const common = useText().common;
   const inFlight = useRef(false);
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -69,7 +71,7 @@ export default function ConfirmDialog({
               </div>
               <button
                 disabled={pending}
-                aria-label="Onay penceresini kapat"
+                aria-label={common.closeConfirm}
                 onClick={close}
                 className="rounded-sm p-1 text-(--muted) hover:bg-(--subtle) disabled:opacity-50"
               >
@@ -82,7 +84,7 @@ export default function ConfirmDialog({
             {children && <div className="mt-4">{children}</div>}
             {failed && (
               <p role="alert" className="mt-3 text-sm text-red-600">
-                İşlem tamamlanamadı. Lütfen tekrar deneyin.
+                {common.actionFailed}
               </p>
             )}
             <div className="mt-6 flex justify-end gap-3">
@@ -91,7 +93,7 @@ export default function ConfirmDialog({
                 className="btn btn-secondary"
                 onClick={close}
               >
-                {cancelText}
+                {cancelText ?? common.cancel}
               </button>
               <button
                 disabled={pending}
@@ -102,7 +104,7 @@ export default function ConfirmDialog({
                 }
                 onClick={() => void confirm()}
               >
-                {pending ? 'İşleniyor…' : confirmText}
+                {pending ? common.processing : (confirmText ?? common.confirm)}
               </button>
             </div>
           </DialogPanel>

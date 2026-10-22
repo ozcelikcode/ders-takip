@@ -10,7 +10,6 @@ import { useTerms } from '../../hooks/useTerms';
 import { useWeekStart } from '../../hooks/useWeekStart';
 import { studySessionsAPI } from '../../services/api';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
-import { formatMeasuredTime } from '../../utils/sessionHelpers';
 import { goalPercent } from '../../utils/studyGoals';
 import {
   compareWithGoal,
@@ -22,6 +21,8 @@ import {
   type DistributionRow,
   type RangePreset,
 } from './statsModel';
+import { formatMeasuredSeconds } from '@study-tracker/contracts';
+import { useLanguage } from '../../store/languageStore';
 
 const PRESETS: { id: RangePreset; label: string }[] = [
   { id: 'week', label: 'Bu hafta' },
@@ -32,6 +33,7 @@ const PRESETS: { id: RangePreset; label: string }[] = [
 ];
 
 function DistributionList({ title, rows }: { title: string; rows: DistributionRow[] }) {
+  const language = useLanguage();
   return (
     <section className="panel min-w-0" aria-label={title}>
       <div className="panel-heading">
@@ -53,7 +55,7 @@ function DistributionList({ title, rows }: { title: string; rows: DistributionRo
                   <span className="truncate">{row.label}</span>
                 </span>
                 <span className="shrink-0 tabular-nums text-(--muted)">
-                  {formatMeasuredTime(row.studySeconds)} · %{Math.round(row.share * 100)}
+                  {formatMeasuredSeconds(row.studySeconds, language)} · %{Math.round(row.share * 100)}
                 </span>
               </div>
               <div className="h-1 overflow-hidden rounded-sm bg-(--subtle)" aria-hidden="true">
@@ -68,6 +70,7 @@ function DistributionList({ title, rows }: { title: string; rows: DistributionRo
 }
 
 export default function StatsPage() {
+  const language = useLanguage();
   const t = useTerms();
   const keys = useAccountQueryKeys();
   const today = useCurrentDateKey();
@@ -88,10 +91,10 @@ export default function StatsPage() {
   const goal = compareWithGoal(data?.days ?? [], preferences);
   const days = rangeDays(range);
   const summary = [
-    { label: 'Ölçülen çalışma', value: formatMeasuredTime(data?.studySeconds ?? 0), detail: 'Mola ve duraklama hariç' },
-    { label: 'Günlük ortalama', value: formatMeasuredTime((data?.studySeconds ?? 0) / days), detail: `${days} gün üzerinden` },
+    { label: 'Ölçülen çalışma', value: formatMeasuredSeconds(data?.studySeconds ?? 0, language), detail: 'Mola ve duraklama hariç' },
+    { label: 'Günlük ortalama', value: formatMeasuredSeconds((data?.studySeconds ?? 0) / days, language), detail: `${days} gün üzerinden` },
     { label: `Tamamlanan ${t.session()}`, value: String(data?.completedSessions ?? 0), detail: 'Bu aralıkta' },
-    { label: 'Mola', value: formatMeasuredTime(data?.breakSeconds ?? 0), detail: 'Ölçülen mola süresi' },
+    { label: 'Mola', value: formatMeasuredSeconds(data?.breakSeconds ?? 0, language), detail: 'Ölçülen mola süresi' },
   ];
 
   return (
@@ -177,7 +180,7 @@ export default function StatsPage() {
                 <>
                   <div className="flex flex-wrap items-baseline justify-between gap-3">
                     <span>
-                      {formatMeasuredTime(goal.studySeconds)} / {formatMeasuredTime(goal.targetSeconds)}
+                      {formatMeasuredSeconds(goal.studySeconds, language)} / {formatMeasuredSeconds(goal.targetSeconds, language)}
                     </span>
                     <span className="text-(--muted)">
                       Hedefe ulaşılan gün: {goal.metDays} / {goal.activeDays}

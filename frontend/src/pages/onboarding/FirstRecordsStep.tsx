@@ -1,7 +1,7 @@
 import { onboardingCourseLimit, type Terms } from '@study-tracker/contracts';
 import { FolderOpen, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { appLocale } from '../../lib/locale';
+import { useLocale } from '../../lib/locale';
 import { addCourseName, removeCourseName, suggestedCourseNames, type OnboardingDraft } from './onboardingModel';
 
 interface FirstRecordsStepProps {
@@ -16,6 +16,7 @@ const tile = 'relative flex aspect-square flex-col rounded-xl border p-4';
 
 /** The first records as square tiles: typed in place, picked from suggestions, removed one by one. */
 export default function FirstRecordsStep({ id, draft, terms, onChange, onError }: FirstRecordsStepProps) {
+  const { tag: localeTag } = useLocale();
   const [adding, setAdding] = useState(() => draft.pendingCourseName !== '');
   const inputRef = useRef<HTMLInputElement>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
@@ -77,7 +78,7 @@ export default function FirstRecordsStep({ id, draft, terms, onChange, onError }
           {draft.courseNames.map((courseName) => (
             <li key={courseName} className={`${tile} justify-between border-(--line) bg-(--surface)`}>
               <span aria-hidden="true" className="flex h-10 w-10 items-center justify-center rounded-lg bg-(--subtle) text-base font-semibold">
-                {courseName.charAt(0).toLocaleUpperCase(appLocale)}
+                {courseName.charAt(0).toLocaleUpperCase(localeTag)}
               </span>
               <span className="line-clamp-3 wrap-break-word pr-1 text-sm font-medium">{courseName}</span>
               <button type="button" aria-label={`${courseName} kaldır`} onClick={() => remove(courseName)} className="icon-button absolute right-2 top-2">

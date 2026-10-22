@@ -1,6 +1,5 @@
 import PasswordResetLinkDialog from '../../components/admin/PasswordResetLinkDialog';
 import { useTerms } from '../../hooks/useTerms';
-import { roleLabel } from '../../lib/roleLabels';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
 import { useQuery } from '@tanstack/react-query';
 import type { ManagedUser } from '@study-tracker/contracts';
@@ -25,6 +24,7 @@ import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { usersAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
+import { useText } from '../../store/languageStore';
 
 type UserAction = { user: ManagedUser; kind: 'delete' | 'role' | 'status' };
 
@@ -35,6 +35,7 @@ function UserActionDialog({
   action: UserAction;
   onClose: () => void;
 }) {
+  const roles = useText().roles;
   const t = useTerms();
   const keys = useAccountQueryKeys();
   const mutation = useAccountMutation([keys.resource()]);
@@ -53,7 +54,7 @@ function UserActionDialog({
     kind === 'delete'
       ? `“${name}” hesabı, bu hesaba ait özel ${t.course({ plural: true })}, ${t.topic({ plural: true })}, planlar, ${t.session({ plural: true })} ve ilerleme kayıtları kalıcı olarak silinecek. Ortak ${t.course({ plural: true })} korunur. Bu işlem geri alınamaz.`
       : kind === 'role'
-        ? `“${name}” hesabının yeni rolü: ${roleLabel(nextRole)}. ${nextRole === 'admin' ? 'Yönetim paneline ve sistem ayarlarına erişebilecek.' : 'Yönetim paneline erişimi kaldırılacak.'} Rol değişikliği mevcut oturumlarını kapatır.`
+        ? `“${name}” hesabının yeni rolü: ${roles[nextRole]}. ${nextRole === 'admin' ? 'Yönetim paneline ve sistem ayarlarına erişebilecek.' : 'Yönetim paneline erişimi kaldırılacak.'} Rol değişikliği mevcut oturumlarını kapatır.`
         : `“${name}” hesabı ${user.isActive ? 'pasifleştirilecek ve giriş yapamayacak' : 'aktifleştirilecek ve yeniden giriş yapabilecek'}. Verileri korunur. Hesap durumu değişikliği mevcut oturumlarını kapatır.`;
   return (
     <ConfirmDialog
@@ -91,6 +92,7 @@ function UserActionDialog({
 }
 
 function UserManagement() {
+  const roles = useText().roles;
   const t = useTerms();
   const { user: currentUser } = useAuthStore();
   const keys = useAccountQueryKeys();
@@ -224,7 +226,7 @@ function UserManagement() {
                               {name}
                             </h2>
                             <span className="badge border text-(--muted)">
-                              {roleLabel(user.role)}
+                              {roles[user.role]}
                             </span>
                             {!user.isActive && (
                               <span className="badge border text-(--muted)">

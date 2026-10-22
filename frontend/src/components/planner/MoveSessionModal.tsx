@@ -20,8 +20,9 @@ import {
   startOfWeek,
   endOfWeek,
 } from '../../utils/calendarDates';
-import { orderedWeekdays, weekdayLabel } from '../../lib/locale';
+import { orderedWeekdays } from '../../lib/locale';
 import { useWeekStart } from '../../hooks/useWeekStart';
+import { useText } from '../../store/languageStore';
 
 interface MoveSessionModalProps {
   isOpen: boolean;
@@ -49,6 +50,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
   sourceUnavailable = false,
   onReload,
 }) => {
+  const weekdays = useText().calendar.weekdaysShort;
   const t = useTerms();
   const weekStart = useWeekStart();
   const timezone = useUserPreferencesStore(
@@ -209,7 +211,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
 
             {/* Day Headers */}
             <div className="grid grid-cols-7 gap-1 mb-2">
-              {orderedWeekdays(weekStart).map(weekdayLabel).map((day) => (
+              {orderedWeekdays(weekStart).map((day) => weekdays[day]!).map((day) => (
                 <div
                   key={day}
                   className="text-center text-xs font-medium text-(--muted) py-2"
