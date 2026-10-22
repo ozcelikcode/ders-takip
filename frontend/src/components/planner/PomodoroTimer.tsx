@@ -22,7 +22,7 @@ export default function PomodoroTimer({ session: initialSession, onComplete }: P
           {timer.phase === 'work' ? <Target className="h-4 w-4" /> : <Coffee className="h-4 w-4" />}
           <span role="status">{terminal ? session.status === 'completed' ? `${t.session({ capitalize: true })} tamamlandı` : `${t.session({ capitalize: true })} iptal edildi` : labels[timer.phase]}</span>
         </div>
-        <div className="mt-8 text-[64px] font-medium leading-none tracking-[-0.07em] tabular-nums sm:text-[80px]" role="timer" aria-label="Kalan süre">{formatTime(terminal ? 0 : timer.timeLeft)}</div>
+        <div className="mt-8 text-[64px] font-medium leading-none tracking-[-0.07em] tabular-nums sm:text-[80px]" role="timer"><span className="sr-only">Kalan süre: </span>{formatTime(terminal ? 0 : timer.timeLeft)}</div>
         <p className="mt-4 text-xs text-(--muted)">{timer.cycle}. döngü / {settings.cyclesBeforeLongBreak}</p>
         <div className="mx-auto mt-6 h-1 max-w-60 overflow-hidden rounded-full bg-(--subtle)" role="progressbar" aria-label={`${t.session({ capitalize: true })} ilerlemesi`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(timer.progress)}>
           <div className="h-full bg-(--solid)" style={{ width: `${timer.progress}%` }} />

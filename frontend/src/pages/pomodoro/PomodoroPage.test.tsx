@@ -14,6 +14,6 @@ it('recovers an unfinished session from a previous day and renders the shared ti
   vi.mocked(studySessionsAPI.getSession).mockResolvedValue({ data: { success: true, data: { session } }, status: 200, config: { url: '' } });
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><PomodoroPage /></MemoryRouter></QueryClientProvider>);
   const timer = await screen.findByRole('region', { name: 'Pomodoro sayacı' });
-  expect(within(timer).getByRole('status').textContent).toBe('Kısa mola'); expect(within(timer).getByRole('timer').textContent).toBe('00:44');
+  expect(within(timer).getByRole('status').textContent).toBe('Kısa mola'); expect(within(timer).getByRole('timer').textContent).toBe('Kalan süre: 00:44');
   expect(studySessionsAPI.getSessions).toHaveBeenCalledWith({ sessionType: 'pomodoro' });
 });

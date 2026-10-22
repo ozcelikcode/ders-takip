@@ -48,16 +48,16 @@ it('derives remaining time from a deadline after a large clock jump instead of c
   const running = { ...initial, status: 'in_progress' as const, pomodoroClock: clock };
   mount(running);
   await act(async () => { await vi.advanceTimersByTimeAsync(1); });
-  expect(screen.getByRole('timer').textContent).toBe('01:00');
+  expect(screen.getByRole('timer').textContent).toBe('Kalan süre: 01:00');
   vi.setSystemTime(now + 40000);
   await act(async () => { await vi.advanceTimersByTimeAsync(250); });
-  expect(screen.getByRole('timer').textContent).toBe('00:20');
+  expect(screen.getByRole('timer').textContent).toBe('Kalan süre: 00:20');
   expect(studySessionsAPI.controlPomodoro).not.toHaveBeenCalled();
 });
 it('recovers a paused long break without resetting phase, cycle or remaining time on remount', async () => {
   const paused: StudySession = { ...initial, status: 'paused', pomodoroClock: { ...clock, phase: 'long_break', cycle: 4, remainingMilliseconds: 42500, deadlineAt: null } };
-  const first = mount(paused); await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Uzun mola')); expect(screen.getByRole('timer').textContent).toBe('00:43'); first.unmount();
-  mount(paused); await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Uzun mola')); expect(screen.getByRole('timer').textContent).toBe('00:43'); expect(screen.getByText('4. döngü / 4')).toBeTruthy();
+  const first = mount(paused); await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Uzun mola')); expect(screen.getByRole('timer').textContent).toBe('Kalan süre: 00:43'); first.unmount();
+  mount(paused); await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Uzun mola')); expect(screen.getByRole('timer').textContent).toBe('Kalan süre: 00:43'); expect(screen.getByText('4. döngü / 4')).toBeTruthy();
 });
 it('does not send completion or phase mutations when a suspended timer reaches zero', async () => {
   vi.useFakeTimers(); vi.setSystemTime(now);
@@ -65,7 +65,7 @@ it('does not send completion or phase mutations when a suspended timer reaches z
   mount(running); await act(async () => { await vi.advanceTimersByTimeAsync(1); });
   vi.setSystemTime(now + 600000);
   await act(async () => { await vi.advanceTimersByTimeAsync(250); });
-  expect(screen.getByRole('timer').textContent).toBe('00:00');
+  expect(screen.getByRole('timer').textContent).toBe('Kalan süre: 00:00');
   expect(vi.mocked(studySessionsAPI.getSession).mock.calls.length).toBeGreaterThan(1);
   expect(studySessionsAPI.controlPomodoro).not.toHaveBeenCalled();
 });

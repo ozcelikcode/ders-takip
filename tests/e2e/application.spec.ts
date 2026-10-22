@@ -485,3 +485,15 @@ test('lets a user name records with their own word and keeps it after a reload',
   await page.goto('/courses');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Projeler');
 });
+
+test('reads the weekly chart as a table of measured study, not as an application', async ({ page }) => {
+  await login(page);
+  const chart = page.getByRole('figure').filter({ has: page.getByRole('table', { name: /Günlük ölçülen çalışma/ }) });
+  await expect(chart).toBeVisible();
+  await expect(chart.getByRole('application')).toHaveCount(0);
+  // Only the fixture's day with a completed session has measured study.
+  const measured = chart.getByRole('cell').filter({ hasNotText: 'Çalışma yok' });
+  await expect(measured).toHaveCount(1);
+  await expect(measured).toHaveText(/^\d+ (dk|sa)/);
+});
+
