@@ -85,10 +85,19 @@ export const test = base.extend<{
     await use(application.url);
   },
   browserGuard: [
-    async ({ context, application }, use) => {
+    async ({ context, application, browserName }, use) => {
       const errors: string[] = [];
+      // WebKit reports a request cut off by navigation as an access-control failure, and
+      // Playwright surfaces that console line as a page error. The app is same-origin, so
+      // for its own URLs the line can only mean a cancelled request; anything else still fails.
+      const host = new URL(application.url).host.replaceAll('.', '\\.');
+      const cancelledRequest = new RegExp(`${host}/.* due to access control checks\\.$`);
+      const ignored = (message: string) =>
+        browserName === 'webkit' && cancelledRequest.test(message);
       context.on('page', (page) =>
-        page.on('pageerror', (error) => errors.push(error.message)),
+        page.on('pageerror', (error) => {
+          if (!ignored(error.message)) errors.push(error.message);
+        }),
       );
       await context.route('**/*', (route) => {
         return new URL(route.request().url()).origin === application.url
