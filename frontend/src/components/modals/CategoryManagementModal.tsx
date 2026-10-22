@@ -12,6 +12,7 @@ import type { CatalogCategoryRecord } from '../../types/catalog';
 import { catalogIcon } from '../catalog/catalogIcons';
 import ConfirmDialog from '../common/ConfirmDialog';
 import CategoryEditorModal from './CategoryEditorModal';
+import { useText } from '../../store/languageStore';
 
 interface Props {
   isOpen: boolean;
@@ -31,6 +32,7 @@ function CategoryDeleteDialog({
   onClose: () => void;
 }) {
   const t = useTerms();
+  const text = useText().categories;
   const [targetId, setTargetId] = useState('');
   const mutation = useCatalogMutation();
   const inputId = useId();
@@ -41,13 +43,13 @@ function CategoryDeleteDialog({
     <ConfirmDialog
       isOpen
       onClose={onClose}
-      title="Kategoriyi sil"
-      confirmText="Kategoriyi sil"
+      title={text.deleteTitle}
+      confirmText={text.deleteTitle}
       type="danger"
       message={
         scope === 'shared'
-          ? `“${category.name}” kategorisi kalıcı olarak silinecek. Kategori doluysa bütün kullanıcıların aktif ve pasif ${t.course({ case: 'acc', plural: true })} taşıyacağınız hedefi seçin. ${t.course({ plural: true, capitalize: true })}, ${t.topic({ plural: true })}, ${t.session({ plural: true })} ve ilerleme kayıtları korunur.`
-          : `“${category.name}” kategorin kalıcı olarak silinecek. Kategori doluysa ${t.course({ case: 'acc', plural: true })} taşıyacağın hedefi seç. ${t.course({ plural: true, capitalize: true })}, ${t.topic({ plural: true })}, ${t.session({ plural: true })} ve ilerleme kayıtları korunur.`
+          ? text.deleteSharedMessage(t, category.name)
+          : text.deletePersonalMessage(t, category.name)
       }
       onConfirm={() =>
         validTarget
@@ -57,14 +59,14 @@ function CategoryDeleteDialog({
                   String(category.id),
                   targetId ? Number(targetId) : undefined,
                 ),
-              `Kategori silindi. ${t.course({ plural: true, capitalize: true })} ve çalışma geçmişi korundu.`,
+              text.deleted(t),
             )
           : false
       }
     >
       <div className="space-y-2">
         <label htmlFor={inputId} className="block text-sm font-medium">
-          {t.course({ case: 'gen', plural: true, capitalize: true })} taşınacağı kategori
+          {text.moveTarget(t)}
         </label>
         <select
           id={inputId}
@@ -74,22 +76,22 @@ function CategoryDeleteDialog({
           onChange={(event) => setTargetId(event.target.value)}
           aria-invalid={!validTarget}
         >
-          <option value="">Hedef seçin (kategori boşsa gerekmez)</option>
+          <option value="">{text.pickTarget}</option>
           {targets.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name}
-              {!item.isActive ? ' · Pasif' : ''}
+              {!item.isActive ? ` · ${text.inactive}` : ''}
             </option>
           ))}
         </select>
         {!validTarget && (
           <p role="alert" className="text-sm text-red-600">
-            Seçilen hedef artık bulunmuyor. Başka bir kategori seçin.
+            {text.targetGone}
           </p>
         )}
         {targets.length === 0 && (
           <p className="text-sm text-(--muted)">
-            Dolu bir kategoriyi silmeden önce başka bir kategori ekleyin.
+            {text.addAnotherFirst}
           </p>
         )}
         {mutation.errorMessage && (
@@ -102,10 +104,9 @@ function CategoryDeleteDialog({
   );
 }
 
-const scopeLabels: Record<CategoryScope, string> = { shared: 'Ortak', personal: 'Kişisel' };
-
 function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
   const t = useTerms();
+  const text = useText().categories;
   const keys = useAccountQueryKeys();
   const user = useAuthStore((state) => state.user);
   const admin = user?.role === 'admin';
@@ -143,25 +144,25 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
             <div className="flex items-start justify-between gap-4 border-b p-5 sm:p-6">
               <div>
                 <DialogTitle className="text-lg font-medium">
-                  {admin ? 'Kategori yönetimi' : 'Kategorilerim'}
+                  {admin ? text.adminTitle : text.userTitle}
                 </DialogTitle>
                 <Description className="mt-2 text-sm text-(--muted)">
                   {scope === 'shared'
-                    ? `Tüm kullanıcıların ${t.course({ case: 'acc', plural: true })} gruplandıran ortak kategorileri yönetin.`
-                    : `Yalnız sana görünen kategoriler. Kendi ${t.course({ case: 'acc', plural: true })} bunlarla ya da ortak kategorilerle gruplayabilirsin.`}
+                    ? text.sharedDescription(t)
+                    : text.personalDescription(t)}
                 </Description>
               </div>
               <button
                 className="icon-button"
                 onClick={close}
-                aria-label="Kategori yönetimini kapat"
+                aria-label={text.close}
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="space-y-5 p-5 sm:p-6">
               {admin && (
-                <div role="group" aria-label="Kategori türü" className="segmented-control">
+                <div role="group" aria-label={text.scopeGroup} className="segmented-control">
                   {(['shared', 'personal'] as const).map((option) => (
                     <button
                       key={option}
@@ -170,7 +171,7 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                       onClick={() => { setScope(option); setSearch(''); }}
                       className={`segment ${scope === option ? 'segment-active' : ''}`}
                     >
-                      {scopeLabels[option]}
+                      {text.scopes[option]}
                     </button>
                   ))}
                 </div>
@@ -178,7 +179,7 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
               <div className="flex flex-wrap items-center gap-3">
                 <div className="relative min-w-0 flex-1 basis-48">
                   <label htmlFor={searchId} className="sr-only">
-                    Kategori ara
+                    {text.search}
                   </label>
                   <Search className="absolute left-3 top-3 h-4 w-4 text-(--muted)" />
                   <input
@@ -186,7 +187,7 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                     className="input pl-9"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Kategori ara…"
+                    placeholder={text.searchPlaceholder}
                   />
                 </div>
                 <button
@@ -195,7 +196,7 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                   onClick={() => setEditor({ category: null })}
                 >
                   <Plus className="h-4 w-4" />
-                  Kategori ekle
+                  {text.add}
                 </button>
               </div>
               {query.isPending ? (
@@ -203,22 +204,22 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                   role="status"
                   className="py-8 text-center text-sm text-(--muted)"
                 >
-                  Kategoriler yükleniyor…
+                  {text.loading}
                 </p>
               ) : query.isError ? (
                 <div role="alert" className="panel p-5 text-sm">
-                  Kategoriler yüklenemedi.{' '}
+                  {text.failed}{' '}
                   <button
                     className="btn btn-secondary ml-2"
                     onClick={() => void query.refetch()}
                   >
-                    Tekrar dene
+                    {text.retry}
                   </button>
                 </div>
               ) : (
                 <>
                   <p className="text-xs text-(--muted)">
-                    {categories.length} kategori · {filtered.length} sonuç
+                    {text.count(categories.length, filtered.length)}
                   </p>
                   <div className="max-h-[50vh] space-y-2 overflow-y-auto">
                     {filtered.map((category) => {
@@ -241,7 +242,7 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                               </h3>
                               {!category.isActive && (
                                 <span className="badge border text-(--muted)">
-                                  Pasif
+                                  {text.inactive}
                                 </span>
                               )}
                             </div>
@@ -251,20 +252,20 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                               </p>
                             )}
                             <p className="mt-1 text-xs text-(--muted)">
-                              Sıra: {category.order}
+                              {text.order(category.order)}
                             </p>
                           </div>
                           <div className="flex items-center gap-1">
                             <button
                               className="icon-button"
-                              aria-label={`${category.name} kategorisini düzenle`}
+                              aria-label={text.edit(category.name)}
                               onClick={() => setEditor({ category })}
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
                             <button
                               className="icon-button"
-                              aria-label={`${category.name} kategorisini sil`}
+                              aria-label={text.remove(category.name)}
                               onClick={() => setDeleting(category)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -278,10 +279,10 @@ function CategoryManagement({ onClose }: Omit<Props, 'isOpen'>) {
                         <Tag className="mx-auto mb-3 h-6 w-6 text-(--muted)" />
                         <p className="text-sm text-(--muted)">
                           {search.trim()
-                            ? 'Aramanıza uygun kategori bulunamadı.'
+                            ? text.noMatch
                             : scope === 'shared'
-                              ? 'Henüz ortak kategori eklenmedi.'
-                              : 'Henüz kişisel kategorin yok.'}
+                              ? text.noShared
+                              : text.noPersonal}
                         </p>
                       </div>
                     )}

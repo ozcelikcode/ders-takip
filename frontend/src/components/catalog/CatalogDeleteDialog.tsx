@@ -2,6 +2,7 @@ import { useTerms } from '../../hooks/useTerms';
 import ConfirmDialog from '../common/ConfirmDialog';
 import { useCatalogMutation } from '../../hooks/useCatalogMutation';
 import { coursesAPI, topicsAPI } from '../../services/api';
+import { useText } from '../../store/languageStore';
 
 export type CatalogDeleteTarget = {
   kind: 'course' | 'topic';
@@ -19,19 +20,20 @@ function DeleteConfirmation({
   onDeleted?: () => void;
 }) {
   const t = useTerms();
+  const text = useText().records;
   const mutation = useCatalogMutation();
   const course = target.kind === 'course';
   return (
     <ConfirmDialog
       isOpen
       onClose={onClose}
-      title={course ? `${t.course({ case: 'acc', capitalize: true })} sil` : `${t.topic({ case: 'acc', capitalize: true })} arşivle`}
+      title={course ? text.deleteRecordTitle(t) : text.archiveTopicTitle(t)}
       message={
         course
-          ? `“${target.name}” ${t.course()}, ${t.topic({ plural: true })} ve ${t.topic()} ilerleme kayıtları kalıcı olarak silinecek. ${t.session({ plural: true, capitalize: true })}, notlar ve ölçülen çalışma süreleri korunacak; ${t.course()} ve ${t.topic()} bağlantıları kaldırılacak.`
-          : `“${target.name}” aktif ${t.topic()} listesinden kaldırılacak. İlerleme kayıtları ve çalışma geçmişi korunacak. Arşivden geri alabilirsiniz.`
+          ? text.deleteRecordMessage(t, target.name)
+          : text.archiveTopicMessage(t, target.name)
       }
-      confirmText={course ? `${t.course({ case: 'acc', capitalize: true })} sil` : 'Arşivle'}
+      confirmText={course ? text.deleteRecordTitle(t) : text.archive}
       type={course ? 'danger' : 'warning'}
       onConfirm={async () => {
         const saved = await mutation.save(
@@ -40,8 +42,8 @@ function DeleteConfirmation({
               ? coursesAPI.deleteCourse(String(target.id))
               : topicsAPI.deleteTopic(String(target.id)),
           course
-            ? `${t.course({ capitalize: true })} silindi. Çalışma geçmişi korundu.`
-            : `${t.topic({ capitalize: true })} arşivlendi.`,
+            ? text.recordDeleted(t)
+            : text.topicArchived(t),
         );
         if (saved) onDeleted?.();
         return saved;

@@ -3,6 +3,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { catalogIcon } from '../../components/catalog/catalogIcons';
 import type { CatalogCourse } from '../../types/catalog';
 import type { topicStats } from './courseTopics';
+import { useText } from '../../store/languageStore';
 
 interface CourseHeaderProps {
   course: CatalogCourse;
@@ -22,6 +23,7 @@ const CourseHeader = ({
   onDelete,
 }: CourseHeaderProps) => {
   const t = useTerms();
+  const text = useText().course;
   const Icon = catalogIcon(course.icon);
   return (
       <section className="panel p-5 sm:p-6">
@@ -55,24 +57,24 @@ const CourseHeader = ({
                 onClick={onEdit}
               >
                 <Pencil className="h-4 w-4" />
-                {t.course({ case: 'acc', capitalize: true })} düzenle
+                {text.editRecord(t)}
               </button>
               <button
                 className="btn btn-secondary text-red-600"
                 onClick={onDelete}
               >
                 <Trash2 className="h-4 w-4" />
-                {t.course({ case: 'acc', capitalize: true })} sil
+                {text.deleteRecord(t)}
               </button>
             </div>
           )}
         </div>
         <div className="mt-6 grid grid-cols-2 gap-4 border-t pt-5 sm:grid-cols-4">
           {[
-            [stats.total, `Toplam ${t.topic({ capitalize: true })}`],
-            [stats.completed, 'Tamamlandı'],
-            [stats.inProgress, 'Devam Ediyor'],
-            [stats.notStarted, 'Başlanmadı'],
+            [stats.total, text.totalTopics(t)],
+            [stats.completed, text.topicStatuses.completed],
+            [stats.inProgress, text.topicStatuses.in_progress],
+            [stats.notStarted, text.topicStatuses.not_started],
           ].map(([count, label]) => (
             <div key={label}>
               <div className="text-2xl font-medium tabular-nums">{count}</div>
@@ -82,12 +84,12 @@ const CourseHeader = ({
         </div>
         <div className="mt-5">
           <div className="mb-2 flex justify-between text-xs text-(--muted)">
-            <span>Aktif {t.topic({ case: 'loc', plural: true })} ilerleme</span>
+            <span>{text.activeProgress(t)}</span>
             <span>{progressPercentage}%</span>
           </div>
           <div
             role="progressbar"
-            aria-label={`${t.topic({ capitalize: true })} ilerlemesi`}
+            aria-label={text.topicProgress(t)}
             aria-valuenow={progressPercentage}
             aria-valuemin={0}
             aria-valuemax={100}

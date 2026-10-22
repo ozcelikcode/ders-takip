@@ -9,6 +9,7 @@ import {
 import { useId, useState } from 'react';
 import CustomTerminologyEditor from '../../components/settings/CustomTerminologyEditor';
 import TerminologyPresetPicker, { type TerminologyChoice } from '../../components/settings/TerminologyPresetPicker';
+import { useText } from '../../store/languageStore';
 
 interface TerminologySectionProps {
   preferences: UserPreferences;
@@ -21,6 +22,7 @@ const sameWords = (a: CustomTerminology, b: CustomTerminology) => JSON.stringify
 
 /** Personal vocabulary: follow the site, pick a preset (saved at once) or type custom words (saved on demand). */
 export default function TerminologySection({ preferences, siteTerminology, onSave }: TerminologySectionProps) {
+  const text = useText().settings;
   const prefix = useId();
   const saved = preferences.customTerminology ?? null;
   const [editing, setEditing] = useState(false);
@@ -45,9 +47,9 @@ export default function TerminologySection({ preferences, siteTerminology, onSav
   return (
     <section className="space-y-4 border-t border-(--line) pt-6">
       <div>
-        <h2 className="text-base font-medium">Kelimeler</h2>
+        <h2 className="text-base font-medium">{text.words}</h2>
         <p className="mt-1 text-sm text-(--muted)">
-          Ana kavramların sana nasıl görüneceğini seç. Kayıtların değişmez; yalnızca görünen kelimeler değişir.
+          {text.wordsHint}
         </p>
       </div>
       <TerminologyPresetPicker
@@ -70,7 +72,7 @@ export default function TerminologySection({ preferences, siteTerminology, onSav
               setEditing(false);
             }}
           >
-            Kelimeleri kaydet
+            {text.saveWords}
           </button>
         </div>
       )}

@@ -14,12 +14,6 @@ export type FilterOption =
   | 'Orta'
   | 'Zor';
 
-export const statusLabels: Record<TopicStatus, string> = {
-  not_started: 'Başlanmadı',
-  in_progress: 'Devam Ediyor',
-  completed: 'Tamamlandı',
-};
-
 const difficultyOrder = { Kolay: 1, Orta: 2, Zor: 3 };
 
 export const sortTopics = (

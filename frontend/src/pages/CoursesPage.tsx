@@ -25,10 +25,12 @@ import CatalogDeleteDialog, {
 } from '../components/catalog/CatalogDeleteDialog';
 import { catalogIcon } from '../components/catalog/catalogIcons';
 import PageHeader from '../components/common/PageHeader';
+import { useText } from '../store/languageStore';
 
 export default function CoursesPage() {
   const keys = useAccountQueryKeys();
   const t = useTerms();
+  const text = useText().records;
   const { user } = useAuthStore();
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
@@ -61,7 +63,7 @@ export default function CoursesPage() {
     <div className="space-y-6">
       <PageHeader
         title={t.course({ plural: true, capitalize: true })}
-        description={`${t.course({ case: 'acc', plural: true, capitalize: true })} ve ${t.topic({ case: 'acc', plural: true })} tek yerde yönetin.`}
+        description={text.description(t)}
         actions={
           <>
             <button
@@ -69,21 +71,21 @@ export default function CoursesPage() {
               onClick={() => setCategoryOpen(true)}
             >
               <Tag className="h-4 w-4" />
-              {user?.role === 'admin' ? 'Kategoriler' : 'Kategorilerim'}
+              {user?.role === 'admin' ? text.categories : text.myCategories}
             </button>
             <button
               className="btn btn-primary"
               onClick={() => setEditor({ course: null })}
             >
               <Plus className="h-4 w-4" />
-              {t.course({ capitalize: true })} ekle
+              {text.add(t)}
             </button>
           </>
         }
       />
       <div className="relative max-w-lg">
         <label htmlFor="course-search" className="sr-only">
-          {t.course({ capitalize: true })} ve {t.topic()} ara
+          {text.searchLabel(t)}
         </label>
         <Search
           className="absolute left-3 top-3 h-4 w-4 text-(--muted)"
@@ -92,14 +94,14 @@ export default function CoursesPage() {
         <input
           id="course-search"
           className="input pl-9 pr-10"
-          placeholder={`${t.course({ capitalize: true })}, kategori veya ${t.topic()} ara…`}
+          placeholder={text.searchPlaceholder(t)}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
         {search && (
           <button
             className="absolute right-2 top-2 p-1 text-(--muted)"
-            aria-label="Aramayı temizle"
+            aria-label={text.clearSearch}
             onClick={() => setSearch('')}
           >
             <X className="h-4 w-4" />
@@ -108,22 +110,22 @@ export default function CoursesPage() {
       </div>
       {query.isPending ? (
         <p role="status" className="text-sm text-(--muted)">
-          {t.course({ plural: true, capitalize: true })} yükleniyor…
+          {text.loading(t)}
         </p>
       ) : query.isError ? (
         <div className="panel p-6" role="alert">
-          {t.course({ plural: true, capitalize: true })} yüklenemedi.{' '}
+          {text.failed(t)}{' '}
           <button
             className="btn btn-secondary ml-2"
             onClick={() => void query.refetch()}
           >
-            Tekrar dene
+            {text.retry}
           </button>
         </div>
       ) : (
         <>
           <p className="text-sm text-(--muted)">
-            {filtered.length} {t.course()}{term && ` / ${courses.length} toplam`}
+            {text.count(t, filtered.length, term ? courses.length : undefined)}
           </p>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((course) => {
@@ -145,7 +147,7 @@ export default function CoursesPage() {
                         <Icon className="h-5 w-5" />
                       </div>
                       {course.isGlobal && (
-                        <span className="badge">Ortak {t.course()}</span>
+                        <span className="badge">{text.shared(t)}</span>
                       )}
                     </div>
                     <div>
@@ -160,9 +162,9 @@ export default function CoursesPage() {
                       )}
                     </div>
                     <div className="mt-auto flex items-center justify-between text-sm text-(--muted)">
-                      <span>{course.topics?.length ?? 0} {t.topic()}</span>
+                      <span>{text.topicCount(t, course.topics?.length ?? 0)}</span>
                       <span className="flex items-center gap-1">
-                        {t.topic({ case: 'acc', plural: true, capitalize: true })} görüntüle
+                        {text.viewTopics(t)}
                         <ArrowUpRight className="h-4 w-4" />
                       </span>
                     </div>
@@ -171,15 +173,15 @@ export default function CoursesPage() {
                     <div className="flex items-center justify-end gap-2 border-t border-(--line) px-4 py-2">
                       <button
                         className="btn btn-secondary"
-                        aria-label={`${t.course({ case: 'acc', capitalize: true })} düzenle: ${course.name}`}
+                        aria-label={text.editLabel(t, course.name)}
                         onClick={() => setEditor({ course })}
                       >
                         <Pencil className="h-3.5 w-3.5" />
-                        Düzenle
+                        {text.edit}
                       </button>
                       <button
                         className="btn btn-secondary text-red-600"
-                        aria-label={`${t.course({ case: 'acc', capitalize: true })} sil: ${course.name}`}
+                        aria-label={text.deleteLabel(t, course.name)}
                         onClick={() =>
                           setDeleting({
                             kind: 'course',
@@ -189,7 +191,7 @@ export default function CoursesPage() {
                         }
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                        Sil
+                        {text.delete}
                       </button>
                     </div>
                   )}
@@ -202,13 +204,13 @@ export default function CoursesPage() {
               <BookOpen className="mx-auto mb-3 h-8 w-8 text-(--muted)" />
               <h2 className="font-medium">
                 {term
-                  ? `Aramanıza uygun ${t.course()} bulunamadı`
-                  : `Henüz ${t.course()} eklenmedi`}
+                  ? text.noMatch(t)
+                  : text.noneYet(t)}
               </h2>
               <p className="mt-2 text-sm text-(--muted)">
                 {term
-                  ? `Başka bir ${t.course()} veya ${t.topic()} adı deneyin.`
-                  : `Bir ${t.course()} ekleyerek ${t.topic({ case: 'acc', plural: true })} planlamaya başlayın.`}
+                  ? text.noMatchHint(t)
+                  : text.noneYetHint(t)}
               </p>
             </div>
           )}

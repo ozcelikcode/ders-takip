@@ -7,6 +7,7 @@ import {
   type CustomTerminology,
   type TermKey,
 } from '@study-tracker/contracts';
+import { useText } from '../../store/languageStore';
 
 interface CustomTerminologyEditorProps {
   idPrefix: string;
@@ -14,12 +15,6 @@ interface CustomTerminologyEditorProps {
   value: CustomTerminology;
   onChange: (value: CustomTerminology) => void;
 }
-
-const termLabels: Record<TermKey, { title: string; hint: string }> = {
-  course: { title: 'Ana kayıt', hint: 'Takip edilen büyük birim (proje, ders, hedef…)' },
-  topic: { title: 'Alt kayıt', hint: 'Ana kaydın parçaları (görev, konu, adım…)' },
-  session: { title: 'Çalışma', hint: 'Takvimdeki zaman bloğu (seans, oturum…)' },
-};
 
 /** Field-level messages from the shared schema, keyed like `course.word`. */
 const fieldErrors = (value: CustomTerminology) => {
@@ -40,6 +35,7 @@ const forms = (value: CustomTerminology[TermKey]) =>
 
 /** Lets a person type their own word for each concept and check every form it will take. */
 export default function CustomTerminologyEditor({ idPrefix, value, onChange }: CustomTerminologyEditorProps) {
+  const text = useText().settings;
   const errors = fieldErrors(value);
   const update = (key: TermKey, field: 'word' | 'accusative', text: string) => {
     const current = value[key];
@@ -56,8 +52,7 @@ export default function CustomTerminologyEditor({ idPrefix, value, onChange }: C
   return (
     <div className="space-y-5">
       <p className="text-sm text-(--muted)">
-        Her kavram için tek kelime yaz. Ekler &quot;-ı&quot; hâlinden türetilir: kelime ek alınca değişiyorsa
-        (kitap → kitabı, saat → saati) o alanı düzelt.
+        {text.customWordsHint}
       </p>
       {termKeys.map((key) => {
         const wordError = errors[`${key}.word`];
@@ -65,8 +60,8 @@ export default function CustomTerminologyEditor({ idPrefix, value, onChange }: C
         const valid = !wordError && !accusativeError;
         return (
           <fieldset key={key} className="space-y-3 rounded-lg border border-(--line) p-4">
-            <legend className="px-1 text-sm font-medium">{termLabels[key].title}</legend>
-            <p className="text-xs text-(--muted)">{termLabels[key].hint}</p>
+            <legend className="px-1 text-sm font-medium">{text.terms[key].title}</legend>
+            <p className="text-xs text-(--muted)">{text.terms[key].hint}</p>
             <div className="grid gap-3 sm:grid-cols-2">
               {(['word', 'accusative'] as const).map((field) => {
                 const id = `${idPrefix}-${key}-${field}`;
@@ -74,7 +69,7 @@ export default function CustomTerminologyEditor({ idPrefix, value, onChange }: C
                 return (
                   <div key={field}>
                     <label htmlFor={id} className="mb-1 block text-sm">
-                      {field === 'word' ? 'Kelime' : '"-ı" hâli'}
+                      {field === 'word' ? text.word : text.accusative}
                     </label>
                     <input
                       id={id}
@@ -95,7 +90,7 @@ export default function CustomTerminologyEditor({ idPrefix, value, onChange }: C
                 );
               })}
             </div>
-            {valid && <p className="text-xs text-(--muted)">Biçimler: {forms(value[key])}</p>}
+            {valid && <p className="text-xs text-(--muted)">{text.forms(forms(value[key]))}</p>}
           </fieldset>
         );
       })}

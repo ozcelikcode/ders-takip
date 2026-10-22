@@ -27,18 +27,19 @@ import TopicCard from './course/TopicCard';
 import {
   filterTopics,
   sortTopics,
-  statusLabels,
   topicStats,
   type FilterOption,
   type SortOption,
   type SortOrder,
   type TopicStatus,
 } from './course/courseTopics';
+import { useText } from '../store/languageStore';
 
 
 const CourseDetailPage = () => {
   const accountKeys = useAccountQueryKeys();
   const t = useTerms();
+  const text = useText().course;
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
   const navigate = useNavigate();
@@ -60,10 +61,10 @@ const CourseDetailPage = () => {
     mutationFn: (input: ReorderTopicsInput) =>
       topicsAPI.reorderTopics(id!, input),
     onSuccess: () => {
-      toast.success(`${t.topic({ capitalize: true })} sıralaması güncellendi`);
+      toast.success(text.reordered(t));
     },
     onError: () => {
-      toast.error('Sıralama güncellenirken hata oluştu');
+      toast.error(text.reorderFailed);
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: accountKeys.catalog() }),
@@ -88,8 +89,8 @@ const CourseDetailPage = () => {
       status: TopicStatus;
     }) => topicsAPI.setTopicProgress(topicId, status),
     onSuccess: (_response, { status }) =>
-      toast.success(`${t.topic({ capitalize: true })} durumu: ${statusLabels[status]}`),
-    onError: () => toast.error(`${t.topic({ capitalize: true })} durumu kaydedilemedi`),
+      toast.success(text.statusSaved(t, text.topicStatuses[status])),
+    onError: () => toast.error(text.statusFailed(t)),
     onSettled: () => queryClient.invalidateQueries({ queryKey: progressKey }),
   });
 
@@ -160,12 +161,12 @@ const CourseDetailPage = () => {
   if (error || !course) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600">{t.course({ capitalize: true })} yüklenirken bir hata oluştu.</p>
+        <p className="text-red-600">{text.loadFailed(t)}</p>
         <Link
           to="/courses"
           className="text-primary-600 hover:text-primary-500 mt-2 inline-block"
         >
-          {t.course({ case: 'dat', plural: true, capitalize: true })} geri dön
+          {text.back(t)}
         </Link>
       </div>
     );
@@ -196,7 +197,7 @@ const CourseDetailPage = () => {
         className="inline-flex items-center gap-2 text-sm text-(--muted)"
       >
         <ArrowLeft className="h-4 w-4" />
-        {t.course({ case: 'dat', plural: true, capitalize: true })} geri dön
+        {text.back(t)}
       </Link>
       <CourseHeader
         course={course}
@@ -220,7 +221,7 @@ const CourseDetailPage = () => {
                 className="btn btn-primary"
               >
                 <Plus className="h-4 w-4" />
-                {t.topic({ capitalize: true })} ekle
+                {text.addTopic(t)}
               </button>
               <button
                 className="btn btn-secondary"
@@ -231,33 +232,33 @@ const CourseDetailPage = () => {
                 }}
               >
                 <Archive className="h-4 w-4" />
-                {archived ? `Aktif ${t.topic({ plural: true })}` : 'Arşivdekiler'}
+                {archived ? text.activeTopics(t) : text.archivedTopics}
               </button>
             </>
           )}
           <select
-            aria-label={`${t.topic({ case: 'acc', plural: true, capitalize: true })} filtrele`}
+            aria-label={text.filter(t)}
             value={filterBy}
             onChange={(e) => setFilterBy(e.target.value as FilterOption)}
             className="input w-auto text-sm"
           >
-            <option value="all">Tüm {t.topic({ plural: true, capitalize: true })}</option>
+            <option value="all">{text.allTopics(t)}</option>
             {!archived && (
               <>
-                <option value="not_started">Başlanmadı</option>
-                <option value="in_progress">Devam Ediyor</option>
-                <option value="completed">Tamamlandı</option>
+                <option value="not_started">{text.topicStatuses.not_started}</option>
+                <option value="in_progress">{text.topicStatuses.in_progress}</option>
+                <option value="completed">{text.topicStatuses.completed}</option>
               </>
             )}
-            <option value="Kolay">Kolay</option>
-            <option value="Orta">Orta</option>
-            <option value="Zor">Zor</option>
+            <option value="Kolay">{text.difficulties.Kolay}</option>
+            <option value="Orta">{text.difficulties.Orta}</option>
+            <option value="Zor">{text.difficulties.Zor}</option>
           </select>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            aria-label="Sıralama yönünü değiştir"
+            aria-label={text.sortDirection}
             className="icon-button"
           >
             {sortOrder === 'asc' ? (
@@ -267,25 +268,25 @@ const CourseDetailPage = () => {
             )}
           </button>
           <select
-            aria-label={`${t.topic({ case: 'acc', plural: true, capitalize: true })} sırala`}
+            aria-label={text.sort(t)}
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
             className="input w-auto text-sm"
           >
-            <option value="order">Sıra</option>
-            <option value="name">İsim</option>
-            <option value="difficulty">Zorluk</option>
-            <option value="time">Süre</option>
+            <option value="order">{text.sortOptions.order}</option>
+            <option value="name">{text.sortOptions.name}</option>
+            <option value="difficulty">{text.sortOptions.difficulty}</option>
+            <option value="time">{text.sortOptions.time}</option>
           </select>
         </div>
       </div>
       {canEdit && (
         <p className="text-sm text-(--muted)" role="status">
           {archived
-            ? `Arşivdeki ${t.topic({ plural: true })} çalışma geçmişi ve ilerlemesi korunur. Geri alınanlar aktif listede görünür.`
+            ? text.archiveNote(t)
             : reorderMutation.isPending
-              ? 'Sıralama kaydediliyor…'
-              : `Sıralamak için tüm ${t.topic({ case: 'acc', plural: true })} artan sıra görünümünde açın.`}
+              ? text.savingOrder
+              : text.reorderHint(t)}
         </p>
       )}
       {restore.errorMessage && (
@@ -295,17 +296,17 @@ const CourseDetailPage = () => {
       )}
       {archived && archiveQuery.isPending && (
         <p role="status" className="text-sm text-(--muted)">
-          Arşiv yükleniyor…
+          {text.archiveLoading}
         </p>
       )}
       {archived && archiveQuery.isError && (
         <div role="alert" className="panel p-4">
-          Arşiv yüklenemedi.{' '}
+          {text.archiveFailed}{' '}
           <button
             className="btn btn-secondary ml-2"
             onClick={() => void archiveQuery.refetch()}
           >
-            Tekrar dene
+            {text.retry}
           </button>
         </div>
       )}
@@ -346,7 +347,7 @@ const CourseDetailPage = () => {
                       onRestore={() =>
                         void restore.save(
                           () => topicsAPI.updateTopic(String(topic.id), { isActive: true }),
-                          `${t.topic({ capitalize: true })} aktif listeye alındı.`,
+                          text.restored(t),
                         )
                       }
                     />
@@ -362,14 +363,14 @@ const CourseDetailPage = () => {
         (!archived || archiveQuery.isSuccess) && (
           <div className="panel p-10 text-center">
             <h2 className="text-sm font-medium">
-              {archived ? `Arşivde ${t.topic()} bulunamadı` : `${t.topic({ capitalize: true })} bulunamadı`}
+              {archived ? text.noArchived(t) : text.noTopics(t)}
             </h2>
             <p className="mt-2 text-sm text-(--muted)">
               {filterBy !== 'all'
-                ? `Seçilen filtreye uygun ${t.topic()} bulunmuyor.`
+                ? text.noFilterMatch(t)
                 : archived
-                  ? `Arşivlenen ${t.topic({ plural: true })} burada görünür.`
-                  : `Bu ${t.course({ case: 'dat' })} henüz ${t.topic()} eklenmedi.`}
+                  ? text.archivedAppear(t)
+                  : text.noTopicsYet(t)}
             </p>
           </div>
         )}

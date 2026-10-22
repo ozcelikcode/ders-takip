@@ -10,6 +10,7 @@ import { useCatalogMutation } from '../../hooks/useCatalogMutation';
 import { canManageCourse } from '../../lib/catalogAccess';
 import type { CatalogCourse, CatalogTopic } from '../../types/catalog';
 import EditorDialog from '../common/EditorDialog';
+import { useText } from '../../store/languageStore';
 
 interface Props {
   isOpen: boolean;
@@ -20,6 +21,7 @@ interface Props {
 
 function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
   const t = useTerms();
+  const { editors: text, course: courseText } = useText();
   const mutation = useCatalogMutation();
   const prefix = useId();
   const [initial] = useState(() => ({
@@ -59,15 +61,15 @@ function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
     });
     if (!result.success) {
       const messages: Record<string, string> = {
-        name: `${t.topic({ capitalize: true })} adı 1–200 karakter olmalıdır.`,
-        estimatedTime: 'Süre 5–480 arasında bir tam sayı olmalıdır.',
-        difficulty: 'Bir zorluk seviyesi seçin.',
+        name: text.topicNameLength(t),
+        estimatedTime: text.topicTimeRange,
+        difficulty: text.chooseDifficulty,
       };
       setErrors(
         Object.fromEntries(
           result.error.issues.map((issue) => [
             String(issue.path[0]),
-            messages[String(issue.path[0])] ?? 'Geçerli bir değer girin.',
+            messages[String(issue.path[0])] ?? text.invalidValue,
           ]),
         ),
       );
@@ -93,17 +95,17 @@ function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
         topic
           ? topicsAPI.updateTopic(String(topic.id), patch)
           : topicsAPI.createTopic(result.data),
-      topic ? `${t.topic({ capitalize: true })} güncellendi.` : `${t.topic({ capitalize: true })} oluşturuldu.`,
+      topic ? text.topicUpdated(t) : text.topicCreated(t),
     );
     if (saved) onClose();
   };
   return (
     <EditorDialog
-      title={topic ? `${t.topic({ case: 'acc', capitalize: true })} düzenle` : `${t.topic({ capitalize: true })} ekle`}
+      title={topic ? text.editTopic(t) : text.addTopic(t)}
       description={
         topic?.isActive === false
-          ? `Arşivdeki ${t.topic({ case: 'acc' })} düzenliyorsunuz. Değişiklikler aktif hale getirmez.`
-          : `${course.name} ${t.course({ case: 'dat' })} ait ${t.topic()} bilgilerini belirleyin.`
+          ? text.archivedTopicHint(t)
+          : text.topicHint(t, course.name)
       }
       pending={mutation.isPending}
       error={mutation.errorMessage}
@@ -111,7 +113,7 @@ function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
       onSubmit={(event) => void submit(event)}
     >
       <div>
-        {label('name', `${t.topic({ capitalize: true })} adı`)}
+        {label('name', text.topicName(t))}
         <input
           {...field('name')}
           className="input"
@@ -123,7 +125,7 @@ function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
         {error('name')}
       </div>
       <div>
-        {label('description', 'Açıklama')}
+        {label('description', text.description)}
         <textarea
           {...field('description')}
           className="input"
@@ -134,7 +136,7 @@ function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          {label('estimatedTime', 'Tahmini süre (dk)')}
+          {label('estimatedTime', text.estimatedTime)}
           <input
             {...field('estimatedTime')}
             className="input"
@@ -150,7 +152,7 @@ function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
           {error('estimatedTime')}
         </div>
         <div>
-          {label('difficulty', 'Zorluk')}
+          {label('difficulty', text.difficulty)}
           <select
             {...field('difficulty')}
             className="input"
@@ -162,8 +164,9 @@ function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
               })
             }
           >
-            {['Kolay', 'Orta', 'Zor'].map((value) => (
-              <option key={value}>{value}</option>
+            {(['Kolay', 'Orta', 'Zor'] as const).map((value) => (
+              // The stored value stays Turkish; only the shown name follows the language.
+              <option key={value} value={value}>{courseText.difficulties[value]}</option>
             ))}
           </select>
           {error('difficulty')}

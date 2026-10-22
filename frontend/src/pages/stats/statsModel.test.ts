@@ -24,10 +24,10 @@ describe('statistics model', () => {
   });
 
   it('validates custom ranges against the server limit', () => {
-    expect(rangeError({ startDate: '2026-10-21', endDate: '2026-10-20' })).toMatch(/sonra/);
-    expect(rangeError({ startDate: '2025-01-01', endDate: '2026-01-02' })).toMatch(/366/);
+    expect(rangeError({ startDate: '2026-10-21', endDate: '2026-10-20' })).toBe('reversed');
+    expect(rangeError({ startDate: '2025-01-01', endDate: '2026-01-02' })).toBe('tooLong');
     expect(rangeError({ startDate: '2025-01-01', endDate: '2026-01-01' })).toBeNull();
-    expect(rangeError({ startDate: '', endDate: '2026-01-01' })).toMatch(/seçin/);
+    expect(rangeError({ startDate: '', endDate: '2026-01-01' })).toBe('missing');
   });
 
   it('groups study by course and category with unknown courses as unassigned', () => {

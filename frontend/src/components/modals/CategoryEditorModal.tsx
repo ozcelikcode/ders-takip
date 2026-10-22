@@ -11,6 +11,7 @@ import { useCatalogMutation } from '../../hooks/useCatalogMutation';
 import type { CatalogCategoryRecord } from '../../types/catalog';
 import EditorDialog from '../common/EditorDialog';
 import { catalogIcons, catalogIcon } from '../catalog/catalogIcons';
+import { useText } from '../../store/languageStore';
 
 interface Props {
   category: CatalogCategoryRecord | null;
@@ -27,6 +28,7 @@ export default function CategoryEditorModal({
   onClose,
 }: Props) {
   const { user } = useAuthStore();
+  const text = useText().editors;
   const prefix = useId();
   const mutation = useCatalogMutation();
   const [initial] = useState(() => ({
@@ -69,16 +71,16 @@ export default function CategoryEditorModal({
     });
     if (!result.success) {
       const messages: Record<string, string> = {
-        name: 'Kategori adı 1–100 karakter olmalıdır.',
-        color: 'Geçerli bir HEX renk kodu girin.',
-        icon: 'Simge adı en fazla 50 karakter olabilir.',
-        order: 'Sıra pozitif bir tam sayı olmalıdır.',
+        name: text.categoryNameLength,
+        color: text.invalidColor,
+        icon: text.iconTooLong,
+        order: text.orderPositive,
       };
       setErrors(
         Object.fromEntries(
           result.error.issues.map((issue) => [
             String(issue.path[0]),
-            messages[String(issue.path[0])] ?? 'Geçerli bir değer girin.',
+            messages[String(issue.path[0])] ?? text.invalidValue,
           ]),
         ),
       );
@@ -109,7 +111,7 @@ export default function CategoryEditorModal({
         category
           ? categoriesAPI.updateCategory(String(category.id), patch)
           : categoriesAPI.createCategory(result.data),
-      category ? 'Kategori güncellendi.' : 'Kategori oluşturuldu.',
+      category ? text.categoryUpdated : text.categoryCreated,
     );
     if (saved) onClose();
   };
@@ -117,11 +119,11 @@ export default function CategoryEditorModal({
   if (scope === 'shared' && user?.role !== 'admin') return null;
   return (
     <EditorDialog
-      title={category ? 'Kategoriyi düzenle' : 'Kategori ekle'}
+      title={category ? text.editCategory : text.addCategory}
       description={
         scope === 'shared'
-          ? `Ortak kategoriler tüm kullanıcıların ${t.course({ case: 'acc', plural: true })} gruplar. Değişiklikler ortak kataloğa uygulanır.`
-          : `Kişisel kategoriler yalnız sana görünür ve yalnız kendi ${t.course({ case: 'acc', plural: true })} gruplar.`
+          ? text.sharedCategoryHint(t)
+          : text.personalCategoryHint(t)
       }
       pending={mutation.isPending}
       error={mutation.errorMessage}
@@ -129,7 +131,7 @@ export default function CategoryEditorModal({
       onSubmit={(event) => void submit(event)}
     >
       <div>
-        {label('name', 'Kategori adı')}
+        {label('name', text.categoryName)}
         <input
           {...field('name')}
           className="input"
@@ -141,7 +143,7 @@ export default function CategoryEditorModal({
         {error('name')}
       </div>
       <div>
-        {label('description', 'Açıklama')}
+        {label('description', text.description)}
         <textarea
           {...field('description')}
           className="input"
@@ -152,7 +154,7 @@ export default function CategoryEditorModal({
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          {label('color', 'Renk kodu')}
+          {label('color', text.color)}
           <div className="flex items-center gap-2">
             <span
               aria-hidden="true"
@@ -175,7 +177,7 @@ export default function CategoryEditorModal({
           {error('color')}
         </div>
         <div>
-          {label('order', 'Sıra')}
+          {label('order', text.order)}
           <input
             {...field('order')}
             className="input"
@@ -189,7 +191,7 @@ export default function CategoryEditorModal({
         </div>
       </div>
       <div>
-        {label('icon', 'Simge')}
+        {label('icon', text.icon)}
         <div className="flex items-center gap-2">
           <Icon className="h-5 w-5 shrink-0 text-(--muted)" />
           <select
@@ -199,7 +201,7 @@ export default function CategoryEditorModal({
             onChange={(e) => setForm({ ...form, icon: e.target.value })}
           >
             {!Object.prototype.hasOwnProperty.call(catalogIcons, form.icon) && (
-              <option value={form.icon}>Mevcut simge ({form.icon})</option>
+              <option value={form.icon}>{text.currentIcon(form.icon)}</option>
             )}
             {Object.keys(catalogIcons).map((icon) => (
               <option key={icon}>{icon}</option>
@@ -214,7 +216,7 @@ export default function CategoryEditorModal({
           checked={form.isActive}
           onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
         />
-        Aktif kategori
+        {text.activeCategory}
       </label>
     </EditorDialog>
   );

@@ -10,7 +10,7 @@ export interface DateRange {
 }
 
 /** The server rejects ranges longer than this. */
-const maxRangeDays = 366;
+export const maxRangeDays = 366;
 
 const day = (date: string) => DateTime.fromISO(date, { zone: 'UTC' });
 const iso = (date: DateTime) => date.toISODate()!;
@@ -35,11 +35,12 @@ export const presetRange = (preset: Exclude<RangePreset, 'custom'>, today: strin
 export const rangeDays = ({ startDate, endDate }: DateRange) =>
   Math.round(day(endDate).diff(day(startDate), 'days').days) + 1;
 
-/** A user-entered range error message, or null when the range can be requested. */
-export const rangeError = (range: DateRange): string | null => {
-  if (!range.startDate || !range.endDate) return 'Başlangıç ve bitiş günü seçin.';
-  if (range.startDate > range.endDate) return 'Başlangıç, bitişten sonra olamaz.';
-  if (rangeDays(range) > maxRangeDays) return `Aralık en fazla ${maxRangeDays} gün olabilir.`;
+export type RangeError = 'missing' | 'reversed' | 'tooLong';
+/** Why a user-entered range cannot be requested, or null when it can; screens word it. */
+export const rangeError = (range: DateRange): RangeError | null => {
+  if (!range.startDate || !range.endDate) return 'missing';
+  if (range.startDate > range.endDate) return 'reversed';
+  if (rangeDays(range) > maxRangeDays) return 'tooLong';
   return null;
 };
 

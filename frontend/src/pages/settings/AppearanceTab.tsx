@@ -2,23 +2,24 @@ import type { CustomTerminology, PreferencesPatch, TerminologyPresetId, UserPref
 import TerminologySection from './TerminologySection';
 import { Check, Monitor, Moon, Sun } from 'lucide-react';
 import type { ThemeMode } from '../../store/userPreferencesStore';
+import { useText } from '../../store/languageStore';
 
 const THEME_OPTIONS = [
-  { value: 'light', label: 'Açık Tema', IconComponent: Sun, description: 'Aydınlık görünüm' },
-  { value: 'dark', label: 'Koyu Tema', IconComponent: Moon, description: 'Karanlık görünüm' },
-  { value: 'system', label: 'Sistem', IconComponent: Monitor, description: 'Sistem ayarlarını kullan' },
-];
+  { value: 'light', IconComponent: Sun },
+  { value: 'dark', IconComponent: Moon },
+  { value: 'system', IconComponent: Monitor },
+] as const;
 
 const PREDEFINED_COLORS = [
-  { name: 'Mavi', value: '#3B82F6' },
-  { name: 'Mor', value: '#8B5CF6' },
-  { name: 'Yeşil', value: '#10B981' },
-  { name: 'Kırmızı', value: '#EF4444' },
-  { name: 'Turuncu', value: '#F59E0B' },
-  { name: 'Pembe', value: '#EC4899' },
-  { name: 'İndigo', value: '#6366F1' },
-  { name: 'Turkuaz', value: '#14B8A6' },
-];
+  { name: 'blue', value: '#3B82F6' },
+  { name: 'purple', value: '#8B5CF6' },
+  { name: 'green', value: '#10B981' },
+  { name: 'red', value: '#EF4444' },
+  { name: 'orange', value: '#F59E0B' },
+  { name: 'pink', value: '#EC4899' },
+  { name: 'indigo', value: '#6366F1' },
+  { name: 'teal', value: '#14B8A6' },
+] as const;
 
 // Calculate if a color is light or dark for contrast
 const isLightColor = (hexColor: string): boolean => {
@@ -47,19 +48,20 @@ const AppearanceTab = ({
   onColorChange,
   onTerminologySave,
 }: AppearanceTabProps) => {
+  const text = useText().settings;
   const currentColor = preferences.customPrimaryColor || sitePrimaryColor;
   return (
     <div className="space-y-8">
       <section className="space-y-4">
-        <h2 className="text-base font-medium">Tema</h2>
+        <h2 className="text-base font-medium">{text.theme}</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {THEME_OPTIONS.map(({ value, label, IconComponent, description }) => {
+          {THEME_OPTIONS.map(({ value, IconComponent }) => {
             const selected = preferences.theme === value;
             return (
               <button
                 key={value}
                 type="button"
-                onClick={() => onThemeChange(value as ThemeMode)}
+                onClick={() => onThemeChange(value)}
                 aria-pressed={selected}
                 className={`rounded-lg border p-4 text-left transition-colors ${
                   selected
@@ -68,8 +70,8 @@ const AppearanceTab = ({
                 }`}
               >
                 <IconComponent className="mb-3 h-5 w-5" />
-                <div className="text-sm font-medium">{label}</div>
-                <div className="mt-1 text-xs text-(--muted)">{description}</div>
+                <div className="text-sm font-medium">{text.themes[value].label}</div>
+                <div className="mt-1 text-xs text-(--muted)">{text.themes[value].description}</div>
               </button>
             );
           })}
@@ -78,8 +80,8 @@ const AppearanceTab = ({
 
       <section className="space-y-4 border-t border-(--line) pt-6">
         <div>
-          <h2 className="text-base font-medium">Ana renk</h2>
-          <p className="mt-1 text-sm text-(--muted)">Vurgu ve odak rengini özelleştirin</p>
+          <h2 className="text-base font-medium">{text.primaryColor}</h2>
+          <p className="mt-1 text-sm text-(--muted)">{text.primaryColorHint}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {PREDEFINED_COLORS.map((color) => {
@@ -90,7 +92,7 @@ const AppearanceTab = ({
                 type="button"
                 onClick={() => onColorChange(color.value)}
                 aria-pressed={selected}
-                title={color.name}
+                title={text.colors[color.name]}
                 className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs transition-colors ${
                   selected
                     ? 'border-(--solid) bg-(--subtle) font-medium'
@@ -108,7 +110,7 @@ const AppearanceTab = ({
                     />
                   )}
                 </span>
-                {color.name}
+                {text.colors[color.name]}
               </button>
             );
           })}
@@ -116,7 +118,7 @@ const AppearanceTab = ({
 
         <div className="max-w-md space-y-2">
           <label htmlFor="settings-customPrimaryColor" className="block text-sm font-medium">
-            Özel renk
+            {text.customColor}
           </label>
           <div className="flex items-center gap-2">
             <input
@@ -128,7 +130,7 @@ const AppearanceTab = ({
             />
             <input
               type="text"
-              aria-label="Özel renk HEX kodu"
+              aria-label={text.customColorHex}
               value={currentColor}
               onChange={(e) => {
                 const value = e.target.value;
@@ -143,7 +145,7 @@ const AppearanceTab = ({
             />
             {preferences.customPrimaryColor && preferences.customPrimaryColor !== sitePrimaryColor && (
               <button type="button" onClick={() => onColorChange(null)} className="btn btn-secondary whitespace-nowrap">
-                Varsayılana dön
+                {text.resetColor}
               </button>
             )}
           </div>

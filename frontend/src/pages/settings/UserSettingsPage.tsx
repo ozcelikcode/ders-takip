@@ -11,15 +11,16 @@ import AppearanceTab from './AppearanceTab';
 import RegionTab from './RegionTab';
 import NotificationsTab from './NotificationsTab';
 import StudyTab, { type StudyPreferencesDraft } from './StudyTab';
+import { useText } from '../../store/languageStore';
 
 type TabType = 'appearance' | 'region' | 'study' | 'notifications';
 
 const tabs = [
-  { id: 'appearance', label: 'Görünüm', icon: Settings },
-  { id: 'region', label: 'Bölge', icon: Globe },
-  { id: 'study', label: 'Çalışma Tercihleri', icon: Clock },
-  { id: 'notifications', label: 'Bildirimler', icon: Bell },
-];
+  { id: 'appearance', icon: Settings },
+  { id: 'region', icon: Globe },
+  { id: 'study', icon: Clock },
+  { id: 'notifications', icon: Bell },
+] as const;
 
 const studyDraftFrom = (preferences: typeof defaultPreferences): StudyPreferencesDraft => ({
   defaultPomodoroDuration: preferences.defaultPomodoroDuration,
@@ -31,6 +32,7 @@ const studyDraftFrom = (preferences: typeof defaultPreferences): StudyPreference
 });
 
 const UserSettingsPage = () => {
+  const text = useText().settings;
   const [activeTab, setActiveTab] = useState<TabType>('appearance');
   const { preferences, updatePreferences, resetPreferences, pending, error: preferencesError } = useUserPreferencesStore();
   const { settings: siteSettings } = useSettingsStore();
@@ -50,28 +52,28 @@ const UserSettingsPage = () => {
   ]);
 
   const savePreferences = async (patch: PreferencesPatch) => {
-    try { await updatePreferences(patch); toast.success('Tercihler kaydedildi'); }
-    catch { toast.error('Tercihler kaydedilemedi'); }
+    try { await updatePreferences(patch); toast.success(text.saved); }
+    catch { toast.error(text.saveFailed); }
   };
   const handleThemeChange = (theme: ThemeMode) => { void savePreferences({ theme }); };
   const handleColorChange = (color: string | null) => { void savePreferences({ customPrimaryColor: color || null }); };
   const resetStudyPreferences = () => {
     void resetPreferences().then(() => {
       setStudyPrefs(studyDraftFrom(defaultPreferences));
-      toast.success('Tercihler varsayılanlara sıfırlandı');
-    }).catch(() => toast.error('Tercihler sıfırlanamadı'));
+      toast.success(text.resetDone);
+    }).catch(() => toast.error(text.resetFailed));
   };
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Ayarlar" description="Görünümü, kelimeleri, bölge ayarlarını, çalışma tercihlerini ve bildirimleri yönet." />
+      <PageHeader title={text.title} description={text.description} />
       <p className="text-sm text-(--muted)">
-        Ad, kullanıcı adı, profil resmi ve şifre{' '}
-        <Link to="/profile" className="font-medium text-(--text) underline underline-offset-4">Profil</Link> sayfasındadır.
+        {text.profileNote[0]}
+        <Link to="/profile" className="font-medium text-(--text) underline underline-offset-4">{text.profileNote[1]}</Link>{text.profileNote[2]}
       </p>
-      <div role="status" aria-live="polite" className="text-xs text-(--muted)">{pending ? 'Tercihler kaydediliyor…' : preferencesError || 'Tercihler hesabınızda saklanır'}</div>
+      <div role="status" aria-live="polite" className="text-xs text-(--muted)">{pending ? text.saving : preferencesError || text.storedInAccount}</div>
 
-      <nav aria-label="Ayar bölümleri" className="flex flex-wrap gap-1 border-b border-(--line) pb-3">
+      <nav aria-label={text.sections} className="flex flex-wrap gap-1 border-b border-(--line) pb-3">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -79,11 +81,11 @@ const UserSettingsPage = () => {
               key={tab.id}
               type="button"
               aria-current={activeTab === tab.id ? 'page' : undefined}
-              onClick={() => setActiveTab(tab.id as TabType)}
+              onClick={() => setActiveTab(tab.id)}
               className={`nav-item w-auto whitespace-nowrap ${activeTab === tab.id ? 'nav-item-active' : ''}`}
             >
               <Icon className="h-4 w-4" />
-              {tab.label}
+              {text.tabs[tab.id]}
             </button>
           );
         })}

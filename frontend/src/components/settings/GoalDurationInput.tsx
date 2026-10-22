@@ -1,4 +1,5 @@
 import { formatGoalMinutes, maxDailyGoalMinutes } from '../../utils/studyGoals';
+import { useLanguage, useText } from '../../store/languageStore';
 
 const presets = [30, 45, 60, 90, 120, 180, 240];
 
@@ -15,6 +16,8 @@ const part = (value: string) => (value === '' ? 0 : Number(value));
 
 /** A daily goal as hours and/or minutes, with common durations one click away. */
 export default function GoalDurationInput({ id, label, minutes, onChange }: GoalDurationInputProps) {
+  const text = useText().settings;
+  const language = useLanguage();
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   return (
@@ -22,7 +25,7 @@ export default function GoalDurationInput({ id, label, minutes, onChange }: Goal
       <legend className="mb-2 text-sm font-medium">{label}</legend>
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <label htmlFor={`${id}-hours`} className="sr-only">{label} (saat)</label>
+          <label htmlFor={`${id}-hours`} className="sr-only">{text.goalHours(label)}</label>
           <input
             id={`${id}-hours`}
             type="number"
@@ -33,10 +36,10 @@ export default function GoalDurationInput({ id, label, minutes, onChange }: Goal
             value={hours}
             onChange={(event) => onChange(clamp(part(event.target.value) * 60 + rest))}
           />
-          <span aria-hidden="true" className="text-sm text-(--muted)">sa</span>
+          <span aria-hidden="true" className="text-sm text-(--muted)">{text.hoursShort}</span>
         </div>
         <div className="flex items-center gap-2">
-          <label htmlFor={`${id}-minutes`} className="sr-only">{label} (dakika)</label>
+          <label htmlFor={`${id}-minutes`} className="sr-only">{text.goalMinutes(label)}</label>
           <input
             id={`${id}-minutes`}
             type="number"
@@ -48,10 +51,10 @@ export default function GoalDurationInput({ id, label, minutes, onChange }: Goal
             value={rest}
             onChange={(event) => onChange(clamp(hours * 60 + Math.min(59, part(event.target.value))))}
           />
-          <span aria-hidden="true" className="text-sm text-(--muted)">dk</span>
+          <span aria-hidden="true" className="text-sm text-(--muted)">{text.minutesShort}</span>
         </div>
       </div>
-      <div role="group" aria-label={`${label}: hazır süreler`} className="mt-3 flex flex-wrap gap-2">
+      <div role="group" aria-label={text.goalPresets(label)} className="mt-3 flex flex-wrap gap-2">
         {presets.map((preset) => (
           <button
             key={preset}
@@ -64,7 +67,7 @@ export default function GoalDurationInput({ id, label, minutes, onChange }: Goal
                 : 'border-(--line) text-(--muted) hover:bg-(--subtle) hover:text-(--text)'
             }`}
           >
-            {formatGoalMinutes(preset)}
+            {formatGoalMinutes(preset, language)}
           </button>
         ))}
       </div>
@@ -74,17 +77,19 @@ export default function GoalDurationInput({ id, label, minutes, onChange }: Goal
 
 /** The weekly goal follows from the daily goal and the active days; it is shown, not entered. */
 export function WeeklyGoalSummary({ dailyMinutes, activeDays }: { dailyMinutes: number; activeDays: number }) {
+  const text = useText().settings;
+  const language = useLanguage();
   return (
     <p aria-live="polite" className="rounded-lg border border-(--line) bg-(--subtle) px-4 py-3 text-sm">
-      <span className="text-(--muted)">Haftalık hedef: </span>
+      <span className="text-(--muted)">{text.weeklyGoal}</span>
       {dailyMinutes === 0 ? (
-        <span className="font-medium">Hedef yok</span>
+        <span className="font-medium">{text.noGoal}</span>
       ) : activeDays === 0 ? (
-        <span className="font-medium">Aktif gün seçilmedi</span>
+        <span className="font-medium">{text.noActiveDays}</span>
       ) : (
         <>
-          <span className="font-medium">{formatGoalMinutes(Math.min(dailyMinutes * activeDays, 168 * 60))}</span>
-          <span className="text-(--muted)"> · {activeDays} aktif gün × {formatGoalMinutes(dailyMinutes)}</span>
+          <span className="font-medium">{formatGoalMinutes(Math.min(dailyMinutes * activeDays, 168 * 60), language)}</span>
+          <span className="text-(--muted)">{text.weeklyGoalDetail(activeDays, formatGoalMinutes(dailyMinutes, language))}</span>
         </>
       )}
     </p>

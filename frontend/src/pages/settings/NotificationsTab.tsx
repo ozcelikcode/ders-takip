@@ -8,18 +8,12 @@ import { useTerms } from '../../hooks/useTerms';
 import { browserPushState, PushPermissionError, subscribeBrowser, unsubscribeBrowser, type BrowserPushState } from '../../lib/push';
 import { notificationsAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
+import { useText } from '../../store/languageStore';
 
 interface NotificationsTabProps {
   preferences: UserPreferences;
   onSave: (patch: PreferencesPatch) => void;
 }
-
-const browserStateText: Record<BrowserPushState, string> = {
-  unsupported: 'Bu tarayıcı bildirimleri desteklemiyor.',
-  denied: 'Bu sitenin bildirimleri tarayıcı ayarlarında engellenmiş. İzni oradan açman gerekir.',
-  subscribed: 'Bu tarayıcı bildirim alıyor.',
-  off: 'Bu tarayıcıda bildirimler kapalı.',
-};
 
 function Toggle({ checked, onChange, label, hint }: { checked: boolean; onChange: (value: boolean) => void; label: string; hint?: ReactNode }) {
   const id = useId();
@@ -37,6 +31,7 @@ function Toggle({ checked, onChange, label, hint }: { checked: boolean; onChange
 /** Opt-in reminders by email and browser push; only channels the site has set up are shown. */
 export default function NotificationsTab({ preferences, onSave }: NotificationsTabProps) {
   const t = useTerms();
+  const text = useText().notificationSettings;
   const keys = useAccountQueryKeys();
   const email = useAuthStore((state) => state.user?.email);
   const leadId = useId();
@@ -57,10 +52,10 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
     try {
       await notificationsAPI.subscribe(await subscribeBrowser(publicKey));
       setBrowser('subscribed');
-      toast.success('Bu tarayıcıda bildirimler açıldı.');
+      toast.success(text.enabled);
     } catch (error) {
       if (error instanceof PushPermissionError) setBrowser(await browserPushState());
-      else toast.error(serverMessage(error) || 'Bildirimler açılamadı. Lütfen tekrar deneyin.');
+      else toast.error(serverMessage(error) || text.enableFailed);
     } finally {
       setBusy(null);
     }
@@ -71,9 +66,9 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
       const endpoint = await unsubscribeBrowser();
       if (endpoint) await notificationsAPI.unsubscribe(endpoint);
       setBrowser('off');
-      toast.success('Bu tarayıcıda bildirimler kapatıldı.');
+      toast.success(text.disabled);
     } catch (error) {
-      toast.error(serverMessage(error) || 'Bildirimler kapatılamadı.');
+      toast.error(serverMessage(error) || text.disableFailed);
     } finally {
       setBusy(null);
     }
@@ -82,20 +77,20 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
     setBusy(channel === 'email' ? 'test-email' : 'test-push');
     try {
       await notificationsAPI.test({ channel });
-      toast.success(channel === 'email' ? `Deneme e-postası ${email ?? 'adresine'} gönderildi.` : 'Deneme bildirimi gönderildi.');
+      toast.success(channel === 'email' ? text.testEmailSent(email) : text.testPushSent);
     } catch (error) {
-      toast.error(serverMessage(error) || 'Deneme gönderilemedi.');
+      toast.error(serverMessage(error) || text.testFailed);
     } finally {
       setBusy(null);
     }
   };
 
-  if (channels.isPending) return <p role="status" className="text-sm text-(--muted)">Bildirim ayarları yükleniyor…</p>;
+  if (channels.isPending) return <p role="status" className="text-sm text-(--muted)">{text.loading}</p>;
   if (channels.isError) {
     return (
       <div role="alert" className="text-sm">
-        Bildirim ayarları yüklenemedi.{' '}
-        <button type="button" className="btn btn-secondary ml-2" onClick={() => void channels.refetch()}>Tekrar dene</button>
+        {text.failed}{' '}
+        <button type="button" className="btn btn-secondary ml-2" onClick={() => void channels.refetch()}>{text.retry}</button>
       </div>
     );
   }
@@ -103,8 +98,8 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
   if (!mail.enabled && !push.enabled) {
     return (
       <section className="space-y-2">
-        <h2 className="text-base font-medium">Bildirimler</h2>
-        <p className="text-sm text-(--muted)">Bu sitede bildirim gönderimi açık değil. Yöneticin e-posta ya da tarayıcı bildirimlerini açtığında burada seçebilirsin.</p>
+        <h2 className="text-base font-medium">{text.title}</h2>
+        <p className="text-sm text-(--muted)">{text.off}</p>
       </section>
     );
   }
@@ -113,18 +108,18 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
     <div className="space-y-8">
       {push.enabled && push.publicKey && (
         <section className="space-y-3">
-          <h2 className="text-base font-medium">Bu tarayıcı</h2>
-          <p role="status" className="text-sm text-(--muted)">{browser ? browserStateText[browser] : 'Kontrol ediliyor…'}</p>
+          <h2 className="text-base font-medium">{text.thisBrowser}</h2>
+          <p role="status" className="text-sm text-(--muted)">{browser ? text.browserStates[browser] : text.checking}</p>
           <div className="flex flex-wrap gap-2">
             {browser === 'off' && (
               <button type="button" className="btn btn-primary" disabled={busy !== null} onClick={() => void enableBrowser(push.publicKey!)}>
-                Bu tarayıcıda bildirimleri aç
+                {text.enable}
               </button>
             )}
             {browser === 'subscribed' && (
               <>
-                <button type="button" className="btn btn-secondary" disabled={busy !== null} onClick={() => void test('push')}>Deneme bildirimi gönder</button>
-                <button type="button" className="btn btn-secondary" disabled={busy !== null} onClick={() => void disableBrowser()}>Bu tarayıcıda kapat</button>
+                <button type="button" className="btn btn-secondary" disabled={busy !== null} onClick={() => void test('push')}>{text.sendTest}</button>
+                <button type="button" className="btn btn-secondary" disabled={busy !== null} onClick={() => void disableBrowser()}>{text.disable}</button>
               </>
             )}
           </div>
@@ -133,27 +128,27 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
 
       <section className="space-y-4 border-t border-(--line) pt-6 first:border-t-0 first:pt-0">
         <div>
-          <h2 className="text-base font-medium">{t.session({ capitalize: true })} hatırlatmaları</h2>
-          <p className="mt-1 text-sm text-(--muted)">Planlı bir {t.session()} başlamadan önce haber verir.</p>
+          <h2 className="text-base font-medium">{text.remindersTitle(t)}</h2>
+          <p className="mt-1 text-sm text-(--muted)">{text.remindersHint(t)}</p>
         </div>
-        {mail.enabled && <Toggle checked={options.sessionReminderEmail} onChange={(sessionReminderEmail) => save({ sessionReminderEmail })} label="E-posta ile" />}
+        {mail.enabled && <Toggle checked={options.sessionReminderEmail} onChange={(sessionReminderEmail) => save({ sessionReminderEmail })} label={text.byEmail} />}
         {push.enabled && (
           <Toggle
             checked={options.sessionReminderPush}
             onChange={(sessionReminderPush) => save({ sessionReminderPush })}
-            label="Tarayıcı bildirimi ile"
-            hint={options.sessionReminderPush && browser !== 'subscribed' ? 'Bu tarayıcıda almak için yukarıdan bildirimleri aç.' : undefined}
+            label={text.byPush}
+            hint={options.sessionReminderPush && browser !== 'subscribed' ? text.pushNeedsBrowser : undefined}
           />
         )}
         <div className="max-w-xs">
-          <label htmlFor={leadId} className="mb-2 block text-sm font-medium">Ne kadar önce</label>
+          <label htmlFor={leadId} className="mb-2 block text-sm font-medium">{text.leadTime}</label>
           <select
             id={leadId}
             className="input"
             value={options.reminderLeadMinutes}
             onChange={(event) => save({ reminderLeadMinutes: Number(event.target.value) as NotificationPreferences['reminderLeadMinutes'] })}
           >
-            {reminderLeadOptions.map((minutes) => <option key={minutes} value={minutes}>{minutes} dakika önce</option>)}
+            {reminderLeadOptions.map((minutes) => <option key={minutes} value={minutes}>{text.leadOption(minutes)}</option>)}
           </select>
         </div>
       </section>
@@ -161,12 +156,12 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
       {mail.enabled && (
         <section className="space-y-4 border-t border-(--line) pt-6">
           <div>
-            <h2 className="text-base font-medium">E-posta özetleri</h2>
-            <p className="mt-1 text-sm text-(--muted)">{email ? `${email} adresine, ` : ''}kendi saat dilimine göre gönderilir.</p>
+            <h2 className="text-base font-medium">{text.emailTitle}</h2>
+            <p className="mt-1 text-sm text-(--muted)">{text.emailHint(email)}</p>
           </div>
-          <Toggle checked={options.dailyPlanEmail} onChange={(dailyPlanEmail) => save({ dailyPlanEmail })} label="Sabah günlük plan" hint={`Aktif günlerde 07:00'de: bugünkü ${t.session({ plural: true })} ve günlük hedef.`} />
-          <Toggle checked={options.weeklySummaryEmail} onChange={(weeklySummaryEmail) => save({ weeklySummaryEmail })} label="Haftalık özet" hint="Haftanın son günü 19:00'da: ölçülen süre, hedef ve dağılım." />
-          <button type="button" className="btn btn-secondary" disabled={busy !== null} onClick={() => void test('email')}>Deneme e-postası gönder</button>
+          <Toggle checked={options.dailyPlanEmail} onChange={(dailyPlanEmail) => save({ dailyPlanEmail })} label={text.dailyPlan} hint={text.dailyPlanHint(t)} />
+          <Toggle checked={options.weeklySummaryEmail} onChange={(weeklySummaryEmail) => save({ weeklySummaryEmail })} label={text.weeklySummary} hint={text.weeklySummaryHint} />
+          <button type="button" className="btn btn-secondary" disabled={busy !== null} onClick={() => void test('email')}>{text.sendTestEmail}</button>
         </section>
       )}
     </div>

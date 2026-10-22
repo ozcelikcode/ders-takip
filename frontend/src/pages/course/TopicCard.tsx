@@ -2,7 +2,8 @@ import { useTerms } from '../../hooks/useTerms';
 import type { DraggableProvided, DraggableStateSnapshot } from '@hello-pangea/dnd';
 import { Archive, CheckCircle2, Circle, Clock, Pencil, RotateCcw } from 'lucide-react';
 import type { CatalogTopic as Topic } from '../../types/catalog';
-import { statusLabels, type TopicStatus } from './courseTopics';
+import type { TopicStatus } from './courseTopics';
+import { useText } from '../../store/languageStore';
 
 interface TopicCardProps {
   topic: Topic;
@@ -36,6 +37,7 @@ const TopicCard = ({
   onRestore,
 }: TopicCardProps) => {
   const t = useTerms();
+  const { course: text, common } = useText();
   return (
     <article
       ref={provided.innerRef}
@@ -45,7 +47,7 @@ const TopicCard = ({
       {canReorder && (
         <div
           {...provided.dragHandleProps}
-          aria-label={`${t.topic({ case: 'acc', capitalize: true })} sırala: ${topic.name}`}
+          aria-label={text.reorder(t, topic.name)}
           className="cursor-grab text-(--muted)"
         >
           <svg
@@ -72,12 +74,12 @@ const TopicCard = ({
           </p>
         )}
         <div className="mt-2 flex items-center gap-3 text-xs text-(--muted)">
-          <span>{topic.difficulty}</span>
+          <span>{text.difficulties[topic.difficulty]}</span>
           <span className="inline-flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />
-            {topic.estimatedTime} dk
+            {common.minutesShort(topic.estimatedTime)}
           </span>
-          {archived && <span>Arşivde</span>}
+          {archived && <span>{text.archived}</span>}
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -85,7 +87,7 @@ const TopicCard = ({
           <div
             className="flex rounded-md border p-0.5"
             role="group"
-            aria-label={`${topic.name} ilerleme durumu`}
+            aria-label={text.progressGroup(topic.name)}
           >
             {(
               [
@@ -105,7 +107,7 @@ const TopicCard = ({
                   key={status}
                   onClick={() => onStatusChange(status)}
                   className={`icon-button ${currentStatus === status ? 'bg-(--subtle) text-(--text)' : ''}`}
-                  title={statusLabels[status]}
+                  title={text.topicStatuses[status]}
                   aria-pressed={currentStatus === status}
                   disabled={progressPending}
                 >
@@ -119,7 +121,7 @@ const TopicCard = ({
           <>
             <button
               className="icon-button"
-              aria-label={`${t.topic({ case: 'acc', capitalize: true })} düzenle: ${topic.name}`}
+              aria-label={text.editTopic(t, topic.name)}
               onClick={onEdit}
             >
               <Pencil className="h-4 w-4" />
@@ -131,12 +133,12 @@ const TopicCard = ({
                 onClick={onRestore}
               >
                 <RotateCcw className="h-4 w-4" />
-                Geri al
+                {text.restore}
               </button>
             ) : (
               <button
                 className="icon-button"
-                aria-label={`${t.topic({ case: 'acc', capitalize: true })} arşivle: ${topic.name}`}
+                aria-label={text.archiveTopic(t, topic.name)}
                 onClick={onArchive}
               >
                 <Archive className="h-4 w-4" />

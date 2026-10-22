@@ -13,6 +13,7 @@ import { canManageCourse } from '../../lib/catalogAccess';
 import type { CatalogCategory, CatalogCategoryRecord, CatalogCourse } from '../../types/catalog';
 import EditorDialog from '../common/EditorDialog';
 import { catalogIcons, catalogIcon } from '../catalog/catalogIcons';
+import { useText } from '../../store/languageStore';
 
 interface Props {
   isOpen: boolean;
@@ -27,6 +28,7 @@ function CourseEditor({
   defaultGlobal = false,
 }: Omit<Props, 'isOpen'>) {
   const t = useTerms();
+  const text = useText().editors;
   const { user } = useAuthStore();
   const admin = user?.role === 'admin';
   const keys = useAccountQueryKeys();
@@ -105,17 +107,17 @@ function CourseEditor({
     });
     if (!result.success) {
       const messages: Record<string, string> = {
-        name: `${t.course({ capitalize: true })} adı 1–100 karakter olmalıdır.`,
-        categoryId: 'Bir kategori seçin.',
-        color: 'Geçerli bir HEX renk kodu girin.',
-        icon: 'Simge adı en fazla 50 karakter olabilir.',
-        order: 'Sıra pozitif bir tam sayı olmalıdır.',
+        name: text.recordNameLength(t),
+        categoryId: text.chooseCategory,
+        color: text.invalidColor,
+        icon: text.iconTooLong,
+        order: text.orderPositive,
       };
       setErrors(
         Object.fromEntries(
           result.error.issues.map((issue) => [
             String(issue.path[0]),
-            messages[String(issue.path[0])] ?? 'Geçerli bir değer girin.',
+            messages[String(issue.path[0])] ?? text.invalidValue,
           ]),
         ),
       );
@@ -149,14 +151,14 @@ function CourseEditor({
         course
           ? coursesAPI.updateCourse(String(course.id), patch)
           : coursesAPI.createCourse(payload),
-      course ? `${t.course({ capitalize: true })} güncellendi.` : `${t.course({ capitalize: true })} oluşturuldu.`,
+      course ? text.recordUpdated(t) : text.recordCreated(t),
     );
     if (saved) onClose();
   };
   return (
     <EditorDialog
-      title={course ? `${t.course({ case: 'acc', capitalize: true })} düzenle` : `${t.course({ capitalize: true })} ekle`}
-      description={`${t.course({ case: 'gen', capitalize: true })} adını, kategorisini ve görünümünü belirleyin.`}
+      title={course ? text.editRecord(t) : text.addRecord(t)}
+      description={text.recordHint(t)}
       pending={mutation.isPending}
       error={mutation.errorMessage}
       onClose={onClose}
@@ -168,7 +170,7 @@ function CourseEditor({
       }
     >
       <div>
-        {label('name', `${t.course({ capitalize: true })} adı`)}
+        {label('name', text.recordName(t))}
         <input
           {...field('name')}
           className="input"
@@ -180,46 +182,46 @@ function CourseEditor({
         {error('name')}
       </div>
       <div>
-        {label('categoryId', 'Kategori')}
+        {label('categoryId', text.category)}
         <select
           {...field('categoryId')}
           className="input"
           value={form.categoryId}
           onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
         >
-          <option value="">Kategori seçin</option>
+          <option value="">{text.categoryPlaceholder}</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
-              {personalIds.has(category.id) ? `${category.name} (kişisel)` : category.name}
+              {personalIds.has(category.id) ? text.personalSuffix(category.name) : category.name}
             </option>
           ))}
         </select>
         {error('categoryId')}
         {categoriesQuery.isPending && (
           <p role="status" className="mt-2 text-sm text-(--muted)">
-            Kategoriler yükleniyor…
+            {text.categoriesLoading}
           </p>
         )}
         {categoriesQuery.isError && (
           <div role="alert" className="mt-2 text-sm text-red-600">
-            Kategoriler yüklenemedi.{' '}
+            {text.categoriesFailed}{' '}
             <button
               type="button"
               className="underline"
               onClick={() => void categoriesQuery.refetch()}
             >
-              Tekrar dene
+              {text.retry}
             </button>
           </div>
         )}
         {categoriesQuery.isSuccess && categories.length === 0 && (
           <p role="status" className="mt-2 text-sm text-(--muted)">
-            Önce bir yöneticinin kategori eklemesi gerekiyor.
+            {text.needsCategory}
           </p>
         )}
       </div>
       <div>
-        {label('description', 'Açıklama')}
+        {label('description', text.description)}
         <textarea
           {...field('description')}
           className="input"
@@ -230,7 +232,7 @@ function CourseEditor({
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          {label('color', 'Renk kodu')}
+          {label('color', text.color)}
           <div className="flex items-center gap-2">
             <span
               className="h-5 w-5 shrink-0 rounded-sm border border-(--line)"
@@ -253,7 +255,7 @@ function CourseEditor({
           {error('color')}
         </div>
         <div>
-          {label('order', 'Sıra')}
+          {label('order', text.order)}
           <input
             {...field('order')}
             className="input"
@@ -267,7 +269,7 @@ function CourseEditor({
         </div>
       </div>
       <div>
-        {label('icon', 'Simge')}
+        {label('icon', text.icon)}
         <div className="flex items-center gap-2">
           <Icon className="h-5 w-5 shrink-0 text-(--muted)" />
           <select
@@ -277,7 +279,7 @@ function CourseEditor({
             onChange={(e) => setForm({ ...form, icon: e.target.value })}
           >
             {!Object.prototype.hasOwnProperty.call(catalogIcons, form.icon) && (
-              <option value={form.icon}>Mevcut simge ({form.icon})</option>
+              <option value={form.icon}>{text.currentIcon(form.icon)}</option>
             )}
             {Object.keys(catalogIcons).map((icon) => (
               <option key={icon} value={icon}>
@@ -306,7 +308,7 @@ function CourseEditor({
                 })
               }
             />
-            Tüm kullanıcılara açık
+            {text.sharedWithAll}
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -314,7 +316,7 @@ function CourseEditor({
               checked={form.isActive}
               onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
             />
-            Aktif {t.course()}
+            {text.activeRecord(t)}
           </label>
         </div>
       )}
