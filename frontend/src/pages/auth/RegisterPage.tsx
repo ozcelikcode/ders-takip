@@ -1,5 +1,5 @@
 import { browserTimezone } from '../../lib/locale';
-import { useLanguage, useText } from '../../store/languageStore';
+import { useText } from '../../store/languageStore';
 import AuthCard from '../../components/auth/AuthCard';
 import { Brand } from '../../components/common/Brand';
 import { useState } from 'react';
@@ -20,7 +20,6 @@ const RegisterPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { register: registerUser, isAuthenticated } = useAuthStore();
   const text = useText().auth;
-  const language = useLanguage();
   const allowRegistration = useSettingsStore(
     (state) => state.settings.allowRegistration,
   );
@@ -41,8 +40,7 @@ const RegisterPage = () => {
     setIsLoading(true);
     try {
       const timezone = browserTimezone();
-      // The new account keeps the language this page was shown in.
-      await registerUser({ ...data, ...(timezone ? { timezone } : {}), language });
+      await registerUser({ ...data, ...(timezone ? { timezone } : {}) });
       toast.success(text.register.success);
     } catch {
       // The auth store presents a safe error without logging credentials.

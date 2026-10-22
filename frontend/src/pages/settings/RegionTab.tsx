@@ -1,4 +1,4 @@
-import { languages, weekStartDays, resolveWeekStart, type PreferencesPatch, type UserPreferences } from '@study-tracker/contracts';
+import { weekStartDays, resolveWeekStart, type PreferencesPatch, type UserPreferences } from '@study-tracker/contracts';
 import { useMemo } from 'react';
 import { browserTimezone, listTimezones } from '../../lib/locale';
 import { useText } from '../../store/languageStore';
@@ -61,25 +61,6 @@ const RegionTab = ({ preferences, onSave }: RegionTabProps) => {
           ))}
         </div>
         <p className="text-xs text-(--muted)">{text.weekStartHint}</p>
-      </section>
-
-      <section className="space-y-3 border-t border-(--line) pt-6">
-        <h2 className="text-base font-medium">{text.language}</h2>
-        <div role="group" aria-label={text.language} className="segmented-control">
-          {languages.map((language) => (
-            <button
-              key={language}
-              type="button"
-              lang={language}
-              aria-pressed={preferences.language === language}
-              onClick={() => onSave({ language })}
-              className={`segment ${preferences.language === language ? 'segment-active' : ''}`}
-            >
-              {text.languageNames[language]}
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-(--muted)">{text.languageHint}</p>
       </section>
     </div>
   );

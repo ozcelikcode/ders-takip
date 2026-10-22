@@ -5,7 +5,6 @@ import {
   dateKeyInZone,
   dayBounds,
   daysSinceWeekStart,
-  defaultLanguage,
   fail,
   formatGoalMinutes,
   formatZonedTime,
@@ -16,6 +15,7 @@ import {
   weeklyGoalHours,
   weeklySummaryHour,
   type NotificationChannels,
+  type Language,
   type NotificationText,
   type PushPayload,
   type PushSubscriptionInput,
@@ -96,9 +96,11 @@ const weekday = (date: string) => new Date(`${date}T12:00:00Z`).getUTCDay();
 const sessionLine = (session: StudySession, timezone: string, courseName?: string) =>
   `${formatZonedTime(session.startTime, timezone)}–${formatZonedTime(session.endTime, timezone)} · ${session.title}${courseName ? ` (${courseName})` : ''}`;
 
-interface Recipient { user: User; preferences: UserPreferences; terms: Terms; text: NotificationText }
+interface Recipient { user: User; preferences: UserPreferences; terms: Terms }
+/** Everyone gets mail in the site's one language. */
+interface Site { name: string; language: Language; text: NotificationText }
 
-async function sendSessionReminders(now: Date, recipients: Recipient[], channels: NotificationChannels, siteName: string) {
+async function sendSessionReminders(now: Date, recipients: Recipient[], channels: NotificationChannels, site: Site) {
   const byId = new Map(recipients.map((recipient) => [recipient.user.id, recipient]));
   // The longest lead is 30 minutes, so only sessions starting within that window can be due.
   const sessions = await StudySession.findAll({
@@ -117,19 +119,20 @@ async function sendSessionReminders(now: Date, recipients: Recipient[], channels
     const minutes = Math.max(1, Math.round((session.startTime.getTime() - now.getTime()) / 60_000));
     const courseName = (session as StudySession & { course?: Course }).course?.name;
     const date = dateKeyInZone(session.startTime, timezone);
-    const { text } = recipient;
+    const { text } = site;
     const title = text.reminderTitle(session.title, minutes);
     const body = sessionLine(session, timezone, courseName);
     if (email) {
-      await mailer.send(composeMail(recipient.user.email, siteName, text, title, [text.reminderGreeting(recipient.user.firstName), text.reminderLead(recipient.terms, minutes), body], { label: text.openPlanner, path: `/planner?date=${date}` }))
+      await mailer.send(composeMail(recipient.user.email, site.name, text, title, [text.reminderGreeting(recipient.user.firstName), text.reminderLead(recipient.terms, minutes), body], { label: text.openPlanner, path: `/planner?date=${date}` }))
         .catch((error: unknown) => console.error('Reminder mail failed:', error instanceof Error ? error.message : error));
     }
     if (push) await pushTo(recipient.user.id, { title, body, url: `/planner?date=${date}`, tag: `session-${session.id}` });
   }
 }
 
-async function sendDailyPlans(now: Date, recipients: Recipient[], siteName: string) {
-  for (const { user, preferences, terms, text } of recipients) {
+async function sendDailyPlans(now: Date, recipients: Recipient[], site: Site) {
+  const { text, language } = site;
+  for (const { user, preferences, terms } of recipients) {
     if (!resolveNotifications(preferences).dailyPlanEmail) continue;
     const { timezone } = preferences;
     const today = dateKeyInZone(now, timezone);
@@ -147,17 +150,18 @@ async function sendDailyPlans(now: Date, recipients: Recipient[], siteName: stri
     if (!sessions.length && !goal) continue;
     const lines = [
       text.dailyGreeting(user.firstName),
-      goal ? text.dailyGoal(formatGoalMinutes(goal, preferences.language)) : '',
+      goal ? text.dailyGoal(formatGoalMinutes(goal, language)) : '',
       sessions.length ? text.dailySessions(terms, sessions.length) : text.dailyNoSessions(terms),
       ...sessions.map((session) => `• ${sessionLine(session, timezone, (session as StudySession & { course?: Course }).course?.name)}`),
     ];
-    await mailer.send(composeMail(user.email, siteName, text, sessions.length ? text.dailySubject(terms, sessions.length) : text.dailyNoPlan, lines, { label: text.planDay, path: `/planner?date=${today}` }))
+    await mailer.send(composeMail(user.email, site.name, text, sessions.length ? text.dailySubject(terms, sessions.length) : text.dailyNoPlan, lines, { label: text.planDay, path: `/planner?date=${today}` }))
       .catch((error: unknown) => console.error('Daily plan mail failed:', error instanceof Error ? error.message : error));
   }
 }
 
-async function sendWeeklySummaries(now: Date, recipients: Recipient[], siteName: string) {
-  for (const { user, preferences, terms, text } of recipients) {
+async function sendWeeklySummaries(now: Date, recipients: Recipient[], site: Site) {
+  const { text, language } = site;
+  for (const { user, preferences, terms } of recipients) {
     if (!resolveNotifications(preferences).weeklySummaryEmail) continue;
     const { timezone } = preferences;
     const today = dateKeyInZone(now, timezone);
@@ -170,7 +174,6 @@ async function sendWeeklySummaries(now: Date, recipients: Recipient[], siteName:
     const studied = Math.floor(stats.studySeconds / 60);
     const named = stats.courses.filter((row) => row.courseId !== null).slice(0, 5);
     const courses = named.length ? await Course.findAll({ where: { id: named.map((row) => row.courseId!) }, attributes: ['id', 'name'] }) : [];
-    const { language } = preferences;
     const studiedText = studied ? formatGoalMinutes(studied, language) : text.noStudy;
     const lines = [
       text.weeklyGreeting(user.firstName),
@@ -179,7 +182,7 @@ async function sendWeeklySummaries(now: Date, recipients: Recipient[], siteName:
       ...(named.length ? [text.weeklyTopRecords(terms)] : []),
       ...named.map((row) => `• ${courses.find((course) => course.id === row.courseId)?.name ?? '—'}: ${formatGoalMinutes(Math.max(1, Math.floor(row.studySeconds / 60)), language)}`),
     ];
-    await mailer.send(composeMail(user.email, siteName, text, text.weeklySubject(studiedText), lines, { label: text.openStats, path: '/stats' }))
+    await mailer.send(composeMail(user.email, site.name, text, text.weeklySubject(studiedText), lines, { label: text.openStats, path: '/stats' }))
       .catch((error: unknown) => console.error('Weekly summary mail failed:', error instanceof Error ? error.message : error));
   }
 }
@@ -197,14 +200,14 @@ export async function runDueNotifications(now = new Date()): Promise<void> {
     .map((user) => ({
       user,
       preferences: user.preferences,
-      terms: createTerms(resolveTerminology(user.preferences, settings), user.preferences.language),
-      text: notificationText[user.preferences.language ?? defaultLanguage],
+      terms: createTerms(resolveTerminology(user.preferences, settings), settings.language),
     }));
   if (!recipients.length) return;
-  await sendSessionReminders(now, recipients, channels, settings.siteName);
+  const site: Site = { name: settings.siteName, language: settings.language, text: notificationText[settings.language] };
+  await sendSessionReminders(now, recipients, channels, site);
   if (channels.email.enabled) {
-    await sendDailyPlans(now, recipients, settings.siteName);
-    await sendWeeklySummaries(now, recipients, settings.siteName);
+    await sendDailyPlans(now, recipients, site);
+    await sendWeeklySummaries(now, recipients, site);
   }
   // The claims only need to outlive the occasions they guard.
   await NotificationDelivery.destroy({ where: { createdAt: { [Op.lt]: new Date(now.getTime() - 60 * 86_400_000) } } });
@@ -216,7 +219,7 @@ export async function sendTestNotification(userId: number, channel: 'email' | 'p
   const channels = channelsFor(settings);
   const user = await User.findByPk(userId);
   if (!user) fail(404, 'userNotFound');
-  const text = notificationText[user.preferences.language ?? defaultLanguage];
+  const text = notificationText[settings.language];
   if (channel === 'email') {
     if (!channels.email.enabled) fail(400, 'emailDisabled');
     await mailer.send(composeMail(user.email, settings.siteName, text, text.testTitle, [text.testGreeting(user.firstName), text.testEmailBody], { label: text.notificationSettings, path: '/settings' }));

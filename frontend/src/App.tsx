@@ -53,10 +53,10 @@ function App() {
     return () => { window.clearInterval(interval); window.removeEventListener('focus', refresh); };
   }, [fetchSettings]);
 
-  // A signed-in account's own language wins over the device's last one.
+  // The administrator's site language applies to everyone, signed in or not.
   useEffect(() => {
-    if (user) void setLanguage(preferences.language).catch(() => undefined);
-  }, [user, preferences.language, setLanguage]);
+    void setLanguage(settings.language).catch(() => undefined);
+  }, [settings.language, setLanguage]);
 
   useEffect(() => {
     const apply = () => applyAppearance(preferences, settings);

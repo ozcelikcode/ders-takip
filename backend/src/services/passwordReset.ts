@@ -1,4 +1,4 @@
-import { defaultLanguage, fail, notificationText } from '@study-tracker/contracts';
+import { fail, notificationText } from '@study-tracker/contracts';
 import { createHash, randomBytes } from 'node:crypto';
 import { Op, Transaction } from 'sequelize';
 import { sequelize } from '../config/database';
@@ -40,8 +40,8 @@ export async function requestPasswordReset(email: string): Promise<'email' | 'ad
   const link = await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, (transaction) =>
     issueToken(user.id, 'self', transaction),
   );
-  const { siteName } = await readSiteSettings();
-  const text = notificationText[user.preferences.language ?? defaultLanguage];
+  const { siteName, language } = await readSiteSettings();
+  const text = notificationText[language];
   // Not awaited: the response must not reveal, by timing or by an SMTP error, that the account exists.
   void mailer.send({
     to: user.email,

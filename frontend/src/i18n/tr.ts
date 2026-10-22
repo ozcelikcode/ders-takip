@@ -727,8 +727,6 @@ export const tr = {
     useThis: 'Bunu kullan',
     weekStart: 'Hafta başlangıcı',
     weekStartHint: 'Haftalık planlayıcı, tarih seçici ve haftalık grafik bu günden başlar.',
-    language: 'Dil',
-    languageHint: 'Arayüz dili. Tarih, saat ve sayı biçimleri de bu dile göre gösterilir. Kayıtların değişmez.',
     goalHours: (label: string) => `${label} (saat)`,
     goalMinutes: (label: string) => `${label} (dakika)`,
     hoursShort: 'sa',
@@ -747,7 +745,6 @@ export const tr = {
     word: 'Kelime',
     accusative: '"-ı" hâli',
     forms: (forms: string) => `Biçimler: ${forms}`,
-    languageNames: { tr: 'Türkçe', en: 'English' },
   },
   notificationSettings: {
     browserStates: {
@@ -1046,6 +1043,7 @@ export const tr = {
       sessionTimeout: 'Oturum süresi',
       primaryColor: 'Ana renk',
       customTerminology: 'Özel kelimeler',
+      language: 'Site dili',
       siteLogo: 'Logo URL',
       siteIcon: 'Site ikonu',
     } as Record<string, string>,
@@ -1087,6 +1085,9 @@ export const tr = {
     saveFirst: 'Kurtarma veya sıfırlama öncesinde ayar değişikliklerini kaydedin ya da vazgeçin.',
     resetSettingsOnly: 'Yalnızca site ayarlarını sıfırla',
     megabytes: (size: string) => `${size} MB`,
+    language: 'Site dili',
+    languageHint: 'Bütün arayüz bu dilde görünür; kullanıcıların tarayıcı dili dikkate alınmaz. E-postalar da bu dilde gider. Kayıtlı veriler (adlar, açıklamalar) çevrilmez, yazıldığı gibi kalır.',
+    languageNames: { tr: 'Türkçe', en: 'English' },
   },
   onboarding: {
     purposes: {

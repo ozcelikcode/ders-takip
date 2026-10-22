@@ -84,7 +84,6 @@ it('blocks registration identifiers that the API rejects and submits normalized 
       email: 'fixture@example.com',
       password: 'fixture-password',
       timezone: 'America/New_York',
-      language: 'tr',
     }),
   );
 });

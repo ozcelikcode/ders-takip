@@ -3,15 +3,11 @@ import { defaultPreferences, defaultSiteSettings } from '@study-tracker/contract
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { useTerms } from '../src/hooks/useTerms';
-import { initialLanguage } from '../src/i18n';
 import { tr } from '../src/i18n/tr';
 import LoginPage from '../src/pages/auth/LoginPage';
 import { useLanguageStore } from '../src/store/languageStore';
 import { useSettingsStore } from '../src/store/settingsStore';
 import { useUserPreferencesStore } from '../src/store/userPreferencesStore';
-
-const browserLanguages = (languages: string[]) =>
-  Object.defineProperty(window.navigator, 'languages', { value: languages, configurable: true });
 
 beforeEach(() => {
   localStorage.clear();
@@ -20,25 +16,13 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
-  browserLanguages(['tr-TR']);
   vi.restoreAllMocks();
 });
 
-it('opens in the language last used here, else the browser language, else Turkish', () => {
-  browserLanguages(['de-DE', 'en-GB']);
-  expect(initialLanguage()).toBe('en');
-  localStorage.setItem('interface-language', 'tr');
-  expect(initialLanguage()).toBe('tr');
-  localStorage.setItem('interface-language', 'klingon');
-  browserLanguages(['de-DE']);
-  expect(initialLanguage()).toBe('tr');
-});
-
-it('switches the catalog, the document language and the remembered choice together', async () => {
+it('switches the catalog and the document language together', async () => {
   await useLanguageStore.getState().setLanguage('en');
   expect(useLanguageStore.getState().text.auth.login.title).toBe('Sign in');
   expect(document.documentElement.lang).toBe('en');
-  expect(localStorage.getItem('interface-language')).toBe('en');
 });
 
 it('lets a later choice win over a slower earlier one', async () => {

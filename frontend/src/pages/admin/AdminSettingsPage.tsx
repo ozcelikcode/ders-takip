@@ -2,6 +2,7 @@ import { useTerms } from '../../hooks/useTerms';
 import {
   brandIconNames,
   customTerminologyFrom,
+  languages,
   siteSettingsSchema,
   settingsPatchSchema,
   type SiteSettings,
@@ -262,6 +263,25 @@ function SettingsForm({
                 />,
               )}
               {input('adminEmail', text.adminEmail, 'email')}
+              {field(
+                'language',
+                text.language,
+                <select
+                  id={`${prefix}-language`}
+                  className="input"
+                  value={draft.language}
+                  onChange={(event) =>
+                    setDraft({ ...draft, language: event.target.value as SiteSettings['language'] })
+                  }
+                >
+                  {languages.map((language) => (
+                    <option key={language} value={language} lang={language}>
+                      {text.languageNames[language]}
+                    </option>
+                  ))}
+                </select>,
+              )}
+              <p className="text-xs text-(--muted)">{text.languageHint}</p>
               <p className="text-xs text-(--muted)">
                 {text.identityHint}
               </p>

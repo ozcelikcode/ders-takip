@@ -721,8 +721,6 @@ export const en: Text = {
     useThis: 'Use this',
     weekStart: 'Week starts on',
     weekStartHint: 'The weekly planner, the date picker and the weekly chart start on this day.',
-    language: 'Language',
-    languageHint: 'The interface language. Dates, times and numbers follow it too. Your records stay the same.',
     goalHours: (label: string) => `${label} (hours)`,
     goalMinutes: (label: string) => `${label} (minutes)`,
     hoursShort: 'h',
@@ -741,7 +739,6 @@ export const en: Text = {
     word: 'Word',
     accusative: '"-ı" form',
     forms: (forms: string) => `Forms: ${forms}`,
-    languageNames: { tr: 'Türkçe', en: 'English' },
   },
   notificationSettings: {
     browserStates: {
@@ -1041,6 +1038,7 @@ export const en: Text = {
       sessionTimeout: 'Sign-in timeout',
       primaryColor: 'Primary color',
       customTerminology: 'Custom words',
+      language: 'Site language',
       siteLogo: 'Logo URL',
       siteIcon: 'Site icon',
     } as Record<string, string>,
@@ -1082,6 +1080,9 @@ export const en: Text = {
     saveFirst: 'Save or discard your settings changes before a restore or reset.',
     resetSettingsOnly: 'Reset only the site settings',
     megabytes: (size: string) => `${size} MB`,
+    language: 'Site language',
+    languageHint: 'The whole interface appears in this language; users\' browser languages are ignored. Emails go out in it too. Stored data (names, descriptions) is never translated and stays as written.',
+    languageNames: { tr: 'Türkçe', en: 'English' },
   },
   onboarding: {
     purposes: {

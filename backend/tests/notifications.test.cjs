@@ -171,9 +171,10 @@ it('sends the weekly summary on the week\'s last evening with the derived weekly
   assert.match(mails[0].text, /Ölçülen çalışma: 0 dk \/ hedef 3 sa \(%0\)\./);
 });
 
-it('writes emails and browser notifications in the recipient\'s own interface language', async (t) => {
+it('writes emails and browser notifications in the site language', async (t) => {
   const { mails, pushes } = capture(t);
-  await setNotifications(ada, { dailyPlanEmail: true, sessionReminderEmail: true, sessionReminderPush: true, reminderLeadMinutes: 10 }, { language: 'en', terminologyPreset: 'education' });
+  await setNotifications(ada, { dailyPlanEmail: true, sessionReminderEmail: true, sessionReminderPush: true, reminderLeadMinutes: 10 }, { terminologyPreset: 'education' });
+  await Settings.create({ key: 'language', value: 'en', type: 'string', category: 'general' });
   await PushSubscription.create({ userId: ada.id, endpoint: 'https://fcm.googleapis.com/fcm/send/ada', p256dh: 'k', auth: 'a' });
   await session(ada, new Date('2026-10-21T01:00:00Z'), { title: 'Japanese' });
   await runDueNotifications(new Date('2026-10-20T22:30:00Z')); // 07:30 in Tokyo
@@ -183,7 +184,7 @@ it('writes emails and browser notifications in the recipient\'s own interface la
   assert.match(mails[1].text, /Your session starts in 9 minutes:/);
   assert.match(mails[1].text, /notification settings; turn it off in Settings › Notifications\./);
   assert.deepEqual(pushes.map((push) => push.title), ['“Japanese” starts in 9 min']);
-  await setNotifications(ada, {}, { language: 'tr', terminologyPreset: undefined });
+  await setNotifications(ada, {}, { terminologyPreset: undefined });
 });
 
 it('respects the admin switch for scheduled delivery and the channel test', async (t) => {

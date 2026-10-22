@@ -7,14 +7,13 @@ import {
   userResponseSchema,
 } from './users.js';
 import { preferencesPatchSchema } from './preferences.js';
-import { languageSchema } from './language.js';
 import { timezoneSchema } from './time.js';
 
 // Public registration cannot grant a role or account status.
 export const registerSchema = createManagedUserSchema
   .omit({ role: true, isActive: true })
-  // The browser's IANA zone and language; without them the server defaults apply.
-  .extend({ timezone: timezoneSchema.optional(), language: languageSchema.optional() })
+  // The browser's IANA zone; without it the server default applies.
+  .extend({ timezone: timezoneSchema.optional() })
   .strict();
 export const loginSchema = z
   .object({

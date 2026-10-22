@@ -24,7 +24,7 @@ export const register = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const { username, email, password, firstName, lastName, timezone, language } = req.body;
+    const { username, email, password, firstName, lastName, timezone } = req.body;
 
     const site = await readSiteSettings();
     if (site.maintenanceMode) {
@@ -61,7 +61,7 @@ export const register = async (
       password,
       firstName,
       lastName,
-      preferences: { ...defaultPreferences, ...(timezone ? { timezone } : {}), ...(language ? { language } : {}), onboarding: 'pending' },
+      preferences: { ...defaultPreferences, ...(timezone ? { timezone } : {}), onboarding: 'pending' },
     });
 
     const session = await createAuthSession(user);

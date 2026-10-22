@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const {
   inflect, createTerms, terminologyPresets, terminologyPresetIds, publicSettingsSchema, defaultSiteSettings, settingsPatchSchema,
   accusativeFits, suggestAccusative, customTerminologySchema, customTerminologyFrom, resolveTerminology, preferencesPatchSchema,
-  inflectEnglish, preferredLanguage, registerSchema, defaultPreferences,
+  inflectEnglish, registerSchema, defaultPreferences,
 } = require('../dist/cjs');
 
 // Hand-verified Turkish forms: [word, acc, dat, gen, loc, abl, plural, pluralDat]
@@ -142,13 +142,12 @@ it('gives every preset an English vocabulary and keeps custom words as typed in 
   assert.equal(createTerms(book).course({ case: 'dat' }), 'kitaba');
 });
 
-it('picks the first supported browser language by its primary subtag', () => {
-  assert.equal(preferredLanguage(['en-GB', 'tr']), 'en');
-  assert.equal(preferredLanguage(['de-DE', 'TR-tr']), 'tr');
-  assert.equal(preferredLanguage(['de', 'fr']), null);
-  assert.equal(preferredLanguage([]), null);
-  assert.equal(defaultPreferences.language, 'tr');
+it('keeps the interface language a site setting, not a per-account or browser choice', () => {
+  assert.equal(defaultSiteSettings.language, 'tr');
+  assert.equal(settingsPatchSchema.safeParse({ language: 'en' }).success, true);
+  assert.equal(settingsPatchSchema.safeParse({ language: 'de' }).success, false);
+  assert.equal('language' in defaultPreferences, false);
   const account = { username: 'reader', email: 'reader@example.com', password: 'long-enough-password', firstName: 'Ada', lastName: 'Byron' };
-  assert.equal(registerSchema.safeParse({ ...account, language: 'en' }).success, true);
-  assert.equal(registerSchema.safeParse({ ...account, language: 'de' }).success, false);
+  assert.equal(registerSchema.safeParse(account).success, true);
+  assert.equal(registerSchema.safeParse({ ...account, language: 'en' }).success, false);
 });

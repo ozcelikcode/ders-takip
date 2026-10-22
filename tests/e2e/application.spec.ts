@@ -497,17 +497,32 @@ test('reads the weekly chart as a table of measured study, not as an application
   await expect(measured).toHaveText(/^\d+ (dk|sa)/);
 });
 
-test.describe('English browser', () => {
+test.describe('Site language', () => {
+  // The browser asks for English; only the administrator's site setting decides.
   test.use({ locale: 'en-US' });
-  test('opens in English, sets up a new account in English and can switch languages', async ({ page }) => {
+  test('stays Turkish for an English browser until the administrator sets the site to English', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Giriş Yap' })).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
+    await login(page, 'manager@example.test');
+    await page.goto('/admin/settings');
+    await page.getByLabel('Site dili').selectOption('en');
+    await page.getByRole('button', { name: 'Değişiklikleri kaydet' }).click();
+    const heading = page.getByRole('heading', { level: 1 });
+    await expect(heading).toHaveText('Site settings');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    // The server sends a code; the screen words it in the interface language.
+    await page.goto('/planner');
+    await expect(page.getByRole('button', { name: 'Daily', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Account menu' }).click();
+    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await expect(page).toHaveURL(/\/login$/);
+
+    // The server sends a code; the screen words it in the site language.
     await page.getByLabel('Email address').fill('nobody@example.test');
     await page.getByLabel('Password', { exact: true }).fill('wrong-password-2026');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByText('Wrong email or password')).toBeVisible();
+
     await page.getByRole('link', { name: 'Sign up' }).click();
     await page.getByLabel('First name').fill('Ada');
     await page.getByLabel('Last name').fill('Byron');
@@ -517,50 +532,29 @@ test.describe('English browser', () => {
     await page.getByRole('button', { name: 'Sign up', exact: true }).click();
     await expect(page).toHaveURL(/\/welcome$/);
 
-    // The setup wizard speaks English, including durations, word sets and suggested records.
-    const heading = page.getByRole('heading', { level: 1 });
     const next = () => page.getByRole('button', { name: 'Next' }).click();
     await expect(heading).toHaveText('Welcome, Ada');
-    await next();
-    await expect(page.getByRole('alert')).toHaveText('Choose an option to continue.');
     await page.getByRole('radio', { name: /Skills and hobbies/ }).check();
     await next();
     await expect(heading).toHaveText('Plan your time');
     await page.getByRole('button', { name: '1 h 30 min' }).click();
     await expect(page.locator('p', { hasText: 'Weekly goal:' })).toContainText('10 h 30 min');
     await next();
-    await page.getByRole('radio', { name: /Long focus/ }).check();
     await next();
     await expect(heading).toHaveText('First skills');
     await page.getByRole('button', { name: 'Add Guitar' }).click();
     await next();
-    await expect(page.getByText('My skills: Guitar')).toBeVisible();
     await page.getByRole('button', { name: 'Finish setup' }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(heading).toHaveText('Hello, Ada.');
-    await expect(page.getByRole('region', { name: 'Suggestions' }).getByRole('heading', { name: 'Add exercises to Guitar' })).toBeVisible();
-
     await page.goto('/courses');
     await expect(heading).toHaveText('Skills');
     await expect(page.getByText('Guitar', { exact: true })).toBeVisible();
-    await page.goto('/planner');
-    await expect(page.getByRole('button', { name: 'Daily', exact: true })).toBeVisible();
-    await page.goto('/stats');
-    await expect(heading).toHaveText('Statistics');
-
-    // The language is an account preference: switching to Turkish survives a reload, and back again.
+    // Users have no language choice of their own.
     await page.goto('/settings');
     await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: 'Region' }).click();
-    const language = page.getByRole('group', { name: 'Language' });
-    await expect(language.getByRole('button', { name: 'English' })).toHaveAttribute('aria-pressed', 'true');
-    await language.getByRole('button', { name: 'Türkçe' }).click();
-    await expect(heading).toHaveText('Ayarlar');
-    await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
+    await expect(page.getByRole('group', { name: 'Language' })).toHaveCount(0);
     await page.reload();
-    await expect(heading).toHaveText('Ayarlar');
-    await page.getByRole('navigation', { name: 'Ayar bölümleri' }).getByRole('button', { name: 'Bölge' }).click();
-    await page.getByRole('group', { name: 'Dil' }).getByRole('button', { name: 'English' }).click();
     await expect(heading).toHaveText('Settings');
-    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   });
 });

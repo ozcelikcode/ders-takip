@@ -9,8 +9,8 @@ import App from './App';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import './index.css';
 import { queryClient } from './lib/queryClient';
-import { initialLanguage } from './i18n';
 import { useLanguageStore } from './store/languageStore';
+import { useSettingsStore } from './store/settingsStore';
 
 
 const render = () => ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -49,5 +49,5 @@ const render = () => ReactDOM.createRoot(document.getElementById('root')!).rende
   </React.StrictMode>
 );
 
-// Paint in the right language: a non-Turkish catalog is fetched first; if that fails, Turkish shows.
-void useLanguageStore.getState().setLanguage(initialLanguage()).catch(() => undefined).finally(render);
+// Paint in the site's language as last seen on this device (cached public settings); if its catalog fails, Turkish shows.
+void useLanguageStore.getState().setLanguage(useSettingsStore.getState().settings.language).catch(() => undefined).finally(render);

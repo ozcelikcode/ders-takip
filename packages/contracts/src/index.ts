@@ -19,6 +19,7 @@ export * from './textSearch.js';
 export * from './notifications.js';
 export * from './language.js';
 import { customTerminologySchema, defaultTerminologyPreset, terminologyPresetSchema } from './terminology.js';
+import { defaultLanguage, languageSchema } from './language.js';
 
 export const brandIconNames = [
   'GraduationCap',
@@ -48,6 +49,8 @@ export const publicSettingsSchema = z.object({
   primaryColor: colorSchema,
   allowRegistration: z.boolean(),
   maintenanceMode: z.boolean(),
+  // The one interface language everyone sees; stored data is never translated.
+  language: languageSchema,
   terminologyPreset: terminologyPresetSchema,
   // Site-wide custom words; when set they replace the preset for everyone who follows the site.
   customTerminology: customTerminologySchema.nullable(),
@@ -73,6 +76,7 @@ export const defaultSiteSettings: SiteSettings = {
   adminEmail: 'admin@example.com',
   allowRegistration: true,
   maintenanceMode: false,
+  language: defaultLanguage,
   terminologyPreset: defaultTerminologyPreset,
   customTerminology: null,
   sessionTimeout: 60,
