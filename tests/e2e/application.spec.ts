@@ -595,6 +595,59 @@ test('lets an administrator create an account that can sign in, then deactivate 
   await expect(page).toHaveURL(/\/login$/);
 });
 
+test('lets an administrator promote an account to administrator and later delete it', async ({ page }) => {
+  const manageOther = async (action: string, confirm: string) => {
+    await login(page, 'manager@example.test');
+    await page.goto('/admin/users');
+    await page.getByRole('button', { name: 'Second Student için işlemler' }).click();
+    await page.getByRole('menuitem', { name: action }).click();
+    await page.getByRole('button', { name: confirm, exact: true }).click();
+  };
+  await manageOther('Yönetici yap', 'Uygula');
+  await expect(page.getByText('Kullanıcı güncellendi.')).toBeVisible();
+  await logout(page);
+
+  // The promoted account now reaches the administration pages.
+  await login(page, 'other@example.test');
+  await page.goto('/admin/users');
+  await expect(page).toHaveURL(/\/admin\/users$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Kullanıcı yönetimi' })).toBeVisible();
+  await logout(page);
+
+  await manageOther('Kullanıcıyı sil', 'Kullanıcıyı sil');
+  await expect(page.getByText('Kullanıcı silindi.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Second Student için işlemler' })).toHaveCount(0);
+  await logout(page);
+
+  await page.getByLabel('E-posta Adresi').fill('other@example.test');
+  await page.getByLabel('Şifre', { exact: true }).fill('fixture-password');
+  await page.getByRole('button', { name: 'Giriş Yap', exact: true }).click();
+  await expect(page.getByText('E-posta veya şifre hatalı')).toBeVisible();
+  await expect(page).toHaveURL(/\/login$/);
+});
+
+test('offers a shared category the administrator adds to every account', async ({ page }) => {
+  await login(page, 'manager@example.test');
+  await page.goto('/admin/courses');
+  await page.getByRole('button', { name: 'Kategoriler', exact: true }).click();
+  const manager = page.getByRole('dialog', { name: 'Kategori yönetimi' });
+  await manager.getByRole('button', { name: 'Kategori ekle', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Kategori ekle' });
+  await editor.getByLabel('Kategori adı', { exact: true }).fill('Fixture Shared');
+  await editor.getByRole('button', { name: 'Kaydet', exact: true }).click();
+  await expect(page.getByText('Kategori oluşturuldu.')).toBeVisible();
+  await expect(manager.getByText('Fixture Shared', { exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(manager).toHaveCount(0);
+  await logout(page);
+
+  await login(page);
+  await page.goto('/courses');
+  await page.getByRole('button', { name: 'Proje ekle', exact: true }).first().click();
+  const record = page.getByRole('dialog', { name: 'Proje ekle' });
+  await expect(record.getByLabel('Kategori', { exact: true }).locator('option', { hasText: 'Fixture Shared' })).toHaveCount(1);
+});
+
 test('shows a renamed site on the public pages after the administrator saves it', async ({ page }) => {
   await login(page, 'manager@example.test');
   await page.goto('/admin/settings');
