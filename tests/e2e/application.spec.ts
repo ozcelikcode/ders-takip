@@ -497,6 +497,62 @@ test('reads the weekly chart as a table of measured study, not as an application
   await expect(measured).toHaveText(/^\d+ (dk|sa)/);
 });
 
+test('measures a Pomodoro session through pause, reload and completion and counts it on the dashboard', async ({
+  page,
+  application,
+}) => {
+  await login(page);
+  await dailyPlanner(page);
+  // Start within the hour so the session has not ended yet and can be started.
+  const now = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Istanbul',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date());
+  await page.getByRole('button', { name: 'Yeni seans', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Yeni Seans' });
+  await editor.getByRole('button', { name: 'Özel', exact: true }).click();
+  await editor.getByLabel('Özel Başlık *', { exact: true }).fill('Focused browser session');
+  await editor.getByLabel('Seans türü *', { exact: true }).selectOption('pomodoro');
+  await editor.getByLabel('Tarih', { exact: true }).fill(application.day);
+  await editor.getByLabel('Saat', { exact: true }).fill(now);
+  await editor.getByLabel('Süre (dakika) *', { exact: true }).fill('60');
+  await editor.getByRole('button', { name: 'Oluştur', exact: true }).click();
+  await expect(editor).toHaveCount(0);
+
+  await page.goto('/pomodoro');
+  await expect(page.getByRole('button', { name: /Focused browser session/ })).toHaveAttribute('aria-pressed', 'true');
+  const timer = page.getByRole('timer');
+  await page.getByRole('button', { name: 'Sayacı başlat', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Sayacı duraklat', exact: true })).toBeVisible();
+  await page.waitForTimeout(3_000);
+  await page.getByRole('button', { name: 'Sayacı duraklat', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Sayacı başlat', exact: true })).toHaveText('Devam et');
+  const paused = await timer.textContent();
+  expect(paused).not.toContain('25:00');
+
+  // The server owns the clock: a paused timer comes back paused with the same time left.
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Sayacı başlat', exact: true })).toHaveText('Devam et');
+  await expect(timer).toHaveText(paused ?? '');
+
+  await page.getByRole('button', { name: 'Sayacı başlat', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Sayacı duraklat', exact: true })).toBeVisible();
+  await page.waitForTimeout(2_000);
+  await page.getByRole('button', { name: 'Seansı tamamla', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Seans tamamlandı' })).toBeVisible();
+
+  // The fixture's earlier session measured 300 seconds; only the time the timer ran is added.
+  const stats = page.waitForResponse(
+    (response) => response.url().includes('/api/study-sessions/stats') && !response.url().includes('startDate'),
+  );
+  await page.goto('/dashboard');
+  const studySeconds = (await (await stats).json()).data.stats.studySeconds as number;
+  expect(studySeconds).toBeGreaterThanOrEqual(300 + 5);
+  expect(studySeconds).toBeLessThan(300 + 60);
+});
+
 test.describe('Site language', () => {
   // The browser asks for English; only the administrator's site setting decides.
   test.use({ locale: 'en-US' });

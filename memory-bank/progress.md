@@ -4,7 +4,7 @@ Son güncelleme: 23 Ekim 2026 — yol haritası R1–R15 tamam; son iş pano mob
 
 ## Son durum ve sıradaki işler (23 Ekim 2026)
 
-**Durum:** check exit 0 (contracts 44, backend 187, frontend 286), E2E 66/66, Lighthouse pano mobil 92 (hedef 90+ karşılandı). Arayüz dili tek site ayarıdır; sunucu yalnız kod döner; e-posta/push site dilinde; kayıtlı veri çevrilmez.
+**Durum:** check exit 0 (contracts 44, backend 187, frontend 286), E2E 69/69, Lighthouse pano mobil 92 (hedef 90+ karşılandı). Arayüz dili tek site ayarıdır; sunucu yalnız kod döner; e-posta/push site dilinde; kayıtlı veri çevrilmez.
 
 **Sıradaki (geliştirme, kullanıcı kararı bekler):**
 1. İngilizce özel kelimeler — kullanıcı "şimdilik dokunma" dedi. Site English iken özel kelimeler yazıldığı gibi + İngilizce çoğul gösterilir; editör Türkçe "-ı" hâlini sorar.
@@ -16,6 +16,8 @@ Son güncelleme: 23 Ekim 2026 — yol haritası R1–R15 tamam; son iş pano mob
 2. Push için `npm run push:keys -- adres` + backend yeniden başlatma; e-posta için SMTP ayarı.
 3. `BACKUP_COPY_DIR` ile ikinci yedek klasörünü ayarlamak.
 4. Site English kullanılacaksa Site ayarları › Genel › Site dili.
+
+**Pomodoro ölçümü E2E (23 Ekim):** Ürünün çekirdeği "ölçülen süre" uçtan uca tarayıcı testinde yoktu. Yeni senaryo: planlayıcıda şimdiki saatte Pomodoro seansı → Pomodoro sayfasında başlat, 3 sn, duraklat → yenilemede "Devam et" ve aynı kalan süre (sunucu sahipli saat) → devam, 2 sn, "Seansı tamamla" → panonun tüm zaman istatistiği `studySeconds` seed'in 300 sn'si + 5…60 sn. Fixture teardown'u artık yalnız seed seanslarının (`protectedIds`) ölçüm aralıklarını karşılaştırır (testler kendi seanslarını ölçebilir). Kararlılık: 3 profil × 5 tekrar 15/15. Kanıt: check exit 0, E2E **69/69**.
 
 **Bağımlılık bakımı (23 Ekim):** `npm audit` 0. Aralık içi/yama: vite 8.3.5, vitest 5.0.5, @tanstack/react-query 5.104.5, eslint 10.13.0, typescript-eslint 8.72.0, jsdom 30.1.3; sabit sürümler zustand 5.0.16, lucide-react 1.61.0, nodemailer 10.2.1. Tek React kopyası doğrulandı. **Bilinçli ertelenen majorlar** (destek doğrulandı, zorunlu değil): Express 4 resmî destek sayfasında 23 Ekim 2026 itibarıyla "ongoing" (5.x ile birlikte); helmet 8, express-rate-limit 8, bcryptjs 3, dotenv 18, @hookform/resolvers 6, motion 14, concurrently 10, TypeScript 7, @types/node 26 (runtime Node 24 ile eşleşir). Bunlar ayrı, ölçülü geçiş işleri. Kanıt: check exit 0 (44/187/286), E2E 66/66.
 

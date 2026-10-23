@@ -22,7 +22,7 @@ Linux CI'da browser sistem bağımlılıkları için `npx playwright install --w
 
 ## Kapsam
 
-Altı senaryo, masaüstü Chromium, masaüstü WebKit ve Pixel 7 mobil Chromium emülasyonunda çalışır: toplam 18 yürütme. Mobil profil 412×839 CSS px ve touch girdisi kullanır. Gerçek Android/iOS cihaz veya kurulu Safari doğrulaması değildir. Her senaryo yeni DB/context alır; testler sıra bağımsızdır, otomatik retry ve skip yoktur. Aktif pencere odak assertion'ları için tek worker kullanılır; birbirinden bağımsız tarayıcı pencereleri aynı anda odak için yarışmaz.
+23 senaryo (davranış + erişilebilirlik taramaları), masaüstü Chromium, masaüstü WebKit ve Pixel 7 mobil Chromium emülasyonunda çalışır: toplam 69 yürütme (23 Ekim 2026). Mobil profil 412×839 CSS px ve touch girdisi kullanır. Gerçek Android/iOS cihaz veya kurulu Safari doğrulaması değildir. Her senaryo yeni DB/context alır; testler sıra bağımsızdır, otomatik retry ve skip yoktur. Aktif pencere odak assertion'ları için tek worker kullanılır; birbirinden bağımsız tarayıcı pencereleri aynı anda odak için yarışmaz.
 
 1. Gerçek giriş, HttpOnly/SameSite cookie ile reload ve aynı browser context'te ikinci hesabın veri izolasyonu.
 2. UI'dan özel seans oluşturma, sürümlü saat/süre değiştirme, sunucu yanıtı ve reload kalıcılığı.
@@ -31,9 +31,9 @@ Altı senaryo, masaüstü Chromium, masaüstü WebKit ve Pixel 7 mobil Chromium 
 5. Bildirim sorgusunda tek kontrollü 503 hata enjeksiyonu, hata/boş ayrımı, gerçek API'den tekrar okuma, yerel okundu ve odak dönüşü. Diğer başarılı API yanıtları taklit edilmez.
 6. Responsive gezinme, mobil menü tap/Escape/odak/bağlantı ile kapanma, günlük varsayılan ve sayfa yatay taşma kontrolü.
 
-Dialog dış kapsayıcısı `relative` olup sıfır yüksekliğe sahip olabilir; görünürlük onun fixed panelindeki başlık/kontrollerden doğrulanır. İki sekme senaryosunda kullanıcı dönüşü `bringToFront` ile modellenir; WebKit'te arka plandaki sekmenin odak etkinliği başarı sayılmaz. Beklemeler gözlemlenen yanıt/DOM/odak durumlarına dayanır, sabit sleep kullanılmaz. Bu paket gerçek tarayıcıda bulunan taşıma sonrası odak yarışını da kapsar: odak dönüşü kapalı dialog commit'inden sonraki effect içinde planlanır ve unmount'ta iptal edilir.
+Dialog dış kapsayıcısı `relative` olup sıfır yüksekliğe sahip olabilir; görünürlük onun fixed panelindeki başlık/kontrollerden doğrulanır. İki sekme senaryosunda kullanıcı dönüşü `bringToFront` ile modellenir; WebKit'te arka plandaki sekmenin odak etkinliği başarı sayılmaz. Beklemeler gözlemlenen yanıt/DOM/odak durumlarına dayanır, eşitleme için sabit sleep kullanılmaz; tek istisna Pomodoro senaryosunda ölçülecek sürenin geçmesi için bilinçli bekleme (3 sn + 2 sn). Bu paket gerçek tarayıcıda bulunan taşıma sonrası odak yarışını da kapsar: odak dönüşü kapalı dialog commit'inden sonraki effect içinde planlanır ve unmount'ta iptal edilir.
 
-Otomatik tarama tam WCAG/ekran okuyucu uygunluğu değildir. DST fold, gerçek touch cihazı, native drag/resize, Pomodoro faz geçişleri ve bütün admin işlemlerinin E2E kapsamı açıktır. Mevcut unit/API regresyonları bu alanların kendi kanıt sınırlarıyla korunur. CI workflow güncellenir; uzak koşum ayrıca doğrulanmalıdır.
+Otomatik tarama tam WCAG/ekran okuyucu uygunluğu değildir. Pomodoro başlat/duraklat/yenile/devam/tamamla ve panodaki ölçülen süre E2E'dedir (sunucu sayacı yenilemede aynı kalan süreyle döner; seed'in 300 sn'sine yalnız çalışan süre eklenir). DST fold, gerçek touch cihazı, native drag/resize, Pomodoro faz geçişleri (mola/döngü) ve bütün admin işlemlerinin E2E kapsamı açıktır. Fixture teardown'u yalnız seed seanslarının ölçüm aralıklarının değişmediğini denetler. Mevcut unit/API regresyonları bu alanların kendi kanıt sınırlarıyla korunur. CI workflow güncellenir; uzak koşum ayrıca doğrulanmalıdır.
 
 Resmî dayanaklar: [Playwright fixtures](https://playwright.dev/docs/test-fixtures), [projects](https://playwright.dev/docs/test-projects), [CI](https://playwright.dev/docs/ci-intro). Ortak sabit webServer yerine test başına fixture kullanılması bu projenin veri izolasyonu kararıdır.
 

@@ -118,17 +118,22 @@ process.once('disconnect', shutdown);
       }),
     );
   const beforeSessions = await readProtected();
-  const beforeIntervals = JSON.stringify(await SessionInterval.findAll());
+  // Tests may measure their own sessions; the seeded measurements must stay as they were.
+  const readProtectedIntervals = async () =>
+    JSON.stringify(
+      await SessionInterval.findAll({
+        where: { sessionId: protectedIds },
+        order: [['id', 'ASC']],
+      }),
+    );
+  const beforeIntervals = await readProtectedIntervals();
   verifyData = async () => {
     const [integrity] = await sequelize.query('PRAGMA integrity_check');
     const [foreignKeys] = await sequelize.query('PRAGMA foreign_key_check');
     assert.deepEqual(integrity, [{ integrity_check: 'ok' }]);
     assert.deepEqual(foreignKeys, []);
     assert.equal(await readProtected(), beforeSessions);
-    assert.equal(
-      JSON.stringify(await SessionInterval.findAll()),
-      beforeIntervals,
-    );
+    assert.equal(await readProtectedIntervals(), beforeIntervals);
     assert.equal(
       (await StudySession.findByPk(705)).notes,
       'Preserve fixture notes',
