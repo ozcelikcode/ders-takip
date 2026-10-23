@@ -648,6 +648,30 @@ test('offers a shared category the administrator adds to every account', async (
   await expect(record.getByLabel('Kategori', { exact: true }).locator('option', { hasText: 'Fixture Shared' })).toHaveCount(1);
 });
 
+test('restores a backup the administrator took, undoing later changes and asking to sign in again', async ({ page }) => {
+  await login(page, 'manager@example.test');
+  await page.goto('/admin/settings');
+  const backups = () => page.getByRole('button', { name: 'Yedekleme ve sıfırlama', exact: true }).click();
+  await backups();
+  await page.getByRole('button', { name: 'Şimdi yedek al', exact: true }).click();
+  await expect(page.getByText('Yedek doğrulandı ve sunucuda saklandı.')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Genel', exact: true }).click();
+  await page.getByLabel('Site adı', { exact: true }).fill('Changed After Backup');
+  await page.getByRole('button', { name: 'Değişiklikleri kaydet', exact: true }).click();
+  await expect(page.getByText('Site ayarları kaydedildi ve uygulandı.')).toBeVisible();
+  await expect(page).toHaveTitle('Changed After Backup');
+
+  await backups();
+  await page.getByRole('button', { name: /tarihli yedeği geri yükle$/ }).first().click();
+  await page.getByRole('button', { name: 'Yedeği geri yükle', exact: true }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.reload();
+  await expect(page).not.toHaveTitle('Changed After Backup');
+  // The backup's accounts still sign in.
+  await login(page);
+});
+
 test('shows a renamed site on the public pages after the administrator saves it', async ({ page }) => {
   await login(page, 'manager@example.test');
   await page.goto('/admin/settings');
