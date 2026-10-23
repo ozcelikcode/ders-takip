@@ -78,7 +78,7 @@ export default function EditorDialog({
                   disabled={pending || disabled}
                   className="btn btn-primary"
                 >
-                  {pending ? 'Kaydediliyor…' : 'Kaydet'}
+                  {pending ? common.saving : common.save}
                 </button>
               </div>
             </form>

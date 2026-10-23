@@ -130,6 +130,8 @@ export const tr = {
   common: {
     confirm: 'Onayla',
     cancel: 'İptal',
+    save: 'Kaydet',
+    saving: 'Kaydediliyor…',
     loading: 'Yükleniyor…',
     processing: 'İşleniyor…',
     actionFailed: 'İşlem tamamlanamadı. Lütfen tekrar deneyin.',

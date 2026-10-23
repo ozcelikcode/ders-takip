@@ -23,7 +23,7 @@ const CourseHeader = ({
   onDelete,
 }: CourseHeaderProps) => {
   const t = useTerms();
-  const text = useText().course;
+  const { course: text, records } = useText();
   const Icon = catalogIcon(course.icon);
   return (
       <section className="panel p-5 sm:p-6">
@@ -38,7 +38,7 @@ const CourseHeader = ({
             <div className="min-w-0">
               <p className="text-xs text-(--muted)">
                 {course.category?.name}
-                {course.isGlobal ? ` · Ortak ${t.course()}` : ''}
+                {course.isGlobal ? ` · ${records.shared(t)}` : ''}
               </p>
               <h1 className="mt-1 wrap-break-word text-2xl font-medium tracking-tight">
                 {course.name}

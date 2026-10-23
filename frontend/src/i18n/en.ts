@@ -126,6 +126,8 @@ export const en: Text = {
   common: {
     confirm: 'Confirm',
     cancel: 'Cancel',
+    save: 'Save',
+    saving: 'Saving…',
     loading: 'Loading…',
     processing: 'Working…',
     actionFailed: 'That did not work. Please try again.',

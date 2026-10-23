@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { useTerms } from '../src/hooks/useTerms';
 import { tr } from '../src/i18n/tr';
+import EditorDialog from '../src/components/common/EditorDialog';
 import LoginPage from '../src/pages/auth/LoginPage';
 import { useLanguageStore } from '../src/store/languageStore';
 import { useSettingsStore } from '../src/store/settingsStore';
@@ -67,4 +68,18 @@ it('words server codes and schema issues in the interface language', async () =>
   expect([serverMessage(refused), serverMessage(invalid), issueMessage(issue), issueMessage('Too small: expected number')]).toEqual([
     'Wrong email or password', 'Enter a valid email address', 'Enter a valid email address', 'Enter a valid value.',
   ]);
+});
+
+it('labels the shared editor buttons in the interface language, including while saving', async () => {
+  await useLanguageStore.getState().setLanguage('en');
+  const dialog = (pending: boolean) => (
+    <EditorDialog title="Edit" description="Details" pending={pending} error="" onClose={vi.fn()} onSubmit={vi.fn()}>
+      <input aria-label="Name" />
+    </EditorDialog>
+  );
+  const { rerender } = render(dialog(false));
+  expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+  rerender(dialog(true));
+  expect(screen.getByRole('button', { name: 'Saving…' })).toBeTruthy();
 });

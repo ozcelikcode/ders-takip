@@ -27,7 +27,19 @@ for (const file of files) {
     ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) ? node.text
       : ts.isTemplateExpression(node) ? [node.head.text, ...node.templateSpans.map((span) => span.literal.text)].join(' ')
         : null;
+  // A literal that a JSX child expression renders, e.g. `{pending ? 'Saving' : 'Save'}`; compared values are not rendered.
+  const rendered = (node) => {
+    if (ts.isParenthesizedExpression(node)) rendered(node.expression);
+    else if (ts.isConditionalExpression(node)) { rendered(node.whenTrue); rendered(node.whenFalse); }
+    else if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) rendered(node.right);
+    else if (ts.isBinaryExpression(node) && [ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(node.operatorToken.kind)) { rendered(node.left); rendered(node.right); }
+    else {
+      const value = literalText(node);
+      if (value && letters.test(value) && !turkish.test(value)) report(node, value);
+    }
+  };
   const inspect = (node) => {
+    if (ts.isJsxExpression(node) && node.expression && (ts.isJsxElement(node.parent) || ts.isJsxFragment(node.parent))) rendered(node.expression);
     if (ts.isJsxText(node) && letters.test(node.text)) report(node, node.text);
     else if (ts.isJsxAttribute(node) && textAttributes.has(node.name.getText(source)) && node.initializer) {
       const value = ts.isStringLiteral(node.initializer) ? node.initializer.text
