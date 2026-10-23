@@ -1,4 +1,3 @@
-import { lazy, Suspense } from 'react';
 import { useTerms } from '../../hooks/useTerms';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useQuery } from '@tanstack/react-query';
@@ -6,6 +5,7 @@ import { ArrowRight, BookOpen, Calendar, Clock, CheckCircle, Layers, Plus, Timer
 import { Link } from 'react-router-dom';
 import { useLocale } from '../../lib/locale';
 import RecentActivities from '../../components/dashboard/RecentActivities';
+import WeeklyProgressChart from '../../components/dashboard/WeeklyProgressChart';
 import PageHeader from '../../components/common/PageHeader';
 import { coursesAPI, studySessionsAPI } from '../../services/api';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
@@ -24,9 +24,6 @@ const todayLabel = (timeZone: string, locale: string) => {
   const weekday = new Intl.DateTimeFormat(locale, { timeZone, weekday: 'long' }).format(now);
   return `${day}, ${weekday}`;
 };
-
-// The chart library is the largest dependency; loading it after the summary keeps it off the first paint.
-const WeeklyProgressChart = lazy(() => import('../../components/dashboard/WeeklyProgressChart'));
 
 const DashboardPage = () => {
   const { tag: localeTag, language } = useLocale();
@@ -81,7 +78,7 @@ const DashboardPage = () => {
       <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
         <section className="panel min-w-0">
           <div className="panel-heading"><div><h2 className="text-sm font-medium">{text.weeklyProgress}</h2><p className="mt-1 text-xs text-(--muted)">{text.weeklyProgressHint}</p></div><span className="badge badge-gray">{text.thisWeek}</span></div>
-          <div className="h-[300px] px-5 pb-5 pt-7"><Suspense fallback={<p role="status" className="text-sm text-(--muted)">{text.chartLoading}</p>}><WeeklyProgressChart /></Suspense></div>
+          <div className="h-[300px] px-5 pb-5 pt-7"><WeeklyProgressChart /></div>
         </section>
         <section className="panel min-w-0">
           <div className="panel-heading"><div><h2 className="text-sm font-medium">{text.recentActivity}</h2><p className="mt-1 text-xs text-(--muted)">{text.recentActivityHint}</p></div><Link to="/planner" className="icon-button" aria-label={text.goToPlanner}><ArrowRight className="h-4 w-4" /></Link></div>

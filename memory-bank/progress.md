@@ -1,21 +1,23 @@
 # Ders Takip Sistemi — İlerleme
 
-Son güncelleme: 22 Ekim 2026 — yol haritası R1–R15 tamam; son iş R10d (tek site dili, yönetici TR/EN seçer). Son commit `d1bab79`, push yok. Gerçek DB şeması 009 (R10 migration gerektirmedi).
+Son güncelleme: 23 Ekim 2026 — yol haritası R1–R15 tamam; son iş pano mobil açılış hızı (Lighthouse 87→92). Son commit `63145f8`, bu iş commit edilmedi, push yok. Gerçek DB şeması 009.
 
-## Son durum ve sıradaki işler (22 Ekim 2026)
+## Son durum ve sıradaki işler (23 Ekim 2026)
 
-**Durum:** check exit 0 (contracts 44, backend 187, frontend 283), E2E 66/66. Arayüz dili tek site ayarıdır; sunucu yalnız kod döner; e-posta/push site dilinde; kayıtlı veri çevrilmez.
+**Durum:** check exit 0 (contracts 44, backend 187, frontend 285), E2E 66/66, Lighthouse pano mobil 92 (hedef 90+ karşılandı). Arayüz dili tek site ayarıdır; sunucu yalnız kod döner; e-posta/push site dilinde; kayıtlı veri çevrilmez.
 
 **Sıradaki (geliştirme, kullanıcı kararı bekler):**
 1. İngilizce özel kelimeler — kullanıcı "şimdilik dokunma" dedi. Site English iken özel kelimeler yazıldığı gibi + İngilizce çoğul gösterilir; editör Türkçe "-ı" hâlini sorar.
-2. Pano mobil Lighthouse 86 (hedef 90+). Ucuz denemeler ölçümle geri alındı; kalan kaldıraç açılış yolundaki istek zinciri.
-3. Elle ekran okuyucu kontrol listesi hazır, uygulanmadı.
+2. Elle ekran okuyucu kontrol listesi hazır, uygulanmadı.
+3. (İsteğe bağlı) Gerçek ağ kısıtlamasında pano LCP ~4.9 s: Layout + sayfa dalgasında ~20 küçük parça HTTP/1.1'in 6 bağlantısında sıraya giriyor; üretimde HTTP/2 bunu büyük ölçüde giderir. Pano verisi istekleri sayfa çizilince başlıyor.
 
 **Kullanıcının kendi tarafında:**
-1. Depoyu iCloud eşitlemesi dışına taşımak (kopya dosyalar oluşuyor).
+1. Depo artık `~/dev/ders-takip` altında (iCloud dışı, 23 Ekim'de görüldü); yalnız Git dışı `playwright-report/`, `lighthouse-report/`, `lighthouse-results/` içinde eski "ad 2" kopyaları kaldı, silinebilir.
 2. Push için `npm run push:keys -- adres` + backend yeniden başlatma; e-posta için SMTP ayarı.
 3. `BACKUP_COPY_DIR` ile ikinci yedek klasörünü ayarlamak.
 4. Site English kullanılacaksa Site ayarları › Genel › Site dili.
+
+**Pano mobil açılış hızı (23 Ekim; kullanıcı seçimi):** Ölçüm: `npm run test:lighthouse -- --repeat-each=N -g "dashboard mobile"` (lantern benzetimi, sabit sonuç verir). Başlangıç 87 (FCP 2.11 s, LCP 3.81 s). Bulgu: LCP öğesi (Layout'taki saat dilimi uyarısı) gözlenen izde ~400 ms'de çiziliyordu; React 19 Suspense'in fallback kısıtlaması (300 ms) yüzünden pano geç işleniyor ve o ana kadar istenen her şey — 103 KB gz grafik parçası, pano API'leri, latin-ext font — lantern'in LCP grafiğine giriyordu. Yapılanlar: (1) **Grafik veriden sonra yüklenir:** `WeeklyProgressChart` artık panoya doğrudan bağlı (küçük; sorgu + yükleniyor durumu), yalnız `DailyStudyChart` tembel ve haftalık veri gelince istenir. Etki: 87→**92** (LCP 3.08 s). (2) **Erken oturum yenileme:** `index.html` içindeki satır içi betik, JS inerken `POST /auth/refresh-token` gönderir (aynı başlıklar, aynı `study-tracker-auth` Web Lock'u, 30 sn zaman aşımı; `auth-logout-pending` varken göndermez; API tabanı `%VITE_API_BASE_URL%`, yoksa `/api`). `authAPI.refreshToken` ilk çağrıda bu yanıtı devralır (`lib/initialSessionRefresh.ts` → `takeInitialSessionRefresh`, `httpClient.receiveAuthResponse`; hata/zaman aşımı kendi isteğiyle aynı `HttpError` kodlarıyla), sonrakiler kendi isteğini atar. Lantern bunu modellemez (skor değişmez); gerçek kısıtlamada (`throttlingMethod: 'devtools'`, 5 koşu) LCP 5.87→**5.41 s**. (3) **Açılan adresin sayfası kabukla birlikte iner:** `App.tsx` `shellPages` (yol + `load` + tembel `Page`); Layout'un tembel yükleyicisi `matchPath` ile adresteki sayfayı (`/` → pano) aynı anda ister. Gerçek kısıtlamada LCP 5.41→**4.93 s**; lantern'de etkisiz. Sonuç (3 tekrar): pano mobil 91/92/92, masaüstü 99–100, giriş mobil 95 (değişmedi), masaüstü 100, erişilebilirlik 12/12 100. **Denenip geri alınan (tekrarlanmasın):** Rolldown `codeSplitting.groups` ile ≥2 parçanın paylaştığı modülleri tek `shared` parçaya toplamak 197 KB gz'lik bir parçayı açılışa soktu. Testler: `authTransport.test.ts` erken yanıtın yalnız bir kez devralınması, 401/ağ/zaman aşımı eşlemesi. Kanıt: check exit 0 (44/187/285), E2E 66/66.
 
 ## Ürün yönü ve yol haritası (19 Ekim 2026)
 

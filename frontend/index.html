@@ -23,6 +23,23 @@
       document.documentElement.classList.toggle('dark', window.matchMedia('(prefers-color-scheme: dark)').matches);
     } catch { /* Public cache is optional. */ }
   </script>
+  <!-- Start restoring the session while the scripts download; the app adopts this response (lib/initialSessionRefresh.ts).
+       Same request and cross-tab lock as authAPI.refreshToken; skipped while a sign-out is still pending. -->
+  <script>
+    try {
+      if (!localStorage.getItem('auth-logout-pending')) {
+        const base = '%VITE_API_BASE_URL%';
+        const refresh = () => fetch((base && !base.startsWith('%') ? base : '/api') + '/auth/refresh-token', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'StudyTracker' },
+          signal: typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(30000) : undefined,
+        });
+        window.initialSessionRefresh = navigator.locks ? navigator.locks.request('study-tracker-auth', refresh) : refresh();
+        window.initialSessionRefresh.catch(() => undefined);
+      }
+    } catch { /* The app refreshes the session itself. */ }
+  </script>
 </head>
 
 <body>

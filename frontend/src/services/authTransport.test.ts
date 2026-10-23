@@ -131,3 +131,29 @@ it('serializes profile writes from separate callers over the real transport', as
   expect(results.map((result) => result.status)).toEqual([200, 200]);
   expect(profilePeak).toBe(1);
 });
+
+describe('early session refresh from index.html', () => {
+  const body = (accessToken: string) => JSON.stringify({
+    success: true,
+    data: { user: { ...user, id: 1 }, tokens: { accessToken, expiresIn: '15m' } },
+  });
+
+  it('is adopted by the first refresh only; later refreshes send their own request', async () => {
+    const sent = refreshCount;
+    window.initialSessionRefresh = Promise.resolve(new Response(body('early-access'), { status: 200 }));
+    expect((await authAPI.refreshToken()).data.data?.tokens.accessToken).toBe('early-access');
+    expect(refreshCount).toBe(sent);
+    expect(window.initialSessionRefresh).toBeUndefined();
+    expect((await authAPI.refreshToken()).data.data?.tokens.accessToken).toBe('replacement-access');
+    expect(refreshCount).toBe(sent + 1);
+  });
+
+  it('reports a refused or failed early refresh the way the transport reports its own', async () => {
+    window.initialSessionRefresh = Promise.resolve(new Response(JSON.stringify({ success: false, error: { code: 'sessionExpired' } }), { status: 401 }));
+    await expect(authAPI.refreshToken()).rejects.toMatchObject({ response: { status: 401, data: { error: { code: 'sessionExpired' } } } });
+    window.initialSessionRefresh = Promise.reject(new TypeError('Failed to fetch'));
+    await expect(authAPI.refreshToken()).rejects.toMatchObject({ code: 'ERR_NETWORK' });
+    window.initialSessionRefresh = Promise.reject(new DOMException('signal timed out', 'TimeoutError'));
+    await expect(authAPI.refreshToken()).rejects.toMatchObject({ code: 'ECONNABORTED' });
+  });
+});

@@ -69,7 +69,8 @@ import {
   type NotificationChannels,
   type TestNotificationInput,
 } from '@study-tracker/contracts';
-import { api, authTransport } from './httpClient';
+import { api, authTransport, receiveAuthResponse } from './httpClient';
+import { takeInitialSessionRefresh } from '../lib/initialSessionRefresh';
 import { CanceledError, type HttpResponse } from './httpError';
 
 const parseAuthResponse = (
@@ -161,10 +162,14 @@ export const authAPI = {
   deleteAccount: (input: DeleteAccountInput): Promise<HttpResponse<ApiResponse>> =>
     api.delete('/auth/account', { data: input }),
 
-  refreshToken: (): Promise<HttpResponse<AuthResponse>> =>
-    withAuthLock(() =>
-      authTransport.post('/auth/refresh-token').then(parseAuthResponse),
-    ),
+  refreshToken: (): Promise<HttpResponse<AuthResponse>> => {
+    const early = takeInitialSessionRefresh();
+    return early
+      ? receiveAuthResponse(early, { url: '/auth/refresh-token', method: 'post' }).then(parseAuthResponse)
+      : withAuthLock(() =>
+        authTransport.post('/auth/refresh-token').then(parseAuthResponse),
+      );
+  },
 };
 
 type QueryParams = Record<string, string | number | boolean>;

@@ -28,25 +28,19 @@ const readBody = async (response: Response): Promise<unknown> => {
   }
 };
 
-/** One fetch round trip with the API's headers, cookies, timeout and JSON handling. */
-const send = async <T>(config: HttpRequestConfig): Promise<HttpResponse<T>> => {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+/** Reads a fetch outcome as the API's response, or as an HttpError. */
+const receive = async <T>(
+  pending: Promise<Response>,
+  config: HttpRequestConfig,
+  isTimeout: (error: unknown) => boolean,
+): Promise<HttpResponse<T>> => {
   let response: Response;
   try {
-    response = await fetch(buildUrl(config.url, config.params), {
-      method: (config.method ?? 'get').toUpperCase(),
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'StudyTracker', ...config.headers },
-      ...(config.data === undefined ? {} : { body: JSON.stringify(config.data) }),
-      signal: controller.signal,
-    });
-  } catch {
-    throw controller.signal.aborted
+    response = await pending;
+  } catch (error) {
+    throw isTimeout(error)
       ? new HttpError(`timeout of ${TIMEOUT_MS}ms exceeded`, undefined, config, 'ECONNABORTED')
       : new HttpError('Network Error', undefined, config, 'ERR_NETWORK');
-  } finally {
-    clearTimeout(timer);
   }
   const data = await readBody(response);
   if (!response.ok)
@@ -58,6 +52,24 @@ const send = async <T>(config: HttpRequestConfig): Promise<HttpResponse<T>> => {
     );
   return { data: data as T, status: response.status, config };
 };
+
+/** One fetch round trip with the API's headers, cookies, timeout and JSON handling. */
+const send = async <T>(config: HttpRequestConfig): Promise<HttpResponse<T>> => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const pending = fetch(buildUrl(config.url, config.params), {
+    method: (config.method ?? 'get').toUpperCase(),
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'StudyTracker', ...config.headers },
+    ...(config.data === undefined ? {} : { body: JSON.stringify(config.data) }),
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timer));
+  return receive<T>(pending, config, () => controller.signal.aborted);
+};
+
+/** Reads an auth request that index.html sent with the same headers and a timeout signal before the scripts loaded. */
+export const receiveAuthResponse = <T>(pending: Promise<Response>, config: HttpRequestConfig): Promise<HttpResponse<T>> =>
+  receive<T>(pending, config, error => error instanceof DOMException && error.name === 'TimeoutError');
 
 interface Transport {
   get<T = unknown>(url: string, config?: Omit<HttpRequestConfig, 'url' | 'method'>): Promise<HttpResponse<T>>;
