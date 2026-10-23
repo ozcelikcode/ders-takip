@@ -7,7 +7,8 @@ import { useLocale } from '../../lib/locale';
 import RecentActivities from '../../components/dashboard/RecentActivities';
 import WeeklyProgressChart from '../../components/dashboard/WeeklyProgressChart';
 import PageHeader from '../../components/common/PageHeader';
-import { coursesAPI, studySessionsAPI } from '../../services/api';
+import { coursesWithTopicsQuery } from '../../lib/accountQueries';
+import { studySessionsAPI } from '../../services/api';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useAuthStore } from '../../store/authStore';
 import GoalProgress from '../../components/dashboard/GoalProgress';
@@ -34,8 +35,7 @@ const DashboardPage = () => {
   const user = useAuthStore(state => state.user);
   const firstName = user?.firstName;
   const { data: courses, isLoading: coursesLoading, isError: coursesError } = useQuery({
-    queryKey: accountKeys.catalog('courses', { includeTopics: true }),
-    queryFn: () => coursesAPI.getCourses({ includeTopics: true }),
+    ...coursesWithTopicsQuery(accountKeys),
     // Admins can list everyone's records; the personal dashboard counts only their own and shared ones.
     select: response => ((response.data.data?.courses || []) as CatalogCourse[]).filter(course => isOwnOrShared(course, user)),
   });

@@ -6,7 +6,7 @@ import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useTerms } from '../../hooks/useTerms';
 import { useWeeklyStats } from '../../hooks/useWeeklyStats';
 import { canManageCourse, isOwnOrShared } from '../../lib/catalogAccess';
-import { coursesAPI, studySessionsAPI } from '../../services/api';
+import { coursesWithTopicsQuery, todaySessionsQuery } from '../../lib/accountQueries';
 import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import type { CatalogCourse } from '../../types/catalog';
@@ -39,18 +39,10 @@ export default function Recommendations() {
   const { today, weekDates, query: weekly } = useWeeklyStats();
   // Same keys as the dashboard summary and today's plan list, so the cache is shared.
   const courses = useQuery({
-    queryKey: keys.catalog('courses', { includeTopics: true }),
-    queryFn: () => coursesAPI.getCourses({ includeTopics: true }),
+    ...coursesWithTopicsQuery(keys),
     select: (response) => (response.data.data?.courses ?? []) as CatalogCourse[],
   });
-  const todaySessions = useQuery({
-    queryKey: keys.sessions('todays-sessions', today),
-    queryFn: async () => {
-      const response = await studySessionsAPI.getSessions({ startDate: today, endDate: today, timezone: preferences.timezone });
-      if (!response.data.data?.sessions) throw new Error('Today sessions response is missing');
-      return response.data.data.sessions;
-    },
-  });
+  const todaySessions = useQuery(todaySessionsQuery(keys, today, preferences.timezone));
 
   const loading = courses.isPending || weekly.isPending || todaySessions.isPending;
   const failed = courses.isError || weekly.isError || todaySessions.isError;

@@ -17,6 +17,7 @@ import { useAccountMutation } from '../../hooks/useAccountMutation';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useCurrentDateKey } from '../../hooks/useCurrentDateKey';
 import { studySessionsAPI } from '../../services/api';
+import { todaySessionsQuery } from '../../lib/accountQueries';
 import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import type { StudySession } from '../../types/planner';
@@ -47,17 +48,7 @@ export default function TodaysPlans() {
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const mutation = useAccountMutation([keys.sessions()]);
   const query = useQuery({
-    queryKey: keys.sessions('todays-sessions', today),
-    queryFn: async () => {
-      const response = await studySessionsAPI.getSessions({
-        startDate: today,
-        endDate: today,
-        timezone,
-      });
-      if (!response.data.data?.sessions)
-        throw new Error('Today sessions response is missing');
-      return response.data.data.sessions;
-    },
+    ...todaySessionsQuery(keys, today, timezone),
     refetchInterval: 30000,
     staleTime: 0,
     refetchOnMount: 'always',

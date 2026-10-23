@@ -13,7 +13,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { coursesAPI } from '../services/api';
+import { coursesWithTopicsQuery } from '../lib/accountQueries';
 import { useAccountQueryKeys } from '../hooks/useAccountQueryKeys';
 import { useAuthStore } from '../store/authStore';
 import { canManageCourse } from '../lib/catalogAccess';
@@ -42,10 +42,7 @@ export default function CoursesPage() {
   useEffect(() => {
     setSearch(searchParams.get('search') ?? '');
   }, [searchParams]);
-  const query = useQuery({
-    queryKey: keys.catalog('courses', { includeTopics: true }),
-    queryFn: () => coursesAPI.getCourses({ includeTopics: true }),
-  });
+  const query = useQuery(coursesWithTopicsQuery(keys));
   const courses: CatalogCourse[] = query.data?.data.data?.courses ?? [];
   const term = search.trim();
   const filtered = courses.filter((course) =>

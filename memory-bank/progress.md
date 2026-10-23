@@ -9,13 +9,15 @@ Son güncelleme: 23 Ekim 2026 — yol haritası R1–R15 tamam; son iş pano mob
 **Sıradaki (geliştirme, kullanıcı kararı bekler):**
 1. İngilizce özel kelimeler — kullanıcı "şimdilik dokunma" dedi. Site English iken özel kelimeler yazıldığı gibi + İngilizce çoğul gösterilir; editör Türkçe "-ı" hâlini sorar.
 2. Elle ekran okuyucu kontrol listesi hazır, uygulanmadı.
-3. (İsteğe bağlı) Gerçek ağ kısıtlamasında pano LCP ~4.9 s: Layout + sayfa dalgasında ~20 küçük parça HTTP/1.1'in 6 bağlantısında sıraya giriyor; üretimde HTTP/2 bunu büyük ölçüde giderir. Pano verisi istekleri sayfa çizilince başlıyor.
+3. (İsteğe bağlı) Gerçek ağ kısıtlamasında pano LCP ~4.9 s: Layout + sayfa dalgasında ~20 küçük parça HTTP/1.1'in 6 bağlantısında sıraya giriyor; üretimde HTTP/2 bunu büyük ölçüde giderir. Pano verisini önceden çekmek denendi ve geri alındı (aşağıdaki not).
 
 **Kullanıcının kendi tarafında:**
 1. Depo artık `~/dev/ders-takip` altında (iCloud dışı, 23 Ekim'de görüldü); yalnız Git dışı `playwright-report/`, `lighthouse-report/`, `lighthouse-results/` içinde eski "ad 2" kopyaları kaldı, silinebilir.
 2. Push için `npm run push:keys -- adres` + backend yeniden başlatma; e-posta için SMTP ayarı.
 3. `BACKUP_COPY_DIR` ile ikinci yedek klasörünü ayarlamak.
 4. Site English kullanılacaksa Site ayarları › Genel › Site dili.
+
+**Pano verisini önceden çekme — denendi, geri alındı (23 Ekim; kullanıcı seçimi):** Kabuk yüklenirken (Layout tembel yükleyicisi) panonun 5 sorgusu `prefetchQuery` ile başlatıldı. Sonuç: lantern pano mobil 92→86 (veri önce gelince grafik parçası yine LCP'den önce isteniyordu); grafik "ilk çizimden sonra" kapısıyla 90; gerçek kısıtlamada (devtools, 5 koşu) LCP 4.93→**5.27 s kötü** — 5 API isteği HTTP/1.1 bağlantılarını tutup Layout parçasını ~540 ms geciktirdi. Kazanç yalnız verinin ilk çizimde hazır olmasıydı; hedef metrik kötüleştiği için geri alındı (tekrarlanmasın; HTTP/2 olan bir ortamda yeniden ölçülebilir). Kalan temizlik: birden çok ekranda tekrarlanan iki sorgu tanımı `lib/accountQueries.ts`'te (`coursesWithTopicsQuery`: pano, öneriler, kayıtlar; `todaySessionsQuery`: öneriler, günlük plan). Kanıt: check exit 0 (44/187/286), E2E 66/66, pano mobil 91/91/92.
 
 **Tek "son seanslar" isteği (23 Ekim):** Üst çubuk bildirimleri ve panodaki son etkinlikler aynı `GET /study-sessions?status=completed` isteğini iki ayrı sorgu anahtarıyla iki kez atıyordu. Ortak `hooks/useRecentSessions.ts` (anahtar `recent-completed`, hesap epoch denetimi, eksik yanıtta hata, 60 sn yenileme) ikisine de veri verir. Davranış farkı: son etkinlikler eksik yanıtı artık boş liste değil hata sayar ve 60 sn'de bir tazelenir. `header-accessibility.test.tsx` sahte `useAuthStore`'u seçici destekler oldu; yeni test iki bileşenin tek istek paylaştığını doğrular. Kanıt: check exit 0 (44/187/286), E2E 66/66.
 
