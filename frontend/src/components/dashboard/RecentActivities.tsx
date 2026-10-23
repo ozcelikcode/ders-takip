@@ -1,8 +1,5 @@
 import { measuredSessionLabel } from '../../utils/sessionHelpers';
-import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
-import { getRecentSessions } from '../../utils/sessionHelpers';
-import { useQuery } from '@tanstack/react-query';
-import { studySessionsAPI } from '../../services/api';
+import { useRecentSessions } from '../../hooks/useRecentSessions';
 import { formatDistanceToNow } from 'date-fns';
 import { useLocale } from '../../lib/locale';
 import { CheckCircle, Clock, Book } from 'lucide-react';
@@ -13,16 +10,7 @@ const RecentActivities = () => {
   const sessionText = useText().session;
   const text = useText().activity;
   const { dateFns } = useLocale();
-  const accountKeys = useAccountQueryKeys();
-  // Fetch the most recently completed sessions
-  const { data: recentSessions, isLoading, isError } = useQuery({
-    queryKey: accountKeys.sessions('recent-activities'),
-    queryFn: async () => {
-      const response = await studySessionsAPI.getSessions({ status: 'completed' });
-      const sessions = response.data.data?.sessions || [];
-      return getRecentSessions(sessions);
-    },
-  });
+  const { data: recentSessions, isLoading, isError } = useRecentSessions();
 
   if (isLoading) {
     return (

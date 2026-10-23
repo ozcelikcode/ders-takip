@@ -10,6 +10,7 @@ import {
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import Header from '../src/components/common/Header';
+import RecentActivities from '../src/components/dashboard/RecentActivities';
 import { studySessionsAPI } from '../src/services/api';
 import type { StudySession } from '../src/types/planner';
 const auth = vi.hoisted(() => ({
@@ -23,7 +24,10 @@ const auth = vi.hoisted(() => ({
   logout: vi.fn(),
 }));
 vi.mock('../src/store/authStore', () => ({
-  useAuthStore: Object.assign(() => auth, { getState: () => auth }),
+  useAuthStore: Object.assign(
+    (select?: (state: typeof auth) => unknown) => (select ? select(auth) : auth),
+    { getState: () => auth },
+  ),
 }));
 vi.mock('../src/hooks/useAccountQueryKeys', () => ({
   useAccountQueryKeys: () => ({
@@ -239,4 +243,19 @@ it('does not accept a late notification read from a previous auth epoch', async 
   await act(() => resolve(response([session])));
   await screen.findByText('Bildirimler alınamadı.');
   expect(screen.queryByText(session.title)).toBeNull();
+});
+
+it('shares one recent-sessions request between the header and the dashboard activity list', async () => {
+  vi.mocked(studySessionsAPI.getSessions).mockResolvedValue(response([session]));
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <Header onMenuClick={vi.fn()} />
+        <RecentActivities />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  await screen.findByText('Completed fixture');
+  await waitFor(() => expect(trigger().getAttribute('aria-label')).toBe('Bildirimler, 1 okunmamış'));
+  expect(studySessionsAPI.getSessions).toHaveBeenCalledTimes(1);
 });

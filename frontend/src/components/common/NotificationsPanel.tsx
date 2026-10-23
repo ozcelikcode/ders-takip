@@ -1,19 +1,13 @@
 import { useTerms } from '../../hooks/useTerms';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
-import { useQuery } from '@tanstack/react-query';
 import { Bell, Check, CheckCheck, X } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { useLocale } from '../../lib/locale';
-import { CanceledError } from '../../services/httpError';
 import { useAuthStore } from '../../store/authStore';
 import { useReadNotifications } from '../../hooks/useReadNotifications';
-import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
-import { studySessionsAPI } from '../../services/api';
-import {
-  getRecentSessions,
-  measuredSessionLabel,
-} from '../../utils/sessionHelpers';
+import { useRecentSessions } from '../../hooks/useRecentSessions';
+import { measuredSessionLabel } from '../../utils/sessionHelpers';
 import { useLanguage, useText } from '../../store/languageStore';
 
 export default function NotificationsPanel() {
@@ -22,27 +16,12 @@ export default function NotificationsPanel() {
   const text = useText().notifications;
   const { dateFns } = useLocale();
   const t = useTerms();
-  const { user, epoch } = useAuthStore();
-  const keys = useAccountQueryKeys();
+  const user = useAuthStore(state => state.user);
   const headingId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const [announcement, setAnnouncement] = useState('');
   const { ids, markRead } = useReadNotifications(user ? String(user.id) : null);
-  const query = useQuery({
-    queryKey: keys.sessions('recent-notifications'),
-    enabled: !!user,
-    queryFn: async () => {
-      const response = await studySessionsAPI.getSessions({
-        status: 'completed',
-      });
-      if (useAuthStore.getState().epoch !== epoch)
-        throw new CanceledError('Account changed');
-      const sessions = response.data.data?.sessions;
-      if (!sessions) throw new Error('Missing notification sessions');
-      return getRecentSessions(sessions);
-    },
-    refetchInterval: 60_000,
-  });
+  const query = useRecentSessions();
   const sessions = query.data ?? [];
   const unread = sessions.filter((session) => !ids.has(session.id));
   const fresh = query.isSuccess;
