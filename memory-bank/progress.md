@@ -4,7 +4,7 @@ Son güncelleme: 23 Ekim 2026 — yol haritası R1–R15 tamam; son iş pano mob
 
 ## Son durum ve sıradaki işler (23 Ekim 2026)
 
-**Durum:** check exit 0 (contracts 44, backend 187, frontend 287), E2E 69/69, Lighthouse pano mobil 92 (hedef 90+ karşılandı). Arayüz dili tek site ayarıdır; sunucu yalnız kod döner; e-posta/push site dilinde; kayıtlı veri çevrilmez.
+**Durum:** check exit 0 (contracts 44, backend 187, frontend 287), E2E 75/75, Lighthouse pano mobil 92 (hedef 90+ karşılandı). Arayüz dili tek site ayarıdır; sunucu yalnız kod döner; e-posta/push site dilinde; kayıtlı veri çevrilmez.
 
 **Sıradaki (geliştirme, kullanıcı kararı bekler):**
 1. İngilizce özel kelimeler — kullanıcı "şimdilik dokunma" dedi. Site English iken özel kelimeler yazıldığı gibi + İngilizce çoğul gösterilir; editör Türkçe "-ı" hâlini sorar.
@@ -16,6 +16,8 @@ Son güncelleme: 23 Ekim 2026 — yol haritası R1–R15 tamam; son iş pano mob
 2. Push için `npm run push:keys -- adres` + backend yeniden başlatma; e-posta için SMTP ayarı.
 3. `BACKUP_COPY_DIR` ile ikinci yedek klasörünü ayarlamak.
 4. Site English kullanılacaksa Site ayarları › Genel › Site dili.
+
+**Yönetici akışları E2E (23 Ekim):** İki yeni senaryo: (1) yönetici kullanıcı oluşturur → yeni hesap girişte `/welcome`'a düşer (yönetici açtığı hesap da `onboarding: 'pending'`) → yönetici "Pasifleştir" + "Uygula" → aynı giriş `accountDisabled` metniyle reddedilir; (2) Site ayarları › Site adı kaydı → çıkış sonrası giriş sayfasının `<title>`'ı ve markası yeni ad. Kararlılık 3 profil × 3 = 18/18. Kanıt: check exit 0 (44/187/287), E2E **75/75**. Kalan admin E2E: rol değiştirme, silme, kategori, yedek geri yükleme.
 
 **Çeviri kaçakları (23 Ekim):** `check:text` Türkçe harfi olmayan Türkçe sözcükleri yalnız düz JSX metninde yakalıyordu; artık JSX içinde doğrudan çizilen dizeleri de (`{koşul ? 'a' : 'b'}`, `&&`, `||`, `??` sonuç dalları; karşılaştırılan değerler değil) yakalar. Bulunan iki gerçek hata: ortak `EditorDialog` kaydet düğmesi sabit `'Kaydet'/'Kaydediliyor…'` idi (İngilizce sitede de Türkçe; artık `common.save/saving`), `CourseHeader` ortak kayıt etiketi sabit `· Ortak …` idi (artık `records.shared`). Yeni test: düzenleyici düğmeleri İngilizce, kaydederken "Saving…". Kanıt: check exit 0 (44/187/287).
 

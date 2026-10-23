@@ -553,6 +553,60 @@ test('measures a Pomodoro session through pause, reload and completion and count
   expect(studySeconds).toBeLessThan(300 + 60);
 });
 
+test('lets an administrator create an account that can sign in, then deactivate it so it cannot', async ({
+  page,
+}) => {
+  await login(page, 'manager@example.test');
+  await page.goto('/admin/users');
+  await page.getByRole('button', { name: 'Kullanıcı oluştur', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Kullanıcı oluştur' });
+  await editor.getByLabel('Ad', { exact: true }).fill('Created');
+  await editor.getByLabel('Soyad', { exact: true }).fill('Person');
+  await editor.getByLabel('Kullanıcı adı', { exact: true }).fill('createdperson');
+  await editor.getByLabel('E-posta', { exact: true }).fill('created@example.test');
+  await editor.getByLabel('Parola', { exact: true }).fill('created-fixture-password');
+  await editor.getByLabel('Parola tekrarı', { exact: true }).fill('created-fixture-password');
+  await editor.getByRole('button', { name: 'Kaydet', exact: true }).click();
+  await expect(editor).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Created Person için işlemler' })).toBeVisible();
+  await logout(page);
+
+  const signIn = async () => {
+    await page.getByLabel('E-posta Adresi').fill('created@example.test');
+    await page.getByLabel('Şifre', { exact: true }).fill('created-fixture-password');
+    await page.getByRole('button', { name: 'Giriş Yap', exact: true }).click();
+  };
+  // An account the administrator creates starts with the setup wizard, like a self-registered one.
+  await signIn();
+  await expect(page).toHaveURL(/\/welcome$/);
+  // The wizard has no account menu; dropping the session cookie signs this browser out.
+  await page.context().clearCookies();
+
+  await login(page, 'manager@example.test');
+  await page.goto('/admin/users');
+  await page.getByRole('button', { name: 'Created Person için işlemler' }).click();
+  await page.getByRole('menuitem', { name: 'Pasifleştir' }).click();
+  await page.getByRole('button', { name: 'Uygula', exact: true }).click();
+  await expect(page.getByText('Kullanıcı güncellendi.')).toBeVisible();
+  await logout(page);
+
+  await signIn();
+  await expect(page.getByText('Hesabınız deaktif durumda. Lütfen yöneticiyle iletişime geçin')).toBeVisible();
+  await expect(page).toHaveURL(/\/login$/);
+});
+
+test('shows a renamed site on the public pages after the administrator saves it', async ({ page }) => {
+  await login(page, 'manager@example.test');
+  await page.goto('/admin/settings');
+  await page.getByLabel('Site adı', { exact: true }).fill('Fixture Workspace');
+  await page.getByRole('button', { name: 'Değişiklikleri kaydet', exact: true }).click();
+  await expect(page.getByText('Site ayarları kaydedildi ve uygulandı.')).toBeVisible();
+  await logout(page);
+  await page.reload();
+  await expect(page).toHaveTitle('Fixture Workspace');
+  await expect(page.getByText('Fixture Workspace', { exact: true }).first()).toBeVisible();
+});
+
 test.describe('Site language', () => {
   // The browser asks for English; only the administrator's site setting decides.
   test.use({ locale: 'en-US' });
