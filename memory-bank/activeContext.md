@@ -48,14 +48,11 @@ Normal final koşuları teardown/veri koruma kontrolünden geçti. Keşif sıras
 
 Gerçek DB şeması 013'te (24 Ekim 2026). 007–013 her biri ayrı kullanıcı onayıyla, önce yedek alınarak uygulandı; duran yedekler `backend/backups/pre-010…pre-013-*.sqlite` (007–009 öncesi yedekler artık tutulmuyor). Önceki normal003/004/005/006 yükseltmeleri native özel snapshot/veri koruma karşılaştırmalarıyla yapıldı; pointer .local/topic-progress-upgrade-2026-10-16.json. Pointer/snapshotlar silinmez. Gerçek DB'ye migration yalnız her seferinde kullanıcı onayıyla; test yazması/seed/reset/restore yok. Eski şema snapshot current restore tarafından reddedilir; ayrı kopyada kontrollü yükseltme gerekir.
 
-## Sıradaki açık işler (23 Ekim 2026 güncel)
+## Durum ve açık işler (24 Ekim 2026 güncel)
 
-Güncel liste progress.md başındaki "Son durum ve sıradaki işler" bölümündedir. Özet:
-1. İngilizce özel kelimeler yapıldı (23 Ekim): set dil etiketli, yalnız kendi dilinde görünür, çevrilmez.
-2. Pano mobil Lighthouse çoğunlukla 91 (arada 86: grafik parçası son LCP adayıyla yarışıyor; denenenler progress.md'de). Gerçek kısıtlamada küçük parça sayısı/HTTP/2 isteğe bağlı.
-3. Elle ekran okuyucu listesi (hazır, uygulanmadı); uzak CI, fiziksel dokunmatik ve DST kapsamı.
-4. Kullanıcı tarafı: iCloud dışına taşıma, VAPID/SMTP, `BACKUP_COPY_DIR`.
-5. Özellik yol haritası F1–F6 (progress.md başı): F1 rutinler, F2 kayıt hedefleri, F3 takvim aboneliği, F4 etiketler, F5 veri içe aktarma, F6 sayfaya git paleti yapıldı (gerçek DB 013'te; F5 ve F6 migration istemedi). Yol haritası F1–F6 tamam. Yönetici güvenliği (24 Ekim): hassas işlemde şifreyle yeniden doğrulama + veritabanı dışında zincirleme özetli işlem günlüğü; iki adımlı giriş ve şifreli yedek kullanıcı tarafından seçilmedi. Commit/push kullanıcı söyleyene dek yapılmaz.
-Major bağımlılık geçişleri (React 19, Recharts 3, Tailwind 4 vb.) yapıldı; grafik metinsel alternatifi ve yedek saklama da yapıldı.
+Ayrıntılı liste progress.md'nin başında ve en altındaki "Eksik ve tamamlanacak işler" bölümündedir. Özet:
+- **Yapıldı:** yol haritaları R1–R15 ve F1–F6 (rutinler, kayıt hedefleri, takvim aboneliği, etiketler, veri içe aktarma, sayfaya git paleti); yönetici güvenliği (hassas işlemde şifre, veritabanı dışında işlem günlüğü); İngilizce özel kelimeler; pano mobil Lighthouse 91 (giriş 95); major bağımlılık geçişleri ve `npm audit` 0; grafik metinsel alternatifi; yedek saklama. Gerçek DB şeması 013. Proje temizliği 24 Ekim'de yapıldı (geçici yedekler, raporlar, test artıkları silindi; şu an uygulama yedeği yok, ilk otomatik yedek sunucu çalışırken alınır).
+- **Açık:** elle ekran okuyucu ve fiziksel cihaz testi (insan gerekir); DST fold ızgarası ve native sürükle/boyutlandır E2E'si; uzak CI koşumu; kullanıcı tarafı işletim (VAPID/SMTP, `BACKUP_COPY_DIR`, offsite yedek, günlüğün sunucu dışı kopyası).
+- Commit `898f571` (yönetici güvenliği) push edilmedi; commit/push yalnız kullanıcı onayıyla.
 
 **Ürün yönü kararlaştırıldı (19 Ekim 2026):** alan/kitle bağımsız, global ve değişken odaklı sistem; TYT/AYT veya yalnız öğrenci zorunluluğu yoktur. Sıralı yol haritası progress.md'nin başındadır (R1–R8 ve R9'un büyük kısmı yapıldı; Tailwind 4 geçişi de 21 Ekim'de yapıldı; audit 0. Gerçek DB'de 007 migration'ı 19 Ekim 2026'da kullanıcı onayıyla uygulandı; öncesinde `backend/backups/pre-007-migration-20261019-220239.sqlite` kopyası alındı). AI/sosyal/offline aktif öncelik değildir.
