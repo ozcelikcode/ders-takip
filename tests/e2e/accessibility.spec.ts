@@ -87,6 +87,20 @@ for (const theme of ['light', 'dark'] as const) {
           page.getByRole('main').getByText(/yükleniyor/i),
         ).toHaveCount(0);
         await scan(page, info, route);
+        if (route === 'dashboard') {
+          await page.getByRole('button', { name: 'Sayfaya git', exact: true }).click();
+          // Headless UI's dialog root has no size of its own; its search field shows the palette is open.
+          await expect(page.getByRole('dialog', { name: 'Sayfaya git' }).getByRole('combobox')).toBeVisible();
+          await scan(page, info, 'command-palette');
+          await page.keyboard.press('Escape');
+        }
+        if (route === 'courses') {
+          // Opening the tag manager saves nothing.
+          await page.getByRole('button', { name: 'Etiketler', exact: true }).click();
+          await expect(page.getByRole('heading', { name: 'Etiketlerim', exact: true })).toBeVisible();
+          await scan(page, info, 'tag-manager');
+          await page.keyboard.press('Escape');
+        }
         if (route === 'profile') {
           await page
             .getByRole('button', { name: 'Düzenle', exact: true })
@@ -108,6 +122,7 @@ for (const theme of ['light', 'dark'] as const) {
             ['Bölge', 'region'],
             ['Çalışma Tercihleri', 'study'],
             ['Bildirimler', 'notifications'],
+            ['Takvim', 'calendar'],
           ] as const) {
             await page.getByRole('button', { name, exact: true }).click();
             await scan(page, info, `settings-${id}`);
@@ -142,6 +157,15 @@ for (const theme of ['light', 'dark'] as const) {
       await scan(page, info, 'pomodoro-editor');
       await page.getByLabel('Döngü Sayısı').scrollIntoViewIfNeeded();
       await scan(page, info, 'pomodoro-settings');
+      await page.keyboard.press('Escape');
+      await page.getByRole('button', { name: 'Yeni seans', exact: true }).click();
+      await page.getByRole('checkbox', { name: 'Her hafta tekrarla' }).check();
+      await page.getByLabel('Bitiş tarihi (isteğe bağlı)').scrollIntoViewIfNeeded();
+      await scan(page, info, 'routine-editor');
+      await page.keyboard.press('Escape');
+      await page.getByRole('button', { name: 'Rutinler', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Rutinler', exact: true }).last()).toBeVisible();
+      await scan(page, info, 'routines');
     });
     test('welcome wizard steps', async ({ page }, info) => {
       test.setTimeout(120_000);

@@ -2,7 +2,7 @@ import toast from 'react-hot-toast';
 import { queryClient } from '../lib/queryClient';
 import { accountQueryKeys } from '../lib/queryKeys';
 import { useAuthStore } from '../store/authStore';
-import { CanceledError, HttpError, isHttpError, type ApiErrorBody, type HttpRequestConfig, type HttpResponse } from './httpError';
+import { CanceledError, HttpError, isHttpError, type HttpRequestConfig, type HttpResponse } from './httpError';
 import { serverMessage } from '../lib/messages';
 import { useLanguageStore } from '../store/languageStore';
 
@@ -46,7 +46,7 @@ const receive = async <T>(
   if (!response.ok)
     throw new HttpError(
       `Request failed with status code ${response.status}`,
-      { status: response.status, data: (data && typeof data === 'object' ? data : {}) as ApiErrorBody },
+      { status: response.status, data: (data && typeof data === 'object' ? data : {}) },
       config,
       'ERR_BAD_RESPONSE',
     );
@@ -118,11 +118,14 @@ const invalidateCatalogViews = (request: HttpRequestConfig) => {
   void queryClient.invalidateQueries({ queryKey: keys.sessions() });
 };
 
+// Routine writes create, rebuild or remove sessions, so they refresh the same views as session writes.
+const changesSessions = (url: string) => url.startsWith('/study-sessions') || url.startsWith('/session-series');
+
 const afterSuccess = (config: HttpRequestConfig) => {
   const current = useAuthStore.getState();
   const method = config.method ?? 'get';
   if (
-    config.url.startsWith('/study-sessions') &&
+    changesSessions(config.url) &&
     method !== 'get' &&
     config.authEpoch === current.epoch
   ) {
@@ -149,7 +152,7 @@ const afterFailure = (error: HttpError) => {
   if (status === 409 && config && isCatalogRequest(config.url)) invalidateCatalogViews(config);
   if (
     status === 409 &&
-    config?.url.startsWith('/study-sessions') &&
+    config && changesSessions(config.url) &&
     config.authEpoch === current.epoch
   ) {
     void queryClient.invalidateQueries({

@@ -10,10 +10,11 @@ export const useTerms = (): Terms => {
   const customTerminology = useSettingsStore((state) => state.settings.customTerminology);
   const userPreset = useUserPreferencesStore((state) => state.preferences.terminologyPreset);
   const userCustom = useUserPreferencesStore((state) => state.preferences.customTerminology);
+  const language = useLanguage();
   const vocabulary = resolveTerminology(
     { terminologyPreset: userPreset, customTerminology: userCustom },
     { terminologyPreset, customTerminology },
+    language,
   );
-  const language = useLanguage();
   return useMemo(() => createTerms(vocabulary, language), [vocabulary, language]);
 };

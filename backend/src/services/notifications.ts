@@ -200,7 +200,7 @@ export async function runDueNotifications(now = new Date()): Promise<void> {
     .map((user) => ({
       user,
       preferences: user.preferences,
-      terms: createTerms(resolveTerminology(user.preferences, settings), settings.language),
+      terms: createTerms(resolveTerminology(user.preferences, settings, settings.language), settings.language),
     }));
   if (!recipients.length) return;
   const site: Site = { name: settings.siteName, language: settings.language, text: notificationText[settings.language] };

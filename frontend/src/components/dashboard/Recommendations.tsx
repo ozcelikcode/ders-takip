@@ -9,7 +9,6 @@ import { canManageCourse, isOwnOrShared } from '../../lib/catalogAccess';
 import { coursesWithTopicsQuery, todaySessionsQuery } from '../../lib/accountQueries';
 import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
-import type { CatalogCourse } from '../../types/catalog';
 import { buildRecommendations, type RecommendationKind } from '../../utils/recommendations';
 import { isActiveStudyDay, summarizeGoals } from '../../utils/studyGoals';
 import { useLanguage, useText } from '../../store/languageStore';
@@ -40,7 +39,7 @@ export default function Recommendations() {
   // Same keys as the dashboard summary and today's plan list, so the cache is shared.
   const courses = useQuery({
     ...coursesWithTopicsQuery(keys),
-    select: (response) => (response.data.data?.courses ?? []) as CatalogCourse[],
+    select: (response) => response.data.data?.courses ?? [],
   });
   const todaySessions = useQuery(todaySessionsQuery(keys, today, preferences.timezone));
 

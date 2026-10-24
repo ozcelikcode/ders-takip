@@ -38,6 +38,9 @@ export const apiErrorCodes = [
   'resetLinkInactiveUser',
   'resetLinkExpired',
   'onboardingDone',
+  'accountNotEmpty',
+  'importInvalid',
+  'importOutdated',
   'recordNotFound',
   'recordForbidden',
   'sharedCreateForbidden',
@@ -62,6 +65,8 @@ export const apiErrorCodes = [
   'sessionTimeRange',
   'sessionOverlap',
   'sessionChanged',
+  'seriesChanged',
+  'tagExists',
   'notPomodoro',
   'resetBeforeTypeChange',
   'finishedTimerLocked',
@@ -105,6 +110,8 @@ export const validationCodes = [
   'dateRange',
   'termWord',
   'termAccusative',
+  'termWordEnglish',
+  'tagName',
   'reorderList',
 ] as const;
 export type ValidationCode = (typeof validationCodes)[number];

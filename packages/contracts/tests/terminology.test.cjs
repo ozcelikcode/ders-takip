@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const {
   inflect, createTerms, terminologyPresets, terminologyPresetIds, publicSettingsSchema, defaultSiteSettings, settingsPatchSchema,
   accusativeFits, suggestAccusative, customTerminologySchema, customTerminologyFrom, resolveTerminology, preferencesPatchSchema,
-  inflectEnglish, registerSchema, defaultPreferences,
+  inflectEnglish, registerSchema, defaultPreferences, suggestPlural, suggestArticle, normalizeTermWord,
 } = require('../dist/cjs');
 
 // Hand-verified Turkish forms: [word, acc, dat, gen, loc, abl, plural, pluralDat]
@@ -96,7 +96,7 @@ it('rejects accusatives and words that cannot belong together', () => {
   assert.equal(accusativeFits('kitap', 'kitapa'), false);
   assert.equal(accusativeFits('kitap', 'defteri'), false);
   assert.equal(accusativeFits('proje', 'projei'), false);
-  const valid = customTerminologyFrom('education');
+  const valid = customTerminologyFrom('education', 'tr');
   assert.equal(customTerminologySchema.safeParse(valid).success, true);
   for (const word of ['iki kelime', 'Ders', 'a', 'ders1']) {
     const parsed = customTerminologySchema.safeParse({ ...valid, course: { word, accusative: 'dersi' } });
@@ -107,21 +107,27 @@ it('rejects accusatives and words that cannot belong together', () => {
 });
 
 it('prefers personal custom words, then the personal preset, then the site words', () => {
-  const mine = customTerminologyFrom('skills');
-  const site = { terminologyPreset: 'education', customTerminology: customTerminologyFrom('goals') };
-  assert.equal(resolveTerminology({ customTerminology: mine, terminologyPreset: 'general' }, site), mine);
-  assert.equal(resolveTerminology({ customTerminology: null, terminologyPreset: 'general' }, site), 'general');
-  assert.equal(resolveTerminology({}, site), site.customTerminology);
-  assert.equal(resolveTerminology({}, { ...site, customTerminology: null }), 'education');
+  const mine = customTerminologyFrom('skills', 'tr');
+  const site = { terminologyPreset: 'education', customTerminology: customTerminologyFrom('goals', 'tr') };
+  assert.equal(resolveTerminology({ customTerminology: mine, terminologyPreset: 'general' }, site, 'tr'), mine);
+  assert.equal(resolveTerminology({ customTerminology: null, terminologyPreset: 'general' }, site, 'tr'), 'general');
+  assert.equal(resolveTerminology({}, site, 'tr'), site.customTerminology);
+  assert.equal(resolveTerminology({}, { ...site, customTerminology: null }, 'tr'), 'education');
   assert.equal(createTerms(mine).topic({ plural: true }), 'alıştırmalar');
 });
 
 it('accepts custom words in settings and preference patches, null clearing them', () => {
   assert.equal(publicSettingsSchema.safeParse(defaultSiteSettings).success, true);
   assert.equal(settingsPatchSchema.safeParse({ customTerminology: null }).success, true);
-  assert.equal(settingsPatchSchema.safeParse({ customTerminology: customTerminologyFrom('general') }).success, true);
-  assert.equal(preferencesPatchSchema.safeParse({ customTerminology: customTerminologyFrom('general') }).success, true);
+  assert.equal(settingsPatchSchema.safeParse({ customTerminology: customTerminologyFrom('general', 'tr') }).success, true);
+  assert.equal(preferencesPatchSchema.safeParse({ customTerminology: customTerminologyFrom('general', 'tr') }).success, true);
   assert.equal(preferencesPatchSchema.safeParse({ customTerminology: { course: { word: 'x', accusative: 'x' } } }).success, false);
+  assert.equal(preferencesPatchSchema.safeParse({ customTerminology: customTerminologyFrom('general', 'en') }).success, true);
+  // Words without their language, or with fields of the other language, are refused.
+  const untagged = customTerminologyFrom('general', 'tr');
+  delete untagged.language;
+  assert.equal(settingsPatchSchema.safeParse({ customTerminology: untagged }).success, false);
+  assert.equal(settingsPatchSchema.safeParse({ customTerminology: { ...customTerminologyFrom('general', 'tr'), language: 'en' } }).success, false);
 });
 
 it('pluralizes English nouns and ignores the Turkish cases', () => {
@@ -137,9 +143,42 @@ it('gives every preset an English vocabulary and keeps custom words as typed in 
   assert.equal(english.course({ capitalize: true, plural: true }), 'Courses');
   assert.equal(english.topic({ case: 'acc', plural: true }), 'topics');
   assert.equal(createTerms(undefined, 'en').course(), 'project');
-  const book = { ...customTerminologyFrom('general'), course: { word: 'kitap', accusative: 'kitabı' } };
-  assert.equal(createTerms(book, 'en').course({ plural: true, capitalize: true }), 'Kitaps');
+  const book = { ...customTerminologyFrom('general', 'tr'), course: { word: 'kitap', accusative: 'kitabı' } };
+  // Turkish words are never translated or reused on an English site; the default preset stands in.
+  assert.equal(createTerms(book, 'en').course({ plural: true, capitalize: true }), 'Projects');
   assert.equal(createTerms(book).course({ case: 'dat' }), 'kitaba');
+});
+
+it('suggests English plurals and articles from spelling and keeps the corrected ones', () => {
+  for (const [word, plural] of [['book', 'books'], ['study session', 'study sessions'], ['side-project', 'side-projects'], ['class', 'classes'], ['story', 'stories']])
+    assert.equal(suggestPlural(word), plural, word);
+  assert.deepEqual(['exercise', 'goal', 'hour', 'user'].map(suggestArticle), ['an', 'a', 'a', 'an']);
+  assert.equal(inflectEnglish('exercise', { article: true }), 'an exercise');
+  assert.equal(inflectEnglish('exercise', { article: true, plural: true }), 'exercises');
+  const english = { ...customTerminologyFrom('skills', 'en'), session: { word: 'hour', plural: 'hours', article: 'an' }, topic: { word: 'child', plural: 'children', article: 'a' } };
+  assert.equal(customTerminologySchema.safeParse(english).success, true);
+  const terms = createTerms(english, 'en');
+  assert.equal(terms.session({ article: true, capitalize: true }), 'An hour');
+  assert.equal(terms.topic({ plural: true }), 'children');
+  assert.equal(createTerms('skills', 'en').topic({ article: true }), 'an exercise');
+  // English words show only on an English site.
+  assert.equal(createTerms(english, 'tr').session({ plural: true }), 'seanslar');
+  assert.equal(normalizeTermWord('  Study   Hour ', 'en'), 'study hour');
+  assert.equal(normalizeTermWord('IŞIK', 'tr'), 'ışık');
+  for (const word of ['b', 'book1', 'kitapçı', 'two  spaces', ' trailing', 'a-'])
+    assert.equal(customTerminologySchema.safeParse({ ...english, course: { word, plural: 'books', article: 'a' } }).success, false, word);
+  assert.equal(customTerminologySchema.safeParse({ ...english, course: { word: 'book', plural: 'books', article: 'the' } }).success, false);
+});
+
+it('resolves custom words only in the language they were typed in', () => {
+  const mineTr = customTerminologyFrom('skills', 'tr');
+  const mineEn = customTerminologyFrom('goals', 'en');
+  const site = { terminologyPreset: 'education', customTerminology: customTerminologyFrom('general', 'en') };
+  assert.equal(resolveTerminology({ customTerminology: mineTr }, site, 'tr'), mineTr);
+  assert.equal(resolveTerminology({ customTerminology: mineTr }, site, 'en'), site.customTerminology);
+  assert.equal(resolveTerminology({ customTerminology: mineTr, terminologyPreset: 'goals' }, site, 'en'), 'goals');
+  assert.equal(resolveTerminology({ customTerminology: mineEn }, site, 'en'), mineEn);
+  assert.equal(resolveTerminology({}, site, 'tr'), 'education');
 });
 
 it('keeps the interface language a site setting, not a per-account or browser choice', () => {

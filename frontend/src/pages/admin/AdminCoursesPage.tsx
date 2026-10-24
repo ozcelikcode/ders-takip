@@ -28,8 +28,7 @@ export default function AdminCoursesPage() {
   const query = useQuery({
     queryKey: keys.catalog('admin-courses'),
     queryFn: async () =>
-      (await coursesAPI.getCourses({ isActive: 'all' })).data.data?.courses as
-        CatalogCourse[] | undefined,
+      (await coursesAPI.getCourses({ isActive: 'all' })).data.data?.courses,
   });
   const courses = query.data ?? [];
   const term = search.trim();

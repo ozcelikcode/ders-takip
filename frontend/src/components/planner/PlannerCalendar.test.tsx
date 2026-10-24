@@ -165,11 +165,11 @@ describe.each([
     );
     expect(new Set(cards.map((node) => node.style.left)).size).toBe(3);
     for (let index = 0; index < sessions.length; index++) {
-      expect(cards[index]!.style.height).toBe('28px');
-      expect(cards[index]!.querySelector('[data-resize-handle]')).toBeNull();
+      expect(cards[index].style.height).toBe('28px');
+      expect(cards[index].querySelector('[data-resize-handle]')).toBeNull();
       fireEvent.click(
         screen.getByRole('button', {
-          name: `${sessions[index]!.title}: işlemler`,
+          name: `${sessions[index].title}: işlemler`,
         }),
       );
       const menu = await screen.findByRole('dialog', {

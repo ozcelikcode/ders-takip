@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
 import { Category } from './Category';
+import type { Topic } from './Topic';
 
 interface CourseAttributes {
   id: number;
@@ -32,6 +33,7 @@ export class Course extends Model<CourseAttributes, CourseCreationAttributes> im
   public userId?: number | null;
   public isGlobal!: boolean;
   public category?: Category;
+  declare topics?: Topic[];
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;

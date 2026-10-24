@@ -156,7 +156,13 @@ export const refreshToken = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const result = await rotateAuthSession(readRefreshCookie(req));
+    const credential = readRefreshCookie(req);
+    // A browser without a session cookie has nothing to restore, which is not an error.
+    if (!credential) {
+      res.status(204).end();
+      return;
+    }
+    const result = await rotateAuthSession(credential);
     if (!result) {
       clearRefreshCookie(res);
       res

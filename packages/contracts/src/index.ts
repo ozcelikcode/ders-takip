@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { colorSchema, type UserPreferences } from './preferences.js';
 export * from './studySessions.js';
+export * from './sessionSeries.js';
+export * from './courseGoals.js';
+export * from './calendarFeed.js';
+export * from './tags.js';
+export * from './accountImport.js';
 export * from './time.js';
 export * from './zonedTime.js';
 export * from './studyTracking.js';

@@ -23,7 +23,7 @@ export const useWeeklyStats = () => {
     queryKey: accountKeys.sessions('weekly-progress', weekDates[0]),
     queryFn: async () =>
       (
-        await studySessionsAPI.getStats({ startDate: weekDates[0]!, endDate: weekDates[6]! })
+        await studySessionsAPI.getStats({ startDate: weekDates[0], endDate: weekDates[6] })
       ).data.data?.stats,
     refetchInterval: 30000,
   });

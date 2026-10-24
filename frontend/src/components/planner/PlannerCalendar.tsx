@@ -40,6 +40,8 @@ export interface PlannerCalendarProps {
   onCreateSession?: ((date: Date, hour: number) => void) | undefined;
   /** Calendar day (YYYY-MM-DD) to open instead of today, e.g. from a search result. */
   initialDate?: string | undefined;
+  /** Shows only sessions with this tag, directly or through their record. */
+  tagId?: number | null;
 }
 interface Props extends PlannerCalendarProps {
   mode: CalendarMode;
@@ -53,10 +55,10 @@ type Resize = {
   preview: number;
 };
 
-export default function PlannerCalendar({ mode, onCreateSession, initialDate }: Props) {
+export default function PlannerCalendar({ mode, onCreateSession, initialDate, tagId }: Props) {
   const t = useTerms();
   const text = useText().planner;
-  const planner = usePlannerCalendar(mode, initialDate);
+  const planner = usePlannerCalendar(mode, initialDate, tagId);
   const { days, timezone, query, pending } = planner;
   const weekly = mode === 'weekly';
   const hourHeight = weekly ? 48 : 64;
@@ -66,7 +68,7 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
   const [actions, setActions] = useState<SessionActionsAnchor | null>(null);
   const [hoverDirection, setHoverDirection] = useState<number | null>(null);
   const suppressClickUntil = useRef(0);
-  const dateKey = format(days[0]!, 'yyyy-MM-dd');
+  const dateKey = format(days[0], 'yyyy-MM-dd');
   const sessionActionRefs = useRef(new Map<string, HTMLButtonElement>());
   const todayButtonRef = useRef<HTMLButtonElement>(null);
   const restoreFocusId = useRef<number | null>(null);
@@ -251,7 +253,7 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
         drag.offset,
       hourHeight,
     );
-    void planner.move(drag.session, days[day]!, minute);
+    void planner.move(drag.session, days[day], minute);
     clearDrag();
   };
   const beginResize = (
@@ -286,7 +288,7 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
   const create = (day: number, hour: number) => {
     if (pending || resize || drag || Date.now() < suppressClickUntil.current)
       return;
-    const date = new CalendarDate(days[day]!);
+    const date = new CalendarDate(days[day]);
     date.setHours(hour, 0, 0, 0);
     onCreateSession?.(date, hour);
   };
@@ -386,7 +388,7 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate }: 
                     {String(hour).padStart(2, '0')}:00
                   </div>
                   {days.map((day, index) => {
-                    const segments = daySegments[index]!.filter(
+                    const segments = daySegments[index].filter(
                       ({ segment }) => segment.hour === hour,
                     );
                     const current =

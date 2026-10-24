@@ -25,6 +25,8 @@ export interface TermOptions {
   plural?: boolean;
   /** Capitalize the first letter (Turkish-aware) for titles and sentence starts. */
   capitalize?: boolean;
+  /** English only: the indefinite article before a singular word ("an exercise"); Turkish has none. */
+  article?: boolean;
 }
 
 const vowels = 'aeıioöuü';
@@ -44,8 +46,9 @@ export interface TermWord {
 }
 
 const termWordPattern = /^[a-zçğıöşü]{2,24}$/;
-/** Lower-cases and trims what a person typed, the form custom words are stored in. */
-export const normalizeTermWord = (text: string): string => text.trim().toLocaleLowerCase('tr');
+/** Lower-cases what a person typed in the words' language and trims it, the form custom words are stored in. */
+export const normalizeTermWord = (text: string, language: Language): string =>
+  text.trim().replace(/\s+/g, ' ').toLocaleLowerCase(language);
 
 /** The accusative plain vowel harmony predicts; right for most words, wrong for kitap → kitabı or saat → saati. */
 export const suggestAccusative = (word: string): string =>
@@ -80,17 +83,65 @@ export const termWordSchema = z
     message: 'termAccusative',
     path: ['accusative'],
   });
-export const customTerminologySchema = z
-  .object({ course: termWordSchema, topic: termWordSchema, session: termWordSchema })
+export const englishArticles = ['a', 'an'] as const;
+export type EnglishArticle = (typeof englishArticles)[number];
+
+/** One English display word with what spelling cannot guess: its plural (child → children) and article (an hour, a user). */
+export interface EnglishTermWord {
+  word: string;
+  plural: string;
+  article: EnglishArticle;
+}
+
+// Lower-case English words, a short phrase allowed ("study session"), 2–32 characters.
+const englishWordPattern = /^(?=.{2,32}$)[a-z]+(?:[ -][a-z]+)*$/;
+const regularPlural = (word: string) => {
+  if (/(s|x|z|ch|sh)$/.test(word)) return `${word}es`;
+  if (/[^aeiou]y$/.test(word)) return `${word.slice(0, -1)}ies`;
+  return `${word}s`;
+};
+/** The plural regular spelling gives the last word of a phrase; right for most words, wrong for child → children. */
+export const suggestPlural = (word: string): string => {
+  const last = word.search(/[^ -]+$/);
+  return `${word.slice(0, last)}${regularPlural(word.slice(last))}`;
+};
+/** The article the first letter suggests; right for most words, wrong for an hour or a user. */
+export const suggestArticle = (word: string): EnglishArticle => (/^[aeiou]/.test(word) ? 'an' : 'a');
+
+export const englishTermWordSchema = z
+  .object({
+    word: z.string().regex(englishWordPattern, 'termWordEnglish'),
+    plural: z.string().regex(englishWordPattern, 'termWordEnglish'),
+    article: z.enum(englishArticles),
+  })
   .strict();
+
+/**
+ * A person's own words in the language they typed them in. They show only while the site uses that
+ * language; nothing is translated, and the other language falls back to the presets.
+ */
+export const customTerminologySchema = z.discriminatedUnion('language', [
+  z.object({ language: z.literal('tr'), course: termWordSchema, topic: termWordSchema, session: termWordSchema }).strict(),
+  z.object({ language: z.literal('en'), course: englishTermWordSchema, topic: englishTermWordSchema, session: englishTermWordSchema }).strict(),
+]);
 export type CustomTerminology = z.infer<typeof customTerminologySchema>;
 
-/** Starts a custom vocabulary from a preset's words so a person changes only what they need. */
-export const customTerminologyFrom = (preset: TerminologyPresetId): CustomTerminology => {
-  const words = terminologyPresets[preset].tr;
+export type TurkishTerminology = Extract<CustomTerminology, { language: 'tr' }>;
+export type EnglishTerminology = Extract<CustomTerminology, { language: 'en' }>;
+
+/** Starts a custom vocabulary from a preset's words in a language so a person changes only what they need. */
+export function customTerminologyFrom(preset: TerminologyPresetId, language: 'tr'): TurkishTerminology;
+export function customTerminologyFrom(preset: TerminologyPresetId, language: 'en'): EnglishTerminology;
+export function customTerminologyFrom(preset: TerminologyPresetId, language: Language): CustomTerminology;
+export function customTerminologyFrom(preset: TerminologyPresetId, language: Language): CustomTerminology {
+  const words = terminologyPresets[preset][language];
+  if (language === 'en') {
+    const entry = (key: TermKey) => ({ word: words[key], plural: suggestPlural(words[key]), article: suggestArticle(words[key]) });
+    return { language, course: entry('course'), topic: entry('topic'), session: entry('session') };
+  }
   const entry = (key: TermKey) => ({ word: words[key], accusative: suggestAccusative(words[key]) });
-  return { course: entry('course'), topic: entry('topic'), session: entry('session') };
-};
+  return { language, course: entry('course'), topic: entry('topic'), session: entry('session') };
+}
 
 /**
  * Turkish noun inflection. A plain string follows regular vowel harmony; a {@link TermWord}
@@ -124,13 +175,15 @@ export const inflect = (term: string | TermWord, { case: nounCase = 'nom', plura
   }
 };
 
-/** English nouns take only a plural; the Turkish case options do not apply. */
-export const inflectEnglish = (word: string, { plural = false }: TermOptions = {}): string => {
-  const base = word.toLowerCase();
-  if (!plural) return base;
-  if (/(s|x|z|ch|sh)$/.test(base)) return `${base}es`;
-  if (/[^aeiou]y$/.test(base)) return `${base.slice(0, -1)}ies`;
-  return `${base}s`;
+/**
+ * English nouns take a plural or an indefinite article; the Turkish case options do not apply.
+ * A plain string follows regular spelling; an {@link EnglishTermWord} carries its own plural and article.
+ */
+export const inflectEnglish = (term: string | EnglishTermWord, { plural = false, article = false }: TermOptions = {}): string => {
+  const word = typeof term === 'string' ? term.toLowerCase() : term.word;
+  if (plural) return typeof term === 'string' ? suggestPlural(word) : term.plural;
+  if (!article) return word;
+  return `${typeof term === 'string' ? suggestArticle(word) : term.article} ${word}`;
 };
 
 const capitalizeFirst = (text: string, language: Language) =>
@@ -140,19 +193,22 @@ export type Terms = Record<TermKey, (options?: TermOptions) => string>;
 
 /**
  * Builds the term formatter for a preset or a custom vocabulary in an interface language;
- * nothing given means the default preset. Custom words are typed in Turkish with their
- * accusative; in English they keep their spelling and take the English plural.
+ * nothing given means the default preset. Custom words apply only in their own language;
+ * in the other one the default preset stands in, since words are never translated.
  */
 export const createTerms = (
   source: TerminologyPresetId | CustomTerminology | null | undefined,
   language: Language = defaultLanguage,
 ): Terms => {
-  const words: Record<TermKey, string | TermWord> =
-    source && typeof source === 'object' ? source : terminologyPresets[source ?? defaultTerminologyPreset][language];
+  const custom = source && typeof source === 'object' && source.language === language ? source : null;
+  const preset = terminologyPresets[typeof source === 'string' ? source : defaultTerminologyPreset];
+  const word = (key: TermKey, options: TermOptions) => {
+    if (custom?.language === 'en') return inflectEnglish(custom[key], options);
+    if (custom?.language === 'tr') return inflect(custom[key], options);
+    return language === 'en' ? inflectEnglish(preset.en[key], options) : inflect(preset.tr[key], options);
+  };
   const format = (key: TermKey) => (options: TermOptions = {}) => {
-    const word = words[key];
-    const text =
-      language === 'en' ? inflectEnglish(typeof word === 'string' ? word : word.word, options) : inflect(word, options);
+    const text = word(key, options);
     return options.capitalize ? capitalizeFirst(text, language) : text;
   };
   return { course: format('course'), topic: format('topic'), session: format('session') };

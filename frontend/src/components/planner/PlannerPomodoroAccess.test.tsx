@@ -16,7 +16,7 @@ it.each([['daily', DailyCalendar], ['weekly', WeeklyPlanner]] as const)('opens t
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<QueryClientProvider client={client}><Calendar /></QueryClientProvider>);
   const timerButtons = await screen.findAllByRole('button', { name: 'Pomodoro sayacını aç' });
-  fireEvent.click(timerButtons[0]!);
+  fireEvent.click(timerButtons[0]);
   expect(await screen.findByRole('dialog')).toBeTruthy(); expect(studySessionsAPI.startSession).not.toHaveBeenCalled(); client.clear();
 });
 it('opens the edit modal when clicking a session card in the weekly planner', async () => {
@@ -26,7 +26,7 @@ it('opens the edit modal when clicking a session card in the weekly planner', as
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<QueryClientProvider client={client}><WeeklyPlanner /></QueryClientProvider>);
   const titles = await screen.findAllByText('Editable weekly session');
-  fireEvent.click(titles[0]!);
+  fireEvent.click(titles[0]);
   expect(await screen.findByText('Edit: Editable weekly session')).toBeTruthy();
   client.clear();
 });

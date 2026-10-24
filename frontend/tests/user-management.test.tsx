@@ -122,7 +122,7 @@ function fillUser() {
   for (const [label, value] of [
     ['Ad', ' Deniz '],
     ['Soyad', ' Test '],
-    ['Kullanıcı adı', 'newuser'],
+    ['Kullanıcı Adı', 'newuser'],
     ['E-posta', 'new@example.com'],
     ['Parola', 'fixture-password'],
     ['Parola tekrarı', 'fixture-password'],
@@ -340,7 +340,7 @@ it('validates shared create rules and never transmits password confirmation', as
   mount();
   await openCreate();
   fillUser();
-  fireEvent.change(screen.getByLabelText('Kullanıcı adı'), {
+  fireEvent.change(screen.getByLabelText('Kullanıcı Adı'), {
     target: { value: 'bad-name' },
   });
   fireEvent.change(screen.getByLabelText('Parola', { exact: true }), {
@@ -349,7 +349,7 @@ it('validates shared create rules and never transmits password confirmation', as
   save();
   expect(usersAPI.createUser).not.toHaveBeenCalled();
   expect(
-    screen.getByLabelText('Kullanıcı adı').getAttribute('aria-invalid'),
+    screen.getByLabelText('Kullanıcı Adı').getAttribute('aria-invalid'),
   ).toBe('true');
   expect(
     screen

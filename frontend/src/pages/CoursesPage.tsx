@@ -10,9 +10,13 @@ import {
   Plus,
   Search,
   Tag,
+  Tags,
   Trash2,
   X,
 } from 'lucide-react';
+import TagFilter from '../components/tags/TagFilter';
+import TagManagerDialog from '../components/tags/TagManagerDialog';
+import { useTags } from '../hooks/useTags';
 import { coursesWithTopicsQuery } from '../lib/accountQueries';
 import { useAccountQueryKeys } from '../hooks/useAccountQueryKeys';
 import { useAuthStore } from '../store/authStore';
@@ -30,11 +34,14 @@ import { useText } from '../store/languageStore';
 export default function CoursesPage() {
   const keys = useAccountQueryKeys();
   const t = useTerms();
-  const text = useText().records;
+  const { records: text, tags: tagText } = useText();
   const { user } = useAuthStore();
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [categoryOpen, setCategoryOpen] = useState(false);
+  const [tagsOpen, setTagsOpen] = useState(false);
+  const [tagId, setTagId] = useState<number | null>(null);
+  const tags = useTags();
   const [editor, setEditor] = useState<{ course: CatalogCourse | null } | null>(
     null,
   );
@@ -45,7 +52,8 @@ export default function CoursesPage() {
   const query = useQuery(coursesWithTopicsQuery(keys));
   const courses: CatalogCourse[] = query.data?.data.data?.courses ?? [];
   const term = search.trim();
-  const filtered = courses.filter((course) =>
+  const tagged = tagId === null ? null : new Set(tags.data?.courseTags.filter((row) => row.tagId === tagId).map((row) => row.courseId));
+  const filtered = courses.filter((course) => (!tagged || tagged.has(course.id)) &&
     [
       course.name,
       course.description,
@@ -63,6 +71,10 @@ export default function CoursesPage() {
         description={text.description(t)}
         actions={
           <>
+            <button className="btn btn-secondary" onClick={() => setTagsOpen(true)}>
+              <Tags className="h-4 w-4" />
+              {tagText.manage}
+            </button>
             <button
               className="btn btn-secondary"
               onClick={() => setCategoryOpen(true)}
@@ -80,7 +92,8 @@ export default function CoursesPage() {
           </>
         }
       />
-      <div className="relative max-w-lg">
+      <div className="flex flex-wrap items-center gap-3">
+      <div className="relative w-full max-w-lg">
         <label htmlFor="course-search" className="sr-only">
           {text.searchLabel(t)}
         </label>
@@ -104,6 +117,8 @@ export default function CoursesPage() {
             <X className="h-4 w-4" />
           </button>
         )}
+      </div>
+      <TagFilter value={tagId} onChange={setTagId} />
       </div>
       {query.isPending ? (
         <p role="status" className="text-sm text-(--muted)">
@@ -222,6 +237,7 @@ export default function CoursesPage() {
         isOpen={categoryOpen}
         onClose={() => setCategoryOpen(false)}
       />
+      {tagsOpen && <TagManagerDialog onClose={() => setTagsOpen(false)} />}
       <CatalogDeleteDialog
         target={deleting}
         onClose={() => setDeleting(null)}

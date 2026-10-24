@@ -8,12 +8,13 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import toast from 'react-hot-toast';
 import TodaysPlans from '../src/components/planner/TodaysPlans';
 import CreateSessionModal from '../src/components/planner/CreateSessionModal';
-import { studySessionsAPI, coursesAPI } from '../src/services/api';
+import { studySessionsAPI, coursesAPI, seriesAPI } from '../src/services/api';
 import type { StudySession } from '../src/types/planner';
 const context = vi.hoisted(() => ({
   epoch: 1,
@@ -56,6 +57,8 @@ vi.mock('../src/services/api', () => ({
     deleteSession: vi.fn(),
   },
   coursesAPI: { getCourses: vi.fn() },
+  seriesAPI: { list: vi.fn(), create: vi.fn(), update: vi.fn(), stop: vi.fn() },
+  tagsAPI: { list: vi.fn(async () => ({ tags: [], courseTags: [], sessionTags: [] })), setSessionTags: vi.fn() },
 }));
 vi.mock('react-hot-toast', () => ({
   default: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
@@ -504,4 +507,63 @@ it.each([0, 1441])('rejects an out-of-contract %s-minute interval before sending
   submit();
   await screen.findByText(minutes === 0 ? 'Minimum 1 dakika' : 'Maximum 24 saat');
   expect(studySessionsAPI.updateSession).not.toHaveBeenCalled();
+});
+
+const routine = {
+  id: 3, title: 'Guitar', description: null, courseId: null, topicId: null, sessionType: 'study' as const, color: '#3B82F6',
+  pomodoroSettings: null, weekdays: [1, 3], startTime: '19:00', durationMinutes: 60, startsOn: '2031-01-06', endsOn: null,
+  timezone: 'Europe/Istanbul', updatedAt: '2031-01-01T00:00:00.000Z',
+};
+
+it('creates a weekly routine from the session form and says which days another session already holds', async () => {
+  vi.mocked(seriesAPI.create).mockResolvedValue({ series: routine, skippedDates: ['2031-01-08'] });
+  const onClose = vi.fn();
+  mount(<CreateSessionModal isOpen selectedDate={new Date(Date.UTC(2031, 0, 6))} selectedHour={19} onClose={onClose} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Özel' }));
+  fireEvent.change(await screen.findByLabelText('Özel Başlık *'), { target: { value: 'Guitar' } });
+  expect(screen.queryByRole('group', { name: 'Tekrar günleri' })).toBeNull();
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Her hafta tekrarla' }));
+  const days = screen.getByRole('group', { name: 'Tekrar günleri' });
+  // The routine starts on the chosen day's weekday; more days can be added.
+  expect(days.querySelector('[aria-pressed="true"]')?.textContent).toBe('Pzt');
+  fireEvent.click(screen.getByRole('button', { name: 'Çar' }));
+  fireEvent.change(screen.getByLabelText('Bitiş tarihi (isteğe bağlı)'), { target: { value: '2031-02-28' } });
+  submit();
+  await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+  expect(seriesAPI.create).toHaveBeenCalledWith(expect.objectContaining({
+    title: 'Guitar', weekdays: [1, 3], startTime: '19:00', durationMinutes: 60, startsOn: '2031-01-06', endsOn: '2031-02-28', sessionType: 'study',
+  }));
+  expect(studySessionsAPI.createSession).not.toHaveBeenCalled();
+  expect(toast).toHaveBeenCalledWith('1 gün başka bir seans ile çakıştığı için atlandı.');
+  expect(toast.success).toHaveBeenCalledWith('Rutin oluşturuldu.');
+});
+
+it('edits a routine as a whole and ends it only after confirmation', async () => {
+  vi.mocked(seriesAPI.update).mockResolvedValue({ series: routine, skippedDates: [] });
+  const onClose = vi.fn();
+  mount(<CreateSessionModal isOpen editSeries={routine} onClose={onClose} />);
+  expect(await screen.findByRole('heading', { name: 'Rutini düzenle' })).toBeTruthy();
+  expect((screen.getByLabelText('Özel Başlık *') as HTMLInputElement).value).toBe('Guitar');
+  expect(screen.queryByRole('checkbox', { name: 'Her hafta tekrarla' })).toBeNull();
+  fireEvent.change(screen.getByLabelText('Süre (dakika) *'), { target: { value: '45' } });
+  submit();
+  await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+  expect(seriesAPI.update).toHaveBeenCalledWith(routine, expect.objectContaining({ durationMinutes: 45, weekdays: [1, 3] }));
+  cleanup();
+
+  vi.mocked(seriesAPI.stop).mockResolvedValue(undefined);
+  const closed = vi.fn();
+  mount(<CreateSessionModal isOpen editSeries={routine} onClose={closed} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Rutini bitir' }));
+  expect(seriesAPI.stop).not.toHaveBeenCalled();
+  const confirm = await screen.findByRole('dialog', { name: 'Rutini bitir' });
+  fireEvent.click(within(confirm).getByRole('button', { name: 'Rutini bitir' }));
+  await waitFor(() => expect(seriesAPI.stop).toHaveBeenCalledWith(routine));
+  await waitFor(() => expect(closed).toHaveBeenCalledTimes(1));
+});
+
+it('tells the person that changing a routine session affects only that session', async () => {
+  await editable(vi.fn(), { ...session, seriesId: 3, seriesDate: '2030-01-01' });
+  expect(screen.getByText(/bir rutinin parçası/)).toBeTruthy();
+  expect(screen.queryByRole('checkbox', { name: 'Her hafta tekrarla' })).toBeNull();
 });

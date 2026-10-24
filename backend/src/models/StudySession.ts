@@ -11,6 +11,8 @@ interface StudySessionAttributes {
   planId?: number | null;
   topicId?: number | null;
   courseId?: number | null;
+  seriesId?: number | null;
+  seriesDate?: string | null;
   title: string;
   description?: string;
   startTime: Date;
@@ -34,7 +36,7 @@ interface StudySessionAttributes {
   updatedAt: Date;
 }
 
-interface StudySessionCreationAttributes extends Optional<StudySessionAttributes, 'id' | 'planId' | 'topicId' | 'courseId' | 'description' | 'status' | 'color' | 'pomodoroSettings' | 'notes' | 'productivity' | 'completedAt' | 'createdAt' | 'updatedAt' | 'trackingCoverage'> {}
+interface StudySessionCreationAttributes extends Optional<StudySessionAttributes, 'id' | 'planId' | 'topicId' | 'courseId' | 'seriesId' | 'seriesDate' | 'description' | 'status' | 'color' | 'pomodoroSettings' | 'notes' | 'productivity' | 'completedAt' | 'createdAt' | 'updatedAt' | 'trackingCoverage'> {}
 
 export class StudySession extends Model<StudySessionAttributes, StudySessionCreationAttributes> implements StudySessionAttributes {
   public id!: number;
@@ -42,6 +44,9 @@ export class StudySession extends Model<StudySessionAttributes, StudySessionCrea
   public planId?: number | null;
   public topicId?: number | null;
   public courseId?: number | null;
+  /** The weekly routine this session belongs to, and the routine date it stands for even after a move. */
+  public seriesId?: number | null;
+  public seriesDate?: string | null;
   public title!: string;
   public description?: string;
   public startTime!: Date;
@@ -110,6 +115,19 @@ StudySession.init(
         key: 'id',
       },
       onDelete: 'SET NULL',
+    },
+    seriesId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'session_series',
+        key: 'id',
+      },
+      onDelete: 'SET NULL',
+    },
+    seriesDate: {
+      type: DataTypes.STRING(10),
+      allowNull: true,
     },
     title: {
       type: DataTypes.STRING,
@@ -244,6 +262,12 @@ StudySession.init(
       },
       {
         fields: ['sessionType'],
+      },
+      // One session per routine date; created by 010 for databases that predate routines.
+      {
+        name: 'study_sessions_series_date',
+        unique: true,
+        fields: ['seriesId', 'seriesDate'],
       },
     ],
   }

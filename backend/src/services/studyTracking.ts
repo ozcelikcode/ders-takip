@@ -1,3 +1,4 @@
+import { sessionsWithTag } from './tags';
 import { Op, type Transaction, type WhereOptions } from 'sequelize';
 import { addDateDays, dayBounds, defaultPreferences, type ActivityKind, type SessionQuery, type SessionStats, type StudyTotals, type SessionStatus, type UserStudySummary, fail } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
@@ -52,7 +53,7 @@ export async function getStudyStats(userId: number, timezone: string, query: Ses
   const end = query.endDate ? dayBounds(query.endDate, timezone).end.getTime() : Infinity;
   const boundsByDay = days.map(day => dayBounds(day.date, timezone));
   return sequelize.transaction(async transaction => {
-    const where: WhereOptions = { userId, ...(query.planId === undefined ? {} : { planId: query.planId }), ...(query.sessionType === undefined ? {} : { sessionType: query.sessionType }), ...(query.status === undefined ? {} : { status: query.status }) };
+    const where: WhereOptions = { userId, ...(query.planId === undefined ? {} : { planId: query.planId }), ...(query.sessionType === undefined ? {} : { sessionType: query.sessionType }), ...(query.status === undefined ? {} : { status: query.status }), ...(query.tagId === undefined ? {} : await sessionsWithTag({ id: userId }, query.tagId)) };
     const sessions = await StudySession.findAll({ where, include: [{ model: SessionInterval, as: 'activityIntervals' }, { model: PomodoroClock, as: 'pomodoroClock' }], transaction });
     const asOf = new Date(sessions.reduce((value, session) => (session.activityIntervals ?? []).reduce((latest, interval) => Math.max(latest, interval.endedAt?.getTime() ?? interval.startedAt.getTime()), value), Date.now()));
     const result: SessionStats = { ...emptyTotals(), days, courses: [], asOf: asOf.toISOString(), timezone, totalSessions: 0, lastActivity: null, completedSessions: 0, partialSessions: 0, untrackedSessions: 0 };
@@ -62,7 +63,7 @@ export async function getStudyStats(userId: number, timezone: string, query: Ses
       const total = measuredTotals(intervals, asOf, start, end, session.pomodoroClock?.deadlineAt);
       for (const key of ['studySeconds', 'breakSeconds', 'pauseSeconds'] as const) result[key] += total[key];
       for (const [index, day] of days.entries()) {
-        const bounds = boundsByDay[index]!;
+        const bounds = boundsByDay[index];
         const daily = measuredTotals(intervals, asOf, bounds.start.getTime(), bounds.end.getTime(), session.pomodoroClock?.deadlineAt);
         day.studySeconds += daily.studySeconds; day.breakSeconds += daily.breakSeconds; day.pauseSeconds += daily.pauseSeconds;
       }

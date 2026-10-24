@@ -7,7 +7,7 @@ import { create } from 'zustand';
 import { queryClient } from '../lib/queryClient';
 import { authAPI, onboardingAPI } from '../services/api';
 import { unsubscribeBrowser } from '../lib/push';
-import type { CompleteOnboardingInput } from '@study-tracker/contracts';
+import type { AccountImportResult, CompleteOnboardingInput } from '@study-tracker/contracts';
 import type { LoginCredentials, RegisterData, User } from '../types/auth';
 import { useLanguageStore } from './languageStore';
 
@@ -22,6 +22,7 @@ interface AuthState {
   logout: () => void;
   updateProfile: (data: ProfileUpdate) => Promise<void>;
   completeOnboarding: (input: CompleteOnboardingInput) => Promise<void>;
+  importAccount: (file: unknown) => Promise<AccountImportResult>;
   initializeAuth: () => Promise<void>;
   refreshSession: () => Promise<string>;
   clearAuth: () => void;
@@ -123,6 +124,13 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     if (get().epoch !== epoch) throw new Error('Account changed while finishing onboarding');
     const user = response.data.data?.user;
     if (user) set({ user });
+  },
+  importAccount: async file => {
+    const epoch = get().epoch;
+    const { result, user } = await authAPI.importAccount(file);
+    if (get().epoch !== epoch) throw new Error('Account changed while importing');
+    set({ user });
+    return result;
   },
   isAdmin: () => get().user?.role === 'admin',
 }));

@@ -1,14 +1,25 @@
 # Ders Takip Sistemi — İlerleme
 
-Son güncelleme: 23 Ekim 2026 — yol haritası R1–R15 tamam; son iş pano mobil açılış hızı (Lighthouse 87→92). Son commit `63145f8`, bu iş commit edilmedi, push yok. Gerçek DB şeması 009.
+Son güncelleme: 24 Ekim 2026 — yol haritaları R1–R15 ve F1–F6 tamam; son iş E2E boşlukları (tüm veriyi sıfırlama, boşta oturum süresi) ve Lighthouse gerileme kontrolü. Son commit `3c0b35c`; sonrası commit edilmedi (kullanıcı: şimdilik commit/push yok). Gerçek DB şeması 013.
 
-## Son durum ve sıradaki işler (23 Ekim 2026)
+## Son durum ve sıradaki işler (24 Ekim 2026)
 
-**Durum:** check exit 0 (contracts 44, backend 187, frontend 287), E2E 84/84, Lighthouse pano mobil 92 (hedef 90+ karşılandı). Arayüz dili tek site ayarıdır; sunucu yalnız kod döner; e-posta/push site dilinde; kayıtlı veri çevrilmez.
+**Durum:** check exit 0 (contracts 46, backend 205, frontend 306; F6 sonrası), E2E E2E_COUNT, Lighthouse (24 Ekim, F1–F6 sonrası, 3 tekrar): giriş masaüstü 100 / mobil 94–95, pano masaüstü 99–100 / mobil 91 (gerileme yok; bazen 86 görülebilir, aşağıdaki not), erişilebilirlik ve best practices 12/12 koşuda 100. Arayüz dili tek site ayarıdır; sunucu yalnız kod döner; e-posta/push site dilinde; kayıtlı veri çevrilmez.
 
-**Sıradaki (geliştirme, kullanıcı kararı bekler):**
-1. İngilizce özel kelimeler — kullanıcı "şimdilik dokunma" dedi. Site English iken özel kelimeler yazıldığı gibi + İngilizce çoğul gösterilir; editör Türkçe "-ı" hâlini sorar.
-2. Elle ekran okuyucu kontrol listesi hazır, uygulanmadı.
+**Yeni özellik yol haritası (23 Ekim, kullanıcı kararı: "bunlara başlayalım"; sırası öneridir):**
+
+| # | Özellik | Durum | Not |
+|---|---|---|---|
+| F1 | Tekrarlayan seanslar (haftalık rutin: seçili günler, saat, süre; bitiş tarihi ya da süresiz) | **Yapıldı (23 Ekim)** | Migration 010 gerçek DB'ye yedekle uygulandı; ayrıntı aşağıda |
+| F2 | Kayıt bazlı hedef (ör. bu projeye haftada 5 saat) | **Yapıldı (23 Ekim)** | Migration 011 gerçek DB'ye yedekle uygulandı; ayrıntı aşağıda |
+| F3 | Takvim aboneliği (iCal/ICS beslemesi) | **Yapıldı (24 Ekim)** | Migration 012 gerçek DB'ye yedekle uygulandı; ayrıntı aşağıda |
+| F4 | Etiketler ve süzgeç | **Yapıldı (24 Ekim)** | Migration 013 gerçek DB'ye yedekle uygulandı; ayrıntı aşağıda |
+| F5 | Veri içe aktarma (JSON dışa aktarmanın tersi) | **Yapıldı (24 Ekim)** | Migration yok; dışa aktarma sürüm 2; ayrıntı aşağıda |
+| F6 | Komut paleti ve klavye kısayolları (Ctrl+K) | **Yapıldı (24 Ekim)** | Yalnız gezinme ve Ctrl/Cmd+K (kullanıcı kararı); ayrıntı aşağıda |
+
+**Sıradaki (diğer):**
+1. Elle ekran okuyucu kontrol listesi hazır, uygulanmadı.
+2. E2E boşlukları kapandı (24 Ekim): tüm veriyi sıfırlama (`clearsStudyData` fixture seçeneği; kapanış denetimi silinmeyi doğrular) ve boşta oturum süresi arayüzü. Sıfırlama onay metni rutin, hedef ve etiketleri de sayacak biçimde düzeltildi (F1–F4'ten beri eksikti).
 3. (İsteğe bağlı) Gerçek ağ kısıtlamasında pano LCP ~4.9 s: Layout + sayfa dalgasında ~20 küçük parça HTTP/1.1'in 6 bağlantısında sıraya giriyor; üretimde HTTP/2 bunu büyük ölçüde giderir. Pano verisini önceden çekmek denendi ve geri alındı (aşağıdaki not).
 
 **Kullanıcının kendi tarafında:**
@@ -17,7 +28,161 @@ Son güncelleme: 23 Ekim 2026 — yol haritası R1–R15 tamam; son iş pano mob
 3. `BACKUP_COPY_DIR` ile ikinci yedek klasörünü ayarlamak.
 4. Site English kullanılacaksa Site ayarları › Genel › Site dili.
 
-**Yönetici akışları E2E (23 Ekim):** İki yeni senaryo: (1) yönetici kullanıcı oluşturur → yeni hesap girişte `/welcome`'a düşer (yönetici açtığı hesap da `onboarding: 'pending'`) → yönetici "Pasifleştir" + "Uygula" → aynı giriş `accountDisabled` metniyle reddedilir; (2) Site ayarları › Site adı kaydı → çıkış sonrası giriş sayfasının `<title>`'ı ve markası yeni ad. Kararlılık 3 profil × 3 = 18/18. Ek iki senaryo (aynı gün): (3) "Yönetici yap" → hesap `/admin/users`'a erişir → "Kullanıcıyı sil" → giriş "E-posta veya şifre hatalı"; (4) yöneticinin eklediği ortak kategori kullanıcının "Proje ekle" formunda seçenek olarak çıkar. Kararlılık her biri 3 profil × 2 = 6/6. (5) "Şimdi yedek al" → site adı değişir → yedeği geri yükle → giriş sayfası, eski ad geri, yedekteki hesap girer (yalnız fixture'ın geçici DB/`BACKUP_DIR`'ı). Kararlılık 6/6. Kanıt: check exit 0 (44/187/287), E2E **84/84**. Kalan admin E2E: kategori silme/taşıma, veri sıfırlama.
+**Temizlik (23 Ekim; kullanıcı onayı: "arta kalmış gereksiz ve kullanmadığımız veriler silinecek", depo artık iCloud'da değil):**
+- *Silindi:* `.git/index 2…7`, `.git/refs/remotes/origin/HEAD 2` ve log kopyası (iCloud artıkları); `node_modules` içindeki ~29.700 "ad 2.js" kopyası (bütün `node_modules` silindi, `npm ci` ile kilitten birebir kuruldu; tek React 19.3.1, audit 0); `backend/backups/pre-009-20261021-110755.sqlite` (migration öncesi elle kopya; 007/008 kopyaları daha önce silinmişti; uygulama kataloğundaki otomatik yedek duruyor); eski `test-results/`, `playwright-report/`, `lighthouse-*` çıktıları (~285 MB, her koşuda yeniden üretilir); `.DS_Store`.
+- *Git onarımı:* `refs/remotes/origin/HEAD` olmayan `origin/main`'i gösteriyordu (`git fsck` hatası, `branch -vv` "gone"). Salt okuma `git fetch` ile düzeldi; `main`, `origin/main`'den 9 commit önde (push yapılmadı).
+- *Kod:* 20 gereksiz tip zorlaması (`!`, `as`) kaldırıldı; bunun açtığı 3 kullanılmayan import silindi. Testlerdeki deyimsel `getByRole(...) as HTMLButtonElement` kalıbı korundu.
+- *Tarananlar, temiz çıkanlar:* kullanılmayan export (yalnız 3 kullanılmayan tip, sözleşme yüzeyinde bırakıldı), kullanılmayan bağımlılık (`react-is` ve `@testing-library/dom` eş bağımlılık), TODO/FIXME, susturma (`eslint-disable`, `@ts-`), yorumlanmış kod, takip edilen ama kullanılmayan dosya.
+- *Bilinen uyarı:* `npm ci` sırasında `prebuild-install` deprecation uyarısı çıkıyor; kaynağı `sqlite3@6.0.1`'in (son sürüm) iç bağımlılığı, bizim tarafta yapılacak bir şey yok.
+- *Yazım birliği (kullanıcı kararı: başlık düzeni):* katalogda aynı metnin iki yazımı tekleştirildi: `Çıkış Yap`, `Giriş Yap`, `Kayıt Ol`, `Kullanıcı Adı`, `Aktif Çalışma Günleri`. Yalnız çakışan çiftler değişti. `customLower` ("özel kelimeler") cümle içinde kullanıldığı için bilinçli küçük harf kaldı. Bakım/kayıt E2E'si artık kayıt açıkken "Kayıt Ol" bağlantısının göründüğünü de doğruluyor (metin değişince boş yere geçmesin diye).
+
+**F6 — Sayfaya git paleti (24 Ekim; kullanıcı kararları: yalnız gezinme, yalnız Ctrl/Cmd+K):**
+- *Ne:* `components/common/CommandPalette.tsx`; kısayol `hooks/usePaletteShortcut.ts` ile Layout'ta dinlenir, palet ilk açılışta tembel yüklenir (Combobox ilk sayfa yüküne binmez). Ctrl+K (Mac'te ⌘K) açar/kapatır; başlıktaki "Sayfaya git" düğmesi (`aria-keyshortcuts`) dokunmatik ve fare için aynı paleti açar. Tek tuş kısayolu yok (yazı alanları ve ekran okuyucu tuşlarıyla çakışmasın diye).
+- *İçerik:* kenar menüsündeki sayfalar, Arama, Profil, Ayarlar ve her ayar sekmesi; yöneticiye ayrıca yönetim sayfaları ve site ayarı bölümleri. Sekme/bölüm adları kataloglardan gelir (`settings.tabs`, `siteSettings.sections`), böylece sayfa modülleri palete yüklenmez.
+- *Arama:* her sözcük ad ya da grupta geçmeli; büyük/küçük ve Türkçe harf farkı yok (`foldSearchText`). Enter ilk eşleşmeyi açar, oklar seçer, Esc kapatır.
+- *Esc ve odak:* Combobox ilk Esc'i kendine harcıyordu (E2E yakaladı); giriş alanında Esc artık paleti doğrudan kapatır. Headless UI dokunmatik cihazda otomatik odak vermiyor (mobil E2E yakaladı); palet açılınca arama alanı elle odaklanır.
+- *Güvenlik payı:* başka bir pencere (düzenleyici, onay) açıkken kısayol çalışmaz; doldurulan form arkada bırakılıp sayfa değişmez.
+- *Adreslenebilir sekmeler:* Ayarlar `?tab=` (`appearance`, `region`, `study`, `notifications`, `calendar`), Site ayarları `?section=` (`general` … `backup`). Sekme değişimi adresi `replace` ile günceller (geçmişi doldurmaz); taslaklar aynı bileşende kaldığı için korunur. Site ayarı sıfırlaması bittiğinde eskisi gibi ilk bölüme döner.
+- *Testler:* frontend (3): Ctrl+K ile açıp Enter ile ayar sekmesine gitme, Türkçe harf/büyük harf eşleşmesi ve yönetim girdilerinin yalnız yöneticiye görünmesi, başka pencere açıkken açılmama. E2E (3 profil): klavyeyle Takvim sekmesi, başlık düğmesi + fareyle İstatistikler, normal hesapta yönetim yok, Esc. Palet axe taramasına eklendi (pano üstünde).
+- *Kanıt:* check exit 0 (contracts 46, backend 205, frontend 306), E2E 114/114 (tembel yükleme sonrası tam koşu). Palet ayrı parça: 56 KB / 17.5 KB gzip; Layout 27 KB / 8.9 KB gzip.
+
+**F5 — Veri içe aktarma (24 Ekim; kullanıcı kararları: yalnız boş hesap, ortak kayıt adla eşleşir yoksa kişisel açılır, ölçümler aynen):**
+- *Dışa aktarma sürüm 2:* yeni `references` bölümü, verinin id ile işaret ettiği ortak kategorileri (ad, renk), ortak kayıtları (ad, renk, kategori) ve ortak konuları (ad, süre, zorluk) adlandırır. Yalnız ortak (`isGlobal`) kayıtlar ve ortak kategoriler girer; başkasının kişisel kaydı asla. Sürüm 1 dosyalar `importOutdated` ile reddedilir: onlarda ortak kaydın adı olmadığı için bağlantılar yerleştirilemez ("kaynak siteden yeniden indir").
+- *Kural:* yalnız boş hesaba (kendi kategori, kayıt, seans, plan, rutin, hedef, etiket ya da konu ilerlemesi yokken). Kişi başına sıfırlama olmadığından pratikte yeni hesap demek; bu yüzden kurulum sihirbazının ilk adımında da "Verilerimi yükle" var. Dolu hesapta 409 `accountNotEmpty`; bozuk ya da tanınmayan dosyada 400 `importInvalid`. Migration gerekmez.
+- *Yerleştirme (tek IMMEDIATE transaction, `services/accountImport.ts`):*
+  - Kategori: aynı adlı görünür kategori (önce kişinin kendi) yeniden kullanılır, yoksa kişisel açılır.
+  - Kendi kaydı: aynı kategoride aynı adlı kendi ya da ortak kayıt varsa ona bağlanır, yoksa kişisel açılır. Yöneticinin dosyasındaki ortak kayıtlar da ortak başvuru gibi ele alınır (site kataloğu yedekle taşınır, içe aktarmayla değil).
+  - Ortak başvuru: önce aynı adlı kategoride aynı adlı ortak kayıt, sonra adı tek olan ortak kayıt; bulunmazsa aynı adla kişisel kayıt (ve gerekirse kişisel kategori) açılır.
+  - Konu: yerleştirilen kayıtta aynı adlı konu; yoksa yalnız kişinin kendi kaydına yeni konu açılır, ortak kayıtta bağlantı düşer.
+  - Seans, rutin, plan, hedef, konu ilerlemesi ve etiketler eski id → yeni id eşlemesiyle; yeri bulunamayan bağlantı düşürülür ve `unlinked` sayılır. Çakışma denetimi yapılmaz (kaynakta kabul edilmiş tarihsel veri).
+  - Ölçüm: aralıklar aynen. Süren ya da duraklatılmış seans duraklatılmış gelir: açık aralıklar dışa aktarma anında (en geç şimdi) kapanır ve oradan açık bir duraklatma başlar (zaten açık duraklatma sürer). Böylece taşıma sırasında süre işlemez ve iki seans aynı anda çalışamaz.
+  - Tercihler dosyadaki şemaya uyarsa alınır, uymazsa korunur (`preferences: 'skipped'`); her durumda `onboarding: 'done'`.
+  - İşlem sonrası kişinin rutinleri ufka kadar uzatılır (`extendAllSeries(now, { userId })`).
+- *Toplu yazım:* `bulkCreate` 500'lük parçalarla; SQLite'ta (sequelize 6.37.8) yeni id'leri sırasıyla döndürdüğü denendi. `validate: true` zaman damgası yüzünden kullanılamaz; doğrulama zod şemasıyla yapılır.
+- *Arayüz:* ortak `components/account/AccountImportButton` (dosya seç → JSON oku → `authStore.importAccount` → bütün sorgular yenilenir → özet toast; düşen bağlantı ve atlanan tercih ayrıca bildirilir; okunamayan dosya ve sunucu hatası satır içi uyarı). Profil › Verilerin: "Verilerimi yükle" satırı. Kurulum sihirbazı ilk adım: "Başka bir siteden mi geliyorsun?" ve aynı düğme; başarıda pano açılır.
+- *Testler:*
+  - backend (3 yeni + dışa aktarma testi `references` ile): dolu hesap 409, sürüm 1, bozuk dosyalar ve oturumsuz istek; aynı sitede tam taşıma (eşleşen ortak kayıtlar, yeni kişisel kayıtlar, ölçülen aralıklar, süren seansın duraklatılması, rutin ve seansları, hedef, ilerleme, etiketler, tercihler, ikinci deneme 409); bu sitede olmayan ortak kaydın konusuyla kişisel kayda dönüşmesi ve okunamayan tercihlerin atlanması.
+  - frontend (2): yükleme özeti ve uyarıları, okunamayan dosya ve dolu hesap uyarısı.
+  - E2E (3 profil): profilden indir, çıkış, yeni hesap kur, sihirbazdan dosyayı yükle, panoya geç, günlük planlayıcıda seanslar görünür; profilde ikinci yükleme reddedilir.
+- *Kanıt:* check exit 0 (contracts 46, backend 205, frontend 303), E2E 111/111 (tam koşu).
+
+**F4 — Etiketler (24 Ekim; kullanıcı kararları: hem kayıtlara hem seanslara, migration onaylı):**
+- *Model:* `tags` (`Tag`: userId, name, nameKey; (userId, nameKey) tekil), `course_tags` (`CourseTag`: tagId + courseId) ve `session_tags` (`SessionTag`: tagId + sessionId). Etiket, kayıt, seans ya da hesap silinince bağlantılar CASCADE ile gider (testle doğrulandı).
+- *Kişiye özel:* etiket listesi her kişinin kendisinindir. Ortak kayıtta herkes yalnız kendi etiketlerini görür ve değiştirir; birinin kaydettiği etiketler ötekininkine dokunmaz.
+- *Ad kuralı:* baş/son boşluk kırpılır, iç boşluklar teke iner, 1–40 karakter (`tagName`). Tekillik `foldSearchText` ile: büyük/küçük ve Türkçe harf farkı yok ("Sınav" = "SINAV" = "sinav"); çakışma 409 `tagExists`. Başka bir kişi aynı adı kullanabilir.
+- *Migration 013-tags:* yalnız üç yeni tablo. Kopyada denendi, sonra gerçek DB'nin yedeği alındı (`backend/backups/pre-013-20261024-004728.sqlite`) ve uygulandı. Sonrası salt-okuma doğrulandı: `schema_migrations` son kayıt `013-tags`, sayılar yedekle aynı, integrity ok, FK temiz.
+- *API (`/api/tags`):*
+  - `GET`: etiketler + `courseTags` + `sessionTags` (yalnız kişinin etiketleri).
+  - `POST`, `PUT /:id` (yeniden adlandır), `DELETE /:id`.
+  - `PUT /courses/:courseId` ve `PUT /sessions/:sessionId` (`{ tagIds }`, en çok 20, tekrarsız): kişinin o kayıttaki/seanstaki etiketlerini tümden değiştirir. Kayıt görünür, seans kişinin olmalı; başkasının etiketi 404.
+- *Süzgeç:* `GET /api/study-sessions` ve `/stats` `tagId` alır. Seans ya kendisi etiketliyse ya da kaydı etiketliyse eşleşir (`sessionsWithTag`). Başkasının etiketi 404.
+- *Dışa aktarma ve sıfırlama:* JSON dışa aktarmada `tags` bölümü; hesap sıfırlama etiketleri siler.
+- *Arayüz:*
+  - Kayıtlar sayfası: "Etiketler" düğmesi (`TagManagerDialog`: ekle, yerinde yeniden adlandır, onaylı sil) ve etiket süzgeci (istemci tarafında; kayıt etiketine göre).
+  - Kayıt sayfası: `CourseTagsPanel` (dokununca hemen kaydeder), hedef paneliyle yan yana.
+  - Seans düzenleyici: `TagPicker` (rutin seçiliyken gizli). Seans kaydedildikten sonra etiketler yazılır; etiket yazımı başarısız olursa seans geri alınmaz ve tekrar gönderilmez, yalnız uyarı çıkar.
+  - Planlayıcı ve İstatistikler: "Etikete göre süz" (`TagFilter`); süzgeç sorgu anahtarında ve sunucu parametresinde. Hiç etiket yoksa süzgeç görünmez.
+- *Testler:*
+  - backend (3): ad kuralları ve tekillik, kişiye özel kapsam ve 404'ler, ortak kayıtta başkasının etiketine dokunmama, liste/istatistik süzgeci, CASCADE.
+  - frontend (4): yönetici penceresi (çakışma hatası, yeniden adlandırma, onaylı silme), kayıt paneli kaydı, süzgecin gizlenmesi, yeni seansın etiketlenmesi ve başarısız etiket yazımında tek seans + uyarı.
+  - E2E (3 profil): etiket oluştur, seansa tak, planlayıcıda süz (yalnız o seans), süzgeci kaldır, İstatistikler'de süzgecin sunucuya gitmesi. Etiket penceresi axe taramasına eklendi.
+- *Kanıt:* check exit 0 (contracts 46, backend 202, frontend 301), E2E 108/108.
+
+**F3 — Takvim aboneliği (24 Ekim; kullanıcı kararları: popüler olduğu için eklendi, migration onaylı, içerik başlık + kayıt adı):**
+- *Model:* `calendar_feeds` (`CalendarFeed`): kullanıcı başına bir besleme. Anahtar 32 bayt rastgele (base64url, 43 karakter); yalnız SHA-256 özeti saklanır (`tokenHash` tekil). Hesap silinince CASCADE ile gider.
+- *Migration 012-calendar-feeds:* yalnız yeni tablo. Kopyada denendi, sonra gerçek DB'nin yedeği alındı (`backend/backups/pre-012-20261024-002055.sqlite`, integrity ok) ve uygulandı. Sayılar aynı, integrity ok, FK temiz.
+- *API:*
+  - `GET /api/calendar-feed`: durum (`active`, `createdAt`; anahtar asla dönmez).
+  - `POST /api/calendar-feed`: oluştur ya da yenile; eskisi hemen geçersiz olur; adres yalnız bu yanıtta döner.
+  - `DELETE /api/calendar-feed`: aboneliği kapat.
+  - `GET /api/calendar/<anahtar>.ics`: herkese açık (takvim uygulamaları oturum taşıyamaz). Bilinmeyen anahtar ya da pasif hesapta 404, bakım modunda yönetici olmayana 503.
+- *Besleme:* RFC 5545 (CRLF, TEXT kaçışları, UTF-8 karakter bölmeden 75 oktette katlama, UTC `DTSTART/DTEND`, `UID session-<id>@<host>`, `X-WR-CALNAME` = site adı, `REFRESH-INTERVAL`/`X-PUBLISHED-TTL` 1 saat). Pencere son 30 gün + ileri 182 gün (`calendarFeedWindowDays`). İptal edilenler girmez. İçerik yalnız başlık ve kayıt adı ("Gitar · Müzik dersleri"); not ve açıklama asla.
+- *Günlük:* üretimde `morgan` adresi yazarken anahtar `[key]` ile gizlenir.
+- *Dağıtım notu:* adres `FRONTEND_URL`'den üretilir. Üretimde bu adres herkese açık site adresi olmalı ve ters vekil `/api/calendar/*`'ı API'ye geçirmeli.
+- *Arayüz:* Ayarlar › Takvim (`CalendarTab`):
+  - Açıklama ve gizlilik notu.
+  - Adres oluşturulunca bir kez görünür; kopyala ve `webcal:` ile takvim uygulamasında aç seçenekleri var. Sonra yalnız "… tarihinden beri açık" yazar.
+  - Yenile ve kapat onay ister.
+  - Google, Apple (Mac/iPhone) ve Outlook için ekleme tarifi.
+- *Testler:*
+  - backend (2): tek seferlik adres, yalnız özetin saklanması, içerik ve gizlilik (not/açıklama/iptal/eski/başkası yok), kaçış ve katlama (her satır ≤75 oktet), yenileme/kapatma/pasif hesap/geçersiz biçim 404.
+  - E2E: oluştur, oturumsuz indir, yenile (eski 404), kapat; 3 profil. Takvim sekmesi axe taramasına eklendi.
+  - Frontend birim testi yazılmadı; davranış E2E'de.
+- *Kanıt:* check exit 0 (contracts 46, backend 199, frontend 297), E2E 105/105.
+
+**F2 — Kayıt bazlı haftalık hedef (23 Ekim; kullanıcı kararları: ayrı tablo, kayıt sayfası + pano):**
+- *Model:* `course_goals` (`CourseGoal`): bileşik anahtar (userId, courseId), `weeklyMinutes` 1–10080 (`maxWeeklyGoalMinutes`). Kullanıcı ve kayıt silinince CASCADE ile gider (testle doğrulandı). Hedef kişiye özel; ortak kayıtta da kaydın kendisine dokunmaz.
+- *Migration 011-course-goals:* yalnız yeni tablo. Önce kopyada denendi, sonra gerçek DB'nin yedeği alındı (`backend/backups/pre-011-20261023-232821.sqlite`, integrity ok) ve uygulandı. Sayılar aynı, integrity ok, FK temiz.
+- *API:* `GET /api/course-goals`, `PUT /api/course-goals/:courseId { weeklyMinutes }` (görünmeyen kayıt 404, upsert), `DELETE /api/course-goals/:courseId`. Hesap dışa aktarmaya `courseGoals` eklendi; "tüm veriyi sıfırla" hedefleri de siler.
+- *Arayüz:*
+  - Kayıt sayfasında "Haftalık hedefin" paneli (`CourseGoalPanel`): belirle, değiştir, kaldır, bu haftanın ölçülen süresi / hedef ilerleme çubuğu.
+  - Panoda "<Kayıt> hedefleri" (`CourseGoalsProgress`): yalnız etkin kayıtlar; hiç hedef yoksa panel çizilmez.
+  - Ölçüm mevcut haftalık istatistiğin kayıt dağılımından gelir; ek istek yok. Kayıt adları panonun zaten yüklediği listeden (`coursesWithTopicsQuery`).
+  - `GoalDurationInput` artık üst sınır ve kısa yol değerlerini parametre alır (haftalık: 168 saate kadar; 1, 2, 3, 5, 7, 10 sa).
+  - Hedef sorgusu katalog anahtarında tutulur; kayıt değişiklikleri onu da tazeler.
+- *Testler:*
+  - backend (3): kişiye özel ve ortak kayıtta hedef, görünmeyen kayıt 404, sınırlar, kayıt/hesap silinince gitmesi, dışa aktarma.
+  - frontend (3): belirle + ilerleme, kaldır, pano listesi ve boşken çizilmemesi. Kayıt sayfası testlerinde panel boş bileşenle değiştirildi.
+  - E2E: yönetici ortak kayıt açar, kullanıcı hedef koyar, panoda görür; 3 profil.
+  - Erişilebilirlik taraması bu yüzeye ayrıca eklenmedi (bilinen kalıplar: fieldset/legend, etiketli girişler, adlı ilerleme çubuğu).
+- *Kanıt:* check exit 0 (contracts 46, backend 197, frontend 297), E2E 102/102.
+
+**F1 — Haftalık rutinler (23 Ekim; kullanıcı kararları: haftalık seçili günler, gerçek DB'ye yedekle uygula):**
+- *Model:* `session_series` tablosu (`SessionSeries`): şablon alanları (başlık, açıklama, kayıt/alt kayıt, tür, renk, Pomodoro), `weekdays` (0=Pazar), `startTime` ("HH:mm" duvar saati), `durationMinutes`, `startsOn`/`endsOn`, `timezone` (sahibinin o anki dilimi), `generatedThrough`, `exceptionDates`. `study_sessions` iki boş sütun aldı: `seriesId` (SET NULL) ve `seriesDate` (rutinin hangi gününü temsil ettiği, taşınsa da değişmez). Tekil indeks `study_sessions_series_date (seriesId, seriesDate)`.
+- *Migration 010-session-series:* yalnız ekleme. Önce gerçek DB'nin `sqlite3 .backup` kopyasında denendi (satır sayıları aynı, integrity ok, FK temiz), sonra kullanıcı onayıyla gerçek DB'ye uygulandı. Yedek: `backend/backups/pre-010-20261023-225025.sqlite` (600, integrity ok). Sonuç: 3 kullanıcı ve 8 oturum kaydı korundu, integrity ok, FK ihlali yok (ayar tablosu zaten boştu). Uygulanana dek dev API "migrations pending" ile açılmıyordu; birkaç dakika sürdü. Not: 010 öncesi yedekler artık geri yüklenemez (mevcut şema kuralı).
+- *Davranış:* Rutin seansları gerçek seans olarak 26 hafta (`seriesHorizonDays` = 182 gün) ileriye kadar oluşturulur; hatırlatma, Pomodoro, istatistik, arama ve dışa aktarma değişmeden çalışır. Günlük iş (`extendAllSeries`, 03:20 ve açılışta) ufku ileri taşır; sessiz kaydeder, rutinin sürümünü değiştirmez.
+  - Atlanan günler: değiştirilmiş ya da silinmiş günler (`exceptionDates`), zaten seansı olanlar, bitmiş saatler ve başka bir seansla çakışanlar. Çakışanlar oluşturma/düzenleme yanıtında `skippedDates` olarak döner ve kullanıcıya bildirilir.
+  - Saat değişimi: olmayan duvar saati ileri kayar, iki kez yaşanan saat önceki ofseti alır (`routineOccurrenceInstant`); rutin bir haftayı kaybetmez.
+  - Tek seansı değiştirmek: zamanlayıcı ya da durum dışında bir alan değişirse ya da seans silinirse o gün `exceptionDates`'e girer; rutin onu bir daha ne ezer ne yeniden oluşturur.
+  - Düzenleme (`PUT /api/session-series/:id`, `expectedUpdatedAt`): bugünden sonraki, planlı, ölçümü olmayan ve dokunulmamış seansları silip yeniden kurar. Geçmiş, başlamış ve değişmiş seanslar kalır. Eski sürümle istek `409 seriesChanged` alır.
+  - Bitirme (`DELETE`): dokunulmamış gelecek seansları siler, kalanların bağını açıkça boşaltır (FK ayarına güvenmez) ve rutini siler.
+  - Hesap silme CASCADE ile rutinleri götürür; "tüm veriyi sıfırla" rutinleri de siler; hesap dışa aktarmaya `routines` eklendi.
+- *Arayüz:*
+  - Seans formunda "Her hafta tekrarla": gün seçici (seçilen tarihin günüyle başlar), isteğe bağlı bitiş tarihi, açıklama.
+  - Planlayıcı başlığında "Rutinler" düğmesi; liste penceresi (`RoutinesDialog`: günler, saat, süre, bitiş). "Düzenle" aynı formu rutin modunda açar (`editSeries`); "Rutini bitir" onay ister.
+  - Takvim kartında rutin işareti (`Repeat`, etiket "Rutin"). Rutinden gelen seans düzenlenirken "yalnız bunu etkiler" notu görünür.
+  - Rutin yazmaları seans görünümlerini ve öteki sekmeleri tazeler (`changesSessions`).
+  - Ayrıca düzeltildi: seans silme bildirimi sabit Türkçe "silindi" idi (İngilizce sitede de Türkçe), artık `sessionEditor.deleted`.
+- *Testler:*
+  - contracts: şema ve saat değişimi.
+  - backend (6, saat sabitlenerek): ufuk ve dilim, bitiş tarihi, geçmiş saat ve çakışma, düzenlemede dokunulmuşların korunması ve eski sürüm 409, bitirme, günlük ileri taşıma, sahiplik ve doğrulama, dışa aktarma.
+  - frontend (3): oluşturma + atlanan gün bildirimi, rutin düzenleme/bitirme onayı, rutin seansı notu.
+  - E2E: oluştur → kartta işaret → Rutinler → düzenle (yeni adla yeniden kurulur) → bitir; 3 profil. axe taramasına tekrar bölümü açık form ve Rutinler penceresi eklendi (2 tema × 3 profil, 0 ihlal).
+- *Kanıt:* check exit 0 (contracts 46, backend 194, frontend 294), E2E 99/99. Tam koşuda 96 geçti ve 3 hata çıktı: Pomodoro E2E'si saat 23'ten sonra gece yarısını aşıp seed verisindeki 23:59 seansıyla çakışıyordu (testin günün saatine bağımlılığı, ürün hatası değil). Seans yarın 15:00'e alındı; 3/3 geçti.
+
+**Giriş sayfasında yazılamama bildirimi (23 Ekim akşamı):** Kullanıcı Chrome'da `localhost:3000` (dev sunucusu) giriş alanlarına yazamadığını bildirdi. Yeniden üretilemedi: dev sunucusunda Chromium/WebKit, açık/koyu tema, temiz/çıkış-bekleyen/İngilizce önbellekli durumlar, `elementFromPoint` ve `inert` denetimi hepsi temiz; API normal (refresh 204, settings 200). Kullanıcı daha sonra sorunun kendiliğinden geçtiğini ve gizli pencerede çalıştığını söyledi; kod değişmedi. Olası neden (kanıtlanmadı): aynı gün `node_modules` silinip `npm ci` ile kurulurken dev sunucusu çalışıyordu; Vite'in `node_modules/.vite` ön-paketleri sunucunun altından silindi, açık sekme yarım kaldı. Sunucu 22:17'de yeniden başlatılıp sayfa yenilenince düzeldi. **Süreç:** bağımlılık yeniden kurulumu/güncellemesi öncesi çalışan dev sunucusu kontrol edilir; varsa kullanıcıya yeniden başlatma + sayfa yenileme söylenir.
+
+**Özel kelimeler dile bağlı (23 Ekim; kullanıcı kararı: "İngilizce kelime yalnız EN dili seçildiğinde olacak; TR iken EN çevirisi olmayacak; TR/EN yalnız site dili"):**
+- *Veri:* `customTerminology` dil etiketli tek set: `{ language: 'tr', course|topic|session: { word, accusative } }` ya da `{ language: 'en', …: { word, plural, article: 'a'|'an' } }` (zod `discriminatedUnion`).
+  - Set yalnız kendi dilinde geçerli (`resolveTerminology(prefs, site, language)` ve `createTerms`). Öteki dilde hazır set görünür; hiçbir şey çevrilmez.
+  - Site dili değişince eski set saklanır ama görünmez; dil geri dönerse yeniden görünür.
+  - Kişinin tek seti var: başka dilde kelime kaydetmek öncekinin yerini alır (E2E bunu gösterir). İstenirse iki dili ayrı tutan yapı ayrı iş.
+  - Migration gerekmedi: gerçek DB'de (salt okuma, 23 Ekim) site ayarında da 3 kullanıcıda da kayıtlı özel kelime yoktu.
+- *İngilizce kelime:* küçük harf, kısa ifade olabilir ("study session"), 2–32 karakter. Çoğul son kelimeye kuraldan (`suggestPlural`), tanımlık ilk harften (`suggestArticle`) önerilir; düzensizse kullanıcı düzeltir (child → children, an hour). Türkçedeki "-ı hâli bilgi taşır" yaklaşımının aynısı. Doğrulama kodu `termWordEnglish`.
+- *Arayüz:* `CustomTerminologyEditor` setin diline göre alan gösterir (TR: kelime + "-ı" hâli; EN: kelime + çoğul + a/an seçimi, önizleme "a book · books"). `normalizeTermWord(text, language)`: EN'de I → i, TR'de I → ı. Yönetici Kelimeler bölümü taslaktaki site diline göre çalışır; arayüz TR iken EN site için İngilizce kelime girilebilir, katalogda iki dilde etiket var. `TerminologyPresetPicker` önizleme dili için `language` alır.
+- *Var olan hata düzeltildi:* İngilizce metinlerde 17 yerde sabit `a ${t.x()}` yazıyordu ("a exercise"). Artık `t.x({ article: true })`: "an exercise", özel kelimede kişinin seçtiği tanımlık.
+- *Testler:* contracts (öneri, şema, dil ayrımı, tanımlık), backend (EN set JSON gidiş-dönüş, geçersiz tanımlık 400), frontend (EN düzenleyici, düzeltmelerin korunması, geçersiz İngilizce, dil ayrımı, yönetici EN taslağı), E2E (TR kelime → site EN'de hazır set → EN kelime "Books"/"Add a book" → site TR'de hazır set; 3 profil). Kanıt: check exit 0 (contracts 46, backend 188, frontend 291), E2E **96/96**.
+
+**Proje taraması (23 Ekim, kullanıcı isteği "projeyi tara, hata varsa düzelt"):** Yöntemler ve sonuç:
+- *Geçici tip-bilinçli lint* (no-floating-promises, no-misused-promises, await-thenable, switch-exhaustiveness, no-base-to-string, react-hooks/exhaustive-deps; config commit edilmedi): 123 bulgu, gerçek hata yok. Express 4 `async` handler'larının hepsi tam try/catch'li (AST taramasıyla doğrulandı, tek istisna `updateSettings`'in try öncesi kısmı atmaz); yüzen promise'ler `navigate`, kapanıştaki cron `stop` ve hatasını kendi yakalayan `fetchSettings`; sorgu dizeleri route şemasıyla doğrulanmış; eksik hook bağımlılıkları bilinçli dondurulmuş props/zaman dilimi tetikleyicileri. 20 gereksiz `!`/`as` bırakıldı (davranış yok, değişiklik gürültüsü).
+- *Yetki kapsamı:* her route `protect`/`authorize` ya da bilinçli herkese açık (auth, `GET /settings`); `users/:id/stats` sahip/admin denetimli.
+- *Saat dilimi kalıpları:* tarayıcı yerel "bugün"ü kullanan yer yok; takvim `calendarViewDate`/`CalendarDate` ile.
+- *Tarayıcı konsolu* (geçici kayıtla chromium E2E): JS hatası/React uyarısı yok; yalnız beklenen HTTP durumları (girişsiz sayfada yenileme 401'i — aşağıda kaldırıldı).
+- *Bildirim zamanlayıcısı ve hedef hesapları* elle okundu: doğru.
+- *A18 arayüzü* (kayıt kapatma, bakım modu) E2E'ye alındı (aşağıda).
+- **Bulunan tek gerçek sorun:** `index.html`'deki `%VITE_API_BASE_URL%` değişkeni tanımlı değilken build uyarısı veriyordu. Artık `vite.config.ts` `define` ile tek varsayılan (`/api`) verir. Inline betikteki `%` geri dönüş hilesi kalktı. Vitest ayrı config kullandığı için `vi.stubEnv` testleri etkilenmedi.
+- **Süreç dersi:** E2E koşarken `frontend/dist` yeniden derlenirse (fixture dosyaları diskten sunar) o anda koşan test düşer. Bir tam koşudaki tek "restores a backup" hatası buydu (tek başına 15/15). E2E sürerken build yapılmaz.
+
+**Çerezsiz oturum yenileme 204 (23 Ekim):** Girişsiz her sayfa açılışı `POST /auth/refresh-token` → 401 ile konsola hata düşürüyordu (Lighthouse best practices giriş 96). Artık çerezi hiç olmayan isteğe `204 No Content` (çerez dokunulmaz); geçersiz/süresi dolmuş/tekrar oynatılan çerez aynen 401 + çerez silme. İstemci `parseSessionResponse` 204'ü `401 sessionExpired` `HttpError`'ına çevirir, böylece bütün akış (initializeAuth, 401 yeniden deneme, erken yenileme) değişmeden işler. Testler: backend çerezsiz 204 + Set-Cookie yok + bilinmeyen çerez 401; frontend erken 204 → 401 `sessionExpired`. Sonuç: best practices 12/12 koşuda 100.
+
+**Türkçe font ön-yüklemesi (23 Ekim):** LCP metni Türkçe harf (ı, ş, ğ, İ) içerince Geist `latin-ext` dosyası gerekir. Tarayıcı bu dosyayı ancak metin ekrana gelince istiyordu ve LCP font gelişine bağlanıyordu. `vite.config.ts` `preloadTurkishFont` eklentisi derlemede `index.html`'e `<link rel=preload as=font crossorigin>` ekler; dosya bulunamazsa build durur. Etki (5 tekrar): giriş mobil 93–94→**95** (LCP 2.80→2.59 s, kararlı); pano mobil değişmedi. Bedel: İngilizce sitede 17 KB gereksiz indirme. 22 Ekim'deki latin + latin-ext ön-yükleme denemesi etkisizdi, çünkü o zaman zincirin darboğazı başka yerdeydi.
+
+**Pano mobil 91/86 oynaklığı (23 Ekim, açıklama):** Fixture'da LCP öğesi Layout'taki saat dilimi uyarısı. Son LCP adayı veri gelince yeniden çizilen öğelerle birlikte güncelleniyor (~450–480 ms gözlenen). Haftalık veriyle tetiklenen grafik parçası (103 KB gz) kimi koşuda bu andan önce isteniyor ve lantern LCP grafiğine giriyor (3.13 s yerine 3.92 s). Denenip bırakılanlar (tekrarlanmasın):
+- (a) **Fallback'siz ilk ekran:** `lazy` fabrikası kod önceden alınmışsa `then` içinde hemen çözülen thenable döner; App, adresin ilk ekranını yükleme ekranı açıkken indirir. React 19'un 300 ms Suspense bekletmesi kalktı (gözlenen LCP 483→197 ms, kısıtsız). Ama lantern pano 88–92, giriş 93–94'e düştü; devtools kısıtlamasında pano LCP yalnız 5.21→5.08 s, giriş aynı. Geri alındı.
+- (b) **Grafiği "ilk çizimden sonra" yükleme kapısı** (rAF + setTimeout): 5 koşuda 86 sayısı 2'den 1'e indi. Anlamlı değil, eklenmedi.
+- (c) Önceki gün denenen pano verisi ön-çekme (aşağıda).
+
+**Yönetici akışları E2E (23 Ekim):** İki yeni senaryo: (1) yönetici kullanıcı oluşturur → yeni hesap girişte `/welcome`'a düşer (yönetici açtığı hesap da `onboarding: 'pending'`) → yönetici "Pasifleştir" + "Uygula" → aynı giriş `accountDisabled` metniyle reddedilir; (2) Site ayarları › Site adı kaydı → çıkış sonrası giriş sayfasının `<title>`'ı ve markası yeni ad. Kararlılık 3 profil × 3 = 18/18. Ek iki senaryo (aynı gün): (3) "Yönetici yap" → hesap `/admin/users`'a erişir → "Kullanıcıyı sil" → giriş "E-posta veya şifre hatalı"; (4) yöneticinin eklediği ortak kategori kullanıcının "Proje ekle" formunda seçenek olarak çıkar. Kararlılık her biri 3 profil × 2 = 6/6. (5) "Şimdi yedek al" → site adı değişir → yedeği geri yükle → giriş sayfası, eski ad geri, yedekteki hesap girer (yalnız fixture'ın geçici DB/`BACKUP_DIR`'ı). Kararlılık 6/6. (6) iki ortak kategori + kayıt → kaynak kategoriyi hedef seçerek silme → kayıt hedef kategoride; (7) "Yalnızca site ayarlarını sıfırla" → site adı varsayılana döner, hesap ve seed seansları korunur; (8) kayıt kapatma + bakım modu: yönetici çalışmaya devam eder, oturumu açık öğrenci yenilemede "Site bakımda" ekranını görür ve oradan çıkar, girişte "Site bakımda…" reddi, giriş sayfasında "Kayıt ol" yok, `/register` "Kayıtlar kapalı" (A18 arayüzünün ilk tarayıcı kanıtı; ürün hatası çıkmadı). Kanıt: check exit 0, E2E 93/93. Kalan admin E2E: tüm veriyi sıfırlama (seed seanslarını sildiği için fixture'ın teardown korumasıyla çelişir; ayrı fixture gerekir).
 
 **Çeviri kaçakları (23 Ekim):** `check:text` Türkçe harfi olmayan Türkçe sözcükleri yalnız düz JSX metninde yakalıyordu; artık JSX içinde doğrudan çizilen dizeleri de (`{koşul ? 'a' : 'b'}`, `&&`, `||`, `??` sonuç dalları; karşılaştırılan değerler değil) yakalar. Bulunan iki gerçek hata: ortak `EditorDialog` kaydet düğmesi sabit `'Kaydet'/'Kaydediliyor…'` idi (İngilizce sitede de Türkçe; artık `common.save/saving`), `CourseHeader` ortak kayıt etiketi sabit `· Ortak …` idi (artık `records.shared`). Yeni test: düzenleyici düğmeleri İngilizce, kaydederken "Saving…". Kanıt: check exit 0 (44/187/287).
 
@@ -406,7 +571,7 @@ Son aktivitelerin zaman sırası, dashboard konu verisi/sayıları, query respon
 | A15 | Uygulandı/testli: kalıcı sunucu deadline/faz/döngü, ortak timer hook/UI, reload/modal/çoklu sekme, sürüm/epoch koruması; gecikmiş worker ölçümü deadline ile sınırlı. Otomatik mola opt-in; otomatik çalışma yok. Yük/çok süreç operasyonu ayrıca doğrulanmalı. |
 | A16 | Uygulandı/testli: ortak timezone sınırı/form/takvim, kesişimli okuma ve günlük gerçek süre; UTC/İstanbul/New York ve DST 23/25 saat. Grid tekrarlanan saat için ayrı satır üretmez; kapsamlı DST pointer/E2E A22 altında açık. |
 | A17 | Uygulandı/testli: global admin özet endpoint'i ve dashboard, `includeStats` ile toplu kullanıcı istatistikleri (N+1 kalktı), all-time ölçülen süre. Büyük veri performansı ölçülmedi. |
-| A18 | Uygulandı/testli (API); UI elle doğrulanmadı: allowRegistration, maintenanceMode (admin hariç 503), sessionTimeout (boşta süresi, alt sınır 15 dk). maxStudentsPerCourse kaldırıldı (model yok). **Açık:** bildirim teslimatı yok, ürün kararı gerekir. |
+| A18 | Uygulandı/testli (API): allowRegistration, maintenanceMode (admin hariç 503), sessionTimeout (boşta süresi, alt sınır 15 dk). allowRegistration ve maintenanceMode arayüzü 23 Ekim'de E2E'de (3 tarayıcı profili); sessionTimeout arayüzü elle doğrulanmadı. maxStudentsPerCourse kaldırıldı (model yok). Bildirim teslimatı R11'de yapıldı. |
 | A19 | Tanımlı kapsam tamamlandı: Sequelize hata çevirisi, ortak auth/profile/admin create-update/list query/Plan/backup şemaları; normalize request değerleri; tek güvenli userResponse ve istemci auth/admin/backup runtime DTO; ortak validation hata ayrıntısı. Joi/Zod 3 aktif yolları kaldırıldı. Plan isteğe bağlı hedef kabı, takvim StudySession; kullanılmayan istemci Plan motoru kaldırıldı. Plan IMMEDIATE create/update/reactivation/detach-delete ve rollback testli; geçmiş korunur. Bütün diğer API yanıtlarını runtime şemaya taşıma veya bütün metadata'ya optimistic version ekleme iddiası yoktur. |
 | A20 | Lock, modern dev araçları, güvenli setup, üç workspace ve açık 001–006 migration var. Legacy şema evrimleri için sonraki explicit migration'lar gerekiyor. |
 | A21 | Kısmen: yedi ölü modül/eski script/paket kaldırıldı; route splitting tamam; iki timer motoru ortaklaştırıldı; `WeeklyPlanner` ve `DailyCalendar` etkileşim hataları düzeltildi. PlannerCalendar/usePlannerCalendar/kart/geometry ile iki takvim motoru birleştirildi; drag/resize/409/epoch ve async dialog testli. Öğrenci özel ders/konu edit/delete/archive/restore UI, tek öğrenci/admin ders editörü ve nötr ders yüzeyleri tamam. Kategori ve kullanıcı yönetimi/shared editor ve async onaylar da tamamlandı. Ayar/yedekleme taslak/dirty patch/read error/async onay/epoch da tamam. Yönetim özeti/günlük seans/editör/Pomodoro nötr yüzey ve işlem sınırı denetimi de tamamlandı; 73/73 kaynak modül erişilebilir. **Kalan sınırlar:** büyük formun sözleşme/alan sınırları A19, performans ve kapsamlı erişilebilirlik/E2E A22 altında açıktır. |

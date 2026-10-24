@@ -1,26 +1,29 @@
-import { defaultPreferences } from '@study-tracker/contracts';
+import { defaultPreferences, resolveTerminology } from '@study-tracker/contracts';
 import type { PreferencesPatch } from '@study-tracker/contracts';
 import PageHeader from '../../components/common/PageHeader';
 import { useEffect, useState } from 'react';
 import { useUserPreferencesStore, ThemeMode } from '../../store/userPreferencesStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { Bell, Settings, Clock, Globe } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Bell, CalendarDays, Settings, Clock, Globe } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AppearanceTab from './AppearanceTab';
 import RegionTab from './RegionTab';
 import NotificationsTab from './NotificationsTab';
+import CalendarTab from './CalendarTab';
 import StudyTab, { type StudyPreferencesDraft } from './StudyTab';
 import { useText } from '../../store/languageStore';
 
-type TabType = 'appearance' | 'region' | 'study' | 'notifications';
+type TabType = 'appearance' | 'region' | 'study' | 'notifications' | 'calendar';
 
 const tabs = [
   { id: 'appearance', icon: Settings },
   { id: 'region', icon: Globe },
   { id: 'study', icon: Clock },
   { id: 'notifications', icon: Bell },
+  { id: 'calendar', icon: CalendarDays },
 ] as const;
+const isTab = (value: string | null): value is TabType => tabs.some((tab) => tab.id === value);
 
 const studyDraftFrom = (preferences: typeof defaultPreferences): StudyPreferencesDraft => ({
   defaultPomodoroDuration: preferences.defaultPomodoroDuration,
@@ -33,7 +36,11 @@ const studyDraftFrom = (preferences: typeof defaultPreferences): StudyPreference
 
 const UserSettingsPage = () => {
   const text = useText().settings;
-  const [activeTab, setActiveTab] = useState<TabType>('appearance');
+  // The open tab lives in the address (`?tab=calendar`), so a link or the page switcher can open it directly.
+  const [params, setParams] = useSearchParams();
+  const requested = params.get('tab');
+  const activeTab: TabType = isTab(requested) ? requested : 'appearance';
+  const setActiveTab = (tab: TabType) => setParams(tab === 'appearance' ? {} : { tab }, { replace: true });
   const { preferences, updatePreferences, resetPreferences, pending, error: preferencesError } = useUserPreferencesStore();
   const { settings: siteSettings } = useSettingsStore();
 
@@ -96,7 +103,7 @@ const UserSettingsPage = () => {
           <AppearanceTab
             preferences={preferences}
             sitePrimaryColor={siteSettings.primaryColor}
-            siteTerminology={siteSettings.customTerminology ?? siteSettings.terminologyPreset}
+            siteTerminology={resolveTerminology({}, siteSettings, siteSettings.language)}
             onThemeChange={handleThemeChange}
             onColorChange={handleColorChange}
             onTerminologySave={(patch) => void savePreferences(patch)}
@@ -105,6 +112,7 @@ const UserSettingsPage = () => {
         {activeTab === 'notifications' && (
           <NotificationsTab preferences={preferences} onSave={(patch) => void savePreferences(patch)} />
         )}
+        {activeTab === 'calendar' && <CalendarTab />}
         {activeTab === 'region' && (
           <RegionTab preferences={preferences} onSave={(patch) => void savePreferences(patch)} />
         )}

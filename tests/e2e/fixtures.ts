@@ -13,12 +13,15 @@ interface Application {
 export const test = base.extend<{
   application: Application;
   browserGuard: void;
+  clearsStudyData: boolean;
 }>({
-  application: async ({ browserName }, use) => {
+  // A scenario that clears all study data sets this; the shutdown check then expects the seed gone instead of kept.
+  clearsStudyData: [false, { option: true }],
+  application: async ({ browserName, clearsStudyData }, use) => {
     const directory = await mkdtemp(
       path.join(tmpdir(), `study-tracker-e2e-${browserName}-`),
     );
-    const child = fork(path.join(__dirname, 'server.cjs'), [directory], {
+    const child = fork(path.join(__dirname, 'server.cjs'), [directory, ...(clearsStudyData ? ['--clears-study-data'] : [])], {
       env: { PATH: process.env.PATH, TMPDIR: tmpdir(), NODE_ENV: 'test' },
       stdio: ['ignore', 'ignore', 'inherit', 'ipc'],
     });

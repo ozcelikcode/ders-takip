@@ -1,9 +1,9 @@
 import { DataTypes, Model, QueryTypes, type ModelStatic, type SyncOptions, type Transactionable } from 'sequelize';
 import { sequelize } from '../config/database';
 import { migrateStoredPreferences } from './preferenceMigration';
-import { AuthSession, RefreshCredential, SessionInterval, PomodoroClock, UserTopicProgress, PasswordResetToken, PushSubscription, NotificationDelivery } from '../models';
+import { AuthSession, RefreshCredential, SessionInterval, PomodoroClock, UserTopicProgress, PasswordResetToken, PushSubscription, NotificationDelivery, SessionSeries, CourseGoal, CalendarFeed, Tag, CourseTag, SessionTag } from '../models';
 
-export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1', '004-session-activity-intervals', '005-pomodoro-clocks', '006-user-topic-progress', '007-password-reset-tokens', '008-personal-categories', '009-notifications'];
+export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1', '004-session-activity-intervals', '005-pomodoro-clocks', '006-user-topic-progress', '007-password-reset-tokens', '008-personal-categories', '009-notifications', '010-session-series', '011-course-goals', '012-calendar-feeds', '013-tags'];
 const personalCategoriesMigration = '008-personal-categories';
 // Columns that a still-pending migration adds itself, as `table.column`.
 async function validateExistingTables(addedByPendingMigrations: readonly string[] = []) {
@@ -37,6 +37,7 @@ async function applyTransactionalMigrations(): Promise<void> {
     await validateExistingTables([
       ...(pending.includes('004-session-activity-intervals') ? ['study_sessions.trackingCoverage'] : []),
       ...(pending.includes(personalCategoriesMigration) ? ['categories.userId'] : []),
+      ...(pending.includes('010-session-series') ? ['study_sessions.seriesId', 'study_sessions.seriesDate'] : []),
     ]);
     for (const name of pending) {
       // The categories rebuild cannot run inside this transaction; it follows below.
@@ -72,6 +73,19 @@ async function applyTransactionalMigrations(): Promise<void> {
           await sequelize.query('UPDATE users SET preferences = :preferences WHERE id = :id', { replacements: { id: user.id, preferences: JSON.stringify(kept) }, transaction });
         }
       }
+      else if (name === '010-session-series') {
+        // Weekly routines; existing sessions only gain two empty columns.
+        await SessionSeries.sync(options);
+        const query = sequelize.getQueryInterface();
+        const inspectionOptions: { transaction: typeof transaction; logging: false } = { transaction, logging: false };
+        const columns = await query.describeTable('study_sessions', inspectionOptions);
+        if (!columns.seriesId) await query.addColumn('study_sessions', 'seriesId', { type: DataTypes.INTEGER, allowNull: true, references: { model: 'session_series', key: 'id' }, onDelete: 'SET NULL' }, { transaction });
+        if (!columns.seriesDate) await query.addColumn('study_sessions', 'seriesDate', { type: DataTypes.STRING(10), allowNull: true }, { transaction });
+        await sequelize.query('CREATE UNIQUE INDEX IF NOT EXISTS `study_sessions_series_date` ON `study_sessions` (`seriesId`, `seriesDate`)', { transaction });
+      }
+      else if (name === '011-course-goals') await CourseGoal.sync(options);
+      else if (name === '012-calendar-feeds') await CalendarFeed.sync(options);
+      else if (name === '013-tags') { await Tag.sync(options); await CourseTag.sync(options); await SessionTag.sync(options); }
       await sequelize.query('INSERT INTO schema_migrations (name) VALUES (:name)', { replacements: { name }, transaction });
     }
   });

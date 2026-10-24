@@ -12,8 +12,8 @@ import { studySessionsAPI } from '../../services/api';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useAuthStore } from '../../store/authStore';
 import GoalProgress from '../../components/dashboard/GoalProgress';
+import CourseGoalsProgress from '../../components/dashboard/CourseGoalsProgress';
 import { isOwnOrShared } from '../../lib/catalogAccess';
-import type { CatalogCourse } from '../../types/catalog';
 import Recommendations from '../../components/dashboard/Recommendations';
 import { formatMeasuredSeconds } from '@study-tracker/contracts';
 import { useText } from '../../store/languageStore';
@@ -37,7 +37,7 @@ const DashboardPage = () => {
   const { data: courses, isLoading: coursesLoading, isError: coursesError } = useQuery({
     ...coursesWithTopicsQuery(accountKeys),
     // Admins can list everyone's records; the personal dashboard counts only their own and shared ones.
-    select: response => ((response.data.data?.courses || []) as CatalogCourse[]).filter(course => isOwnOrShared(course, user)),
+    select: response => (response.data.data?.courses || []).filter(course => isOwnOrShared(course, user)),
   });
   const { data: statsData, isLoading: sessionsLoading, isError: sessionsError } = useQuery({
     queryKey: accountKeys.sessions('measured-stats'),
@@ -74,6 +74,8 @@ const DashboardPage = () => {
       <Recommendations />
 
       <GoalProgress />
+
+      <CourseGoalsProgress />
 
       <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
         <section className="panel min-w-0">

@@ -60,14 +60,18 @@ export const resolveWeekStart = (preferences: Pick<UserPreferences, 'weekStartsO
 export const needsOnboarding = (preferences: Pick<UserPreferences, 'onboarding'>): boolean =>
   preferences.onboarding === 'pending';
 /**
- * The vocabulary a person sees: their own custom words, else their preset, else the site's
- * custom words, else the site preset. Feed the result to `createTerms`.
+ * The vocabulary a person sees in `language`: their own custom words, else their preset, else the
+ * site's custom words, else the site preset. Feed the result to `createTerms`.
  */
 export const resolveTerminology = (
   preferences: Pick<UserPreferences, 'terminologyPreset' | 'customTerminology'>,
   site: { terminologyPreset: TerminologyPresetId; customTerminology: CustomTerminology | null },
-): TerminologyPresetId | CustomTerminology =>
-  preferences.customTerminology ?? preferences.terminologyPreset ?? site.customTerminology ?? site.terminologyPreset;
+  language: Language,
+): TerminologyPresetId | CustomTerminology => {
+  // Custom words count only in the language they were typed in; nothing is translated.
+  const inLanguage = (custom: CustomTerminology | null | undefined) => (custom?.language === language ? custom : null);
+  return inLanguage(preferences.customTerminology) ?? preferences.terminologyPreset ?? inLanguage(site.customTerminology) ?? site.terminologyPreset;
+};
 /**
  * The weekly goal is not chosen separately: it is the daily goal on every active day.
  * The stored `weeklyStudyGoal` is kept equal to this on every write; readers use this function.

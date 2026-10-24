@@ -7,7 +7,21 @@ import {
   backupRestoreResponseSchema,
   backupCreateResponseSchema,
   resetDataResponseSchema,
+  seriesListResponseSchema,
+  seriesWriteResponseSchema,
+  courseGoalListResponseSchema,
+  courseGoalResponseSchema,
+  calendarFeedCreatedResponseSchema,
+  calendarFeedStatusResponseSchema,
+  tagListResponseSchema,
+  accountImportResponseSchema,
+  type AccountImportResult,
+  tagResponseSchema,
+  type CourseGoal,
   type ChangePasswordInput,
+  type CreateSeriesInput,
+  type SeriesRecord,
+  type UpdateSeriesInput,
 } from '@study-tracker/contracts';
 import type { BackupRecord, ResetMode } from '../types/backup';
 import type {
@@ -71,7 +85,7 @@ import {
 } from '@study-tracker/contracts';
 import { api, authTransport, receiveAuthResponse } from './httpClient';
 import { takeInitialSessionRefresh } from '../lib/initialSessionRefresh';
-import { CanceledError, type HttpResponse } from './httpError';
+import { CanceledError, HttpError, type HttpResponse } from './httpError';
 
 const parseAuthResponse = (
   response: HttpResponse<unknown>,
@@ -99,6 +113,13 @@ const parseProfileResponse = (
       data: { user: { ...parsed.data.user, id: String(parsed.data.user.id) } },
     },
   };
+};
+
+/** A browser without a session cookie gets 204 from the refresh route; the app treats it like an expired session. */
+const parseSessionResponse = (response: HttpResponse<unknown>): HttpResponse<AuthResponse> => {
+  if (response.status === 204)
+    throw new HttpError('No session to restore', { status: 401, data: { success: false, error: { code: 'sessionExpired' } } }, response.config, 'ERR_BAD_RESPONSE');
+  return parseAuthResponse(response);
 };
 
 let profileQueue: Promise<unknown> = Promise.resolve();
@@ -159,15 +180,21 @@ export const authAPI = {
   exportAccount: async (): Promise<AccountExport> =>
     (await api.get<AccountExport>('/auth/account/export')).data,
 
+  /** Loads an export into this empty account; answers with what was created and the account it changed. */
+  importAccount: async (file: unknown): Promise<{ result: AccountImportResult; user: User }> => {
+    const parsed = accountImportResponseSchema.parse((await api.post('/auth/account/import', file)).data);
+    return { result: parsed.data.result, user: { ...parsed.data.user, id: String(parsed.data.user.id) } };
+  },
+
   deleteAccount: (input: DeleteAccountInput): Promise<HttpResponse<ApiResponse>> =>
     api.delete('/auth/account', { data: input }),
 
   refreshToken: (): Promise<HttpResponse<AuthResponse>> => {
     const early = takeInitialSessionRefresh();
     return early
-      ? receiveAuthResponse(early, { url: '/auth/refresh-token', method: 'post' }).then(parseAuthResponse)
+      ? receiveAuthResponse(early, { url: '/auth/refresh-token', method: 'post' }).then(parseSessionResponse)
       : withAuthLock(() =>
-        authTransport.post('/auth/refresh-token').then(parseAuthResponse),
+        authTransport.post('/auth/refresh-token').then(parseSessionResponse),
       );
   },
 };
@@ -259,6 +286,55 @@ export const usersAPI = {
 };
 
 // Study Sessions API
+// The person's tags; attaching replaces their tags on one record or session.
+export const tagsAPI = {
+  list: async () => tagListResponseSchema.parse((await api.get('/tags')).data).data,
+  create: async (name: string) => tagResponseSchema.parse((await api.post('/tags', { name })).data).data.tag,
+  rename: async (id: number, name: string) => tagResponseSchema.parse((await api.put(`/tags/${id}`, { name })).data).data.tag,
+  remove: async (id: number) => {
+    await api.delete(`/tags/${id}`);
+  },
+  setCourseTags: async (courseId: number, tagIds: number[]) => {
+    await api.put(`/tags/courses/${courseId}`, { tagIds });
+  },
+  setSessionTags: async (sessionId: number, tagIds: number[]) => {
+    await api.put(`/tags/sessions/${sessionId}`, { tagIds });
+  },
+};
+
+// The calendar subscription; its address comes back only when it is created or renewed.
+export const calendarFeedAPI = {
+  status: async () => calendarFeedStatusResponseSchema.parse((await api.get('/calendar-feed')).data).data,
+  create: async () => calendarFeedCreatedResponseSchema.parse((await api.post('/calendar-feed')).data).data,
+  remove: async () => {
+    await api.delete('/calendar-feed');
+  },
+};
+
+// Personal weekly targets per record; the records themselves are never changed.
+export const courseGoalsAPI = {
+  list: async (): Promise<CourseGoal[]> =>
+    courseGoalListResponseSchema.parse((await api.get('/course-goals')).data).data.goals,
+  set: async (courseId: number, weeklyMinutes: number): Promise<CourseGoal> =>
+    courseGoalResponseSchema.parse((await api.put(`/course-goals/${courseId}`, { weeklyMinutes })).data).data.goal,
+  clear: async (courseId: number) => {
+    await api.delete(`/course-goals/${courseId}`);
+  },
+};
+
+// Weekly routines; their sessions arrive through studySessionsAPI like any other.
+export const seriesAPI = {
+  list: async (): Promise<SeriesRecord[]> =>
+    seriesListResponseSchema.parse((await api.get('/session-series')).data).data.series,
+  create: async (input: CreateSeriesInput) =>
+    seriesWriteResponseSchema.parse((await api.post('/session-series', input)).data).data,
+  update: async (series: SeriesRecord, input: Omit<UpdateSeriesInput, 'expectedUpdatedAt'>) =>
+    seriesWriteResponseSchema.parse((await api.put(`/session-series/${series.id}`, { ...input, expectedUpdatedAt: series.updatedAt })).data).data,
+  stop: async (series: SeriesRecord) => {
+    await api.delete(`/session-series/${series.id}`, { data: { expectedUpdatedAt: series.updatedAt } });
+  },
+};
+
 export const studySessionsAPI = {
   controlPomodoro: (
     session: Pick<StudySession, 'id' | 'updatedAt'>,

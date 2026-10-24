@@ -18,6 +18,7 @@ import {
 } from '@testing-library/react';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import toast from 'react-hot-toast';
+import { MemoryRouter } from 'react-router-dom';
 import { settingsAPI, backupAPI } from '../src/services/api';
 import { useSettingsStore } from '../src/store/settingsStore';
 import AdminSettingsPage from '../src/pages/admin/AdminSettingsPage';
@@ -99,7 +100,9 @@ function mount() {
     client,
     ...render(
       <QueryClientProvider client={client}>
-        <AdminSettingsPage />
+        <MemoryRouter>
+          <AdminSettingsPage />
+        </MemoryRouter>
       </QueryClientProvider>,
     ),
   };
@@ -558,9 +561,36 @@ it('lets an administrator write site-wide custom words and refuses ones that do 
   await waitFor(() =>
     expect(settingsAPI.updateSettings).toHaveBeenCalledWith({
       customTerminology: {
+        language: 'tr',
         course: { word: 'kitap', accusative: 'kitabı' },
         topic: { word: 'konu', accusative: 'konuyu' },
         session: { word: 'seans', accusative: 'seansı' },
+      },
+    }),
+  );
+});
+
+it('asks for English words when the administrator sets the site to English', async () => {
+  mount();
+  await ready();
+  fireEvent.change(screen.getByLabelText('Site dili'), { target: { value: 'en' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Kelimeler' }));
+  fireEvent.click(screen.getByRole('radio', { name: /Özel kelimeler/ }));
+  const course = screen.getByRole('group', { name: 'Ana kayıt' });
+  expect((within(course).getByLabelText('Kelime') as HTMLInputElement).value).toBe('course');
+  expect(within(course).queryByLabelText('"-ı" hâli')).toBeNull();
+  fireEvent.change(within(course).getByLabelText('Kelime'), { target: { value: 'book' } });
+  expect((within(course).getByLabelText('Çoğul') as HTMLInputElement).value).toBe('books');
+  expect(within(course).getByText('Biçimler: a book · books')).toBeTruthy();
+  save();
+  await waitFor(() =>
+    expect(settingsAPI.updateSettings).toHaveBeenCalledWith({
+      language: 'en',
+      customTerminology: {
+        language: 'en',
+        course: { word: 'book', plural: 'books', article: 'a' },
+        topic: { word: 'topic', plural: 'topics', article: 'a' },
+        session: { word: 'session', plural: 'sessions', article: 'a' },
       },
     }),
   );

@@ -33,7 +33,7 @@ const errorMessage = (error: unknown) => {
       : text.planner.actionFailed;
 };
 
-export function usePlannerCalendar(mode: CalendarMode, initialDate?: string) {
+export function usePlannerCalendar(mode: CalendarMode, initialDate?: string, tagId?: number | null) {
   const weekStart = useWeekStart();
   const t = useTerms();
   const text = useText().planner;
@@ -76,14 +76,15 @@ export function usePlannerCalendar(mode: CalendarMode, initialDate?: string) {
     addDays(start, index),
   );
   const startDate = format(start, 'yyyy-MM-dd');
-  const endDate = format(days[days.length - 1]!, 'yyyy-MM-dd');
+  const endDate = format(days[days.length - 1], 'yyyy-MM-dd');
   const query = useQuery({
-    queryKey: keys.sessions('calendar', mode, startDate, endDate),
+    queryKey: keys.sessions('calendar', mode, startDate, endDate, tagId ?? null),
     queryFn: async () => {
       const response = await studySessionsAPI.getSessions({
         startDate,
         endDate,
         timezone,
+        ...(tagId ? { tagId } : {}),
       });
       const sessions = response.data.data?.sessions;
       if (!sessions) throw new Error('Missing calendar sessions');

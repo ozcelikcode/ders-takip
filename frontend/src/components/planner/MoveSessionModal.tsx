@@ -207,7 +207,7 @@ const MoveSessionModal: React.FC<MoveSessionModalProps> = ({
 
             {/* Day Headers */}
             <div className="grid grid-cols-7 gap-1 mb-2">
-              {orderedWeekdays(weekStart).map((day) => weekdays[day]!).map((day) => (
+              {orderedWeekdays(weekStart).map((day) => weekdays[day]).map((day) => (
                 <div
                   key={day}
                   className="text-center text-xs font-medium text-(--muted) py-2"

@@ -219,9 +219,9 @@ describe('calendar day layout helpers', () => {
     const resized = buildDaySegments(days, [session], { sessionId: 1, minutes: 120 }, 'Europe/Istanbul', hourHeight);
     expect(resized[0]).toHaveLength(1);
     expect(resized[1]).toHaveLength(0);
-    expect(resized[0]![0]!.preview.duration).toBe(120);
-    expect(resized[0]![0]!.session.duration).toBe(60);
-    expect(resized[0]![0]!.segment.hour).toBe(9);
+    expect(resized[0][0].preview.duration).toBe(120);
+    expect(resized[0][0].session.duration).toBe(60);
+    expect(resized[0][0].segment.hour).toBe(9);
   });
 
   it('keeps empty weekly days narrow and widens busy days by lane count', () => {

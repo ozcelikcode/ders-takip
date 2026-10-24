@@ -11,6 +11,7 @@ import { useUserPreferencesStore } from '../src/store/userPreferencesStore';
 vi.mock('../src/services/api', () => ({
   studySessionsAPI: { getStats: vi.fn() },
   coursesAPI: { getCourses: vi.fn() },
+  tagsAPI: { list: vi.fn(async () => ({ tags: [], courseTags: [], sessionTags: [] })) },
 }));
 
 const stats = {

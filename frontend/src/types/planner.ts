@@ -15,6 +15,9 @@ export interface StudySession {
   planId?: number | null;
   topicId?: number | null;
   courseId?: number | null;
+  /** The weekly routine this session came from, and the routine date it stands for. */
+  seriesId?: number | null;
+  seriesDate?: string | null;
   title: string;
   description?: string;
   startTime: string;

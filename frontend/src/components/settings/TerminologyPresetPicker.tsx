@@ -17,8 +17,10 @@ interface TerminologyPresetPickerProps {
   onChange: (choice: TerminologyChoice) => void;
   /** Offers a "follow the site" choice (value null) that resolves to this vocabulary. */
   siteDefault?: TerminologyPresetId | CustomTerminology;
-  /** The words shown for the custom choice; omitted until there are any. */
+  /** The words shown for the custom choice; omitted until there are any in `language`. */
   custom?: CustomTerminology | null;
+  /** The language the examples are shown in; the interface language unless an admin is choosing another. */
+  language?: Language;
 }
 
 const example = (source: TerminologyPresetId | CustomTerminology, language: Language) => {
@@ -27,12 +29,13 @@ const example = (source: TerminologyPresetId | CustomTerminology, language: Lang
 };
 
 /** Radio cards for the vocabulary presets and custom words, each with its example words. */
-export default function TerminologyPresetPicker({ name, value, onChange, siteDefault, custom }: TerminologyPresetPickerProps) {
+export default function TerminologyPresetPicker({ name, value, onChange, siteDefault, custom, language: shownIn }: TerminologyPresetPickerProps) {
   const text = useText().terminology;
-  const language = useLanguage();
+  const interfaceLanguage = useLanguage();
+  const language = shownIn ?? interfaceLanguage;
   const siteLabel = (source: TerminologyPresetId | CustomTerminology) =>
     typeof source === 'string' ? text.presets[source].label : text.customLower;
-  const customPreview = custom && customTerminologySchema.safeParse(custom).success ? custom : null;
+  const customPreview = custom?.language === language && customTerminologySchema.safeParse(custom).success ? custom : null;
   const options: { id: TerminologyChoice; label: string; description: string; preview: TerminologyPresetId | CustomTerminology | null }[] = [
     ...(siteDefault
       ? [{ id: null, label: text.siteDefault, description: text.siteDefaultHint(siteLabel(siteDefault)), preview: siteDefault }]

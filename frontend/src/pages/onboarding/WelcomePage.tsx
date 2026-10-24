@@ -4,6 +4,7 @@ import { serverMessage } from '../../lib/messages';
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { Navigate } from 'react-router-dom';
+import AccountImportButton from '../../components/account/AccountImportButton';
 import { Brand } from '../../components/common/Brand';
 import GoalDurationInput, { WeeklyGoalSummary } from '../../components/settings/GoalDurationInput';
 import WeekdayPicker from '../../components/settings/WeekdayPicker';
@@ -42,7 +43,7 @@ function ChoiceCard({ name, checked, onChange, title, children }: { name: string
 
 
 export default function WelcomePage() {
-  const { calendar: calendarText, onboarding: text } = useText();
+  const { calendar: calendarText, onboarding: text, profile: profileText } = useText();
   const language = useLanguage();
   const preferences = useUserPreferencesStore((state) => state.preferences);
   const updatePreferences = useUserPreferencesStore((state) => state.updatePreferences);
@@ -207,7 +208,7 @@ export default function WelcomePage() {
       ),
     },
   ];
-  const current = content[step]!;
+  const current = content[step];
 
   return (
     <main className="min-h-screen bg-(--canvas) px-4 py-8 text-(--text) sm:py-12">
@@ -247,6 +248,12 @@ export default function WelcomePage() {
             </button>
           </div>
         </form>
+        {step === 0 && (
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <p className="min-w-0 flex-1 basis-64 text-sm text-(--muted)">{text.importLead}</p>
+            <AccountImportButton label={profileText.importTitle} />
+          </div>
+        )}
       </div>
     </main>
   );

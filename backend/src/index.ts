@@ -6,6 +6,7 @@ import { mirrorBackups, reconcileBackupCatalog, runScheduledBackup } from './ser
 import { runDueNotifications } from './services/notifications';
 import { assertDatabaseReady } from './database/migrations';
 import { runDuePomodoros, startPomodoroScheduler } from './services/pomodoroClocks';
+import { extendAllSeries } from './services/sessionSeries';
 
 
 const startServer = async () => {
@@ -22,6 +23,13 @@ const startServer = async () => {
     try { await runScheduledBackup(); }
     catch (error) { console.error('Scheduled maintenance failed:', error); }
   }, { timezone: 'Europe/Istanbul', noOverlap: true });
+  // Routines keep their sessions a fixed horizon ahead; catch up at startup, then once a day.
+  const extendRoutines = async () => {
+    try { await extendAllSeries(); }
+    catch (error) { console.error('Routine extension failed:', error); }
+  };
+  await extendRoutines();
+  const routineJob = cron.schedule('20 3 * * *', extendRoutines, { noOverlap: true });
   // Reminders and digests are due per user time zone, so the job runs every minute and decides per user.
   const notificationJob = cron.schedule('* * * * *', async () => {
     try { await runDueNotifications(); }
@@ -34,6 +42,7 @@ const startServer = async () => {
   const shutdown = () => {
     backupJob.stop();
     notificationJob.stop();
+    routineJob.stop();
     server.close(() => { void pomodoroScheduler.stop().then(() => sequelize.close()).then(() => process.exit(0)); });
     setTimeout(() => process.exit(1), 10000).unref();
   };

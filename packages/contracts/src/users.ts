@@ -6,6 +6,7 @@ import {
   type UserStudySummary,
 } from './studyTracking.js';
 import { sessionStatusSchema } from './studySessions.js';
+import type { AccountReferences, accountExportFormat, accountExportVersion } from './accountImport.js';
 
 export const userRoleSchema = z.enum(['student', 'admin']);
 export const usernameSchema = z
@@ -182,11 +183,10 @@ export const adminOverviewResponseSchema = z.object({
 export const deleteAccountSchema = z.object({ password: z.string().min(1, 'passwordRequired') }).strict();
 export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;
 
-export const accountExportFormat = 'study-tracker-account-export';
 /** The user's own data as plain JSON; record shapes follow the stored rows and may gain fields over time. */
 export interface AccountExport {
   format: typeof accountExportFormat;
-  version: 1;
+  version: typeof accountExportVersion;
   exportedAt: string;
   account: UserResponse;
   categories: unknown[];
@@ -194,4 +194,12 @@ export interface AccountExport {
   topicProgress: unknown[];
   sessions: unknown[];
   plans: unknown[];
+  /** Weekly routines; their sessions are in `sessions` with a matching `seriesId`. */
+  routines: unknown[];
+  /** Personal weekly targets per record, in measured minutes. */
+  courseGoals: unknown[];
+  /** The person's tags and where they are attached. */
+  tags: unknown;
+  /** Shared records the data above points at, so another site can match them by name. */
+  references: AccountReferences;
 }

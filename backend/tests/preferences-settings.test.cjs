@@ -90,18 +90,21 @@ it('serves the terminology preset publicly, validates it, and keeps it when othe
  assert.equal((await auth('get','/api/settings/admin',admin).expect(200)).body.data.terminologyPreset,'education');
  await Settings.destroy({where:{key:'terminologyPreset'}});
 });
-it('stores site and personal custom words as JSON and rejects an accusative that does not fit',async()=>{
- const site={...customTerminologyFrom('general'),course:{word:'kitap',accusative:'kitabı'}};
+it('stores site and personal custom words as JSON with their language and rejects words that do not fit',async()=>{
+ const site={...customTerminologyFrom('general','tr'),course:{word:'kitap',accusative:'kitabı'}};
  await auth('put','/api/settings',admin).send({customTerminology:site}).expect(200);
  assert.deepEqual((await request(app).get('/api/settings').expect(200)).body.data.customTerminology,site);
  assert.equal((await Settings.findOne({where:{key:'customTerminology'}})).type,'json');
  await auth('put','/api/settings',admin).send({customTerminology:{...site,course:{word:'kitap',accusative:'kitapa'}}}).expect(400);
  await auth('put','/api/settings',admin).send({customTerminology:null}).expect(200);
  assert.equal((await request(app).get('/api/settings').expect(200)).body.data.customTerminology,null);
- const mine={...customTerminologyFrom('skills'),session:{word:'saat',accusative:'saati'}};
+ const mine={...customTerminologyFrom('skills','tr'),session:{word:'saat',accusative:'saati'}};
  const saved=await auth('put','/api/auth/profile',other).send({preferences:{customTerminology:mine}}).expect(200);
  assert.deepEqual(saved.body.data.user.preferences.customTerminology,mine);
  await auth('put','/api/auth/profile',other).send({preferences:{customTerminology:{...mine,topic:{word:'iki kelime',accusative:'iki kelimeyi'}}}}).expect(400);
+ const english={...customTerminologyFrom('skills','en'),topic:{word:'child',plural:'children',article:'a'}};
+ assert.deepEqual((await auth('put','/api/auth/profile',other).send({preferences:{customTerminology:english}}).expect(200)).body.data.user.preferences.customTerminology,english);
+ await auth('put','/api/auth/profile',other).send({preferences:{customTerminology:{...english,topic:{word:'child',plural:'children',article:'the'}}}}).expect(400);
  await auth('put','/api/auth/profile',other).send({preferences:{customTerminology:null}}).expect(200);
  await Settings.destroy({where:{key:'customTerminology'}});
 });

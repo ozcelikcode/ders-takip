@@ -13,12 +13,27 @@ import { UserTopicProgress } from './UserTopicProgress';
 import { PasswordResetToken } from './PasswordResetToken';
 import { PushSubscription } from './PushSubscription';
 import { NotificationDelivery } from './NotificationDelivery';
+import { SessionSeries } from './SessionSeries';
+import { CourseGoal } from './CourseGoal';
+import { CalendarFeed } from './CalendarFeed';
+import { CourseTag, SessionTag, Tag } from './Tag';
 
 UserTopicProgress.belongsTo(Topic, { foreignKey: 'topicId', as: 'topic' });
 User.hasMany(UserTopicProgress, { foreignKey: 'userId', onDelete: 'CASCADE' });
 User.hasMany(PasswordResetToken, { foreignKey: 'userId', onDelete: 'CASCADE' });
 User.hasMany(PushSubscription, { foreignKey: 'userId', onDelete: 'CASCADE' });
 User.hasMany(NotificationDelivery, { foreignKey: 'userId', onDelete: 'CASCADE' });
+User.hasMany(SessionSeries, { foreignKey: 'userId', onDelete: 'CASCADE' });
+User.hasMany(CourseGoal, { foreignKey: 'userId', onDelete: 'CASCADE' });
+User.hasOne(CalendarFeed, { foreignKey: 'userId', onDelete: 'CASCADE' });
+User.hasMany(Tag, { foreignKey: 'userId', onDelete: 'CASCADE' });
+Tag.hasMany(CourseTag, { foreignKey: 'tagId', onDelete: 'CASCADE' });
+Tag.hasMany(SessionTag, { foreignKey: 'tagId', onDelete: 'CASCADE' });
+Course.hasMany(CourseTag, { foreignKey: 'courseId', onDelete: 'CASCADE' });
+StudySession.hasMany(SessionTag, { foreignKey: 'sessionId', onDelete: 'CASCADE' });
+Course.hasMany(CourseGoal, { foreignKey: 'courseId', onDelete: 'CASCADE' });
+SessionSeries.hasMany(StudySession, { foreignKey: 'seriesId', as: 'sessions', onDelete: 'SET NULL' });
+StudySession.belongsTo(SessionSeries, { foreignKey: 'seriesId', as: 'series' });
 Topic.hasMany(UserTopicProgress, { foreignKey: 'topicId', onDelete: 'CASCADE' });
 
 StudySession.hasOne(PomodoroClock, { foreignKey: 'sessionId', as: 'pomodoroClock', onDelete: 'CASCADE' });
@@ -126,4 +141,4 @@ StudySession.belongsTo(Topic, {
   as: 'topic',
 });
 
-export { AuthSession, RefreshCredential, Backup,Category,Course,Plan,Settings,StudySession,SessionInterval,Topic,User,PomodoroClock,UserTopicProgress,PasswordResetToken,PushSubscription,NotificationDelivery };
+export { AuthSession, RefreshCredential, Backup,Category,Course,Plan,Settings,StudySession,SessionInterval,Topic,User,PomodoroClock,UserTopicProgress,PasswordResetToken,PushSubscription,NotificationDelivery,SessionSeries,CourseGoal,CalendarFeed,Tag,CourseTag,SessionTag };

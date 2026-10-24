@@ -45,7 +45,7 @@ const DailyStudyChart = ({ days, dailyGoal }: DailyStudyChartProps) => {
         const minutes = studySeconds / 60;
         return {
           key,
-          name: days.length <= 7 ? weekdays[date.getDay()]! : format(date, 'd.MM'),
+          name: days.length <= 7 ? weekdays[date.getDay()] : format(date, 'd.MM'),
           fullName: format(date, 'EEEE', { locale: dateFns }),
           date: format(date, 'dd MMM', { locale: dateFns }),
           hours: minutes / 60,

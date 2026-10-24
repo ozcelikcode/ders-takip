@@ -3,6 +3,7 @@ import { Popover, PopoverButton, PopoverGroup, PopoverPanel } from '@headlessui/
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
+  Command,
   LogOut,
   Menu,
   Search,
@@ -16,12 +17,15 @@ import NotificationsPanel from './NotificationsPanel';
 
 interface HeaderProps {
   onMenuClick: () => void;
+  /** Opens the page switcher; without it the button is left out. */
+  onPaletteClick?: () => void;
 }
-export default function Header({ onMenuClick }: HeaderProps) {
+export default function Header({ onMenuClick, onPaletteClick }: HeaderProps) {
   const { user } = useAuthStore();
   const t = useTerms();
   const text = useText().nav;
   const roles = useText().roles;
+  const paletteText = useText().palette;
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const sectionName = pathname.startsWith('/admin')
@@ -90,6 +94,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <Link to="/search" className="icon-button md:hidden" aria-label={text.searchSubmit}>
               <Search className="h-4 w-4" />
             </Link>
+            {onPaletteClick && (
+              <button type="button" className="icon-button" aria-label={paletteText.open} aria-keyshortcuts="Control+K Meta+K" title={paletteText.shortcut} onClick={onPaletteClick}>
+                <Command className="h-4 w-4" />
+              </button>
+            )}
             <NotificationsPanel key={`${user?.id ?? 'anonymous'}`} />
             <Popover
               key={`account-${user?.id ?? 'anonymous'}`}

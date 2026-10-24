@@ -24,3 +24,14 @@ export const calendarViewInstant = (view: Date, timezone: string) => new Date(wa
   `${view.getFullYear()}-${String(view.getMonth() + 1).padStart(2, '0')}-${String(view.getDate()).padStart(2, '0')}`,
   `${String(view.getHours()).padStart(2, '0')}:${String(view.getMinutes()).padStart(2, '0')}:${String(view.getSeconds()).padStart(2, '0')}`, timezone,
 ).getTime() + view.getMilliseconds());
+
+/**
+ * When a routine's session starts: its wall time on that date in its time zone. A wall time that does not
+ * exist (spring-forward gap) moves past the gap, and a repeated one (fall-back) takes the earlier offset,
+ * so a weekly routine never loses a week to a clock change.
+ */
+export const routineOccurrenceInstant = (date: string, time: string, timezone: string): Date => {
+  const parsed = DateTime.fromISO(`${calendarDateSchema.parse(date)}T${time}`, { zone: timezone });
+  if (!parsed.isValid) throw new CalendarTimeError('Invalid routine time');
+  return parsed.toJSDate();
+};

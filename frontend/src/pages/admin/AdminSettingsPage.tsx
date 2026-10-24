@@ -9,6 +9,7 @@ import {
 } from '@study-tracker/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import BackupPanel, {
   type MaintenanceAction,
 } from '../../components/admin/BackupPanel';
@@ -29,6 +30,7 @@ const sameSetting = (a: unknown, b: unknown) => a === b || JSON.stringify(a) ===
 
 const sections = ['general', 'security', 'appearance', 'terminology', 'notifications', 'backup'] as const;
 type Section = (typeof sections)[number];
+const isSection = (value: string | null): value is Section => sections.some((id) => id === value);
 function SettingsForm({
   initial,
   onReset,
@@ -40,7 +42,11 @@ function SettingsForm({
   const { adminSettings, updateSettings, isLoading } = useSettingsStore();
   const [baseline, setBaseline] = useState(initial);
   const [draft, setDraft] = useState(initial);
-  const [section, setSection] = useState<Section>('general');
+  // The open section lives in the address (`?section=backup`), so a link or the page switcher can open it directly.
+  const [params, setParams] = useSearchParams();
+  const requested = params.get('section');
+  const section: Section = isSection(requested) ? requested : 'general';
+  const setSection = (id: Section) => setParams(id === 'general' ? {} : { section: id }, { replace: true });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [action, setAction] = useState<MaintenanceAction | null>(null);
   const prefix = useId();
@@ -59,6 +65,7 @@ function SettingsForm({
   const mutation = useAccountMutation([]);
   const client = useQueryClient();
   const keys = useAccountQueryKeys();
+  const customInLanguage = draft.customTerminology?.language === draft.language;
   const dirty = (Object.keys(draft) as (keyof SiteSettings)[]).some(
     (key) => !sameSetting(draft[key], baseline[key]),
   );
@@ -193,7 +200,10 @@ function SettingsForm({
       return true;
     }
     await client.invalidateQueries({ queryKey: keys.resource() });
-    if (current()) await onReset();
+    if (!current()) return true;
+    // The reset form opens on its first section, where the restored values start.
+    setSection('general');
+    await onReset();
     return true;
   };
   const t = useTerms();
@@ -361,17 +371,19 @@ function SettingsForm({
               <p className="text-sm text-(--muted)">
                 {text.terminologyHint}
               </p>
+              {/* Words belong to the site language being set here; a set in the other language is kept but not shown. */}
               <TerminologyPresetPicker
                 name={`${prefix}-terminologyPreset`}
-                value={draft.customTerminology ? 'custom' : draft.terminologyPreset}
+                value={customInLanguage ? 'custom' : draft.terminologyPreset}
                 custom={draft.customTerminology}
+                language={draft.language}
                 onChange={(choice) => {
                   if (choice === 'custom')
-                    setDraft({ ...draft, customTerminology: draft.customTerminology ?? customTerminologyFrom(draft.terminologyPreset) });
+                    setDraft({ ...draft, customTerminology: customInLanguage ? draft.customTerminology : customTerminologyFrom(draft.terminologyPreset, draft.language) });
                   else if (choice) setDraft({ ...draft, terminologyPreset: choice, customTerminology: null });
                 }}
               />
-              {draft.customTerminology && (
+              {draft.customTerminology && customInLanguage && (
                 <CustomTerminologyEditor
                   idPrefix={`${prefix}-customTerminology`}
                   value={draft.customTerminology}

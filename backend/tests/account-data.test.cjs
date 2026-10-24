@@ -57,7 +57,7 @@ it('exports only the account\'s own data, as a downloadable file without secrets
   assert.equal(response.headers['cache-control'], 'no-store');
   const data = response.body;
   assert.equal(data.format, 'study-tracker-account-export');
-  assert.equal(data.version, 1);
+  assert.equal(data.version, 2);
   assert.equal(data.account.username, 'owner');
   assert.deepEqual(data.categories.map((row) => row.name), ['Sahip kategori']);
   assert.deepEqual(data.courses.map((row) => [row.name, row.topics.map((topic) => topic.name)]), [['Sahip kayıt', ['Sahip konu']]]);
@@ -65,6 +65,12 @@ it('exports only the account\'s own data, as a downloadable file without secrets
   assert.deepEqual(data.plans.map((row) => row.title), ['Sahip plan']);
   // Progress on a shared topic is the user's own and carries the names needed to read it later.
   assert.deepEqual(data.topicProgress.map((row) => [row.status, row.topic.name, row.topic.course.name]), [['completed', 'Ortak konu', 'Ortak kayıt']]);
+  // Shared records the data points at are named, so another site can match them.
+  assert.deepEqual(data.references, {
+    categories: [{ id: sharedCourse.categoryId, name: 'Ortak', color: '#222222' }],
+    courses: [{ id: sharedCourse.id, name: 'Ortak kayıt', color: '#222222', categoryId: sharedCourse.categoryId }],
+    topics: [{ id: sharedTopic.id, courseId: sharedCourse.id, name: 'Ortak konu', estimatedTime: 30, difficulty: 'Kolay' }],
+  });
   const text = JSON.stringify(data);
   assert.equal(text.includes('Diğer'), false);
   assert.equal(/password|\$2[aby]\$/.test(text), false);

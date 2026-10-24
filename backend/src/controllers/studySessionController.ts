@@ -4,6 +4,7 @@ import { StudySession } from '../models';
 import { createSession, updateSession, deleteSession, sessionIncludes } from '../services/studySessions';
 import { sessionQuerySchema, type UpdateSessionInput } from '@study-tracker/contracts';
 import { getStudyStats, scheduledRange, sessionTimezone, sessionDTO } from '../services/studyTracking';
+import { sessionsWithTag } from '../services/tags';
 
 export const getStudySessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -18,8 +19,8 @@ export const getStudySessions = async (req: Request, res: Response, next: NextFu
     }
 
     const query = sessionQuerySchema.parse(req.query);
-    const { planId, status, sessionType } = query;
-    const where: WhereOptions = { userId, ...scheduledRange(query, sessionTimezone(req.user!, query)) };
+    const { planId, status, sessionType, tagId } = query;
+    const where: WhereOptions = { userId, ...scheduledRange(query, sessionTimezone(req.user!, query)), ...(tagId ? await sessionsWithTag(req.user!, tagId) : {}) };
     if (planId) where.planId = planId;
     if (status) where.status = status;
     if (sessionType) where.sessionType = sessionType;

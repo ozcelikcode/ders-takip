@@ -55,7 +55,7 @@ Tasarım paketi kapanışında: 22 backend + 8 frontend = 30 test (tarihsel), st
 ## Frontend
 
 - Yerel ayar `lib/locale.ts` tek kaynaktır (appLocale, date-fns locale, hafta günü etiketleri, tarayıcı saat dilimi). Hafta başlangıcı `useWeekStart()` / `resolveWeekStart` ile okunur; kayıt sırasında tarayıcı saat dilimi gönderilir.
-- Paketleme: contracts ESM `sideEffects:false`; luxon yalnız `zonedTime.ts`'te (şema modülleri luxon'suz); Vite `icons` manualChunk; Layout ve grafik lazy (pano grafiği veri gelince istenir; açılan adresin sayfası Layout ile birlikte istenir, `App.tsx` `shellPages`). Oturum yenileme `index.html` satır içi betiğinde başlar, ilk `refreshToken` devralır (`lib/initialSessionRefresh.ts`); satır içi betikler üretim CSP'sinde izinli olmalı. Üretim sunucusu JS/CSS'i gzip/brotli ile sunmalı (ölçüm fixture'ı gzip kullanır). React Router 7.
+- Paketleme: contracts ESM `sideEffects:false`; luxon yalnız `zonedTime.ts`'te (şema modülleri luxon'suz); Vite `icons` manualChunk; Layout ve grafik lazy (pano grafiği veri gelince istenir; açılan adresin sayfası Layout ile birlikte istenir, `App.tsx` `shellPages`). Oturum yenileme `index.html` satır içi betiğinde başlar, ilk `refreshToken` devralır (`lib/initialSessionRefresh.ts`); satır içi betikler üretim CSP'sinde izinli olmalı. API tabanı tek yerde: `vite.config.ts` `define` (`import.meta.env.VITE_API_BASE_URL`, varsayılan `/api`; `index.html` `%VITE_API_BASE_URL%` de bunu okur). Derleme `index.html`'e Geist latin-ext font ön-yüklemesi ekler (`preloadTurkishFont`; dosya yoksa build durur). `POST /auth/refresh-token` çerez yoksa 204 döner (istemci 401 `sessionExpired` sayar), geçersiz çerezde 401. Üretim sunucusu JS/CSS'i gzip/brotli ile sunmalı (ölçüm fixture'ı gzip kullanır). React Router 7.
 - Şifre sıfırlama: `services/passwordReset.ts` + `services/mailer.ts` (nodemailer, opsiyonel SMTP env); SMTP yoksa admin tek kullanımlık bağlantı üretir. Schema artık 007'dir.
 - Görünen ana kavram kelimeleri (ders/konu/seans) site/kişisel `terminologyPreset` ya da `customTerminology` (R2d) üzerinden `resolveTerminology` + `useTerms()` ile türetilir; kelime/ek mantığı `packages/contracts/src/terminology.ts`'tedir. Ekranlara sabit ders/konu/seans yazılmaz; backend mesajları nötr "kayıt" ifadesi kullanır.
 
@@ -223,3 +223,28 @@ Test başına fresh mkdtemp DB/context/random JWT/loopback portu; child kontroll
 Root dev bağımlılıkları @axe-core/playwright 4.14.0 ve Lighthouse 13.5.0 exact pin/lock; Playwright 1.64.1 korunur. `npm run test:e2e` 36 yürütme/150 axe taraması, `npm run test:lighthouse` ayrı config/dizinle dört ölçüm; `--repeat-each=3` medyan için 12 koşu üretir. Strict tsconfig iki Playwright config'ini de içerir; generated Lighthouse dizinleri Git/ESLint dışıdır. CI timeout 20 dakika, ölçüm/rapor artifact'i tanımlı; uzak koşum yapılmadı.
 
 Son clean install/check: 361 workspace testi, strict/naming/lint/build; browser 36/36, axe 150/0 violations (default + açık WCAG 2.2 target-size), Lighthouse 12/12. Accessibility100; performans medyan login 96/67 ve dashboard 92/61 (desktop/mobile). Mobil 90+ açık. Incomplete kayıtlar filtrelenmez; test sonuçları tam WCAG/ekran okuyucu veya gerçek dağıtım başarısı değildir. Lighthouse auth/CDP ve fixture koşulları, ham raporlar ve açık performans/cleanup sınırları implementation/2026-10-18-accessibility-and-lighthouse.md içindedir. Audit 12 (5 high/7 moderate) sürer; runtime/şema 006 değişmedi.
+
+## Haftalık rutinler — 23 Ekim 2026
+
+`session_series` (migration 010) + `study_sessions.seriesId/seriesDate`. Servis `backend/src/services/sessionSeries.ts` (materialize, düzenleme, bitirme, `extendAllSeries`); rotalar `/api/session-series` (GET, POST, PUT :id, DELETE :id, sürümlü). Ufuk `seriesHorizonDays` (182) contracts'ta; günlük cron 03:20 + açılışta. Sözleşmeler `contracts/sessionSeries.ts`; zaman `routineOccurrenceInstant`. Arayüz: `CreateSessionModal` (`editSeries`), `RoutinesDialog`, `seriesAPI`. Gerçek DB 010'da (yedek `backend/backups/pre-010-20261023-225025.sqlite`).
+
+## Kayıt hedefleri — 23 Ekim 2026
+
+`course_goals` (migration 011; kullanıcı × kayıt, haftalık dakika). Servis `backend/src/services/courseGoals.ts`, rotalar `/api/course-goals`. Sözleşme `contracts/courseGoals.ts`. Arayüz `CourseGoalPanel`, `CourseGoalsProgress`, `courseGoalsAPI`, `useCourseGoals` (katalog anahtarı). Gerçek DB 011'de (yedek `backend/backups/pre-011-20261023-232821.sqlite`).
+
+## Takvim aboneliği — 24 Ekim 2026
+
+`calendar_feeds` (migration 012; userId → SHA-256 anahtar özeti). Servis `backend/src/services/calendarFeeds.ts` (ICS üretimi), rotalar `routes/calendarRoutes.ts`: herkese açık `/api/calendar/:token.ics`, oturumlu `/api/calendar-feed`. Üretimde besleme adresi `FRONTEND_URL` + `/api/calendar/…`; ters vekil bu yolu geçirmeli. `morgan` `url` belirteci anahtarı gizler. Gerçek DB 012'de (yedek `backend/backups/pre-012-20261024-002055.sqlite`).
+
+## Etiketler — 24 Ekim 2026
+
+`tags`, `course_tags`, `session_tags` (migration 013). Servis `backend/src/services/tags.ts` (`listTags`, `setCourseTags`, `setSessionTags`, `sessionsWithTag` süzgeci), rotalar `routes/tagRoutes.ts` (`/api/tags`). Sözleşme `contracts/tags.ts`; `sessionQuerySchema.tagId`. Arayüz `components/tags/` (`TagManagerDialog`, `TagPicker`, `TagFilter`, `CourseTagsPanel`), `tagsAPI`, `useTags` (katalog anahtarı `tags`). Gerçek DB 013'te (yedek `backend/backups/pre-013-20261024-004728.sqlite`).
+
+## Hesap verisi içe aktarma — 24 Ekim 2026
+
+Dışa aktarma `accountExportVersion` 2 (`references`: ortak kategori/kayıt/konu adları). İçe aktarma şeması ve sonuç `contracts/accountImport.ts`; yanıt `accountImportResponseSchema` (`auth.ts`). Servis `backend/src/services/accountImport.ts` (`parseAccountImport`, `importAccount`), rota `POST /api/auth/account/import` (genel JSON sınırı 10 MB). Arayüz `components/account/AccountImportButton.tsx`, `authAPI.importAccount`, `authStore.importAccount`. Migration yok.
+
+## Sayfaya git paleti — 24 Ekim 2026
+
+`components/common/CommandPalette.tsx` (Headless UI Dialog + Combobox), Layout'ta `lazy` ve yalnız açıkken; kısayol `hooks/usePaletteShortcut.ts`; Header `onPaletteClick` düğmesi. Ayarlar `?tab=`, Site ayarları `?section=` adres parametreleri (`useSearchParams`, `replace`).
+

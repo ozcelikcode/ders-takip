@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import TagFilter from '../../components/tags/TagFilter';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import DailyStudyChart from '../../components/charts/DailyStudyChart';
@@ -76,11 +77,12 @@ export default function StatsPage() {
   const [preset, setPreset] = useState<RangePreset>('week');
   const [custom, setCustom] = useState<DateRange>(() => presetRange('last30', today, weekStart));
   const range = preset === 'custom' ? custom : presetRange(preset, today, weekStart);
+  const [tagId, setTagId] = useState<number | null>(null);
   const rangeProblem = rangeError(range);
   const invalid = rangeProblem === 'tooLong' ? text.rangeErrors.tooLong(maxRangeDays) : rangeProblem ? text.rangeErrors[rangeProblem] : null;
   const stats = useQuery({
-    queryKey: keys.sessions('statistics', range.startDate, range.endDate),
-    queryFn: async () => (await studySessionsAPI.getStats(range)).data.data?.stats,
+    queryKey: keys.sessions('statistics', range.startDate, range.endDate, tagId),
+    queryFn: async () => (await studySessionsAPI.getStats({ ...range, ...(tagId ? { tagId } : {}) })).data.data?.stats,
     enabled: !invalid,
   });
   const courses = useAllCourses();
@@ -100,6 +102,7 @@ export default function StatsPage() {
       <PageHeader title={text.title} description={text.description} />
 
       <div className="flex flex-wrap items-end gap-3">
+        <TagFilter value={tagId} onChange={setTagId} />
         <div role="group" aria-label={text.range} className="segmented-control flex-wrap">
           {PRESETS.map((id) => (
             <button

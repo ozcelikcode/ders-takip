@@ -23,6 +23,8 @@ import type { CatalogCourse, CatalogTopic as Topic } from '../types/catalog';
 import { coursesAPI, topicsAPI } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import CourseHeader from './course/CourseHeader';
+import CourseGoalPanel from '../components/goals/CourseGoalPanel';
+import CourseTagsPanel from '../components/tags/CourseTagsPanel';
 import TopicCard from './course/TopicCard';
 import {
   filterTopics,
@@ -112,7 +114,7 @@ const CourseDetailPage = () => {
     queryKey: accountKeys.catalog('course-topics', id, { isActive: false }),
     queryFn: async () =>
       (await coursesAPI.getCourseTopics(id!, { isActive: false })).data.data
-        ?.topics as Topic[] | undefined,
+        ?.topics,
     enabled: !!id && archived && canEdit,
   });
 
@@ -209,6 +211,10 @@ const CourseDetailPage = () => {
           setDeleting({ kind: 'course', id: course.id, name: course.name })
         }
       />
+      <div className="grid gap-5 lg:grid-cols-2">
+        <CourseGoalPanel courseId={course.id} />
+        <CourseTagsPanel courseId={course.id} />
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           {canEdit && (

@@ -5,7 +5,7 @@ import { formatGoalMinutes, goalPercent, summarizeGoals } from '../../utils/stud
 import { formatMeasuredSeconds } from '@study-tracker/contracts';
 import { useLanguage, useText } from '../../store/languageStore';
 
-function GoalRow({ label, studySeconds, goalSeconds, empty }: { label: string; studySeconds: number; goalSeconds: number | null; empty: string }) {
+export function GoalRow({ label, studySeconds, goalSeconds, empty }: { label: string; studySeconds: number; goalSeconds: number | null; empty: string }) {
   const language = useLanguage();
   const text = useText().goals;
   const percent = goalPercent(studySeconds, goalSeconds);

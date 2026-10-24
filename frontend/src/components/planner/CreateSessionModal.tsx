@@ -1,9 +1,11 @@
 import { useTerms } from '../../hooks/useTerms';
 import {
   calendarViewDate,
+  createSeriesSchema,
   sessionDurationLimits,
   createSessionSchema as createSessionRequestSchema,
   updateSessionSchema as updateSessionRequestSchema,
+  type SeriesRecord,
 } from '@study-tracker/contracts';
 import { format } from '../../utils/calendarDates';
 import { pomodoroDefaults } from '@study-tracker/contracts';
@@ -12,14 +14,19 @@ import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { contractResolver } from '../../lib/contractResolver';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
-import { Coffee, Trash2, X } from 'lucide-react';
+import { Coffee, Repeat, Trash2, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { isHttpError } from '../../services/httpError';
 import { useAccountMutation } from '../../hooks/useAccountMutation';
 import { useAllCourses } from '../../hooks/useAllCourses';
 import { sessionFormSchema, type CreateSessionForm } from './sessionForm';
-import { studySessionsAPI } from '../../services/api';
+import { seriesAPI, studySessionsAPI, tagsAPI } from '../../services/api';
+import { useTags } from '../../hooks/useTags';
+import TagPicker from '../tags/TagPicker';
+import { useWeekStart } from '../../hooks/useWeekStart';
+import WeekdayPicker from '../settings/WeekdayPicker';
 import type { StudySession } from '../../types/planner';
 import ConfirmDialog from '../common/ConfirmDialog';
 import PomodoroSettingsFields from './PomodoroSettingsFields';
@@ -27,6 +34,7 @@ import SessionCategoryPicker, { type SessionCategory } from './SessionCategoryPi
 import SessionColorPicker from './SessionColorPicker';
 import SessionDurationFields, { EndTimeSummary } from './SessionDurationFields';
 import {
+  buildSeriesPayload,
   buildSessionPayload,
   resolveSessionRange,
   resolveSessionTitle,
@@ -41,15 +49,19 @@ interface CreateSessionModalProps {
   selectedDate?: Date | undefined;
   selectedHour?: number | undefined;
   editSession?: StudySession | null;
+  /** Opens the form for a weekly routine instead of a single session. */
+  editSeries?: SeriesRecord | null;
 }
+
+const weekdayOf = (date: string) => new Date(`${date}T12:00:00Z`).getUTCDay();
 
 const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
   props,
 ) => {
-  const [{ selectedDate, selectedHour = 9, editSession }] = useState(props);
+  const [{ selectedDate, selectedHour = 9, editSession, editSeries }] = useState(props);
   const { onClose } = props;
   const t = useTerms();
-  const { sessionEditor: text, session: sessionText, common } = useText();
+  const { sessionEditor: text, session: sessionText, common, tags: tagText } = useText();
   const accountKeys = useAccountQueryKeys();
   const livePreferences = useUserPreferencesStore((state) => state.preferences);
   const [preferences] = useState(livePreferences);
@@ -66,11 +78,21 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
     useState<SessionCategory>('course');
   const [durationMode, setDurationMode] = useState<DurationMode>('minutes');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const mutation = useAccountMutation([accountKeys.sessions()]);
+  const mutation = useAccountMutation([accountKeys.sessions(), accountKeys.catalog('tags')]);
   const [writeSnapshot, setWriteSnapshot] = useState(editSession);
   const [needsRefresh, setNeedsRefresh] = useState(false);
   const [conflicted, setConflicted] = useState(false);
   const isEditMode = !!editSession;
+  // A routine is chosen when creating (or edited as a whole); a single session from one stays a single session.
+  const [repeat, setRepeat] = useState(!!editSeries);
+  const [weekdays, setWeekdays] = useState<number[]>(editSeries?.weekdays ?? []);
+  const [endsOn, setEndsOn] = useState(editSeries?.endsOn ?? '');
+  const weekStart = useWeekStart();
+  const tags = useTags();
+  // Tags the session has now; null until the person changes them, so the stored ones show while loading.
+  const [chosenTags, setChosenTags] = useState<number[] | null>(null);
+  const storedTags = editSession ? (tags.data?.sessionTags.filter((row) => row.sessionId === editSession.id).map((row) => row.tagId) ?? []) : [];
+  const sessionTags = chosenTags ?? storedTags;
 
   const coursesQuery = useAllCourses();
 
@@ -162,6 +184,22 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
       return;
     }
 
+    if (repeat) {
+      const routine = createSeriesSchema.safeParse(
+        buildSeriesPayload(correctedData, resolveSessionTitle(correctedData, coursesData, editSession), range, weekdays, endsOn),
+      );
+      if (!routine.success) {
+        setError('title', { type: 'validate', message: text.checkFields(t) });
+        return;
+      }
+      const saved = await perform(async () => {
+        const result = editSeries ? await seriesAPI.update(editSeries, routine.data) : await seriesAPI.create(routine.data);
+        if (result.skippedDates.length) toast(text.routineSkipped(t, result.skippedDates.length));
+      }, editSeries ? text.routineUpdated : text.routineCreated);
+      if (saved) onClose();
+      return;
+    }
+
     const sessionData = buildSessionPayload(
       correctedData,
       resolveSessionTitle(correctedData, coursesData, editSession),
@@ -184,12 +222,20 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
       return;
     }
     const saved = await perform(
-      () =>
-        isEditMode && writeSnapshot && 'expectedUpdatedAt' in request.data
-          ? studySessionsAPI.updateSession(writeSnapshot, request.data)
-          : studySessionsAPI.createSession(
-              createSessionRequestSchema.parse(request.data),
-            ),
+      async () => {
+        const response =
+          isEditMode && writeSnapshot && 'expectedUpdatedAt' in request.data
+            ? await studySessionsAPI.updateSession(writeSnapshot, request.data)
+            : await studySessionsAPI.createSession(createSessionRequestSchema.parse(request.data));
+        const sessionId = response.data.data?.session?.id ?? editSession?.id;
+        if (sessionId === undefined || chosenTags === null) return;
+        // The session is saved by now; a failed tag write must not make a retry create it twice.
+        try {
+          await tagsAPI.setSessionTags(Number(sessionId), chosenTags);
+        } catch {
+          toast.error(tagText.sessionTagsFailed(t));
+        }
+      },
       isEditMode
         ? text.updated(t)
         : text.created(t),
@@ -205,16 +251,24 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
   const handleDelete = (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
-    if (!editSession || mutation.isPending || needsRefresh) return;
+    if (!(editSession || editSeries) || mutation.isPending || needsRefresh) return;
     mutation.clearError();
     setShowDeleteConfirm(true);
   };
 
   const confirmDelete = async () => {
+    if (editSeries) {
+      const ended = await perform(() => seriesAPI.stop(editSeries), text.routineEnded);
+      if (ended) {
+        setShowDeleteConfirm(false);
+        onClose();
+      }
+      return ended;
+    }
     if (!writeSnapshot || needsRefresh) return false;
     const saved = await perform(
       () => studySessionsAPI.deleteSession(writeSnapshot),
-      `${t.session({ capitalize: true })} silindi.`,
+      text.deleted(t),
     );
     if (saved) {
       setShowDeleteConfirm(false);
@@ -225,7 +279,24 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
 
   // Pre-fill form when editing OR when opening with selected date/hour
   useEffect(() => {
-    if (editSession) {
+    if (editSeries) {
+      const category: SessionCategory = editSeries.sessionType === 'break' ? 'break' : editSeries.courseId ? 'course' : 'custom';
+      setSessionCategory(category);
+      reset({
+        sessionCategory: category,
+        courseId: editSeries.courseId?.toString() || '',
+        customTitle: category === 'custom' ? editSeries.title : '',
+        description: editSeries.description || '',
+        startDate: editSeries.startsOn,
+        startTime: editSeries.startTime,
+        durationMode: 'minutes',
+        duration: editSeries.durationMinutes,
+        endTime: '',
+        sessionType: editSeries.sessionType,
+        color: editSeries.color || '#3B82F6',
+        pomodoroSettings: editSeries.pomodoroSettings || defaultPomodoro,
+      });
+    } else if (editSession) {
       // Editing existing session
       const durationInMinutes = editSession.duration;
 
@@ -283,6 +354,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
       });
     }
   }, [
+    editSeries,
     editSession,
     selectedDate,
     selectedHour,
@@ -358,7 +430,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
         >
           <div className="flex items-center justify-between p-5 border-b border-(--line)">
             <DialogTitle className="text-lg font-medium ">
-              {isEditMode ? text.editTitle(t) : text.newTitle(t)}
+              {editSeries ? text.editRoutineTitle : isEditMode ? text.editTitle(t) : text.newTitle(t)}
             </DialogTitle>
             <button
               onClick={handleClose}
@@ -507,6 +579,13 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 />
               </div>
 
+              {!repeat && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">{tagText.picker}</p>
+                  <TagPicker tags={tags.data?.tags ?? []} selected={sessionTags} onChange={setChosenTags} />
+                </div>
+              )}
+
               {/* Start Date and Time */}
               <div>
                 <label className="block text-sm font-medium mb-3">
@@ -554,6 +633,53 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 startTime={watchedStartTime}
                 endTime={watchedEndTime}
               />
+
+              {isEditMode && editSession?.seriesId && (
+                <p className="flex items-start gap-2 text-xs text-(--muted)">
+                  <Repeat className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  {text.partOfRoutine(t)}
+                </p>
+              )}
+              {!isEditMode && (
+                <div className="space-y-3 rounded-lg border border-(--line) p-4">
+                  {!editSeries && (
+                    <label className="flex items-center gap-2 text-sm font-medium">
+                      <input
+                        type="checkbox"
+                        checked={repeat}
+                        onChange={(event) => {
+                          setRepeat(event.target.checked);
+                          if (event.target.checked && !weekdays.length) setWeekdays([weekdayOf(watchedStartDate)]);
+                        }}
+                      />
+                      <Repeat className="h-4 w-4 text-(--muted)" aria-hidden="true" />
+                      {text.repeatWeekly}
+                    </label>
+                  )}
+                  {repeat && (
+                    <>
+                      <div className="space-y-2">
+                        <p className="text-xs text-(--muted)">{text.repeatDays}</p>
+                        <WeekdayPicker label={text.repeatDays} value={weekdays} weekStart={weekStart} onChange={setWeekdays} />
+                      </div>
+                      <div>
+                        <label htmlFor="repeatUntil" className="mb-1 block text-xs text-(--muted)">
+                          {text.repeatUntil}
+                        </label>
+                        <input
+                          id="repeatUntil"
+                          type="date"
+                          className="input"
+                          value={endsOn}
+                          min={watchedStartDate}
+                          onChange={(event) => setEndsOn(event.target.value)}
+                        />
+                      </div>
+                      <p className="text-xs text-(--muted)">{text.repeatHint(t)}</p>
+                    </>
+                  )}
+                </div>
+              )}
 
               {/* Session Type */}
               {sessionCategory !== 'break' && (
@@ -612,7 +738,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
           <div className="flex flex-wrap justify-between items-center gap-3 p-5 border-t border-(--line) bg-(--surface)">
             {/* Delete button - left side, only in edit mode */}
             <div>
-              {isEditMode && (
+              {(isEditMode || editSeries) && (
                 <button
                   type="button"
                   onClick={(e) => handleDelete(e)}
@@ -620,7 +746,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                   className="btn btn-secondary text-red-600"
                 >
                   <Trash2 className="w-4 h-4" />
-                  {text.delete}
+                  {editSeries ? text.endRoutine : text.delete}
                 </button>
               )}
             </div>
@@ -643,6 +769,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                   needsRefresh ||
                   showDeleteConfirm ||
                   !isValid ||
+                  (repeat && !weekdays.length) ||
                   (sessionCategory === 'course' &&
                     !coursesData?.some(
                       (course) => String(course.id) === watch('courseId'),
@@ -651,10 +778,10 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 className="btn btn-primary"
               >
                 {mutation.isPending
-                  ? isEditMode
+                  ? isEditMode || editSeries
                     ? text.updating
                     : text.creating
-                  : isEditMode
+                  : isEditMode || editSeries
                     ? text.update
                     : text.create}
               </button>
@@ -666,8 +793,9 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={confirmDelete}
-        title={text.deleteTitle(t)}
-        message={text.deleteMessage(t, editSession?.title ?? '')}
+        title={editSeries ? text.endRoutine : text.deleteTitle(t)}
+        message={editSeries ? text.endRoutineMessage(t, editSeries.title) : text.deleteMessage(t, editSession?.title ?? '')}
+        {...(editSeries ? { confirmText: text.endRoutine } : {})}
         type="danger"
       >
         {mutation.errorMessage && (
@@ -691,6 +819,6 @@ export default function CreateSessionModal({
   ...props
 }: CreateSessionModalProps) {
   return isOpen ? (
-    <SessionEditor key={props.editSession?.id ?? 'new'} {...props} />
+    <SessionEditor key={props.editSeries ? `series-${props.editSeries.id}` : (props.editSession?.id ?? 'new')} {...props} />
   ) : null;
 }

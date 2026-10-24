@@ -2,6 +2,7 @@ import {
   formatZonedTime,
   isSessionDurationValid,
   wallTimeToInstant,
+  type CreateSeriesInput,
 } from '@study-tracker/contracts';
 import { differenceInMinutes } from 'date-fns';
 import type { CatalogCourse } from '../../types/catalog';
@@ -98,6 +99,29 @@ export const buildSessionPayload = (
           currentCycle: 0,
         },
       }),
+  };
+};
+
+/**
+ * The same form as a weekly routine: its fields, the form's date and wall time as the first day and time,
+ * and the duration of the range the form resolved.
+ */
+export const buildSeriesPayload = (
+  data: CreateSessionForm,
+  title: string,
+  range: { startTime: Date; endTime: Date },
+  weekdays: number[],
+  endsOn: string,
+): CreateSeriesInput => {
+  const { startTime, endTime, description, ...session } = buildSessionPayload(data, title, range, false) as CreateStudySessionRequest;
+  return {
+    ...session,
+    ...(description ? { description } : {}),
+    weekdays,
+    startTime: data.startTime,
+    durationMinutes: Math.round((new Date(endTime).getTime() - new Date(startTime).getTime()) / 60_000),
+    startsOn: data.startDate,
+    endsOn: endsOn || null,
   };
 };
 

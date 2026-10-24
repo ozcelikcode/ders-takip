@@ -12,7 +12,7 @@ import rateLimit from 'express-rate-limit';
 import { protect } from '../middleware/auth';
 import { getEnvironment } from '../config/environment';
 import { completePasswordReset, forgotPassword } from '../controllers/passwordResetController';
-import { deleteMyAccount, downloadAccountData } from '../controllers/accountController';
+import { deleteMyAccount, downloadAccountData, importAccountData } from '../controllers/accountController';
 import { requireTrustedAuthRequest } from '../middleware/authCookies';
 import {
   changePasswordSchema,
@@ -51,8 +51,9 @@ router.post('/logout', logout);
 
 router.get('/me', protect, getMe);
 
-// The user's own data: a JSON download, and deletion confirmed with the current password.
+// The user's own data: a JSON download, loading such a file into an empty account, and deletion confirmed with the current password.
 router.get('/account/export', protect, downloadAccountData);
+router.post('/account/import', protect, importAccountData);
 router.delete('/account', protect, validate(z.object({ body: deleteAccountSchema })), deleteMyAccount);
 
 router.put(

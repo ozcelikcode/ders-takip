@@ -6,6 +6,7 @@ import {
   newPasswordSchema,
   userResponseSchema,
 } from './users.js';
+import { accountImportResultSchema } from './accountImport.js';
 import { preferencesPatchSchema } from './preferences.js';
 import { timezoneSchema } from './time.js';
 
@@ -70,6 +71,11 @@ export const authResponseSchema = z.object({
 export const profileResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({ user: userResponseSchema }),
+});
+/** An import answers with what it created and the account, whose preferences it may have replaced. */
+export const accountImportResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({ result: accountImportResultSchema, user: userResponseSchema }),
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;

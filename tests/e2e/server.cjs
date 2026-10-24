@@ -12,6 +12,8 @@ const directory = fs.realpathSync(process.argv[2]);
 assert.equal(path.dirname(directory), fs.realpathSync(os.tmpdir()));
 assert.ok(path.basename(directory).startsWith('study-tracker-e2e-'));
 assert.deepEqual(fs.readdirSync(directory), []);
+const clearsStudyData = process.argv[3] === '--clears-study-data';
+assert.equal(process.argv.length, clearsStudyData ? 4 : 3);
 // Throwaway VAPID keys make the browser-notification settings visible; nothing is sent from the fixture.
 const vapid = require('web-push').generateVAPIDKeys();
 Object.assign(process.env, {
@@ -132,6 +134,12 @@ process.once('disconnect', shutdown);
     const [foreignKeys] = await sequelize.query('PRAGMA foreign_key_check');
     assert.deepEqual(integrity, [{ integrity_check: 'ok' }]);
     assert.deepEqual(foreignKeys, []);
+    if (clearsStudyData) {
+      // Clearing all data removes every session and every non-administrator account.
+      assert.equal(await StudySession.count(), 0);
+      assert.deepEqual((await User.findAll({ order: [['id', 'ASC']] })).map((user) => user.username), ['manager']);
+      return;
+    }
     assert.equal(await readProtected(), beforeSessions);
     assert.equal(await readProtectedIntervals(), beforeIntervals);
     assert.equal(

@@ -130,7 +130,7 @@ npm test
 npm run build
 ```
 
-Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 18 contracts + 143 backend + 200 frontend = 361 workspace testidir. Yeni ekran akış regresyonları `frontend/tests/` altındadır; burası da Vitest, strict TypeScript ve ESLint kapsamındadır. Mevcut `src/**/*.test.*` testleri aynı kalite zincirinde korunur. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
+Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 46 contracts + 205 backend + 306 frontend = 557 workspace testidir. Yeni ekran akış regresyonları `frontend/tests/` altındadır; burası da Vitest, strict TypeScript ve ESLint kapsamındadır. Mevcut `src/**/*.test.*` testleri aynı kalite zincirinde korunur. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
 
 Gerçek tarayıcı ana akışları ayrıca çalıştırılır:
 

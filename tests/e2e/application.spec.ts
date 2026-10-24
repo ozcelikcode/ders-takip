@@ -486,6 +486,203 @@ test('lets a user name records with their own word and keeps it after a reload',
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Projeler');
 });
 
+test('plans a weekly routine, edits it as a whole and ends it', async ({ page, application }) => {
+  // Start tomorrow so the test does not depend on the time of day.
+  const tomorrow = new Date(Date.parse(`${application.day}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+  await login(page);
+  await dailyPlanner(page);
+  await page.getByRole('button', { name: 'Yeni seans', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Yeni Seans' });
+  await editor.getByRole('button', { name: 'Özel', exact: true }).click();
+  await editor.getByLabel('Özel Başlık *', { exact: true }).fill('Guitar routine');
+  await editor.getByLabel('Tarih', { exact: true }).fill(tomorrow);
+  await editor.getByLabel('Saat', { exact: true }).fill('18:00');
+  await editor.getByLabel('Süre (dakika) *', { exact: true }).fill('90');
+  await editor.getByRole('checkbox', { name: 'Her hafta tekrarla' }).check();
+  await expect(editor.getByRole('group', { name: 'Tekrar günleri' }).locator('[aria-pressed="true"]')).toHaveCount(1);
+  await editor.getByLabel('Bitiş tarihi (isteğe bağlı)').fill(tomorrow);
+  await editor.getByRole('button', { name: 'Oluştur', exact: true }).click();
+  await expect(editor).toHaveCount(0);
+  await expect(page.getByText('Rutin oluşturuldu.')).toBeVisible();
+
+  await page.goto(`/planner?date=${tomorrow}`);
+  await page.getByRole('button', { name: 'Günlük', exact: true }).click();
+  const card = page.getByRole('button', { name: 'Guitar routine: işlemler' });
+  await expect(card).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Rutin' })).toHaveCount(1);
+
+  await page.getByRole('button', { name: 'Rutinler', exact: true }).click();
+  const routines = page.getByRole('dialog', { name: 'Rutinler' });
+  await expect(routines.getByText('Guitar routine', { exact: true })).toBeVisible();
+  await expect(routines.getByText(/18:00 · 90 dk/)).toBeVisible();
+  await routines.getByRole('button', { name: 'Rutini düzenle: Guitar routine' }).click();
+  const routineEditor = page.getByRole('dialog', { name: 'Rutini düzenle' });
+  await routineEditor.getByLabel('Özel Başlık *', { exact: true }).fill('Guitar practice');
+  await routineEditor.getByRole('button', { name: 'Güncelle', exact: true }).click();
+  await expect(routineEditor).toHaveCount(0);
+  // Untouched future sessions are rebuilt from the edited routine.
+  await expect(page.getByRole('button', { name: 'Guitar practice: işlemler' })).toBeVisible();
+  await expect(card).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Rutinler', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Rutinler' }).getByRole('button', { name: 'Rutini düzenle: Guitar practice' }).click();
+  await page.getByRole('dialog', { name: 'Rutini düzenle' }).getByRole('button', { name: 'Rutini bitir', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Rutini bitir' }).getByRole('button', { name: 'Rutini bitir', exact: true }).click();
+  await expect(page.getByText('Rutin bitirildi.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Guitar practice: işlemler' })).toHaveCount(0);
+});
+
+test('sets a personal weekly goal on a shared record and follows it on the dashboard', async ({ page }) => {
+  await login(page, 'manager@example.test');
+  await page.goto('/admin/courses');
+  await page.getByRole('button', { name: 'Kategoriler', exact: true }).click();
+  const categories = page.getByRole('dialog', { name: 'Kategori yönetimi' });
+  await categories.getByRole('button', { name: 'Kategori ekle', exact: true }).click();
+  const category = page.getByRole('dialog', { name: 'Kategori ekle' });
+  await category.getByLabel('Kategori adı', { exact: true }).fill('Music');
+  await category.getByRole('button', { name: 'Kaydet', exact: true }).click();
+  await expect(category).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(categories).toHaveCount(0);
+  await page.getByRole('button', { name: 'Ortak proje ekle', exact: true }).click();
+  const record = page.getByRole('dialog', { name: 'Proje ekle' });
+  await record.getByLabel('Proje adı', { exact: true }).fill('Guitar lessons');
+  await record.getByLabel('Kategori', { exact: true }).selectOption({ label: 'Music' });
+  await record.getByRole('button', { name: 'Kaydet', exact: true }).click();
+  await expect(record).toHaveCount(0);
+  await logout(page);
+
+  await login(page);
+  await page.goto('/courses');
+  await page.getByRole('link', { name: /Guitar lessons/ }).first().click();
+  await page.getByRole('button', { name: 'Hedef belirle', exact: true }).click();
+  await page.getByRole('group', { name: 'Haftalık hedef' }).getByRole('button', { name: '5 sa', exact: true }).click();
+  await page.getByRole('button', { name: 'Hedefi kaydet', exact: true }).click();
+  await expect(page.getByText('Haftalık hedef kaydedildi.')).toBeVisible();
+  await expect(page.getByRole('progressbar', { name: 'Bu hafta hedefi' })).toHaveAttribute('aria-valuenow', '0');
+  await expect(page.getByText('0 sn / 5 sa')).toBeVisible();
+  await page.goto('/dashboard');
+  await expect(page.getByRole('heading', { name: 'Proje hedefleri' })).toBeVisible();
+  await expect(page.getByRole('progressbar', { name: 'Guitar lessons hedefi' })).toBeVisible();
+});
+
+test('subscribes a calendar app to the sessions through a private address that can be renewed and turned off', async ({ page }) => {
+  await login(page);
+  await page.goto('/settings');
+  await page.getByRole('button', { name: 'Takvim', exact: true }).click();
+  await expect(page.getByText('Abonelik kapalı.')).toBeVisible();
+  await page.getByRole('button', { name: 'Abonelik adresi oluştur', exact: true }).click();
+  const address = page.getByLabel('Abonelik adresi', { exact: true });
+  await expect(address).toHaveValue(/\/api\/calendar\/[A-Za-z0-9_-]{43}\.ics$/);
+  const first = await address.inputValue();
+  await expect(page.getByRole('link', { name: 'Takvim uygulamasında aç' })).toHaveAttribute('href', /^webcal:/);
+  // A calendar app fetches the address with no session at all.
+  const feed = await page.request.get(new URL(first).pathname, { headers: { cookie: '' } });
+  expect(feed.status()).toBe(200);
+  expect(feed.headers()['content-type']).toMatch(/^text\/calendar/);
+  const body = (await feed.text()).replace(/\r\n /g, '');
+  expect(body).toContain('SUMMARY:Movable session');
+  expect(body).not.toContain('Preserve fixture notes');
+
+  // Shown once: after a reload only the state is visible.
+  await page.reload();
+  await page.getByRole('button', { name: 'Takvim', exact: true }).click();
+  await expect(page.getByText(/Abonelik .* tarihinden beri açık/)).toBeVisible();
+  await expect(page.getByLabel('Abonelik adresi', { exact: true })).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Adresi yenile', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Adres yenilensin mi?' }).getByRole('button', { name: 'Adresi yenile', exact: true }).click();
+  const renewed = await page.getByLabel('Abonelik adresi', { exact: true }).inputValue();
+  expect(renewed).not.toBe(first);
+  expect((await page.request.get(new URL(first).pathname)).status()).toBe(404);
+  expect((await page.request.get(new URL(renewed).pathname)).status()).toBe(200);
+
+  await page.getByRole('button', { name: 'Aboneliği kapat', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Abonelik kapatılsın mı?' }).getByRole('button', { name: 'Aboneliği kapat', exact: true }).click();
+  await expect(page.getByText('Abonelik kapalı.')).toBeVisible();
+  expect((await page.request.get(new URL(renewed).pathname)).status()).toBe(404);
+});
+
+test('tags a session and filters the planner and statistics by that tag', async ({ page }) => {
+  await login(page);
+  await page.goto('/courses');
+  await page.getByRole('button', { name: 'Etiketler', exact: true }).click();
+  const manager = page.getByRole('dialog', { name: 'Etiketlerim' });
+  await manager.getByLabel('Yeni etiket').fill('Sınav');
+  await manager.getByRole('button', { name: 'Etiket ekle', exact: true }).click();
+  await expect(manager.getByLabel('Etiket adı: Sınav')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(manager).toHaveCount(0);
+
+  await dailyPlanner(page);
+  await page.getByRole('button', { name: 'Movable session', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Seansı düzenle' });
+  await editor.getByRole('group', { name: 'Etiketler' }).getByRole('button', { name: 'Sınav', exact: true }).click();
+  await editor.getByRole('button', { name: 'Güncelle', exact: true }).click();
+  await expect(editor).toHaveCount(0);
+
+  await page.getByLabel('Etikete göre süz').selectOption({ label: 'Sınav' });
+  await expect(page.getByRole('button', { name: 'Movable session: işlemler' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'First short session: işlemler' })).toHaveCount(0);
+  await page.getByLabel('Etikete göre süz').selectOption({ label: 'Tüm etiketler' });
+  await expect(page.getByRole('button', { name: 'First short session: işlemler' })).toBeVisible();
+
+  await page.goto('/stats');
+  const filtered = page.waitForResponse((response) => /\/api\/study-sessions\/stats\?.*tagId=\d+/.test(response.url()));
+  await page.getByLabel('Etikete göre süz').selectOption({ label: 'Sınav' });
+  expect((await filtered).status()).toBe(200);
+});
+
+test('moves an account into a new one through the downloaded data file', async ({ page }, info) => {
+  await login(page);
+  await page.goto('/profile');
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'İndir', exact: true }).click();
+  const file = info.outputPath('account.json');
+  await (await download).saveAs(file);
+  await logout(page);
+
+  await registerAccount(page, 'mover');
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Verilerimi yükle', exact: true }).click();
+  await (await chooser).setFiles(file);
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await dailyPlanner(page);
+
+  // The account is no longer empty, so the same file is refused the second time.
+  await page.goto('/profile');
+  const again = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Dosya seç', exact: true }).click();
+  await (await again).setFiles(file);
+  await expect(page.getByRole('main').getByRole('alert')).toHaveText('Veriler yalnız boş bir hesaba yüklenebilir; bu hesapta zaten veri var');
+});
+
+test('jumps to any page or settings tab by name, from the keyboard or the header button', async ({ page }) => {
+  await login(page);
+  const palette = page.getByRole('dialog', { name: 'Sayfaya git' });
+  // Headless UI's dialog root has no size of its own; its search field shows the palette is open.
+  const field = palette.getByRole('combobox', { name: 'Sayfa ya da ayar ara' });
+  await page.keyboard.press('ControlOrMeta+k');
+  await expect(field).toBeFocused();
+  await page.keyboard.type('takvim');
+  await page.keyboard.press('Enter');
+  await expect(palette).toHaveCount(0);
+  await expect(page).toHaveURL(/\/settings\?tab=calendar$/);
+  await expect(page.getByRole('heading', { name: 'Takvim aboneliği', exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Sayfaya git', exact: true }).click();
+  await field.fill('istatis');
+  await palette.getByRole('option', { name: /İstatistikler/ }).click();
+  await expect(page).toHaveURL(/\/stats$/);
+
+  // Administration is not offered to a regular account.
+  await page.keyboard.press('ControlOrMeta+k');
+  await field.fill('yedek');
+  await expect(palette.getByText('Eşleşen sayfa yok.')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(palette).toHaveCount(0);
+});
+
 test('reads the weekly chart as a table of measured study, not as an application', async ({ page }) => {
   await login(page);
   const chart = page.getByRole('figure').filter({ has: page.getByRole('table', { name: /Günlük ölçülen çalışma/ }) });
@@ -503,20 +700,16 @@ test('measures a Pomodoro session through pause, reload and completion and count
 }) => {
   await login(page);
   await dailyPlanner(page);
-  // Start within the hour so the session has not ended yet and can be started.
-  const now = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/Istanbul',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).format(new Date());
+  // Tomorrow afternoon: a planned session can start any time before it ends, and nothing else is planned then,
+  // so the test does not depend on the time of day.
+  const tomorrow = new Date(Date.parse(`${application.day}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
   await page.getByRole('button', { name: 'Yeni seans', exact: true }).click();
   const editor = page.getByRole('dialog', { name: 'Yeni Seans' });
   await editor.getByRole('button', { name: 'Özel', exact: true }).click();
   await editor.getByLabel('Özel Başlık *', { exact: true }).fill('Focused browser session');
   await editor.getByLabel('Seans türü *', { exact: true }).selectOption('pomodoro');
-  await editor.getByLabel('Tarih', { exact: true }).fill(application.day);
-  await editor.getByLabel('Saat', { exact: true }).fill(now);
+  await editor.getByLabel('Tarih', { exact: true }).fill(tomorrow);
+  await editor.getByLabel('Saat', { exact: true }).fill('15:00');
   await editor.getByLabel('Süre (dakika) *', { exact: true }).fill('60');
   await editor.getByRole('button', { name: 'Oluştur', exact: true }).click();
   await expect(editor).toHaveCount(0);
@@ -562,7 +755,7 @@ test('lets an administrator create an account that can sign in, then deactivate 
   const editor = page.getByRole('dialog', { name: 'Kullanıcı oluştur' });
   await editor.getByLabel('Ad', { exact: true }).fill('Created');
   await editor.getByLabel('Soyad', { exact: true }).fill('Person');
-  await editor.getByLabel('Kullanıcı adı', { exact: true }).fill('createdperson');
+  await editor.getByLabel('Kullanıcı Adı', { exact: true }).fill('createdperson');
   await editor.getByLabel('E-posta', { exact: true }).fill('created@example.test');
   await editor.getByLabel('Parola', { exact: true }).fill('created-fixture-password');
   await editor.getByLabel('Parola tekrarı', { exact: true }).fill('created-fixture-password');
@@ -672,6 +865,147 @@ test('restores a backup the administrator took, undoing later changes and asking
   await login(page);
 });
 
+test('keeps the idle session limit an administrator sets, within its bounds', async ({ page }) => {
+  await login(page, 'manager@example.test');
+  await page.goto('/admin/settings?section=security');
+  const limit = page.getByLabel('Boşta oturum süresi (dakika)', { exact: true });
+  const save = page.getByRole('button', { name: 'Değişiklikleri kaydet', exact: true });
+  await limit.fill('1441');
+  await save.click();
+  await expect(limit).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByText('Geçerli bir değer girin.')).toBeVisible();
+  await limit.fill('30');
+  await save.click();
+  await expect(page.getByText('Site ayarları kaydedildi ve uygulandı.')).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel('Boşta oturum süresi (dakika)', { exact: true })).toHaveValue('30');
+});
+
+test.describe('clearing all data', () => {
+  test.use({ clearsStudyData: true });
+  test('removes accounts and study data but keeps administrators and a safety backup', async ({ page }) => {
+    await login(page, 'manager@example.test');
+    await page.goto('/admin/settings?section=backup');
+    await page.getByRole('button', { name: 'Kullanıcı ve çalışma verilerini temizle', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Kullanıcı ve çalışma verilerini temizle' });
+    await expect(dialog.getByText(/rutinler, \S+ hedefleri, etiketler/)).toBeVisible();
+    await dialog.getByRole('button', { name: 'Sıfırlamayı uygula', exact: true }).click();
+    await expect(page.getByText('Seçilen veriler sıfırlandı; güvenlik yedeği saklandı.')).toBeVisible();
+    // The form returns to its first section with the site defaults.
+    await expect(page).toHaveURL(/\/admin\/settings$/);
+    await expect(page.getByLabel('Site adı', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Yedekleme ve sıfırlama', exact: true }).click();
+    await expect(page.getByRole('button', { name: /tarihli yedeği geri yükle$/ }).first()).toBeVisible();
+
+    await logout(page);
+    await page.getByLabel('E-posta Adresi').fill('owner@example.test');
+    await page.getByLabel('Şifre', { exact: true }).fill('fixture-password');
+    await page.getByRole('button', { name: 'Giriş Yap', exact: true }).click();
+    await expect(page.getByText('E-posta veya şifre hatalı').first()).toBeVisible();
+    await login(page, 'manager@example.test');
+  });
+});
+
+test('moves shared records to the chosen category when the administrator deletes theirs', async ({ page }) => {
+  await login(page, 'manager@example.test');
+  await page.goto('/admin/courses');
+  const openCategories = async () => {
+    await page.getByRole('button', { name: 'Kategoriler', exact: true }).click();
+    return page.getByRole('dialog', { name: 'Kategori yönetimi' });
+  };
+  let categories = await openCategories();
+  for (const name of ['Source Category', 'Target Category']) {
+    await categories.getByRole('button', { name: 'Kategori ekle', exact: true }).click();
+    const editor = page.getByRole('dialog', { name: 'Kategori ekle' });
+    await editor.getByLabel('Kategori adı', { exact: true }).fill(name);
+    await editor.getByRole('button', { name: 'Kaydet', exact: true }).click();
+    await expect(editor).toHaveCount(0);
+    await expect(categories.getByText(name, { exact: true })).toBeVisible();
+  }
+  await page.keyboard.press('Escape');
+  await expect(categories).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Ortak proje ekle', exact: true }).click();
+  const record = page.getByRole('dialog', { name: 'Proje ekle' });
+  await record.getByLabel('Proje adı', { exact: true }).fill('Moved Project');
+  await record.getByLabel('Kategori', { exact: true }).selectOption({ label: 'Source Category' });
+  await record.getByRole('button', { name: 'Kaydet', exact: true }).click();
+  await expect(record).toHaveCount(0);
+
+  categories = await openCategories();
+  await categories.getByRole('button', { name: 'Source Category kategorisini sil', exact: true }).click();
+  const removal = page.getByRole('dialog', { name: 'Kategoriyi sil' });
+  await removal.getByLabel(/taşınacağı kategori$/).selectOption({ label: 'Target Category' });
+  await removal.getByRole('button', { name: 'Kategoriyi sil', exact: true }).click();
+  await expect(removal).toHaveCount(0);
+  await expect(categories.getByText('Source Category', { exact: true })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(categories).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Projeyi düzenle: Moved Project', exact: true }).click();
+  const edit = page.getByRole('dialog', { name: 'Projeyi düzenle' });
+  await expect(edit.getByLabel('Kategori', { exact: true }).locator('option:checked')).toHaveText('Target Category');
+});
+
+test('resets only the site settings and keeps accounts and study data', async ({ page }) => {
+  await login(page, 'manager@example.test');
+  await page.goto('/admin/settings');
+  await page.getByLabel('Site adı', { exact: true }).fill('Renamed Before Reset');
+  await page.getByRole('button', { name: 'Değişiklikleri kaydet', exact: true }).click();
+  await expect(page).toHaveTitle('Renamed Before Reset');
+  await page.getByRole('button', { name: 'Yedekleme ve sıfırlama', exact: true }).click();
+  await page.getByRole('button', { name: 'Yalnızca site ayarlarını sıfırla', exact: true }).click();
+  await page.getByRole('button', { name: 'Sıfırlamayı uygula', exact: true }).click();
+  await expect(page.getByText('Seçilen veriler sıfırlandı; güvenlik yedeği saklandı.')).toBeVisible();
+  await expect(page).not.toHaveTitle('Renamed Before Reset');
+  await logout(page);
+  // Accounts and their sessions are untouched (the fixture also checks the seeded sessions on teardown).
+  await login(page);
+  await dailyPlanner(page);
+});
+
+test('closes registration and holds everyone but administrators at the maintenance screen', async ({
+  page,
+  browser,
+  application,
+}) => {
+  // A student who is already signed in when maintenance starts.
+  const studentContext = await browser.newContext({ baseURL: application.url });
+  const student = await studentContext.newPage();
+  try {
+    // While registration is open, the sign-in page links to it.
+    await student.goto('/login');
+    await expect(student.getByRole('link', { name: 'Kayıt Ol', exact: true })).toBeVisible();
+    await login(student);
+
+    await login(page, 'manager@example.test');
+    await page.goto('/admin/settings');
+    await page.getByRole('button', { name: 'Güvenlik', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'Yeni kayıtlara izin ver' }).uncheck();
+    await page.getByRole('checkbox', { name: 'Bakım modu' }).check();
+    await page.getByRole('button', { name: 'Değişiklikleri kaydet', exact: true }).click();
+    await expect(page.getByText('Site ayarları kaydedildi ve uygulandı.')).toBeVisible();
+    // Administrators keep working.
+    await page.goto('/dashboard');
+    await expect(page.getByRole('heading', { level: 1, name: 'Merhaba, Fixture.' })).toBeVisible();
+
+    await student.reload();
+    await expect(student.getByRole('heading', { level: 1, name: 'Site bakımda' })).toBeVisible();
+    await student.getByRole('button', { name: 'Çıkış Yap', exact: true }).click();
+    await expect(student).toHaveURL(/\/login$/);
+    await expect(student.getByRole('link', { name: 'Kayıt Ol', exact: true })).toHaveCount(0);
+    await student.getByLabel('E-posta Adresi').fill('owner@example.test');
+    await student.getByLabel('Şifre', { exact: true }).fill('fixture-password');
+    await student.getByRole('button', { name: 'Giriş Yap', exact: true }).click();
+    await expect(student.getByText('Site bakımda. Lütfen daha sonra tekrar deneyin')).toBeVisible();
+    await expect(student).toHaveURL(/\/login$/);
+    await student.goto('/register');
+    await expect(student.getByRole('heading', { level: 1, name: 'Kayıtlar kapalı' })).toBeVisible();
+  } finally {
+    await studentContext.close();
+  }
+});
+
 test('shows a renamed site on the public pages after the administrator saves it', async ({ page }) => {
   await login(page, 'manager@example.test');
   await page.goto('/admin/settings');
@@ -743,5 +1077,65 @@ test.describe('Site language', () => {
     await expect(page.getByRole('group', { name: 'Language' })).toHaveCount(0);
     await page.reload();
     await expect(heading).toHaveText('Settings');
+  });
+  test('keeps custom words in the language they were typed in and never translates them', async ({ page }) => {
+    const heading = page.getByRole('heading', { level: 1 });
+    const setSiteLanguage = async (language: 'tr' | 'en', label: string, save: string) => {
+      await page.goto('/admin/settings');
+      await page.getByLabel(label).selectOption(language);
+      await page.getByRole('button', { name: save }).click();
+      await expect(heading).toHaveText(language === 'en' ? 'Site settings' : 'Site ayarları');
+    };
+    const signOut = async (menu: string, button: string) => {
+      await page.getByRole('button', { name: menu }).click();
+      await page.getByRole('button', { name: button, exact: true }).click();
+      await expect(page).toHaveURL(/\/login$/);
+    };
+    const signInInEnglish = async (email: string) => {
+      await page.getByLabel('Email address').fill(email);
+      await page.getByLabel('Password', { exact: true }).fill('fixture-password');
+      await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+      await expect(page).toHaveURL(/\/dashboard$/);
+    };
+
+    // Turkish words on the Turkish site.
+    await login(page);
+    await page.goto('/settings');
+    await page.getByRole('radio', { name: /Özel kelimeler/ }).check();
+    const turkishRecord = page.getByRole('group', { name: 'Ana kayıt' });
+    await turkishRecord.getByLabel('Kelime').fill('kitap');
+    await turkishRecord.getByLabel('"-ı" hâli').fill('kitabı');
+    await page.getByRole('button', { name: 'Kelimeleri kaydet' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Tercihler hesabınızda saklanır' })).toBeVisible();
+    await logout(page);
+    await login(page, 'manager@example.test');
+    await setSiteLanguage('en', 'Site dili', 'Değişiklikleri kaydet');
+    await signOut('Account menu', 'Sign out');
+
+    // On the English site the Turkish words step aside for the English preset.
+    await signInInEnglish('owner@example.test');
+    await page.goto('/courses');
+    await expect(heading).toHaveText('Projects');
+    await page.goto('/settings');
+    await page.getByRole('radio', { name: /Custom words/ }).check();
+    const record = page.getByRole('group', { name: 'Main record' });
+    await record.getByLabel('Word').fill('book');
+    await expect(record.getByLabel('Plural')).toHaveValue('books');
+    await expect(record.getByText('Forms: a book · books')).toBeVisible();
+    await page.getByRole('button', { name: 'Save words' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Preferences are stored in your account' })).toBeVisible();
+    await page.goto('/courses');
+    await expect(heading).toHaveText('Books');
+    await expect(page.getByRole('button', { name: 'Add a book' }).first()).toBeVisible();
+    await signOut('Account menu', 'Sign out');
+
+    // Back on Turkish, the English words step aside. A person keeps one set of words, so saving the
+    // English ones replaced the Turkish ones and the Turkish preset shows; nothing is translated.
+    await signInInEnglish('manager@example.test');
+    await setSiteLanguage('tr', 'Site language', 'Save changes');
+    await logout(page);
+    await login(page);
+    await page.goto('/courses');
+    await expect(heading).toHaveText('Projeler');
   });
 });

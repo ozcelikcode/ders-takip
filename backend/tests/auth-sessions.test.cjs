@@ -53,6 +53,13 @@ describe('revocable browser sessions', () => {
       await me(jwt.sign(data,process.env.JWT_SECRET,{algorithm:'HS256'})).expect(401);
     }
   });
+  it('answers a browser without a session cookie with 204 and leaves cookies alone, but still refuses unknown ones', async () => {
+    const anonymous = await write('/api/auth/refresh-token').expect(204);
+    assert.equal(anonymous.text, '');
+    assert.equal(anonymous.headers['set-cookie'], undefined);
+    const unknown = await write('/api/auth/refresh-token','study_refresh=unknown-credential').expect(401);
+    assert.match(unknown.headers['set-cookie'][0],/Expires=Thu, 01 Jan 1970/);
+  });
   it('rotates refresh credentials and revokes the complete family on replay', async () => {
     const first = await login(await account());
     const rotated = await write('/api/auth/refresh-token',cookieOf(first)).expect(200);

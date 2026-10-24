@@ -19,6 +19,10 @@ import courseRoutes from './routes/courses';
 import planRoutes from './routes/planRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import studySessionRoutes from './routes/studySessionRoutes';
+import sessionSeriesRoutes from './routes/sessionSeriesRoutes';
+import courseGoalRoutes from './routes/courseGoalRoutes';
+import { calendarFeedRouter, calendarSettingsRouter } from './routes/calendarRoutes';
+import tagRoutes from './routes/tagRoutes';
 import topicRoutes from './routes/topics';
 import userRoutes from './routes/users';
 
@@ -35,6 +39,8 @@ if (environment.NODE_ENV === 'production') {
     legacyHeaders: false,
     message: { success: false, error: { code: 'tooManyRequests' } },
   }));
+  // A calendar feed address is its own credential, so request logs never keep the key.
+  morgan.token('url', (req: express.Request) => (req.originalUrl ?? req.url).replace(/^\/api\/calendar\/[^/?]+/, '/api/calendar/[key]'));
   app.use(morgan('combined'));
 }
 app.use(express.json({ limit: '10mb' }));
@@ -56,6 +62,11 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/topics', topicRoutes);
 app.use('/api/plans', planRoutes);
 app.use('/api/study-sessions', studySessionRoutes);
+app.use('/api/session-series', sessionSeriesRoutes);
+app.use('/api/course-goals', courseGoalRoutes);
+app.use('/api/calendar', calendarFeedRouter);
+app.use('/api/calendar-feed', calendarSettingsRouter);
+app.use('/api/tags', tagRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/search', searchRoutes);

@@ -3,14 +3,17 @@ import { Download, Trash2 } from 'lucide-react';
 import { useId, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import AccountImportButton from '../../components/account/AccountImportButton';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { useTerms } from '../../hooks/useTerms';
 import { unsubscribeBrowser } from '../../lib/push';
 import { authAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useText } from '../../store/languageStore';
 
-/** Lets a user take their data with them and close their account. */
+/** Lets a user take their data with them, bring it into a new account, and close their account. */
 export default function AccountDataCard() {
+  const t = useTerms();
   const text = useText().profile;
   const navigate = useNavigate();
   const passwordId = useId();
@@ -70,6 +73,13 @@ export default function AccountDataCard() {
             <Download className="h-4 w-4" />
             {downloading ? text.preparing : text.download}
           </button>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-4 p-5">
+          <div className="min-w-0 flex-1 basis-64">
+            <h3 className="text-sm font-medium">{text.importTitle}</h3>
+            <p className="mt-1 text-sm text-(--muted)">{text.importHint(t)}</p>
+          </div>
+          <AccountImportButton label={text.importChoose} />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4 p-5">
           <div className="min-w-0 flex-1 basis-64">

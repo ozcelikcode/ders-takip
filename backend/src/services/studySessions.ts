@@ -1,7 +1,7 @@
 import { Op, Transaction, type Includeable } from 'sequelize';
 import { canTransitionSession, reservesSessionTime, isSessionDurationValid, type CreateSessionInput, type UpdateSessionInput, type PomodoroCommand, fail } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
-import { Category, Course, Plan, StudySession, Topic, SessionInterval, PomodoroClock } from '../models';
+import { Category, Course, Plan, SessionSeries, StudySession, Topic, SessionInterval, PomodoroClock } from '../models';
 import { createPomodoroClock, settlePomodoroClock, updatePomodoroClock, savePomodoroClock } from './pomodoroClocks';
 import { recordActivity } from './studyTracking';
 import { visibleCourseWhere } from '../policies/courseAccess';
@@ -26,7 +26,7 @@ function scheduledDuration(start: Date, end: Date): number {
   return Math.round(milliseconds / 60_000);
 }
 
-async function validateRelations(
+export async function validateRelations(
   actor: Actor,
   values: { planId?: number | undefined; courseId?: number | undefined; topicId?: number | undefined },
   transaction: Transaction,
@@ -65,6 +65,17 @@ async function assertAvailable(userId: number, startTime: Date, endTime: Date, t
     startTime: { [Op.lt]: endTime }, endTime: { [Op.gt]: startTime },
   }, transaction });
   if (conflict) fail(409, 'sessionOverlap');
+}
+
+// Fields a timer or status change sets by itself; any other change makes a routine's session the person's own.
+const automaticFields = new Set(['status', 'completedAt', 'trackingCoverage', 'updatedAt']);
+/** Keeps a routine from rebuilding or recreating a session the person changed or removed one by one. */
+async function keepRoutineDate(session: StudySession, transaction: Transaction) {
+  if (!session.seriesId || !session.seriesDate) return;
+  const series = await SessionSeries.findByPk(session.seriesId, { transaction });
+  if (!series || series.exceptionDates.includes(session.seriesDate)) return;
+  series.exceptionDates = [...series.exceptionDates, session.seriesDate];
+  await series.save({ transaction });
 }
 
 async function loadOwned(actor: Actor, id: number, expectedUpdatedAt: string, transaction: Transaction) {
@@ -165,7 +176,9 @@ export async function updateSession(actor: Actor, id: number, input: UpdateSessi
       session.completedAt = nextStatus === 'completed' ? activityTime ?? new Date(Date.now()) : null;
       session.status = nextStatus;
     }
-    if (session.changed()) await session.save({ transaction });
+    const changed = session.changed();
+    if (changed && changed.some((field) => !automaticFields.has(field))) await keepRoutineDate(session, transaction);
+    if (changed) await session.save({ transaction });
     return session.reload({ include: sessionIncludes, transaction });
   });
 }
@@ -173,6 +186,7 @@ export async function updateSession(actor: Actor, id: number, input: UpdateSessi
 export async function deleteSession(actor: Actor, id: number, expectedUpdatedAt: string) {
   await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
     const session = await loadOwned(actor, id, expectedUpdatedAt, transaction);
+    await keepRoutineDate(session, transaction);
     await session.destroy({ transaction });
   });
 }

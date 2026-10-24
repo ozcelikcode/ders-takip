@@ -1,6 +1,6 @@
 import { useTerms } from '../../hooks/useTerms';
 import type { DragEvent, MouseEvent, PointerEvent, Ref } from 'react';
-import { CheckCircle, MoreHorizontal, Pause, Play, Timer } from 'lucide-react';
+import { CheckCircle, MoreHorizontal, Pause, Play, Repeat, Timer } from 'lucide-react';
 import { formatZonedTime } from '@study-tracker/contracts';
 import type { StudySession } from '../../types/planner';
 import { canStartSession } from '../../utils/sessionHelpers';
@@ -66,8 +66,9 @@ export default function CalendarSessionCard(props: Props) {
           className={`flex items-center gap-1 ${compact ? 'min-w-0 flex-1' : 'justify-between'}`}
         >
           {!compact && (
-            <span className="text-[10px] tabular-nums text-(--muted)">
+            <span className="flex items-center gap-1 text-[10px] tabular-nums text-(--muted)">
               {formatZonedTime(session.startTime, timezone)}
+              {session.seriesId && <Repeat className="h-3 w-3" aria-label={text.routine} role="img" />}
             </span>
           )}
           {compact && (

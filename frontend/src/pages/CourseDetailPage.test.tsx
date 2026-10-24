@@ -65,6 +65,13 @@ vi.mock('../services/api', () => ({
 vi.mock('../components/modals/TopicEditorModal', () => ({
   default: () => null,
 }));
+// The weekly goal panel has its own tests (tests/course-goals.test.tsx).
+vi.mock('../components/goals/CourseGoalPanel', () => ({
+  default: () => null,
+}));
+vi.mock('../components/tags/CourseTagsPanel', () => ({
+  default: () => null,
+}));
 vi.mock('../hooks/useAccountQueryKeys', () => ({
   useAccountQueryKeys: () => ({
     catalog: (...parts: unknown[]) => ['account', '1', 'catalog', ...parts],
@@ -184,15 +191,15 @@ it('sends the original full snapshot, blocks repeated drags and waits for server
 it('disables reorder for filtered, descending and alternate sort views', async () => {
   await mount();
   const [filter, sort] = screen.getAllByRole('combobox');
-  fireEvent.change(filter!, { target: { value: 'Kolay' } });
+  fireEvent.change(filter, { target: { value: 'Kolay' } });
   expect(dnd.disabled).toBe(true);
   act(() => dnd.onDragEnd(drop));
   expect(topicsAPI.reorderTopics).not.toHaveBeenCalled();
-  fireEvent.change(filter!, { target: { value: 'all' } });
+  fireEvent.change(filter, { target: { value: 'all' } });
   expect(dnd.disabled).toBe(false);
-  fireEvent.change(sort!, { target: { value: 'name' } });
+  fireEvent.change(sort, { target: { value: 'name' } });
   expect(dnd.disabled).toBe(true);
-  fireEvent.change(sort!, { target: { value: 'order' } });
+  fireEvent.change(sort, { target: { value: 'order' } });
   expect(dnd.disabled).toBe(false);
   const sortButton = screen.getByRole('button', {
     name: 'Sıralama yönünü değiştir',
@@ -235,7 +242,7 @@ it('shows server-stored topic states and saves a change through the API instead 
         ?.textContent,
     ).toBe('1'),
   );
-  fireEvent.click(screen.getAllByTitle('Devam Ediyor')[0]!);
+  fireEvent.click(screen.getAllByTitle('Devam Ediyor')[0]);
   await waitFor(() =>
     expect(topicsAPI.setTopicProgress).toHaveBeenCalledWith(1, 'in_progress'),
   );

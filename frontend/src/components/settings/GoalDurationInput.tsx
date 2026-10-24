@@ -1,7 +1,7 @@
 import { formatGoalMinutes, maxDailyGoalMinutes } from '../../utils/studyGoals';
 import { useLanguage, useText } from '../../store/languageStore';
 
-const presets = [30, 45, 60, 90, 120, 180, 240];
+const dailyPresets = [30, 45, 60, 90, 120, 180, 240];
 
 interface GoalDurationInputProps {
   id: string;
@@ -9,15 +9,19 @@ interface GoalDurationInputProps {
   /** Total minutes; 0 means no goal. */
   minutes: number;
   onChange: (minutes: number) => void;
+  /** The largest goal; a day unless the goal spans a week. */
+  maxMinutes?: number;
+  /** Common durations offered as one-click choices. */
+  presets?: readonly number[];
 }
 
-const clamp = (minutes: number) => Math.min(maxDailyGoalMinutes, Math.max(0, Math.round(minutes)));
 const part = (value: string) => (value === '' ? 0 : Number(value));
 
-/** A daily goal as hours and/or minutes, with common durations one click away. */
-export default function GoalDurationInput({ id, label, minutes, onChange }: GoalDurationInputProps) {
+/** A goal as hours and/or minutes, with common durations one click away. */
+export default function GoalDurationInput({ id, label, minutes, onChange, maxMinutes = maxDailyGoalMinutes, presets = dailyPresets }: GoalDurationInputProps) {
   const text = useText().settings;
   const language = useLanguage();
+  const clamp = (value: number) => Math.min(maxMinutes, Math.max(0, Math.round(value)));
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   return (
@@ -31,7 +35,7 @@ export default function GoalDurationInput({ id, label, minutes, onChange }: Goal
             type="number"
             inputMode="numeric"
             min={0}
-            max={24}
+            max={Math.floor(maxMinutes / 60)}
             className="input w-20"
             value={hours}
             onChange={(event) => onChange(clamp(part(event.target.value) * 60 + rest))}

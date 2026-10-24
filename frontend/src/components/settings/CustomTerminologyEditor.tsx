@@ -1,18 +1,25 @@
 import {
   customTerminologySchema,
+  englishArticles,
   inflect,
+  inflectEnglish,
   normalizeTermWord,
   suggestAccusative,
+  suggestArticle,
+  suggestPlural,
   termKeys,
   type CustomTerminology,
+  type EnglishArticle,
+  type EnglishTermWord,
   type TermKey,
+  type TermWord,
 } from '@study-tracker/contracts';
 import { useText } from '../../store/languageStore';
 import { issueMessage } from '../../lib/messages';
 
 interface CustomTerminologyEditorProps {
   idPrefix: string;
-  /** Unvalidated words as typed; the parent saves only what passes `customTerminologySchema`. */
+  /** Unvalidated words as typed, in their own language; the parent saves only what passes `customTerminologySchema`. */
   value: CustomTerminology;
   onChange: (value: CustomTerminology) => void;
 }
@@ -24,64 +31,94 @@ const fieldErrors = (value: CustomTerminology) => {
   return Object.fromEntries(result.error.issues.map((issue) => [issue.path.join('.'), issueMessage(issue.message)]));
 };
 
-const forms = (value: CustomTerminology[TermKey]) =>
+const turkishForms = (term: TermWord) =>
   [
-    inflect(value, {}),
-    inflect(value, { case: 'acc' }),
-    inflect(value, { case: 'dat' }),
-    inflect(value, { case: 'gen' }),
-    inflect(value, { case: 'loc' }),
-    inflect(value, { plural: true }),
+    inflect(term, {}),
+    inflect(term, { case: 'acc' }),
+    inflect(term, { case: 'dat' }),
+    inflect(term, { case: 'gen' }),
+    inflect(term, { case: 'loc' }),
+    inflect(term, { plural: true }),
   ].join(' · ');
+const englishForms = (term: EnglishTermWord) =>
+  [inflectEnglish(term, { article: true }), inflectEnglish(term, { plural: true })].join(' · ');
 
-/** Lets a person type their own word for each concept and check every form it will take. */
+// A derived field follows the word until the person corrects it by hand.
+const turkishTerm = (current: TermWord, field: keyof TermWord, typed: string): TermWord =>
+  field === 'word'
+    ? { word: typed, accusative: current.accusative === suggestAccusative(current.word) ? suggestAccusative(typed) : current.accusative }
+    : { ...current, accusative: typed };
+const englishTerm = (current: EnglishTermWord, field: keyof EnglishTermWord, typed: string): EnglishTermWord =>
+  field === 'word'
+    ? {
+        word: typed,
+        plural: current.plural === suggestPlural(current.word) ? suggestPlural(typed) : current.plural,
+        article: current.article === suggestArticle(current.word) ? suggestArticle(typed) : current.article,
+      }
+    : field === 'article'
+      ? { ...current, article: typed as EnglishArticle }
+      : { ...current, plural: typed };
+
+/** Lets a person type their own word for each concept in the words' language and check every form it will take. */
 export default function CustomTerminologyEditor({ idPrefix, value, onChange }: CustomTerminologyEditorProps) {
   const text = useText().settings;
   const errors = fieldErrors(value);
-  const update = (key: TermKey, field: 'word' | 'accusative', text: string) => {
-    const current = value[key];
-    const next = normalizeTermWord(text);
-    // Keep the accusative in step with the word until the person corrects it by hand.
-    const followsWord = field === 'word' && current.accusative === suggestAccusative(current.word);
-    const term =
-      field === 'word'
-        ? { word: next, accusative: followsWord ? suggestAccusative(next) : current.accusative }
-        : { ...current, accusative: next };
-    onChange({ ...value, [key]: term });
+  const update = (key: TermKey, field: string, typed: string) => {
+    if (value.language === 'en') {
+      const next = field === 'article' ? typed : normalizeTermWord(typed, 'en');
+      onChange({ ...value, [key]: englishTerm(value[key], field as keyof EnglishTermWord, next) });
+    } else {
+      onChange({ ...value, [key]: turkishTerm(value[key], field as keyof TermWord, normalizeTermWord(typed, 'tr')) });
+    }
   };
+  const fields =
+    value.language === 'en'
+      ? ([['word', text.word], ['plural', text.plural], ['article', text.article]] as const)
+      : ([['word', text.word], ['accusative', text.accusative]] as const);
+  const fieldValue = (key: TermKey, field: string) =>
+    (value[key] as Record<string, string>)[field] ?? '';
 
   return (
     <div className="space-y-5">
       <p className="text-sm text-(--muted)">
-        {text.customWordsHint}
+        {value.language === 'en' ? text.englishWordsHint : text.customWordsHint}
       </p>
       {termKeys.map((key) => {
-        const wordError = errors[`${key}.word`];
-        const accusativeError = errors[`${key}.accusative`];
-        const valid = !wordError && !accusativeError;
+        const valid = fields.every(([field]) => !errors[`${key}.${field}`]);
         return (
           <fieldset key={key} className="space-y-3 rounded-lg border border-(--line) p-4">
             <legend className="px-1 text-sm font-medium">{text.terms[key].title}</legend>
             <p className="text-xs text-(--muted)">{text.terms[key].hint}</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {(['word', 'accusative'] as const).map((field) => {
+            <div className={`grid gap-3 ${fields.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+              {fields.map(([field, label]) => {
                 const id = `${idPrefix}-${key}-${field}`;
-                const error = field === 'word' ? wordError : accusativeError;
+                const error = errors[`${key}.${field}`];
+                const described = { 'aria-invalid': !!error, 'aria-describedby': error ? `${id}-error` : undefined };
                 return (
                   <div key={field}>
                     <label htmlFor={id} className="mb-1 block text-sm">
-                      {field === 'word' ? text.word : text.accusative}
+                      {label}
                     </label>
-                    <input
-                      id={id}
-                      className="input"
-                      value={value[key][field]}
-                      autoComplete="off"
-                      spellCheck={false}
-                      aria-invalid={!!error}
-                      aria-describedby={error ? `${id}-error` : undefined}
-                      onChange={(event) => update(key, field, event.target.value)}
-                    />
+                    {field === 'article' ? (
+                      <select id={id} className="input" value={fieldValue(key, field)} {...described} onChange={(event) => update(key, field, event.target.value)}>
+                        {englishArticles.map((article) => (
+                          <option key={article} value={article}>
+                            {article}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        id={id}
+                        className="input"
+                        value={fieldValue(key, field)}
+                        lang={value.language}
+                        autoComplete="off"
+                        spellCheck={false}
+                        {...described}
+                        onChange={(event) => update(key, field, event.target.value)}
+                      />
+                    )}
                     {error && (
                       <p id={`${id}-error`} className="mt-1 text-xs text-red-600 dark:text-red-400">
                         {error}
@@ -91,7 +128,11 @@ export default function CustomTerminologyEditor({ idPrefix, value, onChange }: C
                 );
               })}
             </div>
-            {valid && <p className="text-xs text-(--muted)">{text.forms(forms(value[key]))}</p>}
+            {valid && (
+              <p className="text-xs text-(--muted)" lang={value.language}>
+                {text.forms(value.language === 'en' ? englishForms(value[key]) : turkishForms(value[key]))}
+              </p>
+            )}
           </fieldset>
         );
       })}

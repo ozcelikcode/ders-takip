@@ -28,8 +28,7 @@
   <script>
     try {
       if (!localStorage.getItem('auth-logout-pending')) {
-        const base = '%VITE_API_BASE_URL%';
-        const refresh = () => fetch((base && !base.startsWith('%') ? base : '/api') + '/auth/refresh-token', {
+        const refresh = () => fetch('%VITE_API_BASE_URL%/auth/refresh-token', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'StudyTracker' },

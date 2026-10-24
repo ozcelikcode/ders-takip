@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { Transaction } from 'sequelize';
 import type { Response } from 'express';
 import { backupCopyDirectory, backupDirectory, databasePath, sequelize } from '../config/database';
-import { AuthSession, Backup, Category, Course, Plan, Settings, StudySession, Topic, User } from '../models';
+import { AuthSession, Backup, Category, Course, CourseGoal, Plan, SessionSeries, Settings, StudySession, Tag, Topic, User } from '../models';
 import { assertDatabaseReady } from '../database/migrations';
 import { keepDatabaseUnavailable, withDatabaseMaintenance } from './databaseMaintenance';
 import { purgeExpiredSessions } from './authSessions';
@@ -184,6 +184,9 @@ const resetWithSafetyCopy = (mode: 'settings_only' | 'all', response?: Response)
   await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
     if (mode === 'all') {
       await StudySession.destroy({ where: {}, transaction });
+      await SessionSeries.destroy({ where: {}, transaction });
+      await CourseGoal.destroy({ where: {}, transaction });
+      await Tag.destroy({ where: {}, transaction });
       await Plan.destroy({ where: {}, transaction });
       await Topic.destroy({ where: {}, transaction });
       await Course.destroy({ where: {}, transaction });

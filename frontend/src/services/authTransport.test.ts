@@ -151,6 +151,9 @@ describe('early session refresh from index.html', () => {
   it('reports a refused or failed early refresh the way the transport reports its own', async () => {
     window.initialSessionRefresh = Promise.resolve(new Response(JSON.stringify({ success: false, error: { code: 'sessionExpired' } }), { status: 401 }));
     await expect(authAPI.refreshToken()).rejects.toMatchObject({ response: { status: 401, data: { error: { code: 'sessionExpired' } } } });
+    // No session cookie: the route answers 204, which the app treats like an expired session.
+    window.initialSessionRefresh = Promise.resolve(new Response(null, { status: 204 }));
+    await expect(authAPI.refreshToken()).rejects.toMatchObject({ response: { status: 401, data: { error: { code: 'sessionExpired' } } } });
     window.initialSessionRefresh = Promise.reject(new TypeError('Failed to fetch'));
     await expect(authAPI.refreshToken()).rejects.toMatchObject({ code: 'ERR_NETWORK' });
     window.initialSessionRefresh = Promise.reject(new DOMException('signal timed out', 'TimeoutError'));
