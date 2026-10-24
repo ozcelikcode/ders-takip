@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useAccountMutation } from '../../hooks/useAccountMutation';
 import EditorDialog from '../common/EditorDialog';
+import AdminPasswordField from './AdminPasswordField';
 import { useText } from '../../store/languageStore';
 
 interface Props {
@@ -30,6 +31,7 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
     lastName: '',
     role: 'student',
     isActive: true,
+    adminPassword: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const field = (name: keyof typeof form) => ({
@@ -54,7 +56,9 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (useAuthStore.getState().user?.role !== 'admin') return;
-    const { confirmPassword, ...input } = form;
+    const { confirmPassword, adminPassword, ...fields } = form;
+    // Only an administrator account asks for the creator's password.
+    const input = form.role === 'admin' ? { ...fields, adminPassword } : fields;
     const result = createManagedUserSchema.safeParse(input);
     const messages: Record<string, string> = {
       username: text.usernameRule,
@@ -187,6 +191,16 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
           </p>
         )}
       </div>
+      {form.role === 'admin' && (
+        <AdminPasswordField
+          value={form.adminPassword ?? ''}
+          missing={!!errors.adminPassword}
+          onChange={(value) => {
+            setForm({ ...form, adminPassword: value });
+            setErrors(({ adminPassword: _cleared, ...rest }) => rest);
+          }}
+        />
+      )}
       <label className="flex items-center gap-2 border-t pt-4 text-sm">
         <input
           type="checkbox"

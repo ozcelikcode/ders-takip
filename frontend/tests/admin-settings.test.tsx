@@ -110,6 +110,9 @@ function mount() {
 async function ready() {
   await screen.findByLabelText('Site adı');
 }
+// Restoring and resetting ask for the administrator's password.
+const confirmWithPassword = () =>
+  fireEvent.change(screen.getByLabelText('Onay için şifren'), { target: { value: 'fixture-password' } });
 async function backups() {
   await ready();
   fireEvent.click(
@@ -368,14 +371,18 @@ it('keeps a failed restore confirmation open and logs out only after successful 
     screen.getByRole('button', { name: /tarihli yedeği geri yükle/ }),
   );
   expect(screen.getByText(/Bütün oturumlar kapanacak/)).toBeTruthy();
+  confirmWithPassword();
+
   fireEvent.click(screen.getByRole('button', { name: 'Yedeği geri yükle' }));
   await screen.findByText('Başka bir bakım işlemi sürüyor');
   expect(auth.logout).not.toHaveBeenCalled();
   expect(screen.getByRole('dialog')).toBeTruthy();
+  confirmWithPassword();
+
   fireEvent.click(screen.getByRole('button', { name: 'Yedeği geri yükle' }));
   await waitFor(() => expect(auth.logout).toHaveBeenCalledTimes(1));
   expect(invalidate).not.toHaveBeenCalled();
-  expect(backupAPI.restoreBackup).toHaveBeenCalledWith(7);
+  expect(backupAPI.restoreBackup).toHaveBeenCalledWith(7, 'fixture-password');
 });
 it('waits for reset acknowledgement and locks dismissal and duplicate requests', async () => {
   const pending = deferred<Awaited<ReturnType<typeof backupAPI.resetData>>>();
@@ -389,6 +396,8 @@ it('waits for reset acknowledgement and locks dismissal and duplicate requests',
   expect(
     screen.getByText(/Hesaplar, dersler, konular ve çalışma geçmişi korunacak/),
   ).toBeTruthy();
+  confirmWithPassword();
+
   const confirm = screen.getByRole('button', { name: 'Sıfırlamayı uygula' });
   act(() => {
     fireEvent.click(confirm);
@@ -400,7 +409,7 @@ it('waits for reset acknowledgement and locks dismissal and duplicate requests',
   expect(screen.getByRole('dialog')).toBeTruthy();
   await act(() => pending.resolve(response({ safetyBackupId: 8 })));
   await screen.findByLabelText('Site adı');
-  expect(backupAPI.resetData).toHaveBeenCalledWith('settings_only');
+  expect(backupAPI.resetData).toHaveBeenCalledWith('settings_only', 'fixture-password');
   expect(invalidate).toHaveBeenCalledWith({
     queryKey: accountQueryKeys('1', '').resource(),
   });
@@ -428,6 +437,8 @@ it('does not report success or log out another account after a late restore resp
   fireEvent.click(
     screen.getByRole('button', { name: /tarihli yedeği geri yükle/ }),
   );
+  confirmWithPassword();
+
   fireEvent.click(screen.getByRole('button', { name: 'Yedeği geri yükle' }));
   auth.epoch++;
   await act(() => pending.resolve(response(undefined)));
@@ -456,12 +467,16 @@ it('retains a failed reset confirmation and displays a read failure after a late
   fireEvent.click(
     screen.getByRole('button', { name: 'Yalnızca site ayarlarını sıfırla' }),
   );
+  confirmWithPassword();
+
   fireEvent.click(screen.getByRole('button', { name: 'Sıfırlamayı uygula' }));
   await screen.findByText('Başka bir bakım işlemi sürüyor');
   expect(screen.getByRole('dialog')).toBeTruthy();
   vi.mocked(settingsAPI.getAdminSettings).mockRejectedValueOnce(
     new Error('Read offline'),
   );
+  confirmWithPassword();
+
   fireEvent.click(screen.getByRole('button', { name: 'Sıfırlamayı uygula' }));
   await screen.findByText('Yönetim ayarları yüklenemedi');
   expect(screen.queryByLabelText('Site adı')).toBeNull();
@@ -499,6 +514,8 @@ it('clears a cancelled action error before confirming a different reset scope', 
   fireEvent.click(
     screen.getByRole('button', { name: /tarihli yedeği geri yükle/ }),
   );
+  confirmWithPassword();
+
   fireEvent.click(screen.getByRole('button', { name: 'Yedeği geri yükle' }));
   await screen.findByText('Başka bir bakım işlemi sürüyor');
   await waitFor(() =>
@@ -515,9 +532,11 @@ it('clears a cancelled action error before confirming a different reset scope', 
     }),
   );
   expect(screen.queryByText('Başka bir bakım işlemi sürüyor')).toBeNull();
+  confirmWithPassword();
+
   fireEvent.click(screen.getByRole('button', { name: 'Sıfırlamayı uygula' }));
   await screen.findByText('Başka bir bakım işlemi sürüyor');
-  expect(backupAPI.resetData).toHaveBeenCalledWith('all');
+  expect(backupAPI.resetData).toHaveBeenCalledWith('all', 'fixture-password');
   expect(screen.getByRole('dialog')).toBeTruthy();
 });
 it('refreshes untouched settings without overwriting a later edited draft',async()=>{
@@ -594,4 +613,19 @@ it('asks for English words when the administrator sets the site to English', asy
       },
     }),
   );
+});
+
+it('asks for the administrator password before restoring and sends nothing without it', async () => {
+  vi.mocked(backupAPI.restoreBackup).mockResolvedValue(response(undefined));
+  mount();
+  await backups();
+  fireEvent.click(screen.getByRole('button', { name: /tarihli yedeği geri yükle/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Yedeği geri yükle' }));
+  expect((await screen.findByRole('alert')).textContent).toBe('Onay için şifreni gir.');
+  expect(backupAPI.restoreBackup).not.toHaveBeenCalled();
+  expect(screen.getByRole('dialog')).toBeTruthy();
+  confirmWithPassword();
+  expect(screen.queryByText('Onay için şifreni gir.')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Yedeği geri yükle' }));
+  await waitFor(() => expect(backupAPI.restoreBackup).toHaveBeenCalledWith(7, 'fixture-password'));
 });

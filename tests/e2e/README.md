@@ -22,7 +22,7 @@ Linux CI'da browser sistem bağımlılıkları için `npx playwright install --w
 
 ## Kapsam
 
-40 senaryo (davranış + erişilebilirlik taramaları), masaüstü Chromium, masaüstü WebKit ve Pixel 7 mobil Chromium emülasyonunda çalışır: toplam 120 yürütme (24 Ekim 2026). Mobil profil 412×839 CSS px ve touch girdisi kullanır. Gerçek Android/iOS cihaz veya kurulu Safari doğrulaması değildir. Her senaryo yeni DB/context alır; testler sıra bağımsızdır, otomatik retry ve skip yoktur. Aktif pencere odak assertion'ları için tek worker kullanılır; birbirinden bağımsız tarayıcı pencereleri aynı anda odak için yarışmaz.
+41 senaryo (davranış + erişilebilirlik taramaları), masaüstü Chromium, masaüstü WebKit ve Pixel 7 mobil Chromium emülasyonunda çalışır: toplam 123 yürütme (24 Ekim 2026). Mobil profil 412×839 CSS px ve touch girdisi kullanır. Gerçek Android/iOS cihaz veya kurulu Safari doğrulaması değildir. Her senaryo yeni DB/context alır; testler sıra bağımsızdır, otomatik retry ve skip yoktur. Aktif pencere odak assertion'ları için tek worker kullanılır; birbirinden bağımsız tarayıcı pencereleri aynı anda odak için yarışmaz.
 
 1. Gerçek giriş, HttpOnly/SameSite cookie ile reload ve aynı browser context'te ikinci hesabın veri izolasyonu.
 2. UI'dan özel seans oluşturma, sürümlü saat/süre değiştirme, sunucu yanıtı ve reload kalıcılığı.

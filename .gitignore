@@ -47,6 +47,7 @@ pnpm-lock.yaml
 # Database
 *.db
 *.sqlite
+admin-audit*.jsonl
 
 # Uploads
 uploads/

@@ -48,6 +48,7 @@ Giriş ekranındaki **Şifremi unuttum** bağlantısı e-posta ile tek kullanım
 | `DB_PATH` | Mutlak yol veya backend klasörüne göre göreli SQLite yolu; varsayılan `database.sqlite`. |
 | `BACKUP_DIR` | Mutlak yol veya backend klasörüne göre göreli yedek dizini. |
 | `BACKUP_COPY_DIR` | İsteğe bağlı ikinci yedek klasörü (başka disk ya da eşitlenen klasör); `BACKUP_DIR` ile aynı olamaz. |
+| `AUDIT_LOG_PATH` | İsteğe bağlı yönetici işlem günlüğü dosyası; varsayılan veritabanının yanında `admin-audit.jsonl` (Git dışı). |
 | `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS` | Production API sınırı; varsayılan 15 dakikada 100 istek. |
 | `VITE_API_BASE_URL` | Varsayılan `/api`; ayrı origin kullanılacaksa frontend build öncesi tanımlanır. |
 
@@ -82,6 +83,12 @@ Restore önce kaynak doğrulaması ve mevcut verinin güvenlik yedeğini alır, 
 Otomatik yedek kontrolü her 5 dakikada çalışır. Son başarılı otomatik yedekten itibaren 1, 5 veya 7 **tam gün** dolması esas alınır; aralık ayarı her çalışmada yeniden okunur. Otomatik yedeklerden en yeni 14'ü saklanır; daha eskileri (kayıt, manifest, dosya sırasıyla) silinir. Elle alınan yedekler ve geri yükleme/sıfırlama öncesi güvenlik yedekleri hiç silinmez. `BACKUP_COPY_DIR` verilirse her doğrulanmış yedek ve manifesti oraya da kopyalanır (SHA-256 kontrolüyle, yarım dosya + yeniden adlandırma); silinen otomatik yedeklerin kopyası da kaldırılır, klasördeki başka dosyalara dokunulmaz. Kopyalama veritabanı kilidi dışında yapılır; başarısız olursa yedek yine geçerlidir, açılışta ve sonraki yedekte eksik kopyalar tamamlanır. Kapasite takibi, şifreli yedek ve gerçek ortam kurtarma tatbikatı ayrıca kurulmalıdır.
 
 `settings_only` yalnız site ayarlarını sıfırlar. `all`, admin olmayan hesapları ve kayıt/çalışma verilerini temizler; adminleri ve yedekleri korur. İki işlem de önce güvenlik yedeği alır ve silmeleri transaction içinde yürütür. Doğrulama testleri geçici veritabanlarında çalışır. Koordinasyon tek backend süreci içindir; çoklu instance ve harici SQLite yazıcıları bu kilide dahil değildir.
+
+## Yönetici güvenliği
+
+Geri yükleme, iki sıfırlama türü, rol değiştirme, yönetici hesabı oluşturma ve hesap silme her istekte yöneticinin şifresini (`adminPassword`) yeniden ister; yanlış şifre 400 `wrongPassword` döner ve günlüğe yazılır, production'da 15 dakikada 10 yanlış denemeyle sınırlanır. Şifre denetimden sonra istekten silinir, hiçbir yere yazılmaz.
+
+Yönetim işlemleri (yönetici girişi, yönetici hesabına hatalı şifre, hatalı onay, site ayarı değişikliği — yalnız ayar adları, değerleri değil —, yedek alma/geri yükleme, sıfırlama, hesap oluşturma/rol/etkinlik/silme, şifre sıfırlama bağlantısı) yalnız eklenen bir JSON Lines dosyasına yazılır. Her kayıt bir öncekinin SHA-256 özetini taşır; aradan bir kayıt değiştirilir, silinir ya da sırası bozulursa Site ayarları › İşlem günlüğü bunu ve ilk bozulan kaydı gösterir. Günlük veritabanının dışında olduğu için yedekten geri yükleme onu geri sarmaz. Sınır: sunucuya yazma erişimi olan biri bütün dosyayı tutarlı biçimde yeniden yazabilir; buna karşı günlüğün sunucu dışına kopyası gerekir.
 
 ## Site adını ve kimliğini değiştirme
 
@@ -130,7 +137,7 @@ npm test
 npm run build
 ```
 
-Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 46 contracts + 205 backend + 306 frontend = 557 workspace testidir. Yeni ekran akış regresyonları `frontend/tests/` altındadır; burası da Vitest, strict TypeScript ve ESLint kapsamındadır. Mevcut `src/**/*.test.*` testleri aynı kalite zincirinde korunur. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
+Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 46 contracts + 209 backend + 310 frontend = 565 workspace testidir. Yeni ekran akış regresyonları `frontend/tests/` altındadır; burası da Vitest, strict TypeScript ve ESLint kapsamındadır. Mevcut `src/**/*.test.*` testleri aynı kalite zincirinde korunur. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
 
 Gerçek tarayıcı ana akışları ayrıca çalıştırılır:
 

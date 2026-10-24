@@ -7,6 +7,7 @@ import {
 } from '@study-tracker/contracts';
 import { Settings } from '../models';
 import { readSiteSettings } from '../services/siteSettings';
+import { recordAdminEvent } from '../services/adminAudit';
 import { sequelize } from '../config/database';
 
 export const getSettings = async (
@@ -87,6 +88,8 @@ export const updateSettings = async (
         }
       },
     );
+    // Only the names of the changed settings are logged, never their values.
+    await recordAdminEvent({ action: 'settingsChanged', actor: req.user!, details: { keys: Object.keys(parsed.data) }, request: req });
     res.json({
       success: true,
       data: await readSiteSettings(),

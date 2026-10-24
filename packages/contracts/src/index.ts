@@ -6,6 +6,7 @@ export * from './courseGoals.js';
 export * from './calendarFeed.js';
 export * from './tags.js';
 export * from './accountImport.js';
+export * from './adminAudit.js';
 export * from './time.js';
 export * from './zonedTime.js';
 export * from './studyTracking.js';

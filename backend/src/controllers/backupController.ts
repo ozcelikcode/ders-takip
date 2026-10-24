@@ -8,6 +8,7 @@ import {
   resetApplicationData,
   restoreSnapshot,
 } from '../services/backups';
+import { recordAdminEvent } from '../services/adminAudit';
 export { performBackup } from '../services/backups';
 
 const respondFailure = (response: Response, error: unknown) =>
@@ -25,11 +26,12 @@ export const getBackups = async (_request: Request, response: Response) => {
   }
 };
 export const createManualBackup = async (
-  _request: Request,
+  request: Request,
   response: Response,
 ) => {
   try {
     const entry = await performBackup('manual', response);
+    await recordAdminEvent({ action: 'backupCreated', actor: request.user!, details: { backupId: entry.id }, request });
     const data = backupRecordSchema.parse({
       id: entry.id,
       filename: entry.filename,
@@ -51,6 +53,8 @@ export const restoreBackup = async (request: Request, response: Response) => {
   const id = Number(request.params.id);
   try {
     await restoreSnapshot(id, response);
+    // The log lives outside the database, so this entry survives the restore it describes.
+    await recordAdminEvent({ action: 'backupRestored', actor: request.user!, details: { backupId: id }, request });
     clearRefreshCookie(response);
     return response.json({
       success: true,
@@ -63,10 +67,9 @@ export const restoreBackup = async (request: Request, response: Response) => {
 export const resetData = async (request: Request, response: Response) => {
   const { mode } = request.body as { mode: ResetMode };
   try {
-    return response.json({
-      success: true,
-      data: await resetApplicationData(mode, response),
-    });
+    const data = await resetApplicationData(mode, response);
+    await recordAdminEvent({ action: 'dataReset', actor: request.user!, details: { mode, safetyBackupId: data.safetyBackupId }, request });
+    return response.json({ success: true, data });
   } catch (error) {
     console.error('Reset failed:', error);
     return respondFailure(response, error);

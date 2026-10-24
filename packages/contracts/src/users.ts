@@ -6,6 +6,7 @@ import {
   type UserStudySummary,
 } from './studyTracking.js';
 import { sessionStatusSchema } from './studySessions.js';
+import { adminPasswordSchema } from './adminAudit.js';
 import type { AccountReferences, accountExportFormat, accountExportVersion } from './accountImport.js';
 
 export const userRoleSchema = z.enum(['student', 'admin']);
@@ -30,7 +31,8 @@ export const newPasswordSchema = z
     (value) => new TextEncoder().encode(value).length <= 72,
     'passwordBytes',
   );
-export const createManagedUserSchema = z
+/** The fields of a new account; registration and administrator-created accounts both start from these. */
+export const accountFieldsSchema = z
   .object({
     username: usernameSchema,
     email: z.email({ error: 'email' }),
@@ -41,6 +43,10 @@ export const createManagedUserSchema = z
     isActive: z.boolean().default(true),
   })
   .strict();
+export const createManagedUserSchema = accountFieldsSchema
+  // Creating an administrator grants administration, so it asks for the creator's password like a role change.
+  .extend({ adminPassword: adminPasswordSchema.optional() })
+  .refine((value) => value.role !== 'admin' || value.adminPassword !== undefined, { path: ['adminPassword'], message: 'passwordRequired' });
 export type CreateManagedUserInput = z.infer<typeof createManagedUserSchema>;
 export const managedUserPatchSchema = z
   .object({
@@ -49,12 +55,15 @@ export const managedUserPatchSchema = z
     role: userRoleSchema.optional(),
     isActive: z.boolean().optional(),
     preferences: preferencesPatchSchema.optional(),
+    // A role change asks for the administrator's password.
+    adminPassword: adminPasswordSchema.optional(),
   })
   .strict()
   .refine(
-    (value) => Object.keys(value).length > 0,
+    ({ adminPassword: _confirmation, ...changes }) => Object.keys(changes).length > 0,
     'nothingToUpdate',
-  );
+  )
+  .refine((value) => value.role === undefined || value.adminPassword !== undefined, { path: ['adminPassword'], message: 'passwordRequired' });
 export type ManagedUserPatch = z.infer<typeof managedUserPatchSchema>;
 export const userListQuerySchema = z
   .object({

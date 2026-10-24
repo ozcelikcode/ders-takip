@@ -18,6 +18,7 @@ import {
 import { useEffect, useState } from 'react';
 import CreateUserModal from '../../components/admin/CreateUserModal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import AdminPasswordField from '../../components/admin/AdminPasswordField';
 import PageHeader from '../../components/common/PageHeader';
 import { useAccountMutation } from '../../hooks/useAccountMutation';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
@@ -42,6 +43,9 @@ function UserActionDialog({
   const mutation = useAccountMutation([keys.resource()]);
   const { user, kind } = action;
   const nextRole = user.role === 'admin' ? 'student' : 'admin';
+  // Deleting an account and changing a role are confirmed with the administrator's password.
+  const confirmed = kind !== 'status';
+  const [confirmation, setConfirmation] = useState({ password: '', missing: false });
   const name = `${user.firstName} ${user.lastName}`;
   const title =
     kind === 'delete'
@@ -69,20 +73,31 @@ function UserActionDialog({
         const actor = useAuthStore.getState().user;
         if (actor?.role !== 'admin' || String(actor.id) === String(user.id))
           return false;
+        if (confirmed && !confirmation.password) {
+          setConfirmation({ password: '', missing: true });
+          return false;
+        }
         return mutation.save(
           () =>
             kind === 'delete'
-              ? usersAPI.deleteUser(String(user.id))
+              ? usersAPI.deleteUser(String(user.id), confirmation.password)
               : usersAPI.updateUser(
                   String(user.id),
                   kind === 'role'
-                    ? { role: nextRole }
+                    ? { role: nextRole, adminPassword: confirmation.password }
                     : { isActive: !user.isActive },
                 ),
           kind === 'delete' ? text.userDeleted : text.userUpdated,
         );
       }}
     >
+      {confirmed && (
+        <AdminPasswordField
+          value={confirmation.password}
+          missing={confirmation.missing}
+          onChange={(password) => setConfirmation({ password, missing: false })}
+        />
+      )}
       {mutation.errorMessage && (
         <p role="alert" className="text-sm text-red-600">
           {mutation.errorMessage}

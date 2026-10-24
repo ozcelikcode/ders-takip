@@ -794,6 +794,7 @@ test('lets an administrator promote an account to administrator and later delete
     await page.goto('/admin/users');
     await page.getByRole('button', { name: 'Second Student için işlemler' }).click();
     await page.getByRole('menuitem', { name: action }).click();
+    await page.getByLabel('Onay için şifren').fill('fixture-password');
     await page.getByRole('button', { name: confirm, exact: true }).click();
   };
   await manageOther('Yönetici yap', 'Uygula');
@@ -857,12 +858,38 @@ test('restores a backup the administrator took, undoing later changes and asking
 
   await backups();
   await page.getByRole('button', { name: /tarihli yedeği geri yükle$/ }).first().click();
+  await page.getByLabel('Onay için şifren').fill('fixture-password');
   await page.getByRole('button', { name: 'Yedeği geri yükle', exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   await page.reload();
   await expect(page).not.toHaveTitle('Changed After Backup');
   // The backup's accounts still sign in.
   await login(page);
+});
+
+test('refuses a role change with a wrong password and keeps the attempt in the activity log', async ({ page }) => {
+  await login(page, 'manager@example.test');
+  await page.goto('/admin/users');
+  await page.getByRole('button', { name: 'Second Student için işlemler' }).click();
+  await page.getByRole('menuitem', { name: 'Yönetici yap' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Kullanıcı rolünü değiştir' });
+  await dialog.getByRole('button', { name: 'Uygula', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toHaveText('Onay için şifreni gir.');
+  await dialog.getByLabel('Onay için şifren').fill('not-the-password');
+  await dialog.getByRole('button', { name: 'Uygula', exact: true }).click();
+  await expect(dialog.getByText('Şifre hatalı', { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'İptal', exact: true }).click();
+  // The account is still a regular one: the menu still offers to make it an administrator.
+  await page.getByRole('button', { name: 'Second Student için işlemler' }).click();
+  await expect(page.getByRole('menuitem', { name: 'Yönetici yap' })).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  await page.goto('/admin/settings?section=audit');
+  await expect(page.getByText('Günlük bütün: 2 kayıt, hiçbiri sonradan değiştirilmemiş.')).toBeVisible();
+  const entries = page.getByRole('listitem');
+  await expect(entries.first()).toContainText('Onay şifresi hatalı');
+  await expect(entries.first()).toContainText('Denenen: rol değiştirme');
+  await expect(entries.nth(1)).toContainText('Yönetici girişi');
 });
 
 test('keeps the idle session limit an administrator sets, within its bounds', async ({ page }) => {
@@ -889,6 +916,7 @@ test.describe('clearing all data', () => {
     await page.getByRole('button', { name: 'Kullanıcı ve çalışma verilerini temizle', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Kullanıcı ve çalışma verilerini temizle' });
     await expect(dialog.getByText(/rutinler, \S+ hedefleri, etiketler/)).toBeVisible();
+    await dialog.getByLabel('Onay için şifren').fill('fixture-password');
     await dialog.getByRole('button', { name: 'Sıfırlamayı uygula', exact: true }).click();
     await expect(page.getByText('Seçilen veriler sıfırlandı; güvenlik yedeği saklandı.')).toBeVisible();
     // The form returns to its first section with the site defaults.
@@ -955,6 +983,7 @@ test('resets only the site settings and keeps accounts and study data', async ({
   await expect(page).toHaveTitle('Renamed Before Reset');
   await page.getByRole('button', { name: 'Yedekleme ve sıfırlama', exact: true }).click();
   await page.getByRole('button', { name: 'Yalnızca site ayarlarını sıfırla', exact: true }).click();
+  await page.getByLabel('Onay için şifren').fill('fixture-password');
   await page.getByRole('button', { name: 'Sıfırlamayı uygula', exact: true }).click();
   await expect(page.getByText('Seçilen veriler sıfırlandı; güvenlik yedeği saklandı.')).toBeVisible();
   await expect(page).not.toHaveTitle('Renamed Before Reset');

@@ -7,6 +7,7 @@ import {
   backupRestoreResponseSchema,
   backupCreateResponseSchema,
   resetDataResponseSchema,
+  adminAuditListResponseSchema,
   seriesListResponseSchema,
   seriesWriteResponseSchema,
   courseGoalListResponseSchema,
@@ -281,8 +282,15 @@ export const usersAPI = {
     data: ManagedUserPatch,
   ): Promise<HttpResponse<ApiResponse>> => api.put(`/users/${id}`, data),
 
-  deleteUser: (id: string): Promise<HttpResponse<ApiResponse>> =>
-    api.delete(`/users/${id}`),
+  /** Deleting an account is confirmed with the administrator's password. */
+  deleteUser: (id: string, adminPassword: string): Promise<HttpResponse<ApiResponse>> =>
+    api.delete(`/users/${id}`, { data: { adminPassword } }),
+};
+
+/** The append-only administrator log, newest first. */
+export const adminAuditAPI = {
+  list: async (before?: number) =>
+    adminAuditListResponseSchema.parse((await api.get('/admin-audit', { params: before === undefined ? {} : { before } })).data).data,
 };
 
 // Study Sessions API
@@ -507,9 +515,9 @@ export const backupAPI = {
       data: backupCreateResponseSchema.parse(response.data),
     })),
 
-  restoreBackup: (id: number): Promise<HttpResponse<ApiResponse<unknown>>> =>
+  restoreBackup: (id: number, adminPassword: string): Promise<HttpResponse<ApiResponse<unknown>>> =>
     api
-      .post(`/backup/restore/${id}`)
+      .post(`/backup/restore/${id}`, { adminPassword })
       .then((response) => ({
         ...response,
         data: backupRestoreResponseSchema.parse(response.data),
@@ -517,8 +525,9 @@ export const backupAPI = {
 
   resetData: (
     mode: ResetMode,
+    adminPassword: string,
   ): Promise<HttpResponse<ApiResponse<{ safetyBackupId: number }>>> =>
-    api.post('/backup/reset', { mode }).then((response) => ({
+    api.post('/backup/reset', { mode, adminPassword }).then((response) => ({
       ...response,
       data: resetDataResponseSchema.parse(response.data),
     })),

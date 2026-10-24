@@ -12,6 +12,7 @@ import {
   revokeUserSessions,
 } from '../services/authSessions';
 import { readSiteSettings, sendMaintenance } from '../services/siteSettings';
+import { recordAdminEvent } from '../services/adminAudit';
 import {
   clearRefreshCookie,
   readRefreshCookie,
@@ -109,6 +110,8 @@ export const login = async (
     const isPasswordValid = await user.comparePassword(password);
 
     if (!isPasswordValid) {
+      // Wrong passwords for an administrator account are logged; unknown addresses are not, so the log cannot be flooded with them.
+      if (user.role === 'admin') await recordAdminEvent({ action: 'signInFailed', target: user, request: req });
       res.status(401).json({
         success: false,
         error: { code: 'invalidCredentials' },
@@ -135,6 +138,7 @@ export const login = async (
 
     user.lastLogin = new Date();
     await user.save();
+    if (user.role === 'admin') await recordAdminEvent({ action: 'signedIn', actor: user, request: req });
 
     const profile = userResponse(user);
 

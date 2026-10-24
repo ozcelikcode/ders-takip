@@ -14,9 +14,11 @@ import {
   managedUserPatchSchema,
   userListQuerySchema,
   catalogPathIdSchema,
+  adminConfirmationSchema,
 } from '@study-tracker/contracts';
 import { issuePasswordResetLink } from '../controllers/passwordResetController';
 import { validate } from '../middleware/validate';
+import { confirmAdminPassword } from '../middleware/adminConfirmation';
 
 const router = express.Router();
 
@@ -37,6 +39,7 @@ router.post(
   '/',
   authorize('admin'),
   validate(z.object({ body: createManagedUserSchema })),
+  ...confirmAdminPassword('adminCreate', (req) => req.body.role === 'admin'),
   createUser,
 );
 
@@ -44,6 +47,7 @@ router.put(
   '/:id',
   authorize('admin'),
   validate(z.object({ params, body: managedUserPatchSchema })),
+  ...confirmAdminPassword('roleChange', (req) => req.body.role !== undefined),
   updateUser,
 );
 
@@ -57,7 +61,8 @@ router.post(
 router.delete(
   '/:id',
   authorize('admin'),
-  validate(z.object({ params })),
+  validate(z.object({ params, body: adminConfirmationSchema })),
+  ...confirmAdminPassword('userDelete'),
   deleteUser,
 );
 

@@ -97,6 +97,9 @@ function rejected() {
     },
   });
 }
+// Deleting an account and changing a role ask for the administrator's password.
+const confirmWithPassword = () =>
+  fireEvent.change(screen.getByLabelText('Onay için şifren'), { target: { value: 'fixture-password' } });
 function mount() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -257,13 +260,14 @@ it('waits for role acknowledgement, blocks duplicates and keeps a rejected confi
   expect(
     screen.getByText(/Yönetim paneline ve sistem ayarlarına erişebilecek/),
   ).toBeTruthy();
+  confirmWithPassword();
   const confirm = screen.getByRole('button', { name: 'Uygula' });
   act(() => {
     fireEvent.click(confirm);
     fireEvent.click(confirm);
   });
   expect(usersAPI.updateUser).toHaveBeenCalledTimes(1);
-  expect(usersAPI.updateUser).toHaveBeenCalledWith('2', { role: 'admin' });
+  expect(usersAPI.updateUser).toHaveBeenCalledWith('2', { role: 'admin', adminPassword: 'fixture-password' });
   fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' });
   fireEvent.click(screen.getByRole('button', { name: 'İptal' }));
   expect(screen.getByRole('dialog')).toBeTruthy();
@@ -278,11 +282,15 @@ it('waits for role acknowledgement, blocks duplicates and keeps a rejected confi
   fireEvent.click(
     within(await menu()).getByRole('menuitem', { name: 'Kullanıcıyı sil' }),
   );
+  confirmWithPassword();
+
   fireEvent.click(screen.getByRole('button', { name: 'Kullanıcıyı sil' }));
   await screen.findByText('İstek tamamlanamadı. Lütfen tekrar deneyin.');
   expect(screen.getByRole('dialog')).toBeTruthy();
   expect(usersAPI.deleteUser).toHaveBeenCalledTimes(1);
   const invalidate = vi.spyOn(client, 'invalidateQueries');
+  confirmWithPassword();
+
   fireEvent.click(screen.getByRole('button', { name: 'Kullanıcıyı sil' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   expect(invalidate).toHaveBeenCalledWith({
@@ -329,6 +337,8 @@ it('returns to a valid page after deleting its final row', async () => {
   fireEvent.click(
     within(await menu()).getByRole('menuitem', { name: 'Kullanıcıyı sil' }),
   );
+  confirmWithPassword();
+
   fireEvent.click(screen.getByRole('button', { name: 'Kullanıcıyı sil' }));
   await screen.findByText('Sayfa 2 / 2 · 40 kullanıcı');
   expect(usersAPI.getUsers).toHaveBeenLastCalledWith(
@@ -425,6 +435,7 @@ it('does not show success or invalidate account data after a late account acknow
   fireEvent.click(
     within(await menu()).getByRole('menuitem', { name: 'Yönetici yap' }),
   );
+  confirmWithPassword();
   fireEvent.click(screen.getByRole('button', { name: 'Uygula' }));
   auth.epoch++;
   await act(async () => finish(response()));
@@ -448,4 +459,21 @@ it('does not apply a late create acknowledgement after the page has unmounted', 
   await act(async () => finish(response()));
   expect(invalidate).not.toHaveBeenCalled();
   expect(toast.success).not.toHaveBeenCalled();
+});
+it('asks for the creator\'s password only when the new account is an administrator', async () => {
+  vi.mocked(usersAPI.createUser).mockResolvedValue(response());
+  mount();
+  await openCreate();
+  fillUser();
+  expect(screen.queryByLabelText('Onay için şifren')).toBeNull();
+  fireEvent.change(screen.getByLabelText('Rol'), { target: { value: 'admin' } });
+  save();
+  expect((await screen.findByText('Onay için şifreni gir.')).getAttribute('role')).toBe('alert');
+  expect(usersAPI.createUser).not.toHaveBeenCalled();
+  confirmWithPassword();
+  save();
+  await waitFor(() =>
+    expect(usersAPI.createUser).toHaveBeenCalledWith(expect.objectContaining({ role: 'admin', adminPassword: 'fixture-password' })),
+  );
+  expect(vi.mocked(usersAPI.createUser).mock.calls[0]![0]).not.toHaveProperty('confirmPassword');
 });

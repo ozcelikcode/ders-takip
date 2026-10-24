@@ -14,6 +14,8 @@ import BackupPanel, {
   type MaintenanceAction,
 } from '../../components/admin/BackupPanel';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import AdminPasswordField from '../../components/admin/AdminPasswordField';
+import AuditLogPanel from '../../components/admin/AuditLogPanel';
 import CustomTerminologyEditor from '../../components/settings/CustomTerminologyEditor';
 import TerminologyPresetPicker from '../../components/settings/TerminologyPresetPicker';
 import NotificationChannelStatus from '../../components/admin/NotificationChannelStatus';
@@ -28,7 +30,7 @@ import { useText } from '../../store/languageStore';
 // Custom words are an object; compare settings by value, not identity.
 const sameSetting = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
 
-const sections = ['general', 'security', 'appearance', 'terminology', 'notifications', 'backup'] as const;
+const sections = ['general', 'security', 'appearance', 'terminology', 'notifications', 'backup', 'audit'] as const;
 type Section = (typeof sections)[number];
 const isSection = (value: string | null): value is Section => sections.some((id) => id === value);
 function SettingsForm({
@@ -49,6 +51,8 @@ function SettingsForm({
   const setSection = (id: Section) => setParams(id === 'general' ? {} : { section: id }, { replace: true });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [action, setAction] = useState<MaintenanceAction | null>(null);
+  // Restoring and resetting are confirmed with the administrator's password.
+  const [confirmation, setConfirmation] = useState({ password: '', missing: false });
   const prefix = useId();
   const mounted = useRef(true);
   const epoch = useRef(useAuthStore.getState().epoch);
@@ -185,11 +189,15 @@ function SettingsForm({
   };
   const confirm = async () => {
     if (!action || dirty || !current()) return false;
+    if (!confirmation.password) {
+      setConfirmation({ password: '', missing: true });
+      return false;
+    }
     const saved = await mutation.save(
       () =>
         action.kind === 'restore'
-          ? backupAPI.restoreBackup(action.backup.id)
-          : backupAPI.resetData(action.mode),
+          ? backupAPI.restoreBackup(action.backup.id, confirmation.password)
+          : backupAPI.resetData(action.mode, confirmation.password),
       action.kind === 'restore'
         ? text.restored
         : text.resetDone,
@@ -232,6 +240,11 @@ function SettingsForm({
           </button>
         ))}
       </nav>
+      {section === 'audit' ? (
+        <div className="panel p-5 sm:p-6">
+          <AuditLogPanel />
+        </div>
+      ) : (
       <form
         noValidate
         onSubmit={(event) => {
@@ -462,6 +475,7 @@ function SettingsForm({
           </div>
         </div>
       </form>
+      )}
       {section === 'backup' && (
         <div className="panel p-5 sm:p-6">
           <BackupPanel
@@ -469,6 +483,7 @@ function SettingsForm({
             dirty={dirty}
             onAction={(next) => {
               mutation.clearError();
+              setConfirmation({ password: '', missing: false });
               setAction(next);
             }}
             onCreate={() => {
@@ -508,6 +523,11 @@ function SettingsForm({
           onClose={() => setAction(null)}
           onConfirm={confirm}
         >
+          <AdminPasswordField
+            value={confirmation.password}
+            missing={confirmation.missing}
+            onChange={(password) => setConfirmation({ password, missing: false })}
+          />
           {mutation.errorMessage && (
             <p role="alert" className="text-sm text-red-600">
               {mutation.errorMessage}

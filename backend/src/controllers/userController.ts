@@ -1,4 +1,5 @@
 import { userResponse } from '../services/userResponses';
+import { recordAdminEvent } from '../services/adminAudit';
 import { getAllTimeSummaries, getStudyStats } from '../services/studyTracking';
 import { defaultPreferences, mergePreferences, preferencesSchema, fail } from '@study-tracker/contracts';
 import { columnContains } from '../utils/textSearch';
@@ -132,6 +133,7 @@ export const createUser = async (
       },
     );
 
+    await recordAdminEvent({ action: 'userCreated', actor: req.user!, target: user, details: { role: user.role }, request: req });
     const profile = userResponse(user);
 
     res.status(201).json({
@@ -152,6 +154,7 @@ export const updateUser = async (
     const { id } = req.params;
     const { firstName, lastName, role, isActive, preferences } = req.body;
 
+    const changes: { role?: string; isActive?: boolean } = {};
     const user = await sequelize.transaction(
       { type: Transaction.TYPES.IMMEDIATE },
       async (transaction) => {
@@ -170,6 +173,8 @@ export const updateUser = async (
         if (isActive !== undefined) current.isActive = isActive;
         if (preferences !== undefined)
           current.preferences = mergePreferences(current.preferences, preferences);
+        if (current.changed('role')) changes.role = current.role;
+        if (current.changed('isActive')) changes.isActive = current.isActive;
         const privilegesChanged =
           current.changed('role') || current.changed('isActive');
         await current.save({ transaction });
@@ -179,6 +184,10 @@ export const updateUser = async (
       },
     );
 
+    if (changes.role !== undefined)
+      await recordAdminEvent({ action: 'userRoleChanged', actor: req.user!, target: user, details: { role: changes.role }, request: req });
+    if (changes.isActive !== undefined)
+      await recordAdminEvent({ action: changes.isActive ? 'userActivated' : 'userDeactivated', actor: req.user!, target: user, request: req });
     const profile = userResponse(user);
 
     res.json({
@@ -206,7 +215,7 @@ export const deleteUser = async (
       return;
     }
 
-    await sequelize.transaction(
+    const deleted = await sequelize.transaction(
       { type: Transaction.TYPES.IMMEDIATE },
       async (transaction) => {
         const user = await User.findByPk(id, { transaction });
@@ -214,9 +223,12 @@ export const deleteUser = async (
           fail(404, 'userNotFound');
         }
 
+        const target = { id: user.id, username: user.username };
         await deleteAccount(user, transaction);
+        return target;
       },
     );
+    await recordAdminEvent({ action: 'userDeleted', actor: req.user!, target: deleted, request: req });
 
     res.json({
       success: true,

@@ -133,7 +133,7 @@ it('owners create, rename and delete their own personal categories', async () =>
 });
 
 it('deleting a user removes their personal categories with their private records', async () => {
-  const response = await call('delete', `/api/users/${owner.id}`, admin);
+  const response = await call('delete', `/api/users/${owner.id}`, admin, { adminPassword: 'fixture-password' });
   assert.equal(response.status, 200, JSON.stringify(response.body));
   assert.equal(await Category.count({ where: { userId: owner.id } }), 0);
   assert.equal(await Category.count({ where: { id: shared.id } }), 1);

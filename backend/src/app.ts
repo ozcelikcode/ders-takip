@@ -23,6 +23,7 @@ import sessionSeriesRoutes from './routes/sessionSeriesRoutes';
 import courseGoalRoutes from './routes/courseGoalRoutes';
 import { calendarFeedRouter, calendarSettingsRouter } from './routes/calendarRoutes';
 import tagRoutes from './routes/tagRoutes';
+import adminAuditRoutes from './routes/adminAuditRoutes';
 import topicRoutes from './routes/topics';
 import userRoutes from './routes/users';
 
@@ -67,6 +68,7 @@ app.use('/api/course-goals', courseGoalRoutes);
 app.use('/api/calendar', calendarFeedRouter);
 app.use('/api/calendar-feed', calendarSettingsRouter);
 app.use('/api/tags', tagRoutes);
+app.use('/api/admin-audit', adminAuditRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/search', searchRoutes);

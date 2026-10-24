@@ -208,6 +208,7 @@ for (const theme of ['light', 'dark'] as const) {
         ['Bildirimler', 'notifications'],
         ['Görünüm', 'appearance'],
         ['Yedekleme ve sıfırlama', 'backups'],
+        ['İşlem günlüğü', 'audit'],
       ] as const) {
         await page
           .getByRole('navigation', { name: 'Site ayarı bölümleri' })

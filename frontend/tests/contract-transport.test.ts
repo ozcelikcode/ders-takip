@@ -158,9 +158,9 @@ it('validates backup verification flags and reset acknowledgements, stripping ho
   expect(response.data.data?.[0]?.verified).toBeUndefined();
   expect(response.data.data?.[0]).not.toHaveProperty('path');
   payload = { success: false, message: 'Failed restore' };
-  await expect(api.backupAPI.restoreBackup(1)).rejects.toThrow();
+  await expect(api.backupAPI.restoreBackup(1, 'fixture-password')).rejects.toThrow();
   payload = { success: true, message: 'Missing safety ID', data: {} };
-  await expect(api.backupAPI.resetData('settings_only')).rejects.toThrow();
+  await expect(api.backupAPI.resetData('settings_only', 'fixture-password')).rejects.toThrow();
 });
 it('does not log a different account out when an earlier password change finishes late', async () => {
   auth.setState({

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  createManagedUserSchema,
+  accountFieldsSchema,
   usernameSchema,
   personNameSchema,
   newPasswordSchema,
@@ -11,7 +11,7 @@ import { preferencesPatchSchema } from './preferences.js';
 import { timezoneSchema } from './time.js';
 
 // Public registration cannot grant a role or account status.
-export const registerSchema = createManagedUserSchema
+export const registerSchema = accountFieldsSchema
   .omit({ role: true, isActive: true })
   // The browser's IANA zone; without it the server default applies.
   .extend({ timezone: timezoneSchema.optional() })

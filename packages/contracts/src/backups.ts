@@ -1,6 +1,9 @@
 import { z } from 'zod';
+import { adminPasswordSchema } from './adminAudit.js';
+
+/** Resetting is confirmed with the administrator's password. */
 export const resetDataSchema = z
-  .object({ mode: z.enum(['settings_only', 'all']) })
+  .object({ mode: z.enum(['settings_only', 'all']), adminPassword: adminPasswordSchema })
   .strict();
 export const backupRecordSchema = z.object({
   id: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),

@@ -106,6 +106,6 @@ it('keeps the last active administrator', async () => {
   const second = await create('second', { role: 'admin' });
   assert.equal((await call('delete', '/api/auth/account', admin, { password: 'fixture-password' })).status, 200);
   // The remaining administrator still manages accounts through the admin route, which shares the deletion rules.
-  assert.equal((await call('delete', `/api/users/${other.id}`, second)).status, 200);
+  assert.equal((await call('delete', `/api/users/${other.id}`, second, { adminPassword: 'fixture-password' })).status, 200);
   assert.equal(await Category.count({ where: { userId: other.id } }), 0);
 });

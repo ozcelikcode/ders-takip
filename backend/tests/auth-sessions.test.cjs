@@ -106,8 +106,8 @@ describe('revocable browser sessions', () => {
     const admin = await account('admin'); const subject = await account();
     const actor = await login(admin); const original = await login(subject);
     await request(app).put(`/api/users/${admin.id}`).set('X-Requested-With','StudyTracker').auth(actor.body.data.tokens.accessToken,{type:'bearer'}).send({isActive:false}).expect(400);
-    await request(app).put(`/api/users/${admin.id}`).set('X-Requested-With','StudyTracker').auth(actor.body.data.tokens.accessToken,{type:'bearer'}).send({role:'student'}).expect(400);
-    await request(app).delete(`/api/users/${admin.id}`).set('X-Requested-With','StudyTracker').auth(actor.body.data.tokens.accessToken,{type:'bearer'}).expect(400);
+    await request(app).put(`/api/users/${admin.id}`).set('X-Requested-With','StudyTracker').auth(actor.body.data.tokens.accessToken,{type:'bearer'}).send({role:'student',adminPassword:'original-password'}).expect(400).expect((response)=>assert.equal(response.body.error.code,'cannotRemoveOwnAdmin'));
+    await request(app).delete(`/api/users/${admin.id}`).set('X-Requested-With','StudyTracker').auth(actor.body.data.tokens.accessToken,{type:'bearer'}).send({adminPassword:'original-password'}).expect(400).expect((response)=>assert.equal(response.body.error.code,'cannotDeleteSelf'));
     for (const isActive of [false, true]) await request(app).put(`/api/users/${subject.id}`).set('X-Requested-With','StudyTracker').auth(actor.body.data.tokens.accessToken,{type:'bearer'}).send({isActive}).expect(200);
     await me(original.body.data.tokens.accessToken).expect(401);
     await write('/api/auth/refresh-token',cookieOf(original)).expect(401);

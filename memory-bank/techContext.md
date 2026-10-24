@@ -248,3 +248,7 @@ Dışa aktarma `accountExportVersion` 2 (`references`: ortak kategori/kayıt/kon
 
 `components/common/CommandPalette.tsx` (Headless UI Dialog + Combobox), Layout'ta `lazy` ve yalnız açıkken; kısayol `hooks/usePaletteShortcut.ts`; Header `onPaletteClick` düğmesi. Ayarlar `?tab=`, Site ayarları `?section=` adres parametreleri (`useSearchParams`, `replace`).
 
+## Yönetici güvenliği — 24 Ekim 2026
+
+Sözleşme `contracts/adminAudit.ts` (`adminPasswordSchema`, `adminConfirmationSchema`, `confirmedOperations`, `adminAuditActions`, giriş/sayfa şemaları); `resetDataSchema`, `createManagedUserSchema`, `managedUserPatchSchema` `adminPassword` taşır (kayıt şeması `accountFieldsSchema`'dan türer). Backend `middleware/adminConfirmation.ts`, `services/adminAudit.ts`, `routes/adminAuditRoutes.ts` (`/api/admin-audit`), `AUDIT_LOG_PATH` (varsayılan veritabanının yanında `admin-audit.jsonl`). Arayüz `components/admin/AdminPasswordField.tsx`, `AuditLogPanel.tsx`, `adminAuditAPI`. Migration yok.
+

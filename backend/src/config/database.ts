@@ -10,6 +10,9 @@ export const backupDirectory = path.resolve(backendDirectory, environment.BACKUP
 export const backupCopyDirectory = environment.BACKUP_COPY_DIR
   ? path.resolve(backendDirectory, environment.BACKUP_COPY_DIR)
   : null;
+export const auditLogPath = environment.AUDIT_LOG_PATH
+  ? path.resolve(backendDirectory, environment.AUDIT_LOG_PATH)
+  : path.join(databasePath === ':memory:' ? backupDirectory : path.dirname(databasePath), 'admin-audit.jsonl');
 // The copy is pruned like the primary folder, so sharing one folder would delete real snapshots.
 if (backupCopyDirectory === backupDirectory) throw new Error('BACKUP_COPY_DIR must differ from BACKUP_DIR');
 
