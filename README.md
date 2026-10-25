@@ -1,12 +1,87 @@
-# Çalışma ve Görev Takip Sistemi
+<div align="center">
 
-Her alandan kullanıcı için çalışma planlama, odak sayacı ve ölçülen süreyle ilerleme takibi yapan Türkçe web uygulaması. Okul, iş, kişisel hedef veya beceri: görünen kelimeler (ders/konu, proje/görev, hedef/adım…) ayarlanabilir. Görünen site adı admin ayarından gelir. Teknik adlandırma İngilizcedir; kullanıcıya görünen içerik Türkçe kalır.
+# Study Tracker
 
-## Geliştirme gereksinimleri
+**Plan your study time, focus with a server-backed Pomodoro timer and follow progress built on measured time, not guesses.**
 
-- Node.js 24.21.0 (`.nvmrc` / `.node-version`).
-- npm 11.19.0; tek paket yöneticisi ve kökteki `package-lock.json` kullanılır.
-- npm workspaces: `packages/contracts`, `backend` ve `frontend`.
+[![CI](https://github.com/ozcelikcode/ders-takip/actions/workflows/ci.yml/badge.svg)](https://github.com/ozcelikcode/ders-takip/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Node.js 24](https://img.shields.io/badge/node-24.21-339933?logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
+
+</div>
+
+Study Tracker is a self-hosted web application for anyone who works toward goals in blocks of focused time: school and exam preparation, work projects, personal goals or practising a skill. The words the interface uses (course/topic, project/task, goal/step, skill/exercise) are configurable, the interface is available in English and Turkish, and every number on the dashboard comes from time the server actually measured.
+
+## Contents
+
+- [Features](#features)
+- [Tech stack](#tech-stack)
+- [Getting started](#getting-started)
+- [Configuration](#configuration)
+- [Scripts](#scripts)
+- [Testing](#testing)
+- [Project structure](#project-structure)
+- [How it works](#how-it-works)
+- [Deployment notes](#deployment-notes)
+- [Documentation](#documentation)
+- [License](#license)
+
+## Features
+
+**Planning**
+- Daily and weekly planner with drag to move (15-minute steps), resize (5-minute steps), keyboard creation and native time fields as an accessible alternative.
+- Weekly routines: the same session on chosen weekdays, with an optional end date. Changing a single occurrence makes it your own; editing the routine only rebuilds untouched future sessions.
+
+**Focus and measurement**
+- Persistent Pomodoro timer stored on the server: closing the window or reloading never pauses it, and every tab shows the same clock.
+- Study, break and pause time are measured as separate intervals; totals never invent time for sessions that were not tracked.
+
+**Progress and insight**
+- Daily and weekly goals plus a weekly target per record, compared with measured time.
+- Statistics by category and record over any range, a weekly chart with a screen-reader table, and recommendations.
+- Tags on records and sessions, with tag filters in the planner and statistics.
+- Global search that ignores case and Turkish letter forms ("istanbul" finds "İstanbul").
+
+**Personalization**
+- Vocabulary presets and custom words, kept per language.
+- Time zone, week start, light/dark theme and accent colour per account.
+- A short welcome wizard that shapes a new account to its purpose.
+- "Go to page" palette (<kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd>) for every page and settings tab.
+
+**Stay in sync**
+- Private calendar subscription (iCalendar feed) for Google Calendar, Apple Calendar and Outlook.
+- Optional email and browser push reminders.
+
+**Accounts and data**
+- Download all of your data as JSON, load it into a new account on another site, or delete your account with your password.
+- Password reset by email, or by a one-time link an administrator hands over when email is not configured.
+
+**Administration**
+- User management, shared catalog, site identity (name, description, logo, icon) and site language.
+- Verified SQLite snapshots with automatic retention, an optional second backup folder, restore and reset with a safety copy taken first.
+- Sensitive actions ask for the administrator's password again, and every administration action is written to a hash-chained activity log kept outside the database.
+
+## Tech stack
+
+| Layer | Technologies |
+|---|---|
+| Frontend | React 19, Vite 8, TypeScript (strict), TanStack Query 5, Zustand 5, Headless UI 2, Tailwind CSS 4, Recharts 3 |
+| Backend | Node.js 24, Express 4, Sequelize 6, SQLite, Zod 4 |
+| Shared | `@study-tracker/contracts`: one TypeScript source for request/response schemas, built for Node (CJS) and the browser (ESM) |
+| Time | Luxon with IANA time zones |
+| Testing | Vitest, Testing Library, Node test runner with Supertest, Playwright, axe-core, Lighthouse |
+
+## Getting started
+
+### Requirements
+
+- Node.js **24.21** (see `.nvmrc`)
+- npm **11.19** (the only package manager; the root `package-lock.json` is authoritative)
+
+### Install
 
 ```bash
 nvm use
@@ -14,206 +89,231 @@ npm install --global npm@11.19.0
 npm run setup
 ```
 
-`setup`, kilitli bağımlılıkları kurar, mevcut dosya yoksa rastgele JWT imzalama anahtarı içeren yerel `backend/.env` oluşturur ve iki uygulamayı derler. Mevcut ortam dosyasına ve kullanıcı verilerine dokunmaz. Yapılandırma dosyası Git'e eklenmez.
+`setup` installs the locked dependencies, creates `backend/.env` with a random signing secret when it does not exist yet, and builds every workspace. It never overwrites an existing environment file or user data.
 
-Veritabanı ilk kurulumda **ayrı ve açık** bir komutla hazırlanır:
+### Prepare the database
+
+Schema changes always run as an explicit step:
 
 ```bash
 npm run db:migrate
-npm run dev
 ```
 
-- Frontend: [localhost:3000](http://localhost:3000).
-- API: [localhost:5002/api/health](http://localhost:5002/api/health).
-- Frontend `/api` çağrılarını Vite proxy üzerinden backend'e iletir.
-- Sunucu açılışı şema oluşturmaz, değiştirmez veya tablo silmez. Bekleyen migration ya da uyumsuz şema varsa başlangıç durur.
-- İlk migration mevcut uyumlu tabloları ve kayıtlarını koruyarak baseline oluşturur; `002-auth-sessions` iptal edilebilir oturum tablolarını, `003-user-preferences-v1` ortak tercih JSON sözleşmesini, `004-session-activity-intervals` gerçek çalışma aralıklarını, `005-pomodoro-clocks` kalıcı sunucu sayacını, `006-user-topic-progress` kullanıcıya özel konu ilerlemesini, `007-password-reset-tokens` tek kullanımlık şifre sıfırlama kayıtlarını ekler. Eksik kolon içeren eski şema otomatik onarılmaz; bunun için ayrı migration gerekir.
+The server never creates, changes or drops tables at startup; it refuses to start while a migration is pending or the schema does not match.
 
-## Şifre sıfırlama
+### Create the first administrator
 
-Giriş ekranındaki **Şifremi unuttum** bağlantısı e-posta ile tek kullanımlık, 30 dakika geçerli bir sıfırlama bağlantısı gönderir. Gönderim için `backend/.env` içinde `SMTP_HOST` ve `MAIL_FROM` (gerekirse `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`) tanımlanır; herhangi bir SMTP sağlayıcısı (Gmail uygulama şifresi, Brevo, Mailgun, kendi sunucunuz) kullanılabilir, yerel denemede Mailpit yeterlidir. SMTP tanımlı değilse ekran bunu açıkça söyler ve yönetici, **Kullanıcılar** listesindeki işlemlerden **Şifre sıfırlama bağlantısı** oluşturup kullanıcıya güvenli bir kanaldan iletir. Yanıt, hesabın var olup olmadığını belli etmez; token yalnız hash olarak saklanır, yeni bağlantı eskileri geçersiz kılar ve sıfırlama bütün oturumları kapatır.
-
-## Yapılandırma
-
-Örnekler: [backend/.env.example](backend/.env.example), [frontend/.env.example](frontend/.env.example).
-
-| Alan | Anlamı |
-|---|---|
-| `JWT_SECRET` | Rastgele, en az 32 karakter; eksik, kısa veya örnek anahtarla uygulama başlamaz. |
-| `JWT_EXPIRE` | Access token süresi, en fazla 15 dakika; varsayılan `15m`. |
-| `SESSION_TTL_DAYS` | Oturumun uzatılmayan mutlak ömrü; 1–30 gün, varsayılan 7. |
-| `BCRYPT_SALT_ROUNDS` | Yeni parola hash maliyeti; 12–16, varsayılan 12. |
-| `PORT` | Varsayılan 5002. |
-| `FRONTEND_URL` | İzin verilen tarayıcı origin'i; varsayılan `http://localhost:3000`, production'da HTTPS zorunlu. |
-| `DB_PATH` | Mutlak yol veya backend klasörüne göre göreli SQLite yolu; varsayılan `database.sqlite`. |
-| `BACKUP_DIR` | Mutlak yol veya backend klasörüne göre göreli yedek dizini. |
-| `BACKUP_COPY_DIR` | İsteğe bağlı ikinci yedek klasörü (başka disk ya da eşitlenen klasör); `BACKUP_DIR` ile aynı olamaz. |
-| `AUDIT_LOG_PATH` | İsteğe bağlı yönetici işlem günlüğü dosyası; varsayılan veritabanının yanında `admin-audit.jsonl` (Git dışı). |
-| `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS` | Production API sınırı; varsayılan 15 dakikada 100 istek. |
-| `VITE_API_BASE_URL` | Varsayılan `/api`; ayrı origin kullanılacaksa frontend build öncesi tanımlanır. |
-
-Production dağıtımında geliştirme ortam dosyası yerine ortam değişkenleri sağlanır. Frontend `/api` yolu dağıtımın reverse proxy'si üzerinden backend'e yönlendirilmelidir. Geliştirme sunucusu production hosting olarak kullanılmaz.
-
-## Yerel admin oluşturma ve kurtarma
-
-Önce migration çalıştırın. En az 12 karakter, en fazla 72 UTF-8 bayt olan güçlü parolayı yalnız sahibinin okuyabildiği bir dosyaya kaydedin (`chmod 600`). Parolayı komut argümanına, sohbet veya Git'e yazmayın. Örneğin Git dışında tutulan `.local/admin-password.txt` dosyasıyla:
+Store a strong password (12+ characters, at most 72 UTF-8 bytes) in a file only you can read, then:
 
 ```bash
+chmod 600 /absolute/path/to/admin-password.txt
 npm run admin:manage -- --mode create --email admin@example.com --username admin --password-file /absolute/path/to/admin-password.txt
 ```
 
-`create`, yalnız henüz hiçbir admin yoksa çalışır. Unutulan mevcut admin parolası için aynı komutta `--mode recover` ve hesabın tam e-posta adresi kullanılır. Kurtarma yalnız aktif admin hesabına uygulanır; öğrenciyi admin yapmaz, diğer kullanıcıları değiştirmez, hesabın bütün oturumlarını iptal eder. Araç veritabanı yoksa durur; sessizce yeni dosya veya örnek veri üretmez.
+`create` works only while no administrator exists. To recover a forgotten administrator password, run the same command with `--mode recover` and the account's email address; it signs that account out everywhere and changes nothing else. Never pass a password as a command-line argument.
 
-15 Ekim 2026'da kullanıcının açık talimatıyla bu çalışma klasöründe ilk yerel kurulum ve `admin@example.com` hesabı oluşturuldu. Rastgele parola `.local/admin-password.txt` içinde 0600 izinle tutulur; dosya Git dışında kalır. Bu hesap örnek veya production için varsayılan parola sağlamaz.
+### Run
 
-## Oturum sözleşmesi
+```bash
+npm run dev
+```
 
-Access token yalnız uygulama belleğindedir. Refresh credential yalnız `HttpOnly`, `SameSite=Strict`, `/api/auth` kapsamlı cookie ile taşınır; production'da `Secure` zorunludur. Refresh her kullanımda döner, tüketilmiş credential tekrar kullanılırsa bütün oturum ailesi iptal edilir. Logout o oturumu; parola değişikliği ve admin kurtarma ilgili kullanıcının bütün oturumlarını kapatır. Rol/aktiflik değişikliği de eski oturumları iptal eder.
+| Service | URL |
+|---|---|
+| App | http://localhost:3000 |
+| API health | http://localhost:5002/api/health |
 
-`/api/auth` istekleri `X-Requested-With: StudyTracker` başlığı ve tarayıcıda `credentials: include` gerektirir. Origin kontrol edilir. Arayüz istemcisi bunları uygular; aynı anda gelen 401 yanıtları ortak refresh kullanır, geç yanıtlar hesap değişimini geri alamaz. Modern tarayıcılarda Web Locks sekmeler arasında cookie işlemlerini sıraya koyar; BroadcastChannel diğer sekmelerin kimlik/cache durumunu temizler. Çevrimdışı çıkış niyeti sonraki açılışta otomatik giriş yapılmasını engeller.
+The Vite dev server proxies `/api` to the backend.
 
-Bu değişiklik eski JSON refresh-token sözleşmesinin yerini alır. Mevcut kurulumlarda backend/frontend birlikte güncellenmeli, `npm run db:migrate` uygulanmalı ve kullanıcılar yeniden giriş yapmalıdır. `JWT_REFRESH_SECRET` / `JWT_REFRESH_EXPIRE` artık kullanılmaz.
+<details>
+<summary>Development sample data</summary>
 
-## Yedekleme ve kurtarma
-
-Yönetim ekranı canlı SQLite dosyasından native Online Backup API ile tutarlı snapshot oluşturur. Dosyanın bütünlüğü, foreign key'leri, migration/kolon uyumu ve SHA-256 değeri denetlenir. Snapshot ile yanındaki `.sqlite.json` manifest birlikte saklanmalıdır; katalog geri yüklemeden sonra bu manifestlerden yeniden kurulur. Dizin 0700, yeni dosyalar 0600 izinlidir.
-
-Restore önce kaynak doğrulaması ve mevcut verinin güvenlik yedeğini alır, SQLite destination transaction ile geri yükler, şemayı kontrol eder ve eski oturumların tamamını iptal eder. Son kontrol başarısızsa güvenlik yedeğine döner; bu da başarısızsa API bakım durumunda kalır. İşlem sırasında yeni veri istekleri 503/Retry-After alır; sunucu kapanmaz. Manifesti bulunmayan eski kayıtlar arayüzde doğrulanmamış görünür ve geri yüklenemez.
-
-Otomatik yedek kontrolü her 5 dakikada çalışır. Son başarılı otomatik yedekten itibaren 1, 5 veya 7 **tam gün** dolması esas alınır; aralık ayarı her çalışmada yeniden okunur. Otomatik yedeklerden en yeni 14'ü saklanır; daha eskileri (kayıt, manifest, dosya sırasıyla) silinir. Elle alınan yedekler ve geri yükleme/sıfırlama öncesi güvenlik yedekleri hiç silinmez. `BACKUP_COPY_DIR` verilirse her doğrulanmış yedek ve manifesti oraya da kopyalanır (SHA-256 kontrolüyle, yarım dosya + yeniden adlandırma); silinen otomatik yedeklerin kopyası da kaldırılır, klasördeki başka dosyalara dokunulmaz. Kopyalama veritabanı kilidi dışında yapılır; başarısız olursa yedek yine geçerlidir, açılışta ve sonraki yedekte eksik kopyalar tamamlanır. Kapasite takibi, şifreli yedek ve gerçek ortam kurtarma tatbikatı ayrıca kurulmalıdır.
-
-`settings_only` yalnız site ayarlarını sıfırlar. `all`, admin olmayan hesapları ve kayıt/çalışma verilerini temizler; adminleri ve yedekleri korur. İki işlem de önce güvenlik yedeği alır ve silmeleri transaction içinde yürütür. Doğrulama testleri geçici veritabanlarında çalışır. Koordinasyon tek backend süreci içindir; çoklu instance ve harici SQLite yazıcıları bu kilide dahil değildir.
-
-## Yönetici güvenliği
-
-Geri yükleme, iki sıfırlama türü, rol değiştirme, yönetici hesabı oluşturma ve hesap silme her istekte yöneticinin şifresini (`adminPassword`) yeniden ister; yanlış şifre 400 `wrongPassword` döner ve günlüğe yazılır, production'da 15 dakikada 10 yanlış denemeyle sınırlanır. Şifre denetimden sonra istekten silinir, hiçbir yere yazılmaz.
-
-Yönetim işlemleri (yönetici girişi, yönetici hesabına hatalı şifre, hatalı onay, site ayarı değişikliği — yalnız ayar adları, değerleri değil —, yedek alma/geri yükleme, sıfırlama, hesap oluşturma/rol/etkinlik/silme, şifre sıfırlama bağlantısı) yalnız eklenen bir JSON Lines dosyasına yazılır. Her kayıt bir öncekinin SHA-256 özetini taşır; aradan bir kayıt değiştirilir, silinir ya da sırası bozulursa Site ayarları › İşlem günlüğü bunu ve ilk bozulan kaydı gösterir. Günlük veritabanının dışında olduğu için yedekten geri yükleme onu geri sarmaz. Sınır: sunucuya yazma erişimi olan biri bütün dosyayı tutarlı biçimde yeniden yazabilir; buna karşı günlüğün sunucu dışına kopyası gerekir.
-
-## Site adını ve kimliğini değiştirme
-
-Admin hesabıyla [Site ayarları](http://localhost:3000/admin/settings) → Genel bölümünü açın. Site adı, açıklama, logo URL'si ve ikon seçimini kaydedin. Aynı ad giriş/kayıt, menü, yükleme ekranı ve tarayıcı başlığında; açıklama/ikon ilgili metadata ve favicon'da kullanılır. Türkçe veya başka bir marka adı seçilebilir. Kod/dosya adlarının İngilizce oluşu bu görünen adı sınırlamaz. Repo/paket adı ve hosting domain'i bu ayarla değişmez.
-
-Yönetim ayarlarındaki **Kelimeler** bölümü ders/konu/seans kavramlarının görünen adını değiştiren hazır setler sunar (Genel: proje/görev/seans, Eğitim, Hedef, Beceri). Varsayılan nötr Genel setidir; yalnız görünen kelimeler değişir, kayıtlı veri ve yetkiler değişmez. Site kimliği kaydı mevcut ekranda hemen uygulanır; diğer açık ekranlar açılış/focus veya görünürken 60 saniyelik yenilemeyle alır. Gerçek siteye yeni bir ad atanmadı; ekran görüntülerindeki “Odak Atlası” geçici test verisidir.
-
-`GET /api/settings` yalnız public kimlik alanlarını döndürür. Private ayarlar `GET /api/settings/admin` ile admin yetkisi gerektirir; genel okuma ve kalıcı browser cache'inde admin e-postası/güvenlik ayarları bulunmaz. Güncellemeler izinli alan/tip şeması ve tek transaction kullanır. Eski public category ayar okuma yolu kaldırıldı. Kayıt izni/bakım/sessionTimeout gibi kalan ayarların sunucuda uygulanması hâlâ backlog'dadır.
-
-## Kişisel tercihler ve mevcut veriden geçiş
-
-Tema/system seçimi, renk, bildirim tercihleri, çalışma hedef/günleri, timezone ve Pomodoro varsayılanları ortak Preferences v1 sözleşmesiyle kaydedilir. Arayüz sunucu onayı bekler, hata ve devam eden kaydı gösterir. Tercihler sunucuda ve yalnız mevcut hesabın belleğinde tutulur; başka hesaba taşınmaz. Renk override'ı kaldırılınca site rengi kullanılır. Yeni seans formu kişisel Pomodoro varsayılanını alır; mevcut seans ayarı korunur. Bildirim/dil/timezone alanının kaydedilmesi gönderim/çeviri/backend zaman hesabının tamamlandığı anlamına gelmez.
-
-Mevcut kurulumda uygulamayı durdurup tutarlı yedek alın, sonra `npm run db:migrate` çalıştırın ve front/back'i birlikte güncelleyin. `003-user-preferences-v1`, eski workGoals/studyGoals/notifications biçimlerini dönüştürür; kaynak JSON'u DB'de arşivler, kimlik/parola/geçmişi korur. Arşiv API'ye çıkmaz. Gelecekteki bilinmeyen sürüm/bozuk JSON'da migration bütünüyle geri döner. Eski şemalı snapshot güncel restore tarafından reddedilir; uyumlu uygulama veya ayrı kopyada kontrollü migration gerekir.
-
-Kime ait olduğu bilinmeyen eski browser tercih/bildirim değerleri `unassigned-account-state` içinde manuel kurtarma için korunur; hiçbir hesaba otomatik atanmaz. Yeni okundu bildirimleri hesap anahtarlı tutulur. Sorgu cache'i account/resource/date/timezone kapsamındadır; seans yazmaları ilgili bütün özetleri birlikte yeniler.
-
-16 Ekim yerel geçişi private native snapshot sonrasında uygulandı; hesap/parola hash/oturum ve mevcut kayıt sayıları korundu, güncel şema yedeği oluşturuldu. Geçiş öncesi kopyanın yolu Git dışındaki `.local/preferences-upgrade-2026-10-16.json` içindedir.
-
-## Ortak sözleşme geliştirme
-
-`packages/contracts` tek TypeScript kaynaktan Node CJS ve tarayıcı ESM çıktısı üretir. Kök dev/typecheck/test ve workspace build akışları gerekli build'i yapar. Sözleşme export'u değiştiğinde geliştirme süreçlerini yeniden başlatın; Vite `--force` workspace dependency cache'ini yeniler. Birden fazla Vite test sunucusu aynı cache dizinini paylaşmamalıdır.
-
-## Geliştirme verileri
-
-Varsayılan parolalı hesap otomatik oluşturulmaz. Geliştirme ortamında örnek kategorileri ve admin hesabını açıkça oluşturmak için `backend/.env` içine `ADMIN_EMAIL`, `ADMIN_USERNAME` ve en az 12 karakterli `ADMIN_PASSWORD` ekleyin:
+No account with a default password is ever created automatically. To create sample categories and an administrator in development, add `ADMIN_EMAIL`, `ADMIN_USERNAME` and `ADMIN_PASSWORD` (12+ characters) to `backend/.env` and run:
 
 ```bash
 npm run seed
 ```
 
-Seed yalnız development modunda çalışır. Mevcut hesapların parolasını veya kayıtlarını sıfırlamaz; parolayı loglamaz. Gerçek kullanıcı verilerini test için seed/reset/restore etmeyin.
+The seed runs only in development, never resets existing accounts or records and never logs the password.
 
-## Kalite kontrolleri
+</details>
+
+## Configuration
+
+The backend reads `backend/.env` in development; production deployments provide environment variables instead. See [`backend/.env.example`](backend/.env.example) and [`frontend/.env.example`](frontend/.env.example).
+
+| Variable | Description |
+|---|---|
+| `JWT_SECRET` | **Required.** Random, at least 32 characters. The server will not start with a missing, short or example secret. |
+| `JWT_EXPIRE` | Access token lifetime, at most 15 minutes. Default `15m`. |
+| `SESSION_TTL_DAYS` | Absolute session lifetime, 1–30 days. Default `7`. |
+| `BCRYPT_SALT_ROUNDS` | Password hashing cost, 12–16. Default `12`. |
+| `PORT` | API port. Default `5002`. |
+| `FRONTEND_URL` | Allowed browser origin. Default `http://localhost:3000`; must be HTTPS in production. |
+| `DB_PATH` | SQLite file, absolute or relative to `backend/`. Default `database.sqlite`. |
+| `BACKUP_DIR` | Snapshot folder, absolute or relative to `backend/`. Default `backups`. |
+| `BACKUP_COPY_DIR` | Optional second folder (another disk or a synced folder) that receives a copy of every verified snapshot. |
+| `AUDIT_LOG_PATH` | Optional location of the administrator activity log. Default `admin-audit.jsonl` next to the database. |
+| `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS` | Production API rate limit. Default 100 requests per 15 minutes. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Optional SMTP delivery for password reset mail and email reminders. Any provider works; Mailpit is enough locally. |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Optional Web Push keys. `npm run push:keys -- you@example.com` generates them. |
+| `VITE_API_BASE_URL` | Frontend build setting. Default `/api`; set it only when the API is served from another origin. |
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `npm run setup` | Install locked dependencies, create a local `.env` and build |
+| `npm run dev` | Run the API and the frontend together |
+| `npm run db:migrate` | Apply pending migrations |
+| `npm run admin:manage` | Create the first administrator or recover one |
+| `npm run check` | Naming and interface-text checks, strict type checks, lint (zero warnings), all workspace tests and production builds |
+| `npm run test:e2e` | Isolated browser tests in Chromium, WebKit and mobile Chromium |
+| `npm run test:lighthouse` | Lighthouse measurements of the sign-in page and the dashboard |
+| `npm run push:keys` | Generate Web Push keys into `backend/.env` |
+| `npm run seed` | Development sample data |
+
+## Testing
 
 ```bash
 npm run check
 ```
 
-Bu komut teknik adlandırma kontrolü, workspace/E2E strict typecheck, sıfır uyarılı lint, workspace testleri ve production derlemelerini çalıştırır. GitHub Actions ayrıca ayrı browser E2E kapısını çalıştıracak şekilde yapılandırılmıştır; uzak koşum ayrıca doğrulanmalıdır.
+`check` is the quality gate used in CI: ASCII naming for files and symbols, a guard that keeps interface text in the translation catalogs, strict TypeScript for every workspace and the browser tests, ESLint with zero warnings, all unit and integration tests, and production builds.
 
-```bash
-npm run typecheck
-npm run lint
-npm test
-npm run build
-```
-
-Backend testleri Node test runner, Supertest ve geçici SQLite dosyaları kullanır. Gerçek kullanıcı veritabanına bağlanmaz. Frontend testleri Vitest/Testing Library/jsdom ve refresh eşzamanlılığı için gerçek geçici HTTP transport kullanır. Güncel toplam 46 contracts + 209 backend + 310 frontend = 565 workspace testidir. Yeni ekran akış regresyonları `frontend/tests/` altındadır; burası da Vitest, strict TypeScript ve ESLint kapsamındadır. Mevcut `src/**/*.test.*` testleri aynı kalite zincirinde korunur. Bunlar gerçek tarayıcı E2E testlerinin yerine geçmez.
-
-Gerçek tarayıcı ana akışları ayrıca çalıştırılır:
+| Suite | Tool | Tests |
+|---|---|---|
+| Shared contracts | Node test runner | 46 |
+| Backend (HTTP + SQLite, temporary databases) | Node test runner, Supertest | 209 |
+| Frontend (components and screen flows) | Vitest, Testing Library, jsdom | 310 |
+| Browser journeys and accessibility | Playwright, axe-core | 41 scenarios × 3 browsers = 123 runs |
 
 ```bash
 npx playwright install chromium webkit
 npm run test:e2e
+npm run test:lighthouse
 ```
 
-Her test yeni temp SQLite, sentetik hesaplar ve rastgele loopback portu kullanır; gerçek `.env`/kullanıcı DB'si veya açık dev sunucusu test ortamı değildir. Altı davranış senaryosu ve açık/koyu tema erişilebilirlik senaryoları Chromium/WebKit masaüstü ve mobil Chromium emülasyonunda çalışır. İzole login/dashboard Lighthouse ölçümü: `npm run test:lighthouse`; rapor: `lighthouse-report/index.html`. Kurulum, veri koruması, rapor ve ölçüm sınırları: [Browser testleri](tests/e2e/README.md). Otomatik tarama tam WCAG veya fiziksel cihaz uygunluğu değildir.
+Every browser test starts its own server on a random loopback port with a fresh temporary database and synthetic accounts; it never touches `backend/.env`, a real database or a running dev server. Accessibility scans include WCAG 2.2 target sizes in light and dark themes. See [tests/e2e/README.md](tests/e2e/README.md) for the full scope and its limits.
 
-Adlandırma kontrolü dosya/klasör ve kod sembollerinde ASCII dışı adları yakalar. İsimlerin anlam bakımından İngilizce oluşu kod incelemesinde doğrulanır; Türkçe arayüz metinleri bu kontrolün dışındadır.
-
-## Ölçülen çalışma ve saat dilimi
-
-`duration` planlanan dakikadır. Sunucudaki `SessionInterval` kayıtları çalışma, mola ve duraklamayı ayrı ölçer; dashboard/grafik/plan toplamları gerçek ölçümleri kullanır. Hiç başlatmadan tamamlamak çalışma süresi üretmez. Yeniden açma/iptal önceki ölçümü silmez. Eski seanslar `untracked`, kısmi ölçüm başlayanlar `partial` olarak görünür; geçmiş planlardan çalışma uydurulmaz.
-
-Mevcut kurulumda uygulamayı durdurun, tutarlı özel yedek alın, `npm run db:migrate` ile `004-session-activity-intervals`, `005-pomodoro-clocks` ve `006-user-topic-progress` dahil bekleyen migration’ları uygulayın ve frontend/backend'i birlikte başlatın. Migration eski kolonları/veriyi korur; normal startup şema değiştirmez. Yeni şemayla ayrıca yedek alın; eski şema yedeği current restore kontrolünden geçmez ve ayrı kopyada kontrollü migration gerektirir.
-
-Takvim/form kullanıcı timezone'unda, API instant'ları UTC/offset ISO biçimindedir. Gün sorguları strict `yyyy-MM-dd`; sınırlar yerel günün başlangıcı ve sonraki günün başlangıcıdır. Eksik/iki kez yaşanan DST saatleri formda reddedilir. `CalendarDate` yalnız görünüm alanıdır, doğrudan `toISOString()` ile kaydedilmez; `calendarViewInstant`/`wallTimeToInstant` gerekir. [Uygulama ve sınırlar](memory-bank/implementation/2026-10-16-study-time-and-timezones.md).
-
-## Ortak planlayıcı
-
-Günlük ve haftalık takvim aynı grid/kart ve işlem katmanını kullanır. Sürükleme 15 dakikaya, süre değiştirme 5 dakikaya hizalanır. Tarih taşımada gerçek plan süresi korunur; geceyi aşan seans günlere bölünür. Yazmalar sunucu onayı/sürüm kontrolüyle yürür; çakışma otomatik yeniden yazılmaz. Tarih/onay pencereleri işlem bitmesini bekler ve hata durumunda açık kalır. [Uygulama ve kanıt sınırları](memory-bank/implementation/2026-10-16-shared-planner.md).
-
-## Kalıcı Pomodoro
-
-Sayfa ve planlayıcı penceresi aynı sayacı kullanır. Sunucu fazı, döngüyü, milisaniye kalan süreyi ve mutlak bitişi saklar. Pencereyi kapatmak veya tarayıcıyı yenilemek duraklatmaz; uygulama yeniden açıldığında sunucu durumu okunur. Çalışma bitince mola bekler; otomatik mola açıkça seçilebilir. Mola sonunda çalışma kendiliğinden başlamaz. Eski seansın bilinmeyen fazı tahmin edilmez; sayacı açıkça etkinleştirmek gerekir. Canlı süre ayarı değiştirmek için seans planlanana alınarak sıfırlanır; notlar ve ölçülen geçmiş korunur.
-
-`POST /api/study-sessions/:id/pomodoro` strict `{expectedUpdatedAt, command, autoStartBreaks?}` alır; command `resume/pause/reset/complete/configure` olabilir. Yalnız configure boolean autoStartBreaks ister. Faz/kalan süre/deadline istemci tarafından yazılamaz. Genel start/pause/complete eylemleri de aynı kuralları uygular. Gecikmiş scheduler öncesi GET/stats çalışma ve mola ölçümünü deadline'da keser. Scheduler bakım ve kapanışla koordine edilir. Sunucunun saati doğru olmalıdır; çok süreç/yük/offline çalışma ayrıca doğrulanmış değildir. [Uygulama ve kanıt sınırları](memory-bank/implementation/2026-10-16-pomodoro-continuity.md).
-
-## Seans yazma sözleşmesi
-
-Seans PUT, start/pause/complete ve DELETE istekleri okunan kaydın `updatedAt` değerini `expectedUpdatedAt` alanında gönderir. Eski sürüm 409 alır; güncel kayıt yeniden okunmalı, değişiklik kullanıcı kararıyla tekrar denenmelidir. Frontend bu alanı taşır ve çakışmada ilgili görünümleri yeniler. Eski açık sekmeler güncellemeden sonra yeniden yüklenmelidir; A07/A08 paketi DB migration gerektirmiyordu; gerçek süre ve kalıcı timer için explicit 004/005/006 yükseltmeleri gerekir.
-
-Oluşturma/taşıma/boyutlandırma ve iptalden yeniden etkinleştirme atomik transaction içindedir. Çakışmalar 409'dur; bitişe eşit başlangıç geçerlidir. Duraklatılmış/tamamlanmış seanslar aralığını korur, iptal edilmişler boşaltır. Kullanıcı başına tek aktif seans vardır. Tamamlanmış/iptal edilmiş seans açıkça planlanana alınarak yeniden açılır; tekrar tamamlama zaman damgasını değiştirmez. `duration` sunucuda türetilen **plan süresidir**; gerçek çalışma ölçümü ayrı aralıklarla aşağıdaki sözleşmede sağlanır. Ayrıntı: [seans bütünlüğü kaydı](memory-bank/implementation/2026-10-16-session-integrity.md).
-
-## Katalog yazma ve silme sözleşmesi
-
-Kategori/ders/konu yazmaları ortak servis içinde IMMEDIATE transaction kullanır. Ders silindiğinde konuları silinir; seanslar, notlar ve ölçülen çalışma aralıkları korunur. İlgili seans bağlantıları temizlenir ve sürümleri ilerler. Dolu kategori silmede farklı ve mevcut bir hedef kategori gerekir; bütün dersler atomik taşınır. Konu silme arşivleme (`isActive=false`) olarak kalır.
-
-Konu sıralaması bütün aktif konuların tekil `1..N` sırasını `topicOrders` içinde, görülen `{id,updatedAt}` listesini `expectedTopics` içinde gönderir. Değişmiş liste 409, hatalı payload 400 alır; otomatik mutation retry yapılmaz. Sıralamak için tüm konular ve artan sıra görünümü gerekir. Bu güncellemede yeni migration yoktur; eski sekmeler yeni sözleşme için yeniden yüklenmelidir. Genel katalog metadata edit/delete işlemleri last-writer-wins davranışındadır. [Uygulama ve sınırlar](memory-bank/implementation/2026-10-16-catalog-integrity.md).
-
-## Teknik yapı
+## Project structure
 
 ```text
-packages/contracts/  Ortak tercih/kimlik/seans/katalog/zaman şemaları ve tipleri
-backend/src/
-  app.ts             HTTP uygulaması; import edilmesi sunucu veya cron başlatmaz
-  index.ts           Başlangıç, bağlantı kontrolü ve kapanış
-  config/            Doğrulanmış ortam ve tek veritabanı yolu
-  database/          Açık, sürümlü migration çalıştırıcısı
-  policies/          Ortak kaynak görünürlük kuralları
-  controllers/       API işlemleri
-  middleware/        Auth, doğrulama ve hata katmanı
-  models/            Sequelize modelleri ve ilişkileri
-  services/          Auth, katalog, seans/ölçüm, admin kurtarma ve snapshot
-  scripts/           Migration, admin yönetimi ve geliştirme seed girişleri
-backend/tests/       İzole HTTP/veritabanı ve yapılandırma regresyonları
-frontend/src/
-  components/        Ortak ve özellik bileşenleri
-  lib/               Paylaşılan QueryClient
-  pages/             İhtiyaç anında yüklenen sayfalar
-  services/          API istemcisi
-  store/             Auth, site ayarları ve kişisel tercihler
-frontend/tests/      Strict/lint kapsamındaki ekran akış regresyonları
-scripts/             Yerel yapılandırma ve adlandırma kontrolleri
-memory-bank/         Kalıcı kararlar, mevcut durum ve teknik inceleme
+packages/contracts/   Shared Zod schemas and types (requests, responses, time, vocabulary)
+backend/
+  src/
+    app.ts            HTTP application (importing it starts no server or job)
+    index.ts          Startup, schema check, scheduled jobs and shutdown
+    config/           Validated environment and file locations
+    database/         Explicit, versioned migrations
+    middleware/       Authentication, validation, confirmation and errors
+    models/           Sequelize models and associations
+    policies/         Shared visibility rules
+    routes/           API routes
+    services/         Business logic: sessions, measurement, catalog, backups, audit log…
+    scripts/          Migration, administrator management and development seed
+  tests/              HTTP and database regression tests
+frontend/
+  src/
+    components/       Shared and feature components
+    hooks/            Data and behaviour hooks
+    i18n/             English and Turkish catalogs
+    pages/            Route pages, loaded on demand
+    services/         HTTP client and API modules
+    store/            Authentication, site settings, preferences and language
+  tests/              Screen-flow tests
+tests/e2e/            Playwright journeys, accessibility scans and Lighthouse
+scripts/              Local setup, naming and interface-text checks
+memory-bank/          Architecture decisions, current state and implementation notes
 ```
 
-## Mevcut kapsam ve açık işler
+## How it works
 
-Uygulamada kayıt/giriş, ilk kurulum sihirbazı, kayıt/alt kayıt ve kişisel kategori yönetimi, haftalık/günlük planlayıcı, Pomodoro, hedefler ve öneriler, istatistikler, arama, şifre sıfırlama, veri indirme/hesap silme ve yönetim ekranları bulunur. Oturum iptali, tek süreçli snapshot/restore/reset, Preferences v1, kullanıcı/tarih cache ayrımı değiştirilebilir site kimliği ve atomik seans/durum bütünlüğü uygulandı ve davranış testleriyle doğrulandı. Üretime hazır olma iddiası yoktur. Katalog silme/taşıma/sıralama transaction bütünlüğü tamamlandı. Kalıcı sunucu deadline/faz/döngüsü ve ortak Pomodoro motoru tamamlandı. Global admin agregasyonları, kayıt/bakım/boşta oturum ayarları ve kalıcı kullanıcı-konu ilerlemesi de uygulandı. Günlük/haftalık planner tek işlem ve görünüm motoruna taşındı. Kullanıcı katalog ve kişisel kategori yönetimi UI tamamlandı. Arayüz çevirisi (R10), bildirim teslimatı (R11) ve dağıtım/kurtarma operasyonları açık işlerdir.
+<details>
+<summary><b>Shared contracts</b></summary>
 
-Güncel ilerleme [memory-bank/progress.md](memory-bank/progress.md), çalışma kuralları [memory-bank/workingPrinciples.md](memory-bank/workingPrinciples.md), başlangıç incelemesi [teknik audit](memory-bank/audits/2026-10-15-project-audit.md) içindedir.
+Every request body, query and response the frontend relies on is described once in `@study-tracker/contracts`. The backend validates input with the same schemas, and the frontend parses responses with them. Errors are returned as stable codes, never sentences, and each interface language names them. Restart the dev processes after changing contract exports.
 
+</details>
 
-### Plan ve takvim sözleşmesi
+<details>
+<summary><b>Authentication and sessions</b></summary>
 
-Takvim girdisi `StudySession`'dır; `/api/plans` mevcut, isteğe bağlı tarihli hedef kaplarını yönetir. Seanslar plan olmadan çalışır; `planId` ile ilişki açıkça kurulur, tarihten otomatik türetilmez. Plan silme seans/not/ölçüm geçmişini koruyarak bağlantıyı ayırır. Frontend'de ayrı bir Plan yönetim ekranı yoktur. Girdi ve DTO kuralları `@study-tracker/contracts` içindedir; API ayrıntıları ve uyumluluk sınırları [A19 uygulama kaydında](memory-bank/implementation/2026-10-17-shared-request-contracts.md) bulunur.
+The access token lives only in memory. The refresh credential travels only in an `HttpOnly`, `SameSite=Strict` cookie scoped to `/api/auth` (`Secure` in production) and rotates on every use; reusing a consumed credential revokes the whole session family. Signing out ends that session; a password change, a role or status change and administrator recovery end all of the account's sessions. Idle sessions expire after the site's idle limit. `/api/auth` requests require the `X-Requested-With: StudyTracker` header and an allowed origin. Concurrent 401 responses share a single refresh, and other tabs follow sign-in and sign-out through `BroadcastChannel`.
+
+</details>
+
+<details>
+<summary><b>Measured time and time zones</b></summary>
+
+A session's `duration` is the planned length. Study, break and pause are recorded as separate server-side intervals, and the dashboard, charts and goals use only measured time. Completing a session without starting it measures nothing; older sessions show as `untracked` or `partial` rather than receiving invented time. Calendars and forms work in the account's time zone, the API exchanges UTC/offset ISO instants, and day queries use strict local-day boundaries. Wall-clock times that do not exist or occur twice around a DST change are rejected in forms.
+
+</details>
+
+<details>
+<summary><b>Planner and session writes</b></summary>
+
+The daily and weekly views share one grid, card and command layer. Creating, moving, resizing and reactivating run in immediate transactions; overlaps are rejected with 409, and back-to-back sessions are allowed. Every change sends the `updatedAt` it read as `expectedUpdatedAt`; a stale version gets 409 and is never retried automatically. Each account has at most one running session.
+
+</details>
+
+<details>
+<summary><b>Pomodoro</b></summary>
+
+The server stores the phase, cycle, remaining milliseconds and the absolute deadline. `POST /api/study-sessions/:id/pomodoro` accepts `resume`, `pause`, `reset`, `complete` and `configure`; clients can never write the phase or the deadline. A break waits for the person unless automatic breaks are chosen, and work never restarts by itself after a break.
+
+</details>
+
+<details>
+<summary><b>Backups and recovery</b></summary>
+
+Snapshots use SQLite's online backup API and are checked for integrity, foreign keys, schema compatibility and a SHA-256 checksum, with a manifest stored next to each file (folder `0700`, files `0600`). Automatic snapshots are taken every 1, 5 or 7 full days and the newest 14 are kept; manual and safety snapshots are never pruned. With `BACKUP_COPY_DIR`, every verified snapshot is also copied to a second folder. A restore validates the source, takes a safety snapshot, restores inside a transaction, re-checks the schema and signs everyone out; if the final check fails it rolls back to the safety snapshot. Resetting either clears only the site settings or removes every non-administrator account and all study data, always after a safety snapshot.
+
+</details>
+
+<details>
+<summary><b>Administrator security and activity log</b></summary>
+
+Restoring a backup, both kinds of reset, changing a role, creating an administrator and deleting an account require the administrator's password on each request (`adminPassword`). A wrong password returns `400 wrongPassword`, is logged and, in production, is limited to 10 attempts per 15 minutes; the password is removed from the request after the check and stored nowhere.
+
+Administration actions (administrator sign-ins, wrong passwords for administrator accounts, failed confirmations, setting changes by name only, backups, restores, resets, account creation, role, status and deletion, reset links) are appended to a JSON Lines file. Each entry carries the SHA-256 hash of the previous one, so changing, removing or reordering entries shows up in **Site settings › Activity log**. The log lives outside the database, so restoring a backup never rewinds it. Someone with write access to the server could still rewrite the whole file; keep a copy off the server for full protection.
+
+</details>
+
+<details>
+<summary><b>Language and vocabulary</b></summary>
+
+The interface language is one site-wide setting (English or Turkish), chosen by an administrator; emails and push notifications follow it. Stored data and the words people type are never translated. Vocabulary presets (General, Education, Goals, Skills) and custom words change only the displayed terms, never stored data or permissions; custom words belong to the language they were written in.
+
+</details>
+
+<details>
+<summary><b>Data export and import</b></summary>
+
+An account can download everything it owns as JSON, with the names of the shared records its data points at. Loading that file into an empty account maps every id to a new one, matches shared records by name and turns the ones the site lacks into the person's own records; measured intervals come over unchanged, and a session that was running at export time arrives paused from that moment.
+
+</details>
+
+## Deployment notes
+
+- Provide configuration through environment variables and use HTTPS for `FRONTEND_URL`.
+- Route `/api` (including the public calendar feed under `/api/calendar/`) from your reverse proxy to the backend.
+- Run a single backend process: backup, restore and scheduled-job coordination is per process.
+- Keep the server clock correct; the Pomodoro deadline and reminders rely on it.
+- The Vite dev server is for development only.
+
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [memory-bank/progress.md](memory-bank/progress.md) | Current state, roadmap and history |
+| [memory-bank/systemPatterns.md](memory-bank/systemPatterns.md) | Architecture rules and patterns |
+| [memory-bank/techContext.md](memory-bank/techContext.md) | Technical context and module map |
+| [memory-bank/design-system.md](memory-bank/design-system.md) | Visual design system |
+| [memory-bank/workingPrinciples.md](memory-bank/workingPrinciples.md) | Engineering working principles |
+| [memory-bank/implementation/](memory-bank/implementation/) | Implementation notes per work package |
+| [tests/e2e/README.md](tests/e2e/README.md) | Browser test setup, scope and limits |
+
+## License
+
+[MIT](LICENSE) © 2026 ozcelikcode

@@ -1,8 +1,8 @@
 # Project Engineering Rules
 
 - Read every file in `memory-bank/` at the start of each task, including `workingPrinciples.md`.
-- Use English for code identifiers, package names, and file/directory names. Keep user-facing Turkish content and stored localized values intact; change persisted contracts only with an explicit migration.
-- Use English for new code comments and developer logs. Documentation content may remain Turkish.
+- Use English for code identifiers, package names, and file/directory names. User-facing text lives in the interface catalogs; keep stored localized values intact and change persisted contracts only with an explicit migration.
+- Use English for code comments, developer logs and documentation.
 - Do not retain unused, duplicate, obsolete, or speculative implementations. Preserve history in Git.
 - Follow `memory-bank/design-system.md`: restrained neutral surfaces, clear typography, thin borders, and purposeful color. The old pastel/glass/gradient direction has been superseded.
 - Keep strict type checking enabled. Complete the relevant build, lint, and behavior tests before reporting a change as verified.

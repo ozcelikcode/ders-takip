@@ -1,70 +1,69 @@
-# Kalıcı Mühendislik ve Çalışma İlkeleri
+# Lasting Engineering and Working Principles
 
-Kaynak: Kullanıcının 15 Ekim 2026 tarihli açık talimatı. Bu ilkeler sonraki bütün geliştirme çalışmalarında geçerlidir.
+Source: the project owner's explicit instruction of 15 October 2026. These principles apply to all later development work.
 
-## Temel beklenti
+## Core expectation
 
-Proje vibe coding ile başlamıştır; bundan sonraki çalışma derli toplu, disiplinli, sürdürülebilir ve ileri düzey mühendislik standartlarıyla yürütülmelidir. Mevcut üründen devam edilir. Her değişiklik anlaşılır bir probleme, gerekçeye ve doğrulanabilir sonuca dayanır.
+The project started as vibe coding; from now on, work must be organised, disciplined, maintainable and held to senior engineering standards. Work continues from the existing product. Every change rests on an understandable problem, a reason and a verifiable result.
 
-## Adlandırma standardı (15 Ekim 2026 ek talimatı)
+## Naming standard (addendum of 15 October 2026)
 
-- Bütün kod sembolleri, değişken/fonksiyon/sınıf/tip adları, API alanları ve yeni dosya/klasör adları İngilizce olmalıdır. Açıklayıcı ve tutarlı adlandırma kullanılır.
-- Bu kural kullanıcıya görünen metinleri İngilizceye çevirmek anlamına gelmez. Türkçe arayüz, içerik ve yerelleştirilmiş veri değerleri korunur; mevcut kalıcı veri sözleşmeleri migration olmadan yeniden adlandırılmaz.
-- Yeni teknik yorumlar ve geliştirici logları İngilizce yazılır. Dokümantasyonun içeriği Türkçe olabilir; dosya adları İngilizce kalır.
-- Projenin Git deposu/çalışma dizini yerinde korunur; uygulama içi teknik adlandırma İngilizcedir. 16 Ekim ek talimatıyla görünen ürün adı/kimliği admin ayarından tamamen değişebilir; kod, repo/paket adı veya hosting domain'ine bağlanmaz. Gereksiz eski dosya yeni adla arşivlenmez, referans kontrolünden sonra kaldırılır.
+- All code symbols, variable, function, class and type names, API fields and new file and folder names are in English. Names are descriptive and consistent.
+- User-facing text lives in the interface catalogs (English and Turkish); stored localized data values are preserved, and existing persisted data contracts are never renamed without a migration.
+- New technical comments, developer logs and documentation are written in English; file names are in English.
+- The repository and working directory stay where they are; technical naming inside the application is English. Per the addendum of 16 October, the displayed product name and identity can change completely through an administrator setting and are not tied to code, repository or package names, or the hosting domain. Obsolete files are not archived under new names; they are removed after checking references.
 
-## Güncellik ve kodun yaşam döngüsü
+## Currency and code lifecycle
 
-- Desteği bitmiş runtime, araç ve bağımlılıklar kalıcı geliştirme tabanı olarak kullanılmaz. Resmî destek durumu ve güvenlik bildirimleri güncelleme öncesinde doğrulanır.
-- Yeni geliştirmeler güncel, kararlı, bakımı süren teknolojilerle yapılır. Sırf sürüm numarası eski diye çalışan bir sistem körlemesine değiştirilmez; destek, güvenlik, uyumluluk ve bakım maliyeti somut olarak değerlendirilir.
-- Gereksiz, kullanılmayan, yinelenen, geçici çözüm olarak kalmış veya mevcut mimariyle uyuşmayan kod biriktirilmez. Referansları ve veri etkisi incelenerek kaldırılır. Kaynak geçmişi Git'te tutulur; kod tabanında eski alternatif uygulamalar saklanmaz.
-- Varsayımsal gelecek ihtiyaçları için kullanılmayan soyutlamalar, servisler, ekranlar ve bağımlılıklar eklenmez. Geleceğe uygunluk; açık sorumluluklar, sağlam sözleşmeler, veri güvenliği ve kolay değiştirilebilirlikle sağlanır.
-- Büyük güncellemeler küçük ve doğrulanabilir adımlarla yapılır. Geçiş kodu gerekiyorsa kapsamı, kaldırılma koşulu ve takip kaydı bulunur; kalıcı ikinci bir uygulamaya dönüşmez.
+- Runtimes, tools and dependencies that are out of support are not used as a lasting development base. Official support status and security advisories are checked before updating.
+- New development uses current, stable, maintained technology. A working system is not replaced blindly just because a version number is old; support, security, compatibility and maintenance cost are weighed concretely.
+- Unnecessary, unused, duplicated, leftover-workaround or architecture-inconsistent code is not accumulated. It is removed after examining its references and data impact. History lives in Git; old alternative implementations are not kept in the code base.
+- No unused abstractions, services, screens or dependencies are added for hypothetical future needs. Future fitness comes from clear responsibilities, solid contracts, data safety and ease of change.
+- Large updates happen in small, verifiable steps. If transition code is needed, it has a scope, a removal condition and a tracking record; it never becomes a permanent second implementation.
 
-## Değişiklik disiplini
+## Change discipline
 
-- Her işin başında bütün memory-bank dosyaları okunur; mevcut kaynak kod ve doğrulama sonuçlarıyla karşılaştırılır.
-- İstenen davranış ve kabul ölçütleri uygulamadan önce netleştirilir. Güvenlik, veri bütünlüğü ve gerçek kullanıcı akışları önceliklidir.
-- Aynı iş kuralının farklı ekranlarda veya controller'larda ayrı uygulamaları oluşturulmaz. Yetki, zaman, durum geçişi ve süre hesaplarının tek bir tanımı olmalıdır.
-- TypeScript strict kuralları susturularak, rastgele `any`, `@ts-ignore`, lint kapatma veya başarısız testleri atlayarak iş tamamlanmış sayılmaz.
-- Kilit dosyası ve seçilmiş Node/npm sürümleriyle tekrarlanabilir kurulum hedeflenir. Kontroller otomatikleştirilir; kritik hatalar düzeltildiğinde anlamlı regresyon testleri eklenir.
-- Veritabanı değişiklikleri açık migration ile yapılır. Normal açılışta tablo silme, otomatik şema onarma, sessiz veri sıfırlama ve sabit gizli anahtarla devam etme kabul edilmez.
-- Kullanıcının mevcut verisi korunur. İnceleme sırasında seed, reset, restore ve yıkıcı şema komutları çalıştırılmaz. Veri dönüşümlerinin yedekleme, doğrulama ve geri dönüş yöntemi tanımlanır.
-- Bir işin tamamlanması; ilgili davranışın doğrulanmasını, gerekli kontrollerin geçmesini, kullanılmayan eski yolun kaldırılmasını ve memory-bank'in güncellenmesini içerir.
+- At the start of every task, all memory-bank files are read and compared with the current source code and verification results.
+- The desired behaviour and acceptance criteria are clarified before implementation. Security, data integrity and real user flows come first.
+- The same business rule is never implemented separately in different screens or controllers. Permissions, time, state transitions and duration calculations each have a single definition.
+- Work is not done by silencing strict TypeScript, using random `any`, `@ts-ignore`, disabling lint or skipping failing tests.
+- Installs must be reproducible with the lock file and the chosen Node and npm versions. Checks are automated; when a critical bug is fixed, meaningful regression tests are added.
+- Database changes happen through explicit migrations. Dropping tables, automatic schema repair, silent data resets and continuing with a fixed secret during normal startup are not acceptable.
+- Existing user data is preserved. Seed, reset, restore and destructive schema commands are never run against it for verification. Data transformations define their backup, verification and rollback method.
+- A task is complete only when the behaviour is verified, the required checks pass, the unused old path is removed and the memory bank is updated.
 
-## Dokümantasyon doğruluğu
+## Documentation accuracy
 
-- Uygulanmış, kontrol edilmiş, planlanmış ve varsayılmış bilgiler birbirinden açıkça ayrılır.
-- Bir özelliğin kodda bulunması, doğru çalıştığının kanıtı değildir. Ölçülmemiş performans değerleri ve yapılmamış testler başarı olarak yazılmaz.
-- Önemli bulgular önem derecesi, kaynak konumu, etkisi, düzeltme yaklaşımı ve kabul ölçütüyle kaydedilir.
-- `activeContext.md` ve `progress.md` her anlamlı çalışma sonunda güncellenir. Yeni kararlar ilgili mimari veya teknik bağlama işlenir.
-- Ürün yönüyle ilgili eski belgeler güncel kararın yerine geçmez. Güncel durum ile tarihsel hedef çelişiyorsa çelişki açıkça belirtilir.
+- Implemented, checked, planned and assumed information are kept clearly apart.
+- A feature existing in code is not evidence that it works correctly. Unmeasured performance figures and tests that were not run are never reported as successes.
+- Important findings are recorded with severity, source location, impact, fix approach and acceptance criteria.
+- `activeContext.md` and `progress.md` are updated at the end of every meaningful piece of work. New decisions are recorded in the relevant architectural or technical context.
+- Older documents about product direction do not override the current decision. Where the current state and a historical goal conflict, the conflict is stated explicitly.
 
-## Bu ilkelerin ilk uygulaması
+## First application of these principles
 
-15 Ekim 2026 incelemesi yalnızca değerlendirme ve dokümantasyon çalışmasıdır. Sorunların listelenmesi düzeltildikleri anlamına gelmez. Mevcut açıklar ve doğrulama sınırları `audits/2026-10-15-project-audit.md` içinde kayıtlıdır.
+The 15 October 2026 review was an assessment and documentation exercise only. Listing problems does not mean they were fixed. The open issues and verification limits at that time are recorded in `audits/2026-10-15-project-audit.md`.
 
-## Uygulama başlangıcı
+## Start of implementation
 
-15 Ekim 2026 ek talimatıyla ilk iyileştirme paketi uygulandı. Güncel sonuçlar progress.md ve implementation/2026-10-15-foundation.md içindedir; önceki audit tarihsel olarak korunur.
+The first improvement package was implemented under the further instruction of 15 October 2026. Current results are in `progress.md` and `implementation/2026-10-15-foundation.md`; the earlier audit is kept as history.
 
-## Tasarım standardı (15 Ekim 2026 ek talimatı)
+## Design standard (addendum of 15 October 2026)
 
-Modern, basit, sade ve özenli tasarım zorunludur. Vercel/Geist ve Linear'ın güncel resmî örneklerinden yararlanılır; görsel kararlar `design-system.md` içinde tutulur. Eski iOS/pastel/glassmorphism yönü geçersizdir. Nötr yüzeyler, belirgin tipografi, ince sınırlar, ölçülü boşluk ve anlamlı renk esastır. Kod/dosya adları İngilizce, kullanıcı içeriği Türkçe kalır.
+A modern, simple, clean and careful design is mandatory. Current official examples from Vercel/Geist and Linear serve as references; visual decisions are kept in `design-system.md`. The old iOS/pastel/glassmorphism direction is obsolete. Neutral surfaces, clear typography, thin borders, measured spacing and purposeful colour are the rule. Code and file names are in English; user-facing text comes from the interface catalogs.
 
-## Yerel hesap ve gizli bilgiler (15 Ekim 2026)
+## Local account and secrets (15 October 2026)
 
-Kullanıcının açık ilk kurulum talimatı, yeni yerel ortam/veritabanı ve admin hesabı oluşturmayı yetkilendirdi. Bu izin gelecekte gerçek DB üzerinde doğrulama amaçlı reset/restore/seed izni değildir. Admin oluşturma/kurtarma admin:manage üzerinden yapılır; parola yalnız özel izinli, Git dışı dosyadan okunur. Secret/parola/token değerleri memory-bank, sohbet, komut argümanı veya loga kopyalanmaz. Kayıtlarda yalnız dosya yolu, yetki kapsamı ve doğrulanan sonuç tutulur.
+The owner's explicit first-setup instruction authorised creating a new local environment, database and administrator account. That permission is not a permission to reset, restore or seed the real database for verification in the future. Administrators are created and recovered through `admin:manage`; the password is read only from a private, Git-ignored file. Secret, password and token values are never copied into the memory bank, chat, command arguments or logs. Records only keep the file path, the permission scope and the verified result.
 
-## Değiştirilebilir site kimliği (16 Ekim 2026)
+## Configurable site identity (16 October 2026)
 
-Site adı, açıklama, logo/ikon bütün görünen yüzeylerde tek public branding kaynağından türetilir. Yeni ekranda sabit ürün adı yazılmaz. Admin paneli mevcuttur; önce mevcut yönetim akışı geliştirilir. Private yönetim ayarları anonim API veya kalıcı browser cache'ine çıkarılmaz. Kullanıcı yeni adı belirtmedikçe gerçek siteye test adı verilmez.
+The site name, description, logo and icon on every visible surface derive from a single public branding source. New screens never hard-code a product name. The administration panel exists; the existing administration flow is extended first. Private administration settings are never exposed through anonymous APIs or the persistent browser cache. No test name is given to the real site unless the owner chooses a new name.
 
-## Birden fazla araçla devam etme — 16 Ekim 2026
+## Continuing with several tools (16 October 2026)
 
-Kullanıcı limit nedeniyle diğer yapay zekâlarla da geliştirme yapabilir. Devam ederken progress.md ve mevcut kod birlikte esas alınır; tamamlanmış işler eski sohbet listesinden yeniden açılmaz veya önceki uygulamayla ezilmez. Yarım kalan kapsam tamamlanır; yeni değişikliklerden etkilenen entegrasyon ve çalışma ortamı ayrıca doğrulanır. Tarihsel test sonuçlarıyla güncel toplam ayrılır.
+The owner may also continue development with other AI assistants because of usage limits. When continuing, `progress.md` and the current code are the basis together; completed work is not reopened from an old chat list or overwritten with an earlier implementation. Unfinished scope is completed, and the integration and runtime environment affected by new changes are verified separately. Historical test results are kept apart from current totals.
 
+## Test discipline (17 October 2026)
 
-## Test disiplini — 17 Ekim 2026
-
-Kullanıcı güvenli, disiplinli ve profesyonel çalışma düzenini yeniden vurguladı; gerekli testlerin tests/ altında da tutulabileceğini belirtti. Yeni yönetim ekranı akış regresyonları frontend/tests altında çalışır; aynı dosyalar strict TypeScript ve ESLint kapsamındadır. Mevcut src colocation ve backend/tests testleri gereksiz toplu taşımayla bozulmaz veya kopyalanmaz. Test konumu başarı kanıtı değildir: ilgili davranış, hata/rollback/hesap sınırı ve build/lint kapıları geçmelidir. Mocked API, gerçek HTTP/SQLite ve manuel browser kanıtları birbirinden ayrılır; gerçek kullanıcı DB'si hiçbir doğrulamada fixture değildir.
+The owner re-emphasised a safe, disciplined and professional way of working and noted that the necessary tests may also live under `tests/`. New screen-flow regressions for the administration screens run under `frontend/tests`, and those files are covered by strict TypeScript and ESLint. Existing colocated `src` tests and `backend/tests` are not disturbed or duplicated by bulk moves. A test's location is not evidence of success: the behaviour, error, rollback and account boundaries and the build and lint gates must pass. Mocked API, real HTTP/SQLite and manual browser evidence are kept apart; the real user database is never a fixture for any verification.

@@ -1,88 +1,88 @@
-# İlk İyileştirme Paketi — 15 Ekim 2026
+# First Improvement Package — 15 October 2026
 
-## Yetki ve kapsam
+## Authorisation and scope
 
-Kullanıcı, teknik incelemedeki önerilerin uygulanmaya başlanmasını ve kod/dosya/klasör adlarının İngilizce olmasını istedi. Bu paket geliştirme tabanını ve bazı kritik erişim/veri güvenliği sorunlarını ele alır. Bütün A01–A22 bulgularının çözümü veya production dağıtımı değildir.
+The owner asked to start implementing the technical review's recommendations and to keep code, file and folder names in English. This package addresses the development baseline and some critical access and data-safety issues. It is not a resolution of every A01–A22 finding or a production deployment.
 
-İlk incelemenin kaynak commit'i `90e13cc` idi. Önceki dokümantasyon değişiklikleri korundu; commit/push yapılmadı. Uygulama ve test dosyaları İngilizce adlarla oluşturuldu. Türkçe UI/veri değerleri çevrilmedi; grafik içi saat/dakika alanları kalıcı veri olmadığı için hours/minutes olarak adlandırıldı.
+The source commit of the initial review was `90e13cc`. Earlier documentation changes were kept; no commit or push was made. Application and test files were created with English names. User-facing interface and data values were not translated; the hour and minute fields inside the chart were named `hours`/`minutes` because they are not persisted data.
 
-## 1. Tekrarlanabilir geliştirme
+## 1. Reproducible development
 
-- Node 24.21.0 ve npm 11.19.0; `.nvmrc`, `.node-version`, engine-strict ve packageManager alanı.
-- Kök package-lock.json artık ignore edilmiyor; npm workspace'leri tek kurulumla yönetiliyor.
-- `npm run setup`: kilitli kurulum → yalnız eksikse güvenli yerel env oluşturma → build. DB yazmaz.
-- `npm run configure` rastgele bağımsız JWT anahtarları üretir; `.env` dosyasını 0600 ve `wx` ile oluşturur. Var olan dosyayı değiştirmez.
-- Vite 5→8.3.4 / plugin-react 6.1.2; ESLint 8→10.12.0 / typescript-eslint 8.71.2.
-- sqlite3 5→6.0.1; eski node-gyp/tar kurulum zinciri kaldırıldı. Native script izinleri root allowScripts içinde sürüme bağlıdır.
-- Jest/ts-jest ve boş test komutu kaldırıldı; backend Node test runner/Supertest kullanır. Nodemon/ts-node yerine tsx 4.23.15. Frontend Vitest 5.0.4/Testing Library/jsdom kullanır.
-- TypeScript 5.9.3 sabit; React 18/Recharts 2/Router 6/Tailwind 3 uyumluluk geçişleri sonraki iştir. Bütün paketlerin en yeni sürüme geçtiği iddia edilmez.
+- Node 24.21.0 and npm 11.19.0; `.nvmrc`, `.node-version`, engine-strict and the `packageManager` field.
+- The root `package-lock.json` is no longer ignored; npm workspaces are managed with a single install.
+- `npm run setup`: locked install → create a safe local environment only when missing → build. It never writes to the database.
+- `npm run configure` generates random independent JWT secrets and creates `.env` with 0600 and `wx`. It never changes an existing file.
+- Vite 5 → 8.3.4 / plugin-react 6.1.2; ESLint 8 → 10.12.0 / typescript-eslint 8.71.2.
+- sqlite3 5 → 6.0.1; the old node-gyp/tar install chain was removed. Native script permissions are version-bound in the root `allowScripts`.
+- Jest/ts-jest and the empty test command were removed; the backend uses the Node test runner and Supertest. tsx 4.23.15 replaced nodemon and ts-node. The frontend uses Vitest 5.0.4, Testing Library and jsdom.
+- TypeScript pinned at 5.9.3; the React 18, Recharts 2, Router 6 and Tailwind 3 compatibility upgrades were later work. No claim that every package moved to its newest version.
 
-## 2. Derleme ve kod tabanı temizliği
+## 2. Build and code base cleanup
 
-Frontend'in 50 TypeScript hatası strict, exactOptionalPropertyTypes veya unused kontrolleri kapatılmadan giderildi. Eksik canvas-confetti tipleri eklendi; gerçek optional alan kontrolü yapıldı. Kullanılmayan import/parametre ve anlamsız atamalar temizlendi; ESLint disable/ts-ignore eklentisi kullanılmadı.
+The frontend's 50 TypeScript errors were fixed without disabling strict, `exactOptionalPropertyTypes` or the unused checks. The missing `canvas-confetti` types were added, and real optional-field checks were made. Unused imports and parameters and meaningless assignments were cleaned up; no ESLint disable or `ts-ignore` was added.
 
-Statik import taramasıyla erişilemediği doğrulanan yedi modül kaldırıldı: AdminScheduleManager, CourseManagementModal, AddTopicModal, EditTopicModal, GoalSettingModal, AdminCategoriesPage, pages/courses/CoursesPage placeholder. Eski JS seed/setup/database-setup, debug/drop/list script'leri, debug çıktısı, geçersiz MongoDB geliştirme prompt'u ve hesap listesi kaldırıldı. Kaynak geçmişi Git'te kalır.
+Seven modules confirmed unreachable by a static import scan were removed: AdminScheduleManager, CourseManagementModal, AddTopicModal, EditTopicModal, GoalSettingModal, AdminCategoriesPage and the `pages/courses/CoursesPage` placeholder. The old JS seed, setup and database-setup scripts, the debug, drop and list scripts, debug output, an invalid MongoDB development prompt and an account list were removed. History remains in Git.
 
-Kullanılmayan express-validator/winston/tailwind-merge/devtools kaldırıldı; Tailwind build plugin'leri devDependencies'e taşındı. Login'deki eski sabit demo hesap bilgileri kaldırıldı.
+The unused express-validator, winston, tailwind-merge and devtools were removed; the Tailwind build plugins moved to devDependencies. The old fixed demo account details on the sign-in page were removed.
 
-## 3. Sunucu ve şema yaşam döngüsü
+## 3. Server and schema lifecycle
 
-`app.ts` HTTP uygulamasını dışa aktarır; import etmek listen/cron başlatmaz. `index.ts` DB ve schema doğrulaması, listen/cron ve kontrollü kapanış sorumluluğunu taşır. Bu ayrım gerçek HTTP testlerini kullanıcı DB'sinden bağımsız hale getirir.
+`app.ts` exports the HTTP application; importing it starts no listener or scheduled job. `index.ts` owns database and schema validation, listen and scheduled jobs, and controlled shutdown. This separation makes real HTTP tests independent of the user database.
 
-Merkezi environment şeması eksik/zayıf/örnek/eşit JWT anahtarlarını reddeder; sabit fallback yok. Süre, port, HTTP(S) origin ve rate limit değerleri doğrulanır. CORS FRONTEND_URL'den gelir; varsayılan API portu 5002'dir. Anahtar/değer içerikleri tanı mesajlarına kopyalanmaz.
+A central environment schema rejects missing, weak, example or identical JWT secrets; there is no fixed fallback. Durations, port, HTTP(S) origin and rate limit values are validated. CORS comes from `FRONTEND_URL`; the default API port is 5002. Secret and value contents are never copied into diagnostic messages.
 
-Sunucu açılışındaki tablo silme ve sync kaldırıldı. Explicit `db:migrate`, schema_migrations içinde `001-initial-schema` baseline'ını kaydeder. Uyumlu mevcut tablolar korunur, eksik kolon için özel migration gerekir. Baseline transaction kullanır; future model değişimini otomatik alter etmez. Gerçek user DB'sinde bu komut çalıştırılmadı.
+Dropping tables and `sync` at server startup were removed. The explicit `db:migrate` records the `001-initial-schema` baseline in `schema_migrations`. Compatible existing tables are kept, and a missing column requires a dedicated migration. The baseline uses a transaction and never alters for future model changes automatically. This command was not run on the real user database.
 
-Development seed yalnız development modunda açık admin kimliği/parolasıyla çalışır; parolayı loglamaz. Yeni hesap/kategori için findOrCreate ve transaction kullanır. Bu pakette CLI seed gerçek veride çalıştırılmadı; idempotentlik davranışı kaynak düzeyinde değerlendirildi, mevcut verinin tüm çeşitleriyle göç provası yapılmadı.
+The development seed runs only in development with an explicit administrator identity and password and never logs the password. It uses `findOrCreate` and a transaction for new accounts and categories. In this package the CLI seed was not run on real data; idempotency was assessed at the source level, with no migration rehearsal across every variant of existing data.
 
-## 4. Erişim ve veri güvenliği düzeltmeleri
+## 4. Access and data-safety fixes
 
-- Ortak `visibleCourseWhere`: sahibi veya global veya admin. Liste/detay/konu parent join'leri bu politikayı kullanır.
-- `/users/:id` self/admin ile sınırlı; yabancı kaynak için 404.
-- Yeni oturumda plan sahipliği yanında ders/konu görünürlüğü, aktiflik ve topic-course eşleşmesi doğrulanır. ID'ler pozitif tam sayı olmalıdır. Yalnız topic seçilirse görünür parent course çözülür.
-- GET oturum listesi artık durumu/notları değiştirmez. Otomatik zaman aşımı politikası yeni bir işlem/service olarak tasarlanmalıdır; frontend'in eski “backend iptal edecek” yorumları sonraki planner refactor'unda güncellenmelidir.
-- Request body/params ve bütün ders içeriğini yazdıran debug logları kaldırıldı.
-- Error handler eski MongoDB kodları yerine Sequelize validation→400, unique/FK→409 üretir; iç hata metnini istemciye vermez.
-- Backup aynı DB_PATH kaynağını kullanır. Geçici DB snapshot'ı açılıp kullanıcı sayısı doğrulandı. Canlı kopyalama/atomik restore/rollback ve reset transaction'ları henüz çözülmedi.
-- Cron'a açık timezone ve noOverlap eklendi; `*/5`/`*/7` gerçek aralık sorunu ve ayar değişikliğinde yeniden planlama hâlâ açıktır.
+- A shared `visibleCourseWhere`: owner, global or administrator. Lists, details and topic parent joins use this policy.
+- `/users/:id` is limited to self or administrator; a foreign resource gives 404.
+- For a new session, besides plan ownership, record and topic visibility, active status and topic-record consistency are validated. Ids must be positive integers. When only a topic is chosen, the visible parent record is resolved.
+- The GET session list no longer changes status or notes. An automatic timeout policy must be designed as a new operation or service; the frontend's old "the backend will cancel it" comments were to be updated in the later planner refactor.
+- Debug logs that printed request bodies and parameters and whole record contents were removed.
+- The error handler produces Sequelize validation → 400 and unique/foreign key → 409 instead of the old MongoDB codes and never gives the internal error text to the client.
+- Backups use the same `DB_PATH` source. A temporary database snapshot was opened and its user count verified. Live copying, atomic restore with rollback and reset transactions were not solved yet at this point.
+- An explicit time zone and `noOverlap` were added to the scheduled job; the real-interval issue of `*/5`/`*/7` and rescheduling on a setting change were still open.
 
-## 5. Frontend yükleme ve hesap sınırı
+## 5. Frontend loading and the account boundary
 
-- Route lazy loading/Suspense; kökte Türkçe kurtarma ekranlı ErrorBoundary. Source map production build'de kapalı.
-- QueryClient tek modülde; auth kimliği değişince cache ve in-flight sorgular temizlenir. İkinci hesabın verisinin geç gelen birinci hesap sorgusuyla ezilmediği test edildi.
-- Bu cache düzeltmesi kullanıcı/tarih query key factory'si, kişisel preferences/readNotifications saklama veya refresh state yarışlarının bütün çözümü değildir.
-- API varsayılanı `/api`; development Vite proxy ve production reverse proxy ile aynı origin akışına uygun.
+- Route lazy loading with Suspense; a root ErrorBoundary with a recovery screen. Source maps are off in the production build.
+- The QueryClient lives in a single module; the cache and in-flight queries are cleared when the auth identity changes. It was tested that a late query from the first account does not overwrite the second account's data.
+- This cache fix is not a complete solution for a user and date query key factory, personal preferences and `readNotifications` storage or refresh state races.
+- The API default is `/api`; it fits the same-origin flow with the Vite proxy in development and a reverse proxy in production.
 
-## 6. Doğrulama
+## 6. Verification
 
-Temiz `npm ci` başarılı oldu. Sonrasında `npm run check` ile adlandırma, iki workspace'in typecheck'i, sıfır uyarılı lint, testler ve production build çalıştırıldı.
+A clean `npm ci` passed. Then `npm run check` ran naming, type checks for both workspaces, lint with zero warnings, tests and the production build.
 
-Backend 22 test: gerçek HTTP + geçici SQLite üzerinden owner/other/admin matrisi, login/issued token, ilişki doğrulama, yan etkisiz GET, non-destructive bağlantı/migration tekrarı, doğru snapshot yolu; ayrıca env ve güvenli DB hata yanıtları.
+Backend, 22 tests: an owner/other/administrator matrix over real HTTP and a temporary SQLite, login and issued tokens, relation validation, side-effect-free GET, repeated non-destructive connection and migration, the correct snapshot path; plus environment and safe database error responses.
 
-Frontend 5 test: sağlıklı/crash durumunda ErrorBoundary; hesap değişimi/logout ve eski yanıtın yeni cache'i ezmemesi. Testler atlanmadı. GitHub CI workflow eklendi; uzak GitHub koşumu yapılmadı.
+Frontend, 5 tests: the ErrorBoundary when healthy and on a crash; account switch and logout, and an old response not overwriting the new cache. No tests were skipped. A GitHub CI workflow was added; no remote GitHub run was made.
 
-Production build, kullanıcı DB'sinden bağımsız geçici backend/hesapla tarayıcıda açıldı. Giriş → dashboard → haftalık/günlük planner doğrulandı. Bu kontrol boş fixture ile masaüstü smoke testidir; görev taşıma, gerçek çalışma süresi, mobil/klavye veya tam tarayıcı E2E kapsamı değildir. Geçici sekme/sunucu kapatıldı ve DB temizlendi.
+The production build was opened in a browser with a temporary backend and account independent of the user database. Sign-in → dashboard → weekly and daily planner were verified. This check is a desktop smoke test with an empty fixture; it does not cover moving sessions, real study time, mobile or keyboard use, or full browser tests. The temporary tab and server were closed and the database removed.
 
-### Paketleme ölçümü
+### Bundle measurement
 
-Minified JS'in statik import grafiği izlendi; her dosyanın gzip boyutu ayrı hesaplandı. Aktif route'un dinamik yükü ayrıca dahil edildi.
+The static import graph of the minified JS was followed and each file's gzip size computed separately. The dynamic load of the active route was included separately.
 
-| Kapsam | JS bayt | Gzip bayt |
+| Scope | JS bytes | Gzip bytes |
 |---|---:|---:|
-| Ana giriş, statik importlar | 424.182 | 142.359 |
-| Ana giriş + login route | 519.151 | 168.708 |
-| Ana giriş + dashboard route | 816.755 | 247.417 |
+| Main entry, static imports | 424,182 | 142,359 |
+| Main entry + sign-in route | 519,151 | 168,708 |
+| Main entry + dashboard route | 816,755 | 247,417 |
 
-Başlangıçta bütün sayfaları içeren tek JS dosyası 1.367,31 kB / gzip 381,61 kB idi. Bu yeni sonuçlar network/Lighthouse ölçümü değildir; cache, sunucu sıkıştırması ve sonraki sayfa yükleri ayrıca etkiler. Ana entry dosyasının tek başına küçülmesini bütün ilk ekran yükü olarak sunmamak gerekir.
+At the start, the single JS file containing every page was 1,367.31 kB / gzip 381.61 kB. These new results are not network or Lighthouse measurements; caching, server compression and later page loads also matter. The shrinking of the main entry file alone must not be presented as the whole first-screen load.
 
-### Bağımlılık audit'i
+### Dependency audit
 
-Güncel lock üzerinde npm audit: **12 etkilenen paket düğümü; 0 critical, 5 high, 7 moderate**. Başlangıç audit'i ayrı manifest çözümlemelerinden geldiği için doğrudan yüzde karşılaştırması yapılmaz. Paket düğümü, benzersiz CVE veya doğrulanmış saldırı sayısı değildir.
+`npm audit` on the current lock: **12 affected package nodes; 0 critical, 5 high, 7 moderate**. Because the initial audit came from separate manifest resolutions, no direct percentage comparison is made. A package node is not a unique CVE or a verified attack.
 
-Açık doğrudan kaynaklar: @tailwindcss/typography, Tailwind, react-router-dom, Sequelize; transitive UUID ve CSS/glob zincirleri. Eski React/Recharts ve diğer major dönüşümleri de açıkça takip edilir. Uyum testleri olmadan zorlayıcı audit fix uygulanmadı.
+Open direct sources: @tailwindcss/typography, Tailwind, react-router-dom, Sequelize; transitive UUID and CSS/glob chains. The old React and Recharts and other major upgrades are also tracked explicitly. No forced audit fix was applied without compatibility tests.
 
-## Devam koşulları
+## Conditions for continuing
 
-Bir sonraki paket auth refresh/logout/parola iptali ve güvenilir backup/restore/reset üzerinde çalışmalıdır. Oturumun atomik çakışma/durum/gerçek süre modeli, Preferences/timezone ve tek planner/timer motoru ayrı kabul kriterleriyle devam eder. Güncel bulgu tablosu progress.md içindedir.
+The next package should work on auth refresh, logout and password revocation and on reliable backup, restore and reset. The session's atomic overlap, state and real-duration model, Preferences and time zones and a single planner and timer engine continue with separate acceptance criteria. The current findings table is in `progress.md`.
 
-Kullanıcının mevcut ortamı/verisi üzerinde migration/seed/reset/restore ve gerçek hesap/anahtar değişimi yapılmadı. Commit/push/deployment yapılmadı. Bu sınırlar tamamlanmış işlerden ayrı tutulmalıdır.
+No migration, seed, reset or restore and no real account or secret changes were made on the owner's existing environment or data. No commit, push or deployment was made. These limits are kept apart from completed work.

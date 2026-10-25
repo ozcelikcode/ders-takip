@@ -1,57 +1,57 @@
-# Ortak planlayıcı — 16 Ekim 2026
+# Shared Planner — 16 October 2026
 
-## Kapsam
+## Scope
 
-Kullanıcı kalan işlerden devam istedi. Güncel progress ve başka araçlarla tamamlanan A17/A18/A24 esas alındı; eski sohbet listesi uygulanmadı. A21'in günlük/haftalık planner ortaklaştırma alt paketi tamamlandı. Öğrencinin kendi ders/konularını yönetme UI'ı ve diğer modal/admin tasarım geçişleri ayrı açık A21 işleridir. A19/A22/A04 kapanmadı.
+The owner asked to continue with the remaining work. The current `progress.md` and the A17, A18 and A24 work completed with other tools were the basis; the old chat list was not applied. The A21 package unifying the daily and weekly planner was completed. The UI for students managing their own records and topics and the other modal and administrator design conversions were separate open A21 tasks. A19, A22 and A04 were not closed.
 
-WeeklyPlanner ve DailyCalendar artık aynı PlannerCalendar'a yalnız mode veren küçük girişlerdir. Ortak işlem/state katmanı usePlannerCalendar; kart CalendarSessionCard; zaman/segment/snap kuralları calendarGeometry içindedir. Aynı iş kuralının ikinci uygulaması ve eski takvim motorları kaynakta tutulmadı. Kullanılmayan WeeklySchedule/DragItem/DropTarget tipleri ve eski formatTime yardımcı yolu referans kontrolüyle kaldırıldı. Backend endpoint, DB şeması ve bağımlılık değişmedi. Biçimlendirme için geçici npm exec Prettier 3.9.10 kullanıldı; projeye formatter bağımlılığı/lock değişikliği eklenmedi.
+`WeeklyPlanner` and `DailyCalendar` are now small entries that only pass a mode to the same `PlannerCalendar`. The shared command and state layer is `usePlannerCalendar`; the card is `CalendarSessionCard`; the time, segment and snap rules live in `calendarGeometry`. No second implementation of the same business rules and no old calendar engines were kept in the source. The unused `WeeklySchedule`/`DragItem`/`DropTarget` types and the old `formatTime` helper path were removed after a reference check. Backend endpoints, the database schema and dependencies did not change. A temporary `npm exec` Prettier 3.9.10 was used for formatting; no formatter dependency or lock change was added to the project.
 
-## Davranış
+## Behaviour
 
-- Günlük 64 px, haftalık 48 px/saat; her ikisi 24 saat, ortak nötr yüzey, başlık ve durum/adlandırılmış kontroller kullanır. Kart rengi yalnız ince sol şerittir. 08:00 ilk viewport, hafta/gün okları, bugün, sürüklerken 800 ms yön üzerinde gezinme ve önceki/sonraki dönem bırakma alanı korunur.
-- Drag 15 dakikaya, resize 5 dakikaya snap eder; resize 5 dakika–24 saatle sınırlıdır. Negatif/sonraki güne kayan drop başlangıcı görünür günün 00:00–23:45 sınırına alınır. Preview ve commit aynı saf kurallardan gelir; mouse konumu bırakma anında yeniden hesaplanır.
-- Tarih taşıma, grid drop ve dönem taşıma aynı moveSessionTimes yolunu kullanır. Planlanan gerçek end-start süresi korunur; yuvarlanmış duration üzerinden yeni süre uydurulmaz. Saat dilimi ortak CalendarDate → gerçek instant dönüşümündedir; eksik/çift DST saati hata olarak kalır.
-- Önceki iki motorun çelişen gece yarısı kısıtları ve resize'da 23:59:59.999'a sessiz kırpması kaldırıldı. Mevcut backend'in 24 saatlik aralık sözleşmesi uygulanır; geceyi kesen seans günlere bölünür. Yalnız başlangıç segmenti sürüklenir; yalnız bitiş segmentinden resize yapılır. Sonraki günün yarım kartını sürükleyip seansın başlangıcını yanlış güne taşıma önlenir. Görünen süre plan süresidir; ölçülen çalışma üretilmez.
-- Running/completed kartlar drag/resize kabul etmez. Server yetki, aralık çakışması, durum ve optimistic expectedUpdatedAt otoritesi olarak kalır. Yerel çakışma tahmini sunucu kontrolünün yerini almaz. Start/pause/complete/delete ve tarih/süre yazmaları tek perform sınırından, senkron busy ref ile geçer; hızlı çift tıklama ikinci istek üretmez. Sunucu onayına kadar sahte başarı/sıra gösterilmez.
-- 409 otomatik yazma tekrarı değildir. Güncel sorgu okunur; açık moving/confirmation snapshot'ı yenilenir. Hedef tarih ve ay seçimi korunur; güncel kaynak saati pencerede görünür. Kullanıcının yeni onayı güncel sürümle yazar. Başarısız okuma/taşıma boş veya başarılı durum gibi sunulmaz. Auth epoch değişmişse geç mutation ack cache yenilemesi/başarı bildirimi üretmez.
-- Resize pointermove/up/cancel ile yürür; Escape, blur, görünür dönem veya timezone değişimi iptal eder. Preview bitmeden async yazma yapılmaz; drag/resize sonrası gelen click edit/create açmaz. Dokunmatik uçtan uca doğrulama yapılmadı.
-- Planlayıcı modalı mevcut ortak Pomodoro hook/engine'ini kullanır. Modal kapatma/minimize, yeniden açma ve sunucu deadline politikası değiştirilmedi. Seans kartı tıklaması gerçek edit formunu açar; küçük kart ve sağ tık için aynı işlemler düğmesi/penceresi vardır.
+- Daily 64 px and weekly 48 px per hour; both cover 24 hours with a shared neutral surface, heading and named state controls. Card colour is only a thin left stripe. The initial 08:00 viewport, week and day arrows, Today, navigating by holding a drag over an arrow for 800 ms and the previous/next period drop zones are kept.
+- Drag snaps to 15 minutes and resize to 5 minutes; resize is limited to 5 minutes–24 hours. A drop start that is negative or slides into the next day is clamped to 00:00–23:45 of the visible day. The preview and the commit come from the same pure rules; the mouse position is recomputed at drop time.
+- Date moves, grid drops and period moves use the same `moveSessionTimes` path. The real planned end-minus-start duration is kept; no new duration is invented from the rounded `duration`. The time zone lives in the shared `CalendarDate` → real instant conversion; a missing or repeated DST hour stays an error.
+- The conflicting midnight constraints of the two earlier engines and the silent clipping to 23:59:59.999 on resize were removed. The existing backend's 24-hour range contract applies; an overnight session is split across days. Only the start segment can be dragged and only the end segment resized. Dragging the half-card on the next day and moving the session's start to the wrong day is prevented. The displayed duration is the planned duration; no measured study is produced.
+- Running and completed cards accept no drag or resize. The server stays the authority for permissions, range overlap, state and the optimistic `expectedUpdatedAt`. A local overlap guess does not replace the server check. Start, pause, complete and delete and the date and duration writes go through a single perform boundary with a synchronous busy ref; a fast double click produces no second request. No fake success or order is shown before server confirmation.
+- A 409 is not an automatic write retry. The current query is read and the open moving or confirmation snapshot is refreshed. The target date and month selection are kept, and the current source time is shown in the dialog. The person's new confirmation writes with the current version. A failed read or move is never presented as empty or successful. If the auth epoch changed, a late mutation acknowledgement produces no cache refresh or success notice.
+- Resize runs on `pointermove`/`pointerup`/`pointercancel`; Escape, blur, a visible-period change or a time-zone change cancels it. No asynchronous write happens before the preview ends; a click arriving after drag or resize does not open edit or create. Touch was not verified end to end.
+- The planner modal uses the existing shared Pomodoro hook and engine. Closing or minimising the modal, reopening it and the server deadline policy did not change. Clicking a session card opens the real edit form; small cards and the context menu have the same actions button and dialog.
 
-## Ortak dialog ve zaman düzeltmeleri
+## Shared dialog and time fixes
 
-MoveSessionModal Headless UI Dialog'a taşındı: odak sınırı/Escape/dışarı kapatma, tarih düğmesi erişilebilir adı ve seçili durum korunur. Pending sırasında kapanmaz; false sonucu hata olarak açık bırakır. Kaynak refresh'i hedef seçimini sıfırlamaz. Başka seansa geçiş yeni açılışta başlatılır.
+`MoveSessionModal` moved to a Headless UI Dialog: the focus boundary, Escape and outside close, the accessible name of the date button and its selected state are kept. It does not close while pending; a false result keeps it open as an error. A source refresh does not reset the target selection. Switching to another session starts fresh on the next open.
 
-ConfirmDialog nötr token/yüzey kullanır; yalnız yıkıcı eylem kırmızıdır. Async callback beklenir, aynı anda çift onay engellenir, pending'de kapatılamaz. false sonucu açık kalır, beklenmeyen exception görünür hata verir. Mevcut void callback çağrıları uyumludur. Hata callback'ini kendi içinde yutup void döndüren eski çağıranlar bu yeni başarısızlık sözleşmesine otomatik çevrilmiş değildir; kalan yüzeyler A21 altında izlenir.
+`ConfirmDialog` uses neutral tokens and surfaces; only destructive actions are red. The asynchronous callback is awaited, double confirmation is blocked, and it cannot close while pending. A false result keeps it open, and an unexpected exception shows a visible error. Existing void callback calls stay compatible. Older callers that swallow their own errors and return void were not converted to this new failure contract automatically; the remaining surfaces were tracked under A21.
 
-Yeni fractional-duration testi, calendarViewInstant'ın CalendarDate milisaniyesini düşürdüğünü buldu. Ortak adaptör artık wallTimeToInstant sonucuna görünümün milisaniyesini ekler. Zaman dilimi/DST reddi değişmez; offset ISO/persisted kontrat veya eski veri yeniden yazılmaz. Contracts testi ve planner taşıma testi tam round-trip'i doğrular.
+A new fractional-duration test found that `calendarViewInstant` dropped the `CalendarDate` milliseconds. The shared adapter now adds the view's milliseconds to the `wallTimeToInstant` result. Time-zone and DST rejection did not change; no offset ISO or persisted contract or old data was rewritten. A contracts test and the planner move test verify the full round trip.
 
-## Doğrulama
+## Verification
 
-npm run check: **8 contracts + 123 backend + 74 frontend = 205 test**, atlanan yok; naming, strict typecheck, sıfır uyarılı lint ve production build başarılı. Log /tmp/study-tracker-shared-planner-check.log. Frontend'de 21 yeni davranış testi:
+`npm run check`: **8 contracts + 123 backend + 74 frontend = 205 tests**, nothing skipped; naming, strict type checks, lint with zero warnings and the production build passed. 21 new frontend behaviour tests:
 
-- Geometry (6): iki grid yüksekliğinde eşit snap/resize ve sınırlar, fractional gerçek süre, geceyi kesen segmentler, DST gap/fold reddi/gerçek süre ve running/completed kilidi.
-- Planner (12; günlük/haftalık aynı matris): gerçek event drag/resize, sunucu onayı/sürüm, ikinci yazmayı engelleme, Escape iptali, eski sürümde refetch ve hedefi koruyarak açık retry, geç auth ack izolasyonu ve GET hata/yeniden deneme.
-- ConfirmDialog (3): async onay bekleme/duplicate/kapama kilidi, false sonrası açık retry ve beklenmeyen hata.
+- Geometry (6): equal snap and resize with limits at two grid heights, fractional real duration, overnight segments, DST gap and fold rejection with real duration, and the running/completed lock.
+- Planner (12; the same matrix for daily and weekly): real event drag and resize, server confirmation and version, blocking a second write, Escape cancel, refetch on a stale version with an explicit retry that keeps the target, late auth acknowledgement isolation and GET error with retry.
+- ConfirmDialog (3): waiting for asynchronous confirmation with the duplicate and close lock, an explicit retry after false, and an unexpected error.
 
-Önceki üç planner/Pomodoro erişim testi dahil bütün eski regresyonlar geçer. Hiçbir test atlanmadı veya strict ayarı gevşetilmedi.
+Every earlier regression, including the three earlier planner and Pomodoro access tests, passes. No test was skipped and no strict setting was relaxed.
 
-Production derlemesi 127.0.0.1:3001 / API 5003 üzerinde ayrı temp SQLite ve öğrenci hesabıyla gerçek tarayıcıda kontrol edildi:
+The production build was checked in a real browser on 127.0.0.1:3001 / API 5003 with a separate temporary SQLite database and a student account:
 
-1. Haftalık 09:00/60 dk seans native drag ile 11:15'e taşındı.
-2. Kart alt kenarı pointer ile 30 dakika uzatıldı; başlık 90 dk oldu.
-3. İşlemler → Tarihe taşı → ertesi gün; günlük görünümde ve reload sonrası aynı 11:15/90 dk kartı göründü.
-4. Gerçek edit formu ertesi gün, 11:15, 90 dk ve 12:45 bitişi gösterdi; Escape ile kapandı.
-5. 5 dakikalık kart ve geceyi kesen seansın iki günlük segmenti görüldü.
-6. Salt okunur fixture DB assertion: 3 planlanmış seans, taşınan seans ertesi gün 11:15–12:45/90 dk, bütün kullanıcı notları ve diğer iki seans aynen korunmuş; session_intervals boş, integrity/FK temiz.
+1. A weekly 09:00 / 60-minute session was moved to 11:15 with a native drag.
+2. The card's bottom edge was extended by 30 minutes with the pointer; the title showed 90 minutes.
+3. Actions → Move to date → the next day; the daily view and a reload showed the same 11:15 / 90-minute card.
+4. The real edit form showed the next day, 11:15, 90 minutes and a 12:45 end; Escape closed it.
+5. A 5-minute card and the two daily segments of an overnight session were visible.
+6. A read-only fixture database assertion: 3 planned sessions, the moved session the next day 11:15–12:45 / 90 minutes, every user note and the other two sessions unchanged; `session_intervals` empty, integrity and foreign keys clean.
 
-Görsel kanıt: /Users/ozcelik/.codex/visualizations/2026/10/15/01a13e5c-eabf-70f1-bd97-3a490ffe1079/shared-planner-verified.png. Hesaptan çıkıldı; sekme, fixture süreçleri, temp DB ve ignored fixture script/config dosyaları temizlendi. Bu manuel smoke, otomatik E2E veya yük testi değildir. Stale retry/auth epoch ilaveleri component testinde doğrulandı; son küçük retry değişikliği için ayrı ikinci manuel tarayıcı turu yapılmadı.
+Visual evidence: `/Users/ozcelik/.codex/visualizations/2026/10/15/01a13e5c-eabf-70f1-bd97-3a490ffe1079/shared-planner-verified.png`. The account was signed out; the tab, fixture processes, temporary database and ignored fixture script and config files were cleaned up. This manual smoke test is not an automated browser or load test. The stale retry and auth epoch additions were verified in component tests; no second manual browser round was made for the last small retry change.
 
-Statik production çıktısında PlannerPage route chunk yaklaşık 91.58 kB/gzip 18.16 kB'den 59.34 kB/gzip 15.42 kB'ye indi; son build'in gerçek rakamı logdan izlenir. Bu route dosyası kıyasıdır; bütün ilk ekran, ağ gecikmesi, Lighthouse veya kullanıcı performans skoru değildir.
+In the static production output the PlannerPage route chunk went from about 91.58 kB / gzip 18.16 kB to 59.34 kB / gzip 15.42 kB. This is a comparison of the route file; it is not the whole first screen, network latency, Lighthouse or a user performance score.
 
-## Yerel ortam ve açık sınırlar
+## Local environment and open limits
 
-Gerçek DB'de migration/seed/reset/restore veya test verisi yazılmadı; schema 006 korunur. Güncel contracts/Vite ön derleme belleği için tek root dev temiz yeniden başlatıldı: localhost:3000 / API 5002, /tmp/study-tracker-shared-planner-dev.log. Önceki geliştirmeler korundu; commit/push/deployment yok.
+No migration, seed, reset, restore or test data was written on the real database; schema 006 was kept. The single root dev server was restarted cleanly for the current contracts and Vite pre-bundle cache: localhost:3000 / API 5002. Earlier developments were kept; no commit, push or deployment.
 
-A21'in öğrenci özel ders/konu düzenleme-silme UI'ı ve kalan modal/admin tasarım tutarlılığı sonraki iştir. A19 contracts/Plan kararı; A22 tam klavye/dokunmatik takvim, E2E/WCAG/Lighthouse; A04 offsite/retention/kapasite/kurtarma operasyonları açıktır. 12 bağımlılık audit düğümü önceki kaydın açık backlog'udur, bu pakette yeniden audit/major geçiş yapılmadı.
+The A21 UI for students editing and deleting their own records and topics and the remaining modal and administrator design consistency were the next tasks. A19 (contracts and the Plan decision), A22 (full keyboard and touch calendar, browser tests, WCAG, Lighthouse) and A04 (off-site copies, retention, capacity, recovery operations) were open. The 12 dependency audit nodes were the open backlog of the earlier record; no new audit or major upgrade was done in this package.
 
-Tekrarlanan DST saatine ayrı satır, çok kısa komşu kartlarda çakışmasız minimum hit alanı, takvimde roving keyboard focus ve büyük veri/yük ölçümü uygulanmadı. Ortaklaştırma bütün erişilebilirlik veya performans backlog'unu kapatmaz.
+A separate row for a repeated DST hour, non-overlapping minimum hit areas for very short neighbouring cards, roving keyboard focus in the calendar and large-data and load measurement were not implemented. The unification did not close the whole accessibility or performance backlog.

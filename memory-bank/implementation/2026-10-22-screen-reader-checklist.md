@@ -1,20 +1,20 @@
-# Ekran okuyucu elle test listesi (22 Ekim 2026)
+# Manual screen reader checklist (22 October 2026)
 
-Otomatik kapsam: axe (her sayfa, açık/koyu, üç tarayıcı profili), Lighthouse erişilebilirlik 100, E2E'de klavye ile takvim gezinmesi, diyalog odak dönüşü ve grafiklerin tablo karşılığı. Aşağıdakiler otomatik testin göremediği şeylerdir: okunuş sırası, anlamlı duyurular ve gerçek ekran okuyucu davranışı. **Henüz uygulanmadı.**
+Automated coverage: axe (every page, light and dark, three browser profiles), Lighthouse accessibility 100, and in the browser tests keyboard calendar navigation, dialog focus return and table equivalents for charts. The items below are what automated tests cannot see: reading order, meaningful announcements and real screen reader behaviour. **Not run yet.**
 
-Ortam: macOS VoiceOver + Safari (Cmd+F5) ve mümkünse Windows NVDA + Firefox/Chrome. Yerel geliştirme sunucusu, test hesabı (gerçek kullanıcı verisi kullanılmaz). Süre: ~20 dakika.
+Environment: macOS VoiceOver + Safari (Cmd+F5) and, if possible, Windows NVDA + Firefox/Chrome. Local development server and a test account (no real user data). Time: about 20 minutes.
 
-| # | Akış | Ne yapılır | Beklenen |
+| # | Flow | Action | Expected |
 |---|---|---|---|
-| 1 | Giriş | Sekme ile alanları gez, yanlış şifreyle gönder | Alan adları okunur; hata toast'ı kendiliğinden duyurulur |
-| 2 | İlk kurulum | Adımları klavyeyle ilerlet | Her adımda başlık ve adım bilgisi okunur; seçimler radyo olarak duyurulur |
-| 3 | Pano | Bölge (landmark) ve başlık listesini aç (VO: Rotor) | `main`, gezinme ve başlıklar mantıklı sırada; "İçeriğe geç" bağlantısı çalışır |
-| 4 | Haftalık grafik | Grafik alanına gel | "Uygulama" denmez; tablo başlığı (hedef dahil) ve her gün için "gün, tarih — süre" okunur |
-| 5 | Planlayıcı | Boş saate ok tuşlarıyla git, Enter | Saat/gün okunur; yeni seans diyaloğu açılır, odak içinde kalır, Esc ile kapanınca odak geri döner |
-| 6 | Seans taşıma | Seans işlemleri › Saat ve süreyi değiştir | Diyalog başlığı ve alanlar okunur; kaydet sonrası sonuç duyurulur |
-| 7 | Pomodoro | Başlat / duraklat | Düğme adları ve durum değişimi anlaşılır; kalan süre her saniye okunarak boğmaz |
-| 8 | Ayarlar › Kelimeler | Özel kelimeler, geçersiz "-ı" hâli yaz | Hata mesajı alana bağlı okunur (`aria-describedby`); "Biçimler" önizlemesi okunur |
-| 9 | Ayarlar › Bildirimler | Anahtarları değiştir | Onay kutusu durumu ve kayıt durumu duyurulur |
-| 10 | Admin › Kullanıcılar | Kullanıcı işlemleri menüsü | Menü ve öğeler okunur; Esc menüyü kapatır, odak düğmeye döner |
+| 1 | Sign-in | Tab through the fields, submit with a wrong password | Field names are read; the error toast is announced on its own |
+| 2 | First-run setup | Advance the steps with the keyboard | Each step's heading and step information are read; choices are announced as radio buttons |
+| 3 | Dashboard | Open the landmark and heading lists (VO: Rotor) | `main`, navigation and headings in a logical order; the skip-to-content link works |
+| 4 | Weekly chart | Move to the chart area | It is not announced as "application"; the table caption (including the goal) and "day, date — duration" for each day are read |
+| 5 | Planner | Move to an empty hour with the arrow keys, press Enter | Hour and day are read; the new-session dialog opens, focus stays inside, and after Esc focus returns |
+| 6 | Moving a session | Session actions › Change time and duration | The dialog heading and fields are read; the result is announced after saving |
+| 7 | Pomodoro | Start / pause | Button names and the state change are clear; the remaining time is not read every second |
+| 8 | Settings › Vocabulary | Enter custom terms and an invalid suffix form | The error message is read as linked to the field (`aria-describedby`); the forms preview is read |
+| 9 | Settings › Notifications | Toggle the switches | The checkbox state and the save state are announced |
+| 10 | Admin › Users | User actions menu | The menu and its items are read; Esc closes the menu and focus returns to the button |
 
-Bulguları önem, konum, beklenen/gerçek davranış ve ekran okuyucu/tarayıcı sürümüyle `progress.md`'ye yazın; düzeltilen her bulgu için mümkünse E2E/axe kontrolü ekleyin.
+Record findings in `progress.md` with severity, location, expected and actual behaviour and the screen reader and browser versions; for each fixed finding, add a browser test or axe check where possible.

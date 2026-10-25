@@ -1,71 +1,71 @@
-# Çalışma ve Görev Takip Sistemi — Product Context
+# Study Tracker — Product Context
 
-Son güncelleme: 21 Ekim 2026 (R15: 19 Ekim ürün yönü kararına göre yeniden yazıldı; eski öğrenci/TYT senaryoları Git geçmişindedir).
+Last updated: 25 October 2026 (R15 rewrote this document after the 19 October product-direction decision; the earlier exam-specific scenarios are in Git history).
 
-## Neden var?
+## Why it exists
 
-İnsanlar ne üzerinde çalıştığını, ne kadar zaman ayırdığını ve hedefe ne kadar yaklaştığını tek yerde göremiyor. Plan bir yerde, sayaç başka yerde, ilerleme hiçbir yerde. Bu ürün; alanı ne olursa olsun (okul, iş, kişisel hedef, beceri) çalışmayı planlamak, odakla yapmak ve gerçekten ölçülen süreyle görmek için tek, sade bir yer sunar.
+People cannot see in one place what they are working on, how much time they give it and how close they are to their goal. The plan is in one place, the timer in another, and progress nowhere. Whatever the field (school, work, personal goals, skills), this product offers one simple place to plan work, do it with focus and see it in measured time.
 
-### Çözdüğü problemler
+### Problems it solves
 
-1. **Dağınık plan:** Ne zaman neye çalışılacağı belirsiz. → Takvimde seans planlama, bugünün listesi.
-2. **Görünmeyen ilerleme:** Ne kadar çalışıldığı bilinmiyor; planlanan ile yapılan karışıyor. → Yalnız ölçülen süre sayılır; hedefle karşılaştırma.
-3. **Kişiye uymayan araçlar:** Hazır sistemler tek bir kitleye göre kurulu. → Kelime seti, kişisel kategoriler, kendi hedefleri ve ritmi.
-4. **Nereden başlanacağı belirsiz:** Boş ekran. → İlk kurulum sihirbazı ve panoda kişisel öneriler.
+1. **Scattered plans:** it is unclear when to work on what. → Session planning on the calendar, weekly routines and today's list.
+2. **Invisible progress:** nobody knows how much was done; planned and actual time blur together. → Only measured time counts, compared with the goal.
+3. **Tools that do not fit:** ready-made systems are built for one audience. → Vocabulary presets, personal categories, personal goals and rhythm.
+4. **Not knowing where to start:** an empty screen. → The welcome wizard and personal recommendations on the dashboard.
 
-## Temel değerler
+## Core values
 
-- **Sadelik:** Az ama net ekran; her şey bir menü kadar düzenli.
-- **Güvenilirlik:** Veri kaybolmaz; ölçüm doğru; değişiklik çakışmaları açıkça yönetilir.
-- **Kişiye uyum:** Kullanıcı kendi kelimelerini, kategorilerini, hedeflerini ve ritmini seçer.
-- **Dürüst ilerleme:** Planlanan değil, ölçülen süre; teşvik edici ama abartısız geri bildirim.
-- **Veri sahipliği:** Kullanıcı verisini indirebilir ve hesabını silebilir.
+- **Simplicity:** few but clear screens, everything as tidy as a menu.
+- **Reliability:** data is never lost, measurement is correct and conflicting changes are handled openly.
+- **Fit:** people choose their own words, categories, goals and rhythm.
+- **Honest progress:** measured rather than planned time; encouraging but never inflated feedback.
+- **Data ownership:** people can download their data, take it to another site and delete their account.
 
-## Kullanıcı yolculukları
+## User journeys
 
-### Yeni kullanıcı
-1. Kayıt olur (tarayıcı saat dilimi otomatik gelir) ya da admin hesap açar.
-2. Kurulum sihirbazı: amaç (okul, iş, kişisel, beceri, diğer) → kelime seti; saat dilimi, hafta başı, aktif günler, günlük hedef (saat ve/veya dakika; haftalık hedef otomatik); odak ritmi; kişisel kategori ve ilk kayıtlar (kutucuklar). İsterse atlar.
-3. Panoda kendisine göre öneriler görür (ör. "Bugün için bir seans planla", "X için alt kayıt ekle").
+### New user
+1. Signs up (the browser's time zone is filled in automatically), or an administrator creates the account.
+2. Welcome wizard: purpose (school, work, personal, skill, other) → vocabulary; time zone, week start, active days, daily goal (hours and/or minutes; the weekly goal follows); focus rhythm; a personal category and first records (checkboxes). It can be skipped, or replaced by loading an exported data file.
+3. Sees recommendations that fit them on the dashboard (for example "Plan a session for today" or "Add a sub-record to X").
 
-### Günlük akış
-1. Panoda bugünkü hedef, öneriler ve haftalık ilerlemeyi görür.
-2. Planlayıcıda seansları yerleştirir ya da taşır.
-3. Odak sayacıyla çalışır; süre ölçülür.
-4. Gerekirse seansa not ekler; aramayla eski notları bulur.
-5. İstatistiklerde aralık seçip dağılımı ve hedefi karşılaştırır.
+### Daily flow
+1. The dashboard shows today's goal, recommendations, weekly progress and per-record goals.
+2. Places or moves sessions in the planner.
+3. Works with the focus timer; time is measured.
+4. Adds notes to a session when needed and finds old notes with search.
+5. Picks a range in Statistics and compares the distribution with the goal, optionally filtered by tag.
 
-### Yönetici
-Kullanıcıları ve ortak kataloğu yönetir, site kimliğini ve varsayılan kelime setini seçer, yedek alır, şifre sıfırlama bağlantısı verir.
+### Administrator
+Manages users and the shared catalog, chooses the site identity, language and default vocabulary, takes backups, hands out password reset links and reviews the activity log.
 
-## Nasıl çalışmalı?
+## How it should work
 
-- **Planlayıcı:** Günlük/haftalık görünüm, sürükle-bırak, klavye ile oluşturma, iki sekmede çakışmada açık uyarı.
-- **Odak sayacı:** Süreler kullanıcı ritminden gelir; faz durumu sunucuda tutulur, sayfa yenilense de sürer.
-- **Hedefler:** Günlük hedef yalnız aktif günlerde geçerli; haftalık hedef = günlük hedef × aktif gün.
-- **İstatistik:** Ölçülmemiş eski süreler toplama girmez; bu açıkça belirtilir.
-- **Arama:** Büyük/küçük harf ve Türkçe harf farkı gözetmez; yalnız kullanıcının görebildiği veride arar.
+- **Planner:** daily and weekly views, drag and drop, keyboard creation, a clear warning when two tabs conflict.
+- **Focus timer:** durations come from the person's rhythm; the phase state lives on the server and continues after a reload.
+- **Goals:** the daily goal applies only on active days; weekly goal = daily goal × active days.
+- **Statistics:** old unmeasured time never enters the totals, and this is stated openly.
+- **Search:** ignores case and Turkish letter forms and searches only data the person can see.
 
-## Başarı göstergeleri (hedef; ölçüm altyapısı yok)
+## Success indicators (targets; no measurement infrastructure yet)
 
-- Yeni kullanıcının ilk seansı planlaması 2 dakikadan kısa.
-- Kurulumu tamamlayan ya da bilinçli atlayan hesap oranı.
-- Haftalık hedefe ulaşılan hafta oranı.
-- Mobil kullanımda sorunsuz akış (yatay taşma yok, dokunma hedefleri yeterli).
+- A new user plans their first session in under 2 minutes.
+- Share of accounts that finish the setup or deliberately skip it.
+- Share of weeks in which the weekly goal is reached.
+- A smooth flow on mobile (no horizontal overflow, large enough touch targets).
 
-## Ayrışma
+## What sets it apart
 
-1. **Alan bağımsız ve kişiye uyarlanabilir:** Kelime seti, kişisel kategori, hedef ve ritim kullanıcıda.
-2. **Ölçülen süre:** Plan ile gerçekleşen ayrılır.
-3. **Planlama + odak + istatistik tek yerde.**
-4. **Türkçe öncelikli, sade arayüz;** İngilizce arayüz de var (R10b); sunucu mesajları R10c'de.
+1. **Field-independent and adaptable:** vocabulary, personal categories, goals and rhythm belong to the person.
+2. **Measured time:** planned and actual time are kept apart.
+3. **Planning, focus and statistics in one place.**
+4. **A simple bilingual interface** (English and Turkish, one site-wide setting).
 
-## Bilinçli olarak şimdilik yok
+## Deliberately not included for now
 
-Yapay zekâ önerileri, sosyal/rekabet, çevrimdışı/PWA, mobil uygulama, eğitim içeriği. Panodaki öneriler kural tabanlıdır (yapay zekâ değil).
+AI suggestions, social or competitive features, offline use or a PWA, native mobile apps, learning content. Dashboard recommendations are rule-based, not AI.
 
-## Mevcut karar notları
+## Current decision notes
 
-- **Tasarım (15 Ekim):** Nötr, sade, Vercel/Geist çizgisi; `design-system.md`.
-- **Marka (16 Ekim):** Site adı/logo admin ayarından; kod adlarına bağlanmaz.
-- **Plan ve seans (17 Ekim):** Takvim ve sayaç `StudySession` üzerinden çalışır; Plan isteğe bağlı tarihli hedef kabıdır, seans için zorunlu değildir ve tarihten otomatik türetilmez. Plan silmek seans/ölçüm geçmişini silmez.
+- **Design (15 October):** neutral, simple, in the Vercel/Geist line; `design-system.md`.
+- **Brand (16 October):** site name and logo come from an administrator setting and are not tied to code names.
+- **Plans and sessions (17 October):** the calendar and the timer work on `StudySession`; a Plan is an optional dated goal container, is not required for a session and is never derived from dates. Deleting a plan never deletes session or measurement history.

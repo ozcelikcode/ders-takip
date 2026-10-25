@@ -1,24 +1,24 @@
-# Seans Bütünlüğü — 16 Ekim 2026
+# Session Integrity — 16 October 2026
 
-## Kapsam
+## Scope
 
-Kullanıcı açık iş listesinden devam edilmesini istedi. A07/A08: atomik create/move/resize, ortak durum politikası ve eski istemci yazmalarının algılanması uygulandı. Planlanan/gerçek süre ayrımı (A09), timezone (A16) ve tek Pomodoro motoru (A15) bu paketin tamamlanma iddiasına dahil değildir.
+The owner asked to continue with the open work list. A07/A08 were implemented: atomic create, move and resize, a shared state policy and detection of stale client writes. Separating planned and real duration (A09), time zones (A16) and a single Pomodoro engine (A15) are not part of this package's completion claim.
 
-## Yazma sınırı
+## Write boundary
 
-StudySession HTTP yazmaları services/studySessions.ts içinde birleşir. Her create/update/action/delete SQLite IMMEDIATE transaction içindedir. Sahiplik, güncel kayıt, ilişki erişimi, çakışma, durum ve tek aktif seans kontrolleri aynı transaction'dan okunur; response snapshot'ı da commit öncesi bu işlemden türetilir. Kontrol ile yazma arasına başka bir API yazması giremez. SQLite'ın tek yazıcı/IMMEDIATE davranışı [resmî transaction belgesiyle](https://www.sqlite.org/lang_transaction.html) doğrulandı. Doğrudan SQL/harici yazıcı bu servis kurallarını uygulamıyorsa aynı alan politikası garanti edilmez; DB trigger eklenmedi.
+StudySession HTTP writes are unified in `services/studySessions.ts`. Every create, update, action and delete runs in an SQLite IMMEDIATE transaction. Ownership, the current row, relation access, overlaps, state and the single running session are read from the same transaction; the response snapshot is derived from this operation before commit. No other API write can come between the check and the write. SQLite's single-writer IMMEDIATE behaviour was confirmed with the [official transaction documentation](https://www.sqlite.org/lang_transaction.html). If direct SQL or an external writer does not apply these service rules, the same field policy is not guaranteed; no database triggers were added.
 
-Aralıklar [startTime,endTime) biçimindedir. Bitişe eşit başlangıç kabul edilir; kısmi, içerilen, kapsayan veya eşit örtüşme 409'dur. planned/in_progress/paused/completed aralığı rezerve eder; cancelled boşaltır. Create, move/resize ve cancelled → planned yeniden etkinleştirme aynı kontrolü kullanır. Güncelleme kendi id'sini dışlar. Tarihsel çakışmalar topluca değiştirilmez; metadata/tamamlama bu kayıtları sessizce onarmaz.
+Ranges are `[startTime, endTime)`. A start equal to an end is accepted; partial, contained, containing or equal overlaps get 409. planned, in_progress, paused and completed reserve their range; cancelled frees it. Create, move/resize and reactivating cancelled → planned use the same check. An update excludes its own id. Historical overlaps are not changed in bulk; metadata edits or completion do not silently repair those rows.
 
-Başlangıç/bitiş açık offset veya Z içeren ISO instant olmalıdır; süre 1 dakika–24 saat aralığında doğrulanır. duration sunucuda türetilir; istemci duration/completedAt/userId gibi alanları yazamaz. Form/API tipi ortak contracts kaynağındadır. Güncellemede seçilen plan/ders/konu da owner/global/admin erişimi, aktiflik ve konu-ders eşleşmesiyle denetlenir. İlişki temizleme/null sözleşmesi bu pakette eklenmedi.
+Start and end must be ISO instants with an explicit offset or Z; the duration is validated between 1 minute and 24 hours. `duration` is derived on the server; the client cannot write fields such as `duration`, `completedAt` or `userId`. The form and API types come from the shared contracts source. On update, the chosen plan, record and topic are also checked for owner/global/administrator access, active status and topic-record consistency. A contract for clearing relations with null was not added in this package.
 
-PUT, start/pause/complete ve DELETE için expectedUpdatedAt zorunludur. Satır transaction içinde yüklenir; eski snapshot 409, eksik/bozuk alan 400, yabancı kayıt 404 alır. ORM beforeUpdate kancası updatedAt'i önceki değerden en az 1 ms ileri taşır; hızlı yazma veya saat geri gitmesi aynı sürümü üretmez. Yeni kolon/migration gerekmez. Bulk catalog/FK değişiklikleri ve harici SQL bu optimistic sürüm sözleşmesine dahil değildir; catalog bütünlüğü A10 altında açıktır.
+`expectedUpdatedAt` is mandatory for PUT, start, pause, complete and DELETE. The row is loaded inside the transaction; an old snapshot gets 409, a missing or malformed field 400 and a foreign row 404. The ORM `beforeUpdate` hook advances `updatedAt` by at least 1 ms over the previous value, so fast writes or a clock going back never produce the same version. No new column or migration was needed. Bulk catalog and foreign-key changes and external SQL are outside this optimistic version contract; catalog integrity was open under A10.
 
-409 alan istemci ilgili hesabın bütün session query görünümlerini yeniler; eski mutation otomatik tekrar edilmez. Formda kullanıcı girdisi korunur, güncel veriye göre yeniden deneme gerekir. Frontend bütün yazma yollarına kullanıcının gördüğü snapshot sürümünü ekler; PUT ile action endpoint'leri aynı servisi çağırır.
+A client that gets a 409 refreshes every session query view of that account; the old mutation is not repeated automatically. The form keeps the user's input, and a retry against the current data is required. The frontend adds the snapshot version the user saw to every write path; PUT and the action endpoints call the same service.
 
-## Durum politikası
+## State policy
 
-| Kaynak | Farklı hedef durumlar |
+| From | Allowed different target states |
 |---|---|
 | planned | in_progress, completed, cancelled |
 | in_progress | paused, completed, cancelled, planned |
@@ -26,22 +26,22 @@ PUT, start/pause/complete ve DELETE için expectedUpdatedAt zorunludur. Satır t
 | completed | planned |
 | cancelled | planned |
 
-Aynı duruma geçiş geçerli sürümle no-op'tur; değişmeyen alanlarla tekrar tamamlamak completedAt/updatedAt'i değiştirmez. Not/verimlilik ayrıca düzenlenebilir. Stale tekrar yine 409'dur; istemci önce güncel snapshot'ı okumalıdır. completed/cancelled kaydı doğrudan çalıştırmak yerine açık planned geçişi gerekir. completedAt yalnız ilk tamamlamada sunucuda yazılır, yeniden açmada null olur. Mevcut duration gerçek ölçülmüş süreye çevrilmez.
+A transition to the same state with a valid version is a no-op; completing again with unchanged fields does not change `completedAt`/`updatedAt`. Notes and productivity can be edited separately. A stale repeat still gets 409; the client must read the current snapshot first. A completed or cancelled row needs an explicit transition to planned instead of being started directly. `completedAt` is written on the server only at the first completion and becomes null on reopening. The existing `duration` is not converted into real measured time.
 
-Kullanıcı başına bir in_progress seans olabilir; diğerini başlatmak için mevcut seans duraklatılır/tamamlanır/iptal edilir. Birden fazla paused seans tutulabilir. Bitişi geçmiş planned/paused kayıt başlatılmaz; saat güncellemesi gerekir. Bitişi geçmiş aktif kayıt duraklatılabilir/tamamlanabilir; hata yanıtı sırasında planlanana geri yazma kaldırıldı. GET hâlâ yan etkisizdir; süre dolunca otomatik iptal politikası kurulmadı. Buna dayanarak sonsuz refetch yapan eski günlük/haftalık effect ve taşıma debug çıktıları kaldırıldı.
+Each user can have one in_progress session; to start another, the current one is paused, completed or cancelled. Several paused sessions can exist. A planned or paused row whose end has passed cannot be started; its times must be updated. An active row whose end has passed can be paused or completed; writing back to planned during an error response was removed. GET is still side-effect free; no automatic cancellation policy on expiry was set up. The old daily and weekly effect that refetched endlessly on that assumption and the move debug output were removed.
 
-## Arayüz bağlantıları
+## Interface links
 
-Günlük/haftalık takvim, seans formu, günlük özet ve iki Pomodoro yüzeyi sürümlü transport kullanır. Pomodoro mutation yanıtı güncel snapshot olarak tutulur; sorgudan gelen daha eski kopya bunu ezmez. Snapshot değişimi timer fazını başa almaz. Başlatma sunucuda reddedilirse modal sayacı çalışmaya başlamaz.
+The daily and weekly calendar, the session form, the daily summary and both Pomodoro surfaces use the versioned transport. A Pomodoro mutation response is kept as the current snapshot; an older copy from a query does not overwrite it. A snapshot change does not restart the timer phase. If the server rejects a start, the modal timer does not start running.
 
-Tarayıcı kontrolünde ayrı Pomodoro sayfasının büyük Duraklat düğmesinin yalnız yerel isRunning değiştirdiği bulundu; gerçek pause action'a bağlandı. Devam et sunucu start action'ını kullanır. Bekleyen işlem sırasında ilgili timer kontrolleri devre dışıdır. Bu bağlantı düzeltmeleri tick/deadline, reload, background, çoklu sekme sahipliği ve faz/mola ölçümü sorunlarını çözmez; iki motor hâlâ birleştirilmelidir.
+A browser check found that the separate Pomodoro page's large Pause button changed only the local `isRunning`; it was bound to the real pause action. Resume uses the server start action. Related timer controls are disabled while an operation is pending. These link fixes do not solve the tick and deadline, reload, background, multi-tab ownership and phase and break measurement problems; the two engines still had to be unified at that time.
 
-## Doğrulama ve operasyon
+## Verification and operations
 
-Son `npm run check` başarılı: **5 contracts + 67 backend + 36 frontend = 108 test**, atlanan yok; strict typecheck, sıfır uyarılı lint, adlandırma ve iki production build başarılı. Kontrol logu /tmp/study-tracker-session-check.log içindedir. Bu pakette bağımlılık değişmedi; temiz npm ci önceki pakette doğrulanmıştı. Anlamlı regresyonlar: dört eşzamanlı create, aynı boş aralığa iki move, bitiş sınırı/örtüşme çeşitleri, partial resize, iptal sonrası yeniden etkinleştirme, eski sürümlü edit/action/delete, monotonic timestamp, eşzamanlı start ve kullanıcı ayrımı, terminal geçişler, tekrar complete, geç duraklatma, ilişki erişimi ve SQL yazmasından sonraki enjekte hatada transaction rollback'i. Bütün DB testleri atılabilir ayrı SQLite dosyasındadır.
+The last `npm run check` passed: **5 contracts + 67 backend + 36 frontend = 108 tests**, nothing skipped; strict type checks, lint with zero warnings, naming and two production builds passed. No dependency changed in this package; a clean `npm ci` had been verified in the previous package. Meaningful regressions: four concurrent creates, two moves to the same free range, end-boundary and overlap variants, partial resize, reactivation after cancellation, stale edits, actions and deletes, monotonic timestamps, concurrent starts and user separation, terminal transitions, repeated complete, a late pause, relation access and transaction rollback on an error injected after an SQL write. Every database test uses a disposable, separate SQLite file.
 
-Frontend: gerçek HTTP üzerinden bütün yazma türlerinde sürüm taşıma ve 409 cache yenilemesi; modal start → pause → complete sürümü ve reddedilen start; ayrı sayfanın ana pause → resume düğmeleri için component regresyonu. Tam otomatik tarayıcı E2E veya yük testi değildir.
+Frontend: version transport and 409 cache refresh over real HTTP for every write type; the modal start → pause → complete versions and a rejected start; a component regression for the separate page's main pause → resume buttons. This is not a full automated browser or load test.
 
-Production bundle ayrı 127.0.0.1:3001 frontend / 5003 API ve atılabilir iki seanslı SQLite fixture'ında açıldı. İlk start başarılı, ikinci eşzamanlı aktif seans 409; ana pause → resume → complete listede ve sayaç özetinde doğrulandı. Büyük pause düğmesindeki yerel-only hata bu testle bulunup düzeltildi ve component regresyonu eklendi. Kanıt repo dışında session-integrity-completed.png (aynı Codex artifact dizini). Test hesabından çıkıldı, sekme/fixture süreçleri kapatıldı, geçici DB temizlendi.
+The production bundle was opened on a separate 127.0.0.1:3001 frontend / 5003 API with a disposable SQLite fixture with two sessions. The first start succeeded and a second concurrent running session got 409; the main pause → resume → complete was verified in the list and the timer summary. The local-only bug in the large pause button was found by this test, fixed and given a component regression. Evidence outside the repository: `session-integrity-completed.png` (same Codex artifact folder). The test account was signed out, tabs and fixture processes closed and the temporary database removed.
 
-Gerçek kullanıcı DB'sinde migration/seed/reset/restore uygulanmadı; bu paket şema değiştirmez. Yeni API ve frontend birlikte kullanılmalıdır; eski açık sekme yeni sürüm alanını taşımadığı için yazmada 400 alabilir ve yeniden yüklenmelidir. Commit/push/deployment yapılmadı. Güncel açık sıra: A09/A16 → A10 → A15/A17/A18 → bağımlılık/E2E/erişilebilirlik ve kurtarma operasyonları.
+No migration, seed, reset or restore was applied on the real user database; this package changes no schema. The new API and frontend must be used together; an old open tab does not send the new version field, so it can get 400 on a write and must reload. No commit, push or deployment was made. The open order at that time: A09/A16 → A10 → A15/A17/A18 → dependencies, browser tests, accessibility and recovery operations.
