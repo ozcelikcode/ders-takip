@@ -13,6 +13,8 @@ interface StudySessionAttributes {
   courseId?: number | null;
   seriesId?: number | null;
   seriesDate?: string | null;
+  /** When the person read the notice about this finished session; null while unread. */
+  notificationReadAt?: Date | null;
   title: string;
   description?: string;
   startTime: Date;
@@ -36,7 +38,7 @@ interface StudySessionAttributes {
   updatedAt: Date;
 }
 
-interface StudySessionCreationAttributes extends Optional<StudySessionAttributes, 'id' | 'planId' | 'topicId' | 'courseId' | 'seriesId' | 'seriesDate' | 'description' | 'status' | 'color' | 'pomodoroSettings' | 'notes' | 'productivity' | 'completedAt' | 'createdAt' | 'updatedAt' | 'trackingCoverage'> {}
+interface StudySessionCreationAttributes extends Optional<StudySessionAttributes, 'id' | 'planId' | 'topicId' | 'courseId' | 'seriesId' | 'seriesDate' | 'description' | 'status' | 'color' | 'pomodoroSettings' | 'notes' | 'productivity' | 'completedAt' | 'createdAt' | 'updatedAt' | 'trackingCoverage' | 'notificationReadAt'> {}
 
 export class StudySession extends Model<StudySessionAttributes, StudySessionCreationAttributes> implements StudySessionAttributes {
   public id!: number;
@@ -47,6 +49,7 @@ export class StudySession extends Model<StudySessionAttributes, StudySessionCrea
   /** The weekly routine this session belongs to, and the routine date it stands for even after a move. */
   public seriesId?: number | null;
   public seriesDate?: string | null;
+  public notificationReadAt?: Date | null;
   public title!: string;
   public description?: string;
   public startTime!: Date;
@@ -127,6 +130,10 @@ StudySession.init(
     },
     seriesDate: {
       type: DataTypes.STRING(10),
+      allowNull: true,
+    },
+    notificationReadAt: {
+      type: DataTypes.DATE,
       allowNull: true,
     },
     title: {

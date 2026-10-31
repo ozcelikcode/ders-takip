@@ -342,6 +342,7 @@ export const tr = {
     markRead: (title: string) => `${title}: okundu olarak işaretle`,
     markAllRead: 'Görünenleri okundu işaretle',
     marked: (count: number) => `${count} bildirim okundu olarak işaretlendi.`,
+    markFailed: 'Okundu bilgisi kaydedilemedi; daha sonra tekrar deneyin.',
   },
   chart: {
     noStudyDay: 'Çalışma yok',

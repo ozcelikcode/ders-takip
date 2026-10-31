@@ -91,6 +91,7 @@ const sessionRow = z
     notes: optionalText,
     productivity: z.number().int().min(1).max(5).nullish(),
     completedAt: instant.nullish(),
+    notificationReadAt: instant.nullish(),
     activityIntervals: list(intervalRow, 1000).default([]),
   })
   .refine((session) => new Date(session.endTime) > new Date(session.startTime));

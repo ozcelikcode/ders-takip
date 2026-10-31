@@ -20,15 +20,15 @@ export default function NotificationsPanel() {
   const headingId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const [announcement, setAnnouncement] = useState('');
-  const { ids, markRead } = useReadNotifications(user ? String(user.id) : null);
+  const { isRead, markRead } = useReadNotifications(user ? String(user.id) : null);
   const query = useRecentSessions();
   const sessions = query.data ?? [];
-  const unread = sessions.filter((session) => !ids.has(session.id));
+  const unread = sessions.filter((session) => !isRead(session));
   const fresh = query.isSuccess;
   const mark = (values: number[]) => {
-    markRead(values);
     setAnnouncement(text.marked(values.length));
     closeRef.current?.focus();
+    void markRead(values).catch(() => setAnnouncement(text.markFailed));
   };
   return (
     <Popover className="relative">
@@ -110,7 +110,7 @@ export default function NotificationsPanel() {
               {sessions.length > 0 && (
                 <ul className="divide-y divide-(--line)">
                   {sessions.map((session) => {
-                    const read = ids.has(session.id);
+                    const read = isRead(session);
                     return (
                       <li
                         key={session.id}

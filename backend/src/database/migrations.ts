@@ -3,7 +3,7 @@ import { sequelize } from '../config/database';
 import { migrateStoredPreferences } from './preferenceMigration';
 import { AuthSession, RefreshCredential, SessionInterval, PomodoroClock, UserTopicProgress, PasswordResetToken, PushSubscription, NotificationDelivery, SessionSeries, CourseGoal, CalendarFeed, Tag, CourseTag, SessionTag } from '../models';
 
-export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1', '004-session-activity-intervals', '005-pomodoro-clocks', '006-user-topic-progress', '007-password-reset-tokens', '008-personal-categories', '009-notifications', '010-session-series', '011-course-goals', '012-calendar-feeds', '013-tags'];
+export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1', '004-session-activity-intervals', '005-pomodoro-clocks', '006-user-topic-progress', '007-password-reset-tokens', '008-personal-categories', '009-notifications', '010-session-series', '011-course-goals', '012-calendar-feeds', '013-tags', '014-notification-reads'];
 const personalCategoriesMigration = '008-personal-categories';
 // Columns that a still-pending migration adds itself, as `table.column`.
 async function validateExistingTables(addedByPendingMigrations: readonly string[] = []) {
@@ -38,6 +38,7 @@ async function applyTransactionalMigrations(): Promise<void> {
       ...(pending.includes('004-session-activity-intervals') ? ['study_sessions.trackingCoverage'] : []),
       ...(pending.includes(personalCategoriesMigration) ? ['categories.userId'] : []),
       ...(pending.includes('010-session-series') ? ['study_sessions.seriesId', 'study_sessions.seriesDate'] : []),
+      ...(pending.includes('014-notification-reads') ? ['study_sessions.notificationReadAt'] : []),
     ]);
     for (const name of pending) {
       // The categories rebuild cannot run inside this transaction; it follows below.
@@ -86,6 +87,14 @@ async function applyTransactionalMigrations(): Promise<void> {
       else if (name === '011-course-goals') await CourseGoal.sync(options);
       else if (name === '012-calendar-feeds') await CalendarFeed.sync(options);
       else if (name === '013-tags') { await Tag.sync(options); await CourseTag.sync(options); await SessionTag.sync(options); }
+      else if (name === '014-notification-reads') {
+        // When the person read the notice about a finished session; existing sessions stay unread until the browser
+        // hands over what it had marked locally.
+        const query = sequelize.getQueryInterface();
+        const inspectionOptions: { transaction: typeof transaction; logging: false } = { transaction, logging: false };
+        const columns = await query.describeTable('study_sessions', inspectionOptions);
+        if (!columns.notificationReadAt) await query.addColumn('study_sessions', 'notificationReadAt', { type: DataTypes.DATE, allowNull: true }, { transaction });
+      }
       await sequelize.query('INSERT INTO schema_migrations (name) VALUES (:name)', { replacements: { name }, transaction });
     }
   });

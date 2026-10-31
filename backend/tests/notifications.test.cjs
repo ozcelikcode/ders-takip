@@ -203,3 +203,28 @@ it('respects the admin switch for scheduled delivery and the channel test', asyn
   const noBrowser = await call('post', '/api/notifications/test', ben, { channel: 'push' });
   assert.deepEqual([noBrowser.status, noBrowser.body.error.code], [409, 'noPushSubscription']);
 });
+
+it('keeps read notices on the server for the person\'s own finished sessions, without changing their version', async () => {
+  const start = new Date(Date.UTC(2026, 0, 5, 9));
+  const done = await session(ada, start, { status: 'completed', completedAt: start });
+  const planned = await session(ada, new Date(start.getTime() + 2 * 60 * minute));
+  const theirs = await session(ben, start, { status: 'completed', completedAt: start });
+  const version = done.updatedAt.toISOString();
+  const read = async (body, status) => {
+    const response = await call('post', '/api/notifications/read', ada, body);
+    assert.equal(response.status, status);
+    return response;
+  };
+  assert.equal((await read({ sessionIds: [done.id, done.id, planned.id, theirs.id] }, 200)).body.data.marked, 1);
+  await done.reload(); await planned.reload(); await theirs.reload();
+  assert.ok(done.notificationReadAt);
+  assert.equal(done.updatedAt.toISOString(), version);
+  assert.equal(planned.notificationReadAt, null);
+  assert.equal(theirs.notificationReadAt, null);
+  // Marking again changes nothing; the session list carries the read time to every device.
+  assert.equal((await read({ sessionIds: [done.id] }, 200)).body.data.marked, 0);
+  const listed = (await call('get', '/api/study-sessions?status=completed', ada)).body.data.sessions.find((item) => item.id === done.id);
+  assert.equal(listed.notificationReadAt, done.notificationReadAt.toISOString());
+  for (const body of [{ sessionIds: [] }, { sessionIds: [0] }, { sessionIds: Array.from({ length: 501 }, (_, index) => index + 1) }, { ids: [1] }])
+    await read(body, 400);
+});

@@ -230,3 +230,15 @@ export async function sendTestNotification(userId: number, channel: 'email' | 'p
   if (!delivered) fail(409, 'noPushSubscription');
   return { delivered };
 }
+
+/**
+ * Marks the notices of the person's own finished sessions as read. `silent` keeps `updatedAt`, so reading a notice
+ * never makes an open editor's version stale. Returns how many were newly marked.
+ */
+export async function markNotificationsRead(userId: number, sessionIds: number[]): Promise<number> {
+  const [count] = await StudySession.update(
+    { notificationReadAt: new Date(Date.now()) },
+    { where: { userId, id: [...new Set(sessionIds)], status: 'completed', notificationReadAt: null }, silent: true },
+  );
+  return count;
+}

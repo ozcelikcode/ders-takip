@@ -483,6 +483,8 @@ export const notificationsAPI = {
     api.delete('/notifications/push-subscriptions', { data: { endpoint } }),
   test: (input: TestNotificationInput): Promise<HttpResponse<ApiResponse<{ delivered: number }>>> =>
     api.post('/notifications/test', input),
+  markRead: (sessionIds: number[]): Promise<HttpResponse<ApiResponse<{ marked: number }>>> =>
+    api.post('/notifications/read', { sessionIds }),
 };
 
 export const onboardingAPI = {

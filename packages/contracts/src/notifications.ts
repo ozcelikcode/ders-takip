@@ -74,3 +74,9 @@ export interface PushPayload {
   url: string;
   tag: string;
 }
+
+/** Finished sessions whose notice the person has read; the header list shows at most a handful, older browsers hand over more. */
+export const markNotificationsReadSchema = z
+  .object({ sessionIds: z.array(z.number().int().positive().max(Number.MAX_SAFE_INTEGER)).min(1).max(500) })
+  .strict();
+export type MarkNotificationsReadInput = z.infer<typeof markNotificationsReadSchema>;

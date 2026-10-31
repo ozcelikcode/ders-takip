@@ -219,6 +219,7 @@ class AccountImporter {
         sessionType: session.sessionType,
         ...defined({ description: session.description, color: session.color, pomodoroSettings: session.pomodoroSettings, notes: session.notes, productivity: session.productivity }),
         completedAt: session.completedAt ? new Date(session.completedAt) : null,
+        notificationReadAt: session.notificationReadAt ? new Date(session.notificationReadAt) : null,
       });
     }
     const created = await inChunks(rows, part => StudySession.bulkCreate(part, { transaction: this.transaction }));

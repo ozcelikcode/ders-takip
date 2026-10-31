@@ -11,7 +11,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import Header from '../src/components/common/Header';
 import RecentActivities from '../src/components/dashboard/RecentActivities';
-import { studySessionsAPI } from '../src/services/api';
+import { notificationsAPI, studySessionsAPI } from '../src/services/api';
 import type { StudySession } from '../src/types/planner';
 const auth = vi.hoisted(() => ({
   epoch: 1,
@@ -41,6 +41,7 @@ vi.mock('../src/hooks/useAccountQueryKeys', () => ({
 }));
 vi.mock('../src/services/api', () => ({
   studySessionsAPI: { getSessions: vi.fn() },
+  notificationsAPI: { markRead: vi.fn(async () => ({})) },
 }));
 const session: StudySession = {
   id: 42,
@@ -168,7 +169,7 @@ it('closes on outside interaction while leaving focus on the outside target', as
   );
   expect(document.activeElement).toBe(outside);
 });
-it('marks only the visible latest five, persists per account and preserves focus after the action disappears', async () => {
+it('marks only the visible latest five on the server and preserves focus after the action disappears', async () => {
   vi.mocked(studySessionsAPI.getSessions).mockResolvedValue(
     response(
       Array.from({ length: 7 }, (_, index) => ({
@@ -192,10 +193,7 @@ it('marks only the visible latest five, persists per account and preserves focus
     screen.getByRole('button', { name: 'Görünenleri okundu işaretle' }),
   );
   await screen.findByText('5 bildirim okundu olarak işaretlendi.');
-  expect(
-    JSON.parse(localStorage.getItem('read-notifications:1') ?? '[]'),
-  ).toEqual([7, 6, 5, 4, 3]);
-  expect(localStorage.getItem('read-notifications:2')).toBeNull();
+  expect(notificationsAPI.markRead).toHaveBeenCalledWith([7, 6, 5, 4, 3]);
   expect(document.activeElement).toBe(
     screen.getByRole('button', { name: 'Bildirimleri kapat' }),
   );
@@ -258,4 +256,18 @@ it('shares one recent-sessions request between the header and the dashboard acti
   await screen.findByText('Completed fixture');
   await waitFor(() => expect(trigger().getAttribute('aria-label')).toBe('Bildirimler, 1 okunmamış'));
   expect(studySessionsAPI.getSessions).toHaveBeenCalledTimes(1);
+});
+
+it('shows notices read on another device as read, and hands this browser\'s old local list to the server once', async () => {
+  localStorage.setItem('read-notifications:1', JSON.stringify([2, 'x', 3]));
+  vi.mocked(studySessionsAPI.getSessions).mockResolvedValue(
+    response([
+      { ...session, id: 2, title: 'Elsewhere', notificationReadAt: '2026-10-20T08:00:00Z' },
+      { ...session, id: 3, title: 'Fresh' },
+    ]),
+  );
+  mount();
+  await waitFor(() => expect(trigger().getAttribute('aria-label')).toBe('Bildirimler, 1 okunmamış'));
+  await waitFor(() => expect(localStorage.getItem('read-notifications:1')).toBeNull());
+  expect(notificationsAPI.markRead).toHaveBeenCalledWith([2, 3]);
 });

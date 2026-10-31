@@ -337,6 +337,7 @@ export const en: Text = {
     markRead: (title: string) => `${title}: mark as read`,
     markAllRead: 'Mark shown as read',
     marked: (count: number) => `${count === 1 ? '1 notification' : `${count} notifications`} marked as read.`,
+    markFailed: 'The read state could not be saved; try again later.',
   },
   chart: {
     noStudyDay: 'No study',

@@ -44,6 +44,8 @@ export interface StudySession {
   notes?: string;
   productivity?: number;
   completedAt?: string | null;
+  /** When the notice about this finished session was read; null while unread. */
+  notificationReadAt?: string | null;
   createdAt: string;
   updatedAt: string;
   plan?: {
