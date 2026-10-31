@@ -32,6 +32,7 @@ before(async () => {
   await session(owner.id, 'Gitar', 2, { courseId: course.id, notes: 'Private note', description: 'Private description' });
   await session(owner.id, 'Okuma, yazma; tekrar\\nsatır', 4);
   await session(owner.id, 'Uzun başlık '.repeat(12).trim(), 6);
+  await session(owner.id, 'Eski\rsatır sonu', 10);
   await session(owner.id, 'Cancelled plan', 8, { status: 'cancelled' });
   await session(owner.id, 'Long ago', -24 * 60);
   await session(other.id, 'Someone else', 3);
@@ -57,9 +58,10 @@ it('gives a calendar app a private address once and serves the sessions as iCale
   assert.match(unfolded, /SUMMARY:Gitar · Müzik dersleri\r\n/);
   assert.match(unfolded, /SUMMARY:Okuma\\, yazma\\; tekrar\\\\nsatır\r\n/);
   assert.match(unfolded, /SUMMARY:(Uzun başlık ){11}Uzun başlık\r\n/);
+  assert.match(unfolded, /SUMMARY:Eski\\nsatır sonu\r\n/);
   for (const hidden of ['Private note', 'Private description', 'Cancelled plan', 'Long ago', 'Someone else'])
     assert.equal(unfolded.includes(hidden), false, hidden);
-  assert.equal((unfolded.match(/BEGIN:VEVENT/g) || []).length, 3);
+  assert.equal((unfolded.match(/BEGIN:VEVENT/g) || []).length, 4);
   for (const line of text.split('\r\n')) assert.ok(Buffer.byteLength(line) <= 75, line);
   assert.match(unfolded, /DTSTART:\d{8}T\d{6}Z\r\nDTEND:\d{8}T\d{6}Z/);
 });

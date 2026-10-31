@@ -252,9 +252,9 @@ export const categoriesAPI = {
 
 // Users API (Admin)
 export const usersAPI = {
-  createPasswordResetLink: async (id: string): Promise<PasswordResetLink> =>
+  createPasswordResetLink: async (id: string, adminPassword?: string): Promise<PasswordResetLink> =>
     passwordResetLinkSchema.parse(
-      (await api.post<{ data: unknown }>(`/users/${id}/password-reset-link`)).data.data,
+      (await api.post<{ data: unknown }>(`/users/${id}/password-reset-link`, adminPassword === undefined ? {} : { adminPassword })).data.data,
     ),
 
   getAdminOverview: (): Promise<

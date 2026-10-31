@@ -45,6 +45,14 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
     return bcrypt.compare(candidatePassword, this.password);
   }
 
+  private static unknownAccountHash: Promise<string> | undefined;
+
+  /** Spends the same bcrypt work as a real check, so a sign-in for an unknown address is not faster than a wrong password. */
+  public static async spendPasswordCheck(candidatePassword: string): Promise<void> {
+    User.unknownAccountHash ??= bcrypt.hash('unknown-account', getEnvironment().BCRYPT_SALT_ROUNDS);
+    await bcrypt.compare(candidatePassword, await User.unknownAccountHash);
+  }
+
   public getFullName(): string {
     return `${this.firstName} ${this.lastName}`;
   }

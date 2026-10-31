@@ -319,6 +319,10 @@ export async function importAccount(userId: number, file: AccountImport): Promis
     await user.save({ transaction });
     return { user, result: importer.result };
   });
-  await extendAllSeries(new Date(Date.now()), { userId });
+  // The import has committed; a routine that cannot be extended now is extended by the nightly job, so this never turns
+  // a finished import into an error the user would retry against a no-longer-empty account.
+  await extendAllSeries(new Date(Date.now()), { userId }).catch((error: unknown) => {
+    console.error('Routine extension after import failed:', { name: error instanceof Error ? error.name : 'UnknownError' });
+  });
   return outcome;
 }

@@ -19,6 +19,7 @@ import {
 import { issuePasswordResetLink } from '../controllers/passwordResetController';
 import { validate } from '../middleware/validate';
 import { confirmAdminPassword } from '../middleware/adminConfirmation';
+import { User } from '../models';
 
 const router = express.Router();
 
@@ -55,6 +56,8 @@ router.post(
   '/:id/password-reset-link',
   authorize('admin'),
   validate(z.object({ params })),
+  // A reset link for an administrator account is as powerful as that account, so it is confirmed like a role change.
+  ...confirmAdminPassword('adminResetLink', async (req) => (await User.findByPk(Number(req.params.id), { attributes: ['role'] }))?.role === 'admin'),
   issuePasswordResetLink,
 );
 

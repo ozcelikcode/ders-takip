@@ -28,7 +28,7 @@ export async function createCalendarFeed(userId: number) {
 export const deleteCalendarFeed = (userId: number) => CalendarFeed.destroy({ where: { userId } });
 
 // RFC 5545: TEXT values escape \ ; , and newlines; lines fold at 75 octets without splitting a UTF-8 character.
-const escapeText = (text: string) => text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+const escapeText = (text: string) => text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r\n|\r|\n/g, '\\n');
 const foldLine = (line: string) => {
   const parts: string[] = [];
   let current = '';

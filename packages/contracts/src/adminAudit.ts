@@ -6,7 +6,7 @@ export const adminPasswordSchema = z.string().min(1, 'passwordRequired');
 export const adminConfirmationSchema = z.object({ adminPassword: adminPasswordSchema }).strict();
 export type AdminConfirmation = z.infer<typeof adminConfirmationSchema>;
 /** The actions that ask for the administrator's password again. */
-export const confirmedOperations = ['backupRestore', 'dataReset', 'roleChange', 'adminCreate', 'userDelete'] as const;
+export const confirmedOperations = ['backupRestore', 'dataReset', 'roleChange', 'adminCreate', 'userDelete', 'adminResetLink'] as const;
 export type ConfirmedOperation = (typeof confirmedOperations)[number];
 
 /** What the administrator log records; the server sends these codes and each interface names them. */

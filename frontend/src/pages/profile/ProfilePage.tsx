@@ -5,6 +5,7 @@ import {
   type ChangePasswordInput,
 } from '@study-tracker/contracts';
 import { issueMessage, serverMessage } from '../../lib/messages';
+import { shrinkProfileImage } from '../../lib/profileImage';
 import { useMutation } from '@tanstack/react-query';
 import { Mail, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -174,16 +175,14 @@ const ProfilePage = () => {
       return;
     }
 
-    // Convert to base64
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setProfileForm({ ...profileForm, profileImage: reader.result as string });
-      toast.success(text.imageLoaded);
-    };
-    reader.onerror = () => {
-      toast.error(text.imageFailed);
-    };
-    reader.readAsDataURL(file);
+    shrinkProfileImage(file).then(
+      (profileImage) => {
+        // Functional update: name edits typed while the picture was being prepared are kept.
+        setProfileForm((current) => ({ ...current, profileImage }));
+        toast.success(text.imageLoaded);
+      },
+      () => toast.error(text.imageFailed),
+    );
   };
 
 

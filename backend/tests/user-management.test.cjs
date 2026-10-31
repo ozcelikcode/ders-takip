@@ -73,3 +73,17 @@ it('user search ignores case and Turkish letter forms and treats wildcards liter
   assert.equal((await auth('get', '/api/users?search=%25&limit=20').expect(200)).body.data.pagination.total, 0);
   assert.equal((await auth('get', '/api/users?search=_&limit=20').expect(200)).body.data.pagination.total, 0);
 });
+it('never leaves the site without an administrator when two administrators demote each other at once', async () => {
+  const deputy = await User.create({ username: 'deputy', email: 'deputy@example.com', password: 'fixture-password', firstName: 'Deputy', lastName: 'User', role: 'admin' });
+  deputy.token = (await createAuthSession(deputy)).tokens.accessToken;
+  try {
+    const demote = (actor, target) => auth('put', `/api/users/${target.id}`, actor).send({ role: 'student', adminPassword: 'fixture-password' });
+    const results = await Promise.all([demote(admin, deputy), demote(deputy, admin)]);
+    assert.equal(results.filter(response => response.status === 200).length, 1, results.map(response => response.status).join());
+    assert.equal(await User.count({ where: { role: 'admin', isActive: true } }), 1);
+  } finally {
+    await deputy.destroy();
+    await User.update({ role: 'admin' }, { where: { id: admin.id } });
+    admin.token = (await createAuthSession(admin)).tokens.accessToken;
+  }
+});

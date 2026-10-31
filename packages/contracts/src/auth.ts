@@ -28,8 +28,12 @@ export const changePasswordSchema = z
     newPassword: newPasswordSchema,
   })
   .strict();
+/** About 150 KB of image data; the interface shrinks a chosen file well below this before sending it. */
+export const maxProfileImageLength = 200_000;
+// Only HTTPS addresses: a plain HTTP image causes mixed-content warnings on an HTTPS site.
 export const profileImageSchema = z
   .string()
+  .max(maxProfileImageLength, 'imageTooLarge')
   .refine((value) => {
     if (value === '') return true;
     if (
@@ -39,7 +43,7 @@ export const profileImageSchema = z
     )
       return true;
     try {
-      return ['http:', 'https:'].includes(new URL(value).protocol);
+      return new URL(value).protocol === 'https:';
     } catch {
       return false;
     }

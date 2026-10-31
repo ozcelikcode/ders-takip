@@ -101,6 +101,7 @@ export const validationCodes = [
   'passwordRequired',
   'currentPasswordRequired',
   'imageAddress',
+  'imageTooLarge',
   'nothingToUpdate',
   'resetLinkInvalid',
   'duplicateName',

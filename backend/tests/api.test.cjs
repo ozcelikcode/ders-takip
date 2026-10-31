@@ -101,7 +101,7 @@ describe('non-destructive schema lifecycle', () => {
   it('uses only the isolated configured database', () => { assert.equal(databasePath, path.join(directory, 'test.sqlite')); });
   it('backs up the configured database rather than a repository-root file', async () => {
     const { Sequelize, QueryTypes } = require('sequelize');
-    const { performBackup } = require('../dist/controllers/backupController');
+    const { performBackup } = require('../dist/services/backups');
     const backup = await performBackup('manual');
     assert.equal(path.dirname(backup.path), path.join(directory, 'backups'));
     const snapshot = new Sequelize({ dialect: 'sqlite', storage: backup.path, logging: false });

@@ -49,7 +49,7 @@ export const register = async (
     });
 
     if (existingUser) {
-      res.status(400).json({
+      res.status(409).json({
         success: false,
         error: { code: existingUser.email === email ? 'emailTaken' : 'usernameTaken' },
       });
@@ -100,6 +100,7 @@ export const login = async (
     });
 
     if (!user) {
+      await User.spendPasswordCheck(password);
       res.status(401).json({
         success: false,
         error: { code: 'invalidCredentials' },

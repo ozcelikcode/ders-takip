@@ -26,11 +26,13 @@ describe('environment validation', () => {
     }
   });
   it('validates ports, rate limits, and the allowed browser origin', () => {
-    for (const overrides of [{ PORT: '0' }, { PORT: 'NaN' }, { RATE_LIMIT_MAX_REQUESTS: '-1' }, { FRONTEND_URL: 'invalid' }, { FRONTEND_URL: 'ftp://example.test' }, { JWT_EXPIRE: 'invalid' }, { JWT_EXPIRE: '1d' }, { SESSION_TTL_DAYS: '0' }, { SESSION_TTL_DAYS: '31' }, { BCRYPT_SALT_ROUNDS: '4' }, { NODE_ENV: 'production', FRONTEND_URL: 'http://example.com' }]) {
+    for (const overrides of [{ PORT: '0' }, { PORT: 'NaN' }, { RATE_LIMIT_MAX_REQUESTS: '-1' }, { TRUST_PROXY: '-1' }, { TRUST_PROXY: 'yes' }, { FRONTEND_URL: 'invalid' }, { FRONTEND_URL: 'ftp://example.test' }, { JWT_EXPIRE: 'invalid' }, { JWT_EXPIRE: '1d' }, { SESSION_TTL_DAYS: '0' }, { SESSION_TTL_DAYS: '31' }, { BCRYPT_SALT_ROUNDS: '4' }, { NODE_ENV: 'production', FRONTEND_URL: 'http://example.com' }]) {
       assert.throws(() => parseEnvironment({ ...valid, ...overrides }));
     }
     const config = parseEnvironment({ ...valid, PORT: '5002', FRONTEND_URL: 'https://study.example.test' });
     assert.equal(config.PORT, 5002);
+    assert.equal(config.TRUST_PROXY, 0);
+    assert.equal(parseEnvironment({ ...valid, TRUST_PROXY: '1' }).TRUST_PROXY, 1);
     assert.equal(config.FRONTEND_URL, 'https://study.example.test');
   });
 });

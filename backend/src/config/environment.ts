@@ -30,6 +30,9 @@ const environmentSchema = z.object({
   FRONTEND_URL: z.url({ protocol: /^https?$/ }).default('http://localhost:3000'),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
+  // Number of reverse proxies in front of the API. Without it every visitor behind a proxy shares one
+  // rate-limit bucket and the activity log records the proxy's address.
+  TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
   // Optional SMTP delivery for password reset mail; without SMTP_HOST and MAIL_FROM an
   // administrator issues reset links from the user list instead.
   SMTP_HOST: optional(z.string().min(1)),

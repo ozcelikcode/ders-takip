@@ -1,12 +1,12 @@
 import cors from 'cors';
 import express from 'express';
-import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { getEnvironment } from './config/environment';
 import { trackDatabaseRequests, isDatabaseUnavailable } from './services/databaseMaintenance';
 
 import { errorHandler } from './middleware/errorHandler';
+import { productionLimit } from './middleware/rateLimits';
 import { notFound } from './middleware/notFound';
 import './models'; // Initialize models and associations
 import authRoutes from './routes/auth';
@@ -30,28 +30,25 @@ import userRoutes from './routes/users';
 const app = express();
 const environment = getEnvironment();
 
+if (environment.TRUST_PROXY > 0) app.set('trust proxy', environment.TRUST_PROXY);
 app.use(helmet());
 app.use(cors({ origin: environment.FRONTEND_URL, credentials: true }));
 if (environment.NODE_ENV === 'production') {
-  app.use(rateLimit({
-    windowMs: environment.RATE_LIMIT_WINDOW_MS,
-    limit: environment.RATE_LIMIT_MAX_REQUESTS,
-    standardHeaders: 'draft-7',
-    legacyHeaders: false,
-    message: { success: false, error: { code: 'tooManyRequests' } },
-  }));
+  app.use(productionLimit({ windowMs: environment.RATE_LIMIT_WINDOW_MS, limit: environment.RATE_LIMIT_MAX_REQUESTS, code: 'tooManyRequests' }));
   // A calendar feed address is its own credential, so request logs never keep the key.
   morgan.token('url', (req: express.Request) => (req.originalUrl ?? req.url).replace(/^\/api\/calendar\/[^/?]+/, '/api/calendar/[key]'));
   app.use(morgan('combined'));
 }
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Only an account import carries a whole export; every other request is small (a profile picture is the largest at
+// about 200 KB). The import parser runs first, so the general one leaves that body alone.
+app.use('/api/auth/account/import', express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '300kb' }));
+app.use(express.urlencoded({ extended: false, limit: '20kb' }));
 
 app.get('/api/health', (req, res) => {
   res.status(isDatabaseUnavailable() ? 503 : 200).json({
     status: isDatabaseUnavailable() ? 'MAINTENANCE' : 'OK',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
   });
 });
 

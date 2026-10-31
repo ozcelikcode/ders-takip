@@ -6,7 +6,7 @@ import { columnContains } from '../utils/textSearch';
 import { Op, Transaction, type WhereOptions } from 'sequelize';
 import { sequelize } from '../config/database';
 import { revokeUserSessions } from '../services/authSessions';
-import { deleteAccount } from '../services/accounts';
+import { assertNotLastAdmin, deleteAccount } from '../services/accounts';
 import { NextFunction, Request, Response } from 'express';
 import { Course, StudySession, User } from '../models';
 import type { AdminOverview } from '@study-tracker/contracts';
@@ -114,7 +114,7 @@ export const createUser = async (
         });
 
         if (existingUser) {
-          fail(400, existingUser.email === email ? 'emailTaken' : 'usernameTaken');
+          fail(409, existingUser.email === email ? 'emailTaken' : 'usernameTaken');
         }
 
         return User.create(
@@ -158,6 +158,10 @@ export const updateUser = async (
     const user = await sequelize.transaction(
       { type: Transaction.TYPES.IMMEDIATE },
       async (transaction) => {
+        // The actor is read again under the write lock: an administrator demoted a moment ago must not act on the old role.
+        const actor = await User.findByPk(req.user!.id, { transaction });
+        if (!actor || actor.role !== 'admin' || !actor.isActive)
+          fail(403, 'forbidden');
         const current = await User.findByPk(id, { transaction });
         if (!current)
           fail(404, 'userNotFound');
@@ -167,6 +171,8 @@ export const updateUser = async (
           if (role !== undefined && role !== 'admin')
             fail(400, 'cannotRemoveOwnAdmin');
         }
+        if ((role !== undefined && role !== 'admin') || isActive === false)
+          await assertNotLastAdmin(current, transaction);
         if (firstName !== undefined) current.firstName = firstName;
         if (lastName !== undefined) current.lastName = lastName;
         if (role !== undefined) current.role = role;

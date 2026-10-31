@@ -1,4 +1,4 @@
-import { backupRecordSchema, type ResetMode } from '@study-tracker/contracts';
+import { ApiFailure, backupRecordSchema, type ResetMode } from '@study-tracker/contracts';
 import type { Request, Response } from 'express';
 import { clearRefreshCookie } from '../middleware/authCookies';
 import { MaintenanceConflict } from '../services/databaseMaintenance';
@@ -9,15 +9,18 @@ import {
   restoreSnapshot,
 } from '../services/backups';
 import { recordAdminEvent } from '../services/adminAudit';
-export { performBackup } from '../services/backups';
 
-const respondFailure = (response: Response, error: unknown) =>
-  response
+const respondFailure = (response: Response, error: unknown) => {
+  // A known request error (such as a backup that does not exist) keeps its own status and code.
+  if (error instanceof ApiFailure)
+    return response.status(error.statusCode).json({ success: false, error: { code: error.code } });
+  return response
     .status(error instanceof MaintenanceConflict ? 409 : 500)
     .json({
       success: false,
       error: { code: error instanceof MaintenanceConflict ? 'maintenanceBusy' : 'maintenanceFailed' },
     });
+};
 export const getBackups = async (_request: Request, response: Response) => {
   try {
     return response.json({ success: true, data: await listBackups() });

@@ -155,6 +155,7 @@ The backend reads `backend/.env` in development; production deployments provide 
 | `BACKUP_COPY_DIR` | Optional second folder (another disk or a synced folder) that receives a copy of every verified snapshot. |
 | `AUDIT_LOG_PATH` | Optional location of the administrator activity log. Default `admin-audit.jsonl` next to the database. |
 | `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS` | Production API rate limit. Default 100 requests per 15 minutes. |
+| `TRUST_PROXY` | Number of reverse proxies in front of the API. Set `1` behind Caddy or nginx so rate limits and the activity log see the visitor's address. Default `0`. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Optional SMTP delivery for password reset mail and email reminders. Any provider works; Mailpit is enough locally. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Optional Web Push keys. `npm run push:keys -- you@example.com` generates them. |
 | `VITE_API_BASE_URL` | Frontend build setting. Default `/api`; set it only when the API is served from another origin. |

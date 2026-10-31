@@ -90,3 +90,15 @@ it('lets only administrators issue a link, refuses inactive accounts and invalid
   await post('/api/auth/reset-password').send({ token: tokenFrom(second.url), password: 'admin-issued-password' }).expect(200);
   member.password = 'fixture-password'; await member.save();
 });
+
+it('asks for the acting administrator password before issuing a link for another administrator', async () => {
+  const deputy = await User.create({ username: 'deputy', email: 'deputy@example.com', password: 'fixture-password', firstName: 'Test', lastName: 'User', role: 'admin' });
+  try {
+    assert.equal((await post(`/api/users/${deputy.id}/password-reset-link`, admin).expect(400)).body.error.code, 'wrongPassword');
+    await post(`/api/users/${deputy.id}/password-reset-link`, admin).send({ adminPassword: 'not-the-password' }).expect(400);
+    assert.equal(await PasswordResetToken.count({ where: { userId: deputy.id } }), 0);
+    await post(`/api/users/${deputy.id}/password-reset-link`, admin).send({ adminPassword: 'fixture-password' }).expect(200);
+  } finally {
+    await deputy.destroy();
+  }
+});

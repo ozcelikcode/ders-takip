@@ -1,4 +1,4 @@
-import { backupRecordSchema } from '@study-tracker/contracts';
+import { backupRecordSchema, fail } from '@study-tracker/contracts';
 import { createReadStream } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
@@ -9,7 +9,7 @@ import type { Response } from 'express';
 import { backupCopyDirectory, backupDirectory, databasePath, sequelize } from '../config/database';
 import { AuthSession, Backup, Category, Course, CourseGoal, Plan, SessionSeries, Settings, StudySession, Tag, Topic, User } from '../models';
 import { assertDatabaseReady } from '../database/migrations';
-import { keepDatabaseUnavailable, withDatabaseMaintenance } from './databaseMaintenance';
+import { keepDatabaseUnavailable, withDatabaseActivity, withDatabaseMaintenance } from './databaseMaintenance';
 import { purgeExpiredSessions } from './authSessions';
 import { copySqliteSnapshot, validateSnapshot } from './sqliteSnapshots';
 
@@ -148,7 +148,7 @@ export const restoreSnapshot = async (id: number, response?: Response): Promise<
 };
 const restoreFromSnapshot = (id: number, response?: Response): Promise<void> => withDatabaseMaintenance(async () => {
   const entry = await Backup.findByPk(id);
-  if (!entry) throw new Error('Backup not found');
+  if (!entry) fail(404, 'recordNotFound');
   const manifest = await readManifest(entry.filename);
   if (manifest.id !== id || manifest.filename !== entry.filename) throw new Error('Snapshot identity mismatch');
   const source = snapshotPath(manifest.filename);
@@ -201,22 +201,31 @@ const resetWithSafetyCopy = (mode: 'settings_only' | 'all', response?: Response)
 
 export const isBackupDue = (last: Date | null, days: number, now: Date) => !last || now.getTime() - last.getTime() >= days * 86400000;
 
-export const runScheduledBackup = async (now = new Date()): Promise<boolean> => {
-  const created = await scheduledSnapshot(now);
-  if (created) await mirrorBackups();
-  return created;
-};
-const scheduledSnapshot = (now: Date): Promise<boolean> => withDatabaseMaintenance(async () => {
-  await purgeExpiredSessions();
+const scheduledBackupDue = async (now: Date): Promise<boolean> => {
   const setting = await Settings.findOne({ where: { key: 'backup_interval' } });
   const days = setting ? Number(setting.value) : 7;
   if (![1, 5, 7].includes(days)) throw new Error('Invalid backup interval');
   const latest = (await verifiedManifests()).filter(manifest => manifest.type === 'auto').sort(newestFirst)[0];
-  if (!isBackupDue(latest ? new Date(latest.createdAt) : null, days, now)) return false;
-  await createSnapshot('auto');
-  await pruneAutomaticBackups();
-  return true;
-});
+  return isBackupDue(latest ? new Date(latest.createdAt) : null, days, now);
+};
+
+/**
+ * The five-minute tick. Purging sessions and checking whether a backup is due are ordinary work; only an actual
+ * snapshot takes the database out of service, so requests are not turned away every five minutes.
+ */
+export const runScheduledBackup = async (now = new Date()): Promise<boolean> => {
+  await withDatabaseActivity(purgeExpiredSessions);
+  if (!(await withDatabaseActivity(() => scheduledBackupDue(now)))) return false;
+  const created = await withDatabaseMaintenance(async () => {
+    // Checked again: a manual restore or backup may have finished in between.
+    if (!(await scheduledBackupDue(now))) return false;
+    await createSnapshot('auto');
+    await pruneAutomaticBackups();
+    return true;
+  });
+  if (created) await mirrorBackups();
+  return created;
+};
 
 export const listBackups = async () => {
   const manifests = await verifiedManifests();

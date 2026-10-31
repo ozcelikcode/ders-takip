@@ -5,27 +5,35 @@ import { useState } from 'react';
 import { usersAPI } from '../../services/api';
 import { useText } from '../../store/languageStore';
 import { useLocale } from '../../lib/locale';
+import AdminPasswordField from './AdminPasswordField';
 
 interface PasswordResetLinkDialogProps {
   userId: string;
   name: string;
+  /** An administrator's link needs the acting administrator's password, like a role change. */
+  targetIsAdmin: boolean;
   onClose: () => void;
 }
 
 /** Issues a one-time reset link the administrator hands over out of band. */
-export default function PasswordResetLinkDialog({ userId, name, onClose }: PasswordResetLinkDialogProps) {
+export default function PasswordResetLinkDialog({ userId, name, targetIsAdmin, onClose }: PasswordResetLinkDialogProps) {
   const text = useText().admin;
   const { tag } = useLocale();
   const [link, setLink] = useState<PasswordResetLink | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [confirmation, setConfirmation] = useState({ password: '', missing: false });
 
   const create = async () => {
+    if (targetIsAdmin && !confirmation.password) {
+      setConfirmation({ password: '', missing: true });
+      return;
+    }
     setPending(true);
     setError('');
     try {
-      setLink(await usersAPI.createPasswordResetLink(userId));
+      setLink(await usersAPI.createPasswordResetLink(userId, targetIsAdmin ? confirmation.password : undefined));
     } catch (failure) {
       setError(
         serverMessage(failure) ?? text.resetLinkFailed,
@@ -61,6 +69,12 @@ export default function PasswordResetLinkDialog({ userId, name, onClose }: Passw
                 {text.expiresAt(new Date(link.expiresAt).toLocaleString(tag))}
               </p>
             </div>
+          ) : targetIsAdmin ? (
+            <AdminPasswordField
+              value={confirmation.password}
+              missing={confirmation.missing}
+              onChange={(password) => setConfirmation({ password, missing: false })}
+            />
           ) : null}
           {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
           {copied && <p role="status" className="text-sm">{text.copied}</p>}

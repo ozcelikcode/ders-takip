@@ -57,6 +57,8 @@ it('distinguishes clearing an image from absent fields and rejects executable im
     'javascript:alert(1)',
     'data:text/html;base64,AA==',
     'file:///private/image.png',
+    'http://example.com/photo.png',
+    `data:image/png;base64,${'A'.repeat(c.maxProfileImageLength)}`,
   ])
     assert.equal(
       c.profilePatchSchema.safeParse({ profileImage }).success,

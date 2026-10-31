@@ -8,7 +8,7 @@ import { userResponse } from './userResponses';
 
 
 // The site must keep at least one active administrator who can sign in and manage it.
-async function assertNotLastAdmin(user: User, transaction: Transaction) {
+export async function assertNotLastAdmin(user: User, transaction: Transaction) {
   if (user.role !== 'admin' || !user.isActive) return;
   const others = await User.count({ where: { role: 'admin', isActive: true, id: { [Op.ne]: user.id } }, transaction });
   if (!others) fail(409, 'lastAdmin');
@@ -36,10 +36,13 @@ export async function deleteAccount(user: User, transaction: Transaction): Promi
 
 /** Self-service deletion: the current password confirms it. */
 export async function deleteOwnAccount(userId: number, password: string): Promise<void> {
+  // bcrypt runs before the write lock, so repeated wrong passwords never hold up other writers.
+  const checked = await User.findByPk(userId);
+  if (!checked) fail(404, 'userNotFound');
+  if (!(await checked.comparePassword(password))) fail(400, 'wrongPassword');
   await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
     const user = await User.findByPk(userId, { transaction });
     if (!user) fail(404, 'userNotFound');
-    if (!(await user.comparePassword(password))) fail(400, 'wrongPassword');
     await deleteAccount(user, transaction);
   });
 }

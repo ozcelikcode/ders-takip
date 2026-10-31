@@ -120,7 +120,7 @@ function UserManagement() {
   const [filters, setFilters] = useState({ search: '', page: 1 });
   const [creating, setCreating] = useState(false);
   const [action, setAction] = useState<UserAction | null>(null);
-  const [resetTarget, setResetTarget] = useState<{ id: string; name: string } | null>(null);
+  const [resetTarget, setResetTarget] = useState<{ id: string; name: string; isAdmin: boolean } | null>(null);
   const params = { ...filters, limit: 20, includeStats: true };
   const query = useQuery({
     queryKey: keys.resource('admin-users', params),
@@ -318,7 +318,7 @@ function UserManagement() {
                             {({ focus, disabled }) => (
                               <button
                                 disabled={disabled}
-                                onClick={() => setResetTarget({ id: String(user.id), name })}
+                                onClick={() => setResetTarget({ id: String(user.id), name, isAdmin: user.role === 'admin' })}
                                 className={`flex w-full items-center gap-2 border-t px-4 py-2 text-left text-sm disabled:opacity-40 ${focus ? 'bg-(--subtle)' : ''}`}
                               >
                                 <KeyRound className="h-4 w-4" />
@@ -417,6 +417,7 @@ function UserManagement() {
         <PasswordResetLinkDialog
           userId={resetTarget.id}
           name={resetTarget.name}
+          targetIsAdmin={resetTarget.isAdmin}
           onClose={() => setResetTarget(null)}
         />
       )}

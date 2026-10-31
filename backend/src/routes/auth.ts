@@ -8,9 +8,8 @@ import {
   register,
   updateProfile,
 } from '../controllers/authController';
-import rateLimit from 'express-rate-limit';
 import { protect } from '../middleware/auth';
-import { getEnvironment } from '../config/environment';
+import { productionLimit } from '../middleware/rateLimits';
 import { completePasswordReset, forgotPassword } from '../controllers/passwordResetController';
 import { deleteMyAccount, downloadAccountData, importAccountData } from '../controllers/accountController';
 import { requireTrustedAuthRequest } from '../middleware/authCookies';
@@ -35,13 +34,18 @@ router.post(
   register,
 );
 
-router.post('/login', validate(z.object({ body: loginSchema })), login);
+// Failed sign-ins are counted per address and email, so guessing one account's password stops long before the global limit.
+const loginLimiter = productionLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  skipSuccessfulRequests: true,
+  code: 'tooManyAttempts',
+  keyGenerator: (req) => `${req.ip}|${String((req.body as { email?: unknown } | undefined)?.email ?? '').trim().toLowerCase()}`,
+});
+router.post('/login', ...loginLimiter, validate(z.object({ body: loginSchema })), login);
 
 // Reset requests are cheap to send and expensive to receive, so they get their own budget.
-const resetLimiter =
-  getEnvironment().NODE_ENV === 'production'
-    ? [rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: 'draft-7', legacyHeaders: false, message: { success: false, error: { code: 'tooManyAttempts' } } })]
-    : [];
+const resetLimiter = productionLimit({ windowMs: 15 * 60 * 1000, limit: 5, code: 'tooManyAttempts' });
 router.post('/forgot-password', ...resetLimiter, validate(z.object({ body: forgotPasswordSchema })), forgotPassword);
 router.post('/reset-password', ...resetLimiter, validate(z.object({ body: resetPasswordSchema })), completePasswordReset);
 
@@ -53,7 +57,9 @@ router.get('/me', protect, getMe);
 
 // The user's own data: a JSON download, loading such a file into an empty account, and deletion confirmed with the current password.
 router.get('/account/export', protect, downloadAccountData);
-router.post('/account/import', protect, importAccountData);
+// An import writes many rows under the write lock, so it gets a small budget of its own.
+const importLimiter = productionLimit({ windowMs: 60 * 60 * 1000, limit: 5, code: 'tooManyAttempts' });
+router.post('/account/import', ...importLimiter, protect, importAccountData);
 router.delete('/account', protect, validate(z.object({ body: deleteAccountSchema })), deleteMyAccount);
 
 router.put(

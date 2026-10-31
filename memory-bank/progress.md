@@ -1,6 +1,61 @@
 # Study Tracker — Progress
 
-Last updated: 25 October 2026. Roadmaps R1–R15, F1–F6 and administrator security are complete (commit `898f571`, not pushed); the latest work was a project cleanup (temporary backups, reports, test leftovers), `npm audit` patches and English documentation. Commits and pushes happen only with the owner's approval. The real database schema is at 013.
+Last updated: 31 October 2026. Roadmaps R1–R15, F1–F6 and administrator security are complete and pushed; the latest work was a project cleanup (temporary backups, reports, test leftovers), `npm audit` patches and a documentation refresh. The next roadmap (S/Q/P/G/D) is planned below. Commits and pushes happen only with the owner's approval. The real database schema is at 013.
+
+## Next roadmap (31 October 2026; owner request: more variety, fix illogical behaviour, bugs, old and risky code)
+
+Source: two read-only audits (backend security and bugs, frontend bugs and dead code). No critical issue was found; JWT, refresh rotation, cookies, CSRF, backups, the ICS feed and authorization are already sound and will not be redone. Order: S → Q → P → G → D. Each phase is a separate commit with `npm run check` and the related browser tests; migrations need a backup and the owner's explicit approval first.
+
+**S — Security and robustness (backend)**
+
+| # | Problem | Fix | Status |
+|---|---|---|---|
+| S1 | No `trust proxy`: behind a reverse proxy every visitor shares one rate-limit bucket and audit entries record the proxy IP (`backend/src/app.ts`) | `TRUST_PROXY` setting applied before the limiters | **Done (31 October)**: `TRUST_PROXY` (default 0); the three limiters share `middleware/rateLimits.ts` (`productionLimit`) |
+| S2 | No dedicated sign-in limit; unknown emails skip bcrypt, so timing reveals which emails exist | IP + email limiter with `skipSuccessfulRequests`; dummy `bcrypt.compare` | **Done (31 October)**: 10 failed tries per 15 min per address + email; `User.spendPasswordCheck` |
+| S3 | Import arrays have no maximum and the global JSON limit is 10 MB; one large import locks the database for everyone | `.max()` per array, ~100 kb global limit, a separate limit and rate limit for import | **Done (31 October)**: `maxImportRows` 20 000 (intervals 1 000 per session); 300 KB general body, 10 MB only for import; import limit 5/hour |
+| S4 | Profile image unbounded (data URL up to ~10 MB returned by `/me` and the admin list) and `http:` accepted | Data URL ≤ 200 KB, `https:` only; existing rows stay readable | **Done (31 October)**: `maxProfileImageLength` 200 000, `https:` only; the interface shrinks a chosen picture to a 256 px JPEG (`lib/profileImage.ts`) |
+| S5 | The backup scheduler enters maintenance mode every 5 minutes and returns 503 to requests | Due check outside maintenance; session purge as normal work | **Done (31 October)**: only the snapshot itself runs in maintenance; the due check is repeated inside it |
+| S6 | Background jobs (notifications, routine extension, mirroring) ignore maintenance mode | `withDatabaseActivity` wrapper | **Done (31 October)**: notifications and routine extension run through `withDatabaseActivity` |
+| S7 | Two administrators demoting each other at once can leave no administrator | Re-read the actor in the transaction; `assertNotLastAdmin` | **Done (31 October)**: the actor is re-read in the transaction; `assertNotLastAdmin` on demotion or deactivation |
+| S8 | An administrator can issue a reset link for another administrator without password confirmation | `confirmAdminPassword` when the target is an administrator | **Done (31 October)**: new confirmed operation `adminResetLink`; the dialog shows the password field for an administrator target |
+| S9 | Email comparison is case-sensitive (duplicate accounts, failed sign-in or reset) | Lowercase + trim in contracts; migration 014 with a conflict check (needs approval) | Waiting for the owner's approval (migration) |
+| S10 | Account deletion runs bcrypt inside the write lock | Check the password before the transaction | **Done (31 October)** |
+| S11 | Small items: registration race and 400 vs 409, missing backup gives 500 instead of 404, `GET /courses` query not validated, unbounded session list, `/api/health` exposes `NODE_ENV`, ICS lone `\r`, duplicate tag id gives 404, a post-import `extendAllSeries` error returns 500 | Fix each with a regression test | **Done (31 October)** except the unbounded session list, which moves to Q5; the backup cron no longer pins `Europe/Istanbul` (Q8) and the unused `performBackup` re-export is gone |
+
+**Q — Logic, UX and old code**
+
+- Q1 Return to the requested page after sign-in (`state.from`, only paths starting with `/` and not `//`).
+- Q2 Merge Profile into Settings (owner approved): an Account tab under `/settings`, the focus area in the Study tab, one save pattern, `/profile` redirects.
+- Q3 Draft loss: stale form copy on profile image load, the Study draft reset on preference refresh, an unsaved-changes guard (`useBlocker` + `beforeunload`) for administrator settings and the Study tab.
+- Q4 Cross-tab auth: typed BroadcastChannel messages; a sign-in in another tab refreshes the session instead of clearing it.
+- Q5 The Pomodoro page fetches the whole history every 60 s: filter by status and date on the server.
+- Q6 Notification read state on the server (consistent across devices; migration).
+- Q7 Dead and duplicate code: `DailyCalendar`/`WeeklyPlanner` wrappers, the dead loading branch in `ProtectedRoute`, the `performBackup` re-export, repeated parsing and impossible `!id` checks in controllers, a local id regex, a repeated course fetch, settings validation moved to the `validate` middleware, old `localStorage.removeItem` lines, the `archiveUnscopedState` archive, hand-written catalog and session types replaced by contract `z.infer` types, one shared `difficultySchema`.
+- Q8 One time zone for the cron jobs (backups are fixed to `Europe/Istanbul`, routines use server-local time).
+- Q9 knip as a permanent `check` gate.
+
+**P — Performance**
+
+- P1 `DailyStudyChart` (358 kB, recharts + d3) → a plain SVG bar chart with the goal line; the hidden table stays; `StatsPage` loads it lazily too.
+- P2 `languageStore` (172 kB) → load `tr` dynamically, import contracts through subpaths.
+- P3 Load the second date-fns locale on demand; lazy planner modals; replace `motion` with CSS transitions.
+- Target: dashboard mobile Lighthouse ≥ 95 under the same conditions.
+
+**G — New features (owner's choice, 31 October)**
+
+1. Streaks and badges: consecutive study days, weekly goal achievements.
+2. Reports: weekly and monthly summary page, CSV export for a date range.
+3. Logging time afterwards: a manual entry without the timer (its measurement is marked `manual`).
+4. Pomodoro: sound, vibration and a browser notification at the end of a phase; a countdown in the tab title.
+5. PWA: manifest, installable app, offline shell.
+6. Data search in the command palette ("Search for '…'" → `/search`).
+7. Year heat map (GitHub style) and category and tag distribution charts.
+
+Backlog: signed-in devices list with "sign out everywhere", later TOTP 2FA; reminders when a goal falls behind.
+
+**D — Deployment and operations**
+
+Dockerfile + compose, Caddy (HTTPS, HTTP/2, compression, cache headers), `robots.txt`, `npm run backup:verify` (restores a backup into a separate copy and checks it), the first GitHub Actions run, an off-server copy of the activity log.
 
 ## Current status and next steps (25 October 2026)
 

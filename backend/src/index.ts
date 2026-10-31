@@ -7,6 +7,7 @@ import { runDueNotifications } from './services/notifications';
 import { assertDatabaseReady } from './database/migrations';
 import { runDuePomodoros, startPomodoroScheduler } from './services/pomodoroClocks';
 import { extendAllSeries } from './services/sessionSeries';
+import { withDatabaseActivity } from './services/databaseMaintenance';
 
 
 const startServer = async () => {
@@ -22,17 +23,18 @@ const startServer = async () => {
   const backupJob = cron.schedule('*/5 * * * *', async () => {
     try { await runScheduledBackup(); }
     catch (error) { console.error('Scheduled maintenance failed:', error); }
-  }, { timezone: 'Europe/Istanbul', noOverlap: true });
+  }, { noOverlap: true });
+  // Background jobs run as database activity: a restore waits for them, and they skip a tick while it runs.
   // Routines keep their sessions a fixed horizon ahead; catch up at startup, then once a day.
   const extendRoutines = async () => {
-    try { await extendAllSeries(); }
+    try { await withDatabaseActivity(() => extendAllSeries()); }
     catch (error) { console.error('Routine extension failed:', error); }
   };
   await extendRoutines();
   const routineJob = cron.schedule('20 3 * * *', extendRoutines, { noOverlap: true });
   // Reminders and digests are due per user time zone, so the job runs every minute and decides per user.
   const notificationJob = cron.schedule('* * * * *', async () => {
-    try { await runDueNotifications(); }
+    try { await withDatabaseActivity(() => runDueNotifications()); }
     catch (error) { console.error('Notification delivery failed:', error); }
   }, { noOverlap: true });
 

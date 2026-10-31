@@ -8,7 +8,12 @@ import { validate } from '../middleware/validate';
 const router = Router();
 const params = z.object({ id: catalogPathIdSchema });
 router.use(protect);
-router.get('/', getCourses);
+const listQuery = z.object({
+  categoryId: catalogPathIdSchema.optional(),
+  isActive: z.enum(['true', 'false', 'all']).optional(),
+  includeTopics: z.enum(['true', 'false']).optional(),
+}).strict();
+router.get('/', validate(z.object({ query: listQuery })), getCourses);
 router.get('/:id', validate(z.object({ params, query: z.object({ includeTopics: z.enum(['true', 'false']).optional() }).strict() })), getCourse);
 router.post('/', validate(z.object({ body: createCourseSchema })), createCourse);
 router.put('/:id', validate(z.object({ params, body: updateCourseSchema })), updateCourse);

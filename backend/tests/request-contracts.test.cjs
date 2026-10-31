@@ -196,3 +196,25 @@ it('projects backup responses without server paths while retaining verified snap
   assert.equal(listing.body.data[0].verified, true);
   assert.equal('path' in listing.body.data[0], false);
 });
+
+it('keeps request bodies small except for an account import, and hides the environment from the health check', async () => {
+  const health = (await request(app).get('/api/health').expect(200)).body;
+  assert.equal('environment' in health, false);
+  const oversized = { firstName: 'x'.repeat(400 * 1024) };
+  assert.equal((await auth('put', '/api/auth/profile').send(oversized).expect(413)).body.error.code, 'requestFailed');
+  // The import parser accepts the same size; the body is then rejected for its content, not its size.
+  assert.equal((await auth('post', '/api/auth/account/import').send({ format: 'x'.repeat(400 * 1024) }).expect(400)).body.success, false);
+});
+
+it('rejects unknown or malformed course list filters instead of building odd queries', async () => {
+  await auth('get', '/api/courses?isActive=all&includeTopics=true').expect(200);
+  await auth('get', '/api/courses?categoryId[x]=1').expect(400);
+  await auth('get', '/api/courses?categoryId=0').expect(400);
+  await auth('get', '/api/courses?sort=name').expect(400);
+});
+
+it('answers a taken email or username at registration with 409', async () => {
+  const response = await request(app).post('/api/auth/register').set('X-Requested-With', 'StudyTracker')
+    .send({ ...registration, username: 'someoneelse', email: admin.email }).expect(409);
+  assert.equal(response.body.error.code, 'emailTaken');
+});

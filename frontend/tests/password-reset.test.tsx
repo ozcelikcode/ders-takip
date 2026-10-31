@@ -67,11 +67,26 @@ it('creates an admin link only on request and offers it for copying', async () =
     url: `http://app.test/reset-password?token=${token}`,
     expiresAt: '2026-10-19T12:30:00.000Z',
   });
-  render(<PasswordResetLinkDialog userId="7" name="Ada Kaya" onClose={vi.fn()} />);
+  render(<PasswordResetLinkDialog userId="7" name="Ada Kaya" targetIsAdmin={false} onClose={vi.fn()} />);
   expect(usersAPI.createPasswordResetLink).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Bağlantı oluştur' }));
   expect(((await screen.findByLabelText('Bağlantı')) as HTMLInputElement).value).toContain(token);
   fireEvent.click(screen.getByRole('button', { name: 'Kopyala' }));
   await waitFor(() => expect(writeText).toHaveBeenCalledWith(`http://app.test/reset-password?token=${token}`));
-  expect(usersAPI.createPasswordResetLink).toHaveBeenCalledWith('7');
+  expect(usersAPI.createPasswordResetLink).toHaveBeenCalledWith('7', undefined);
+});
+
+it('asks for the acting administrator password before a link for another administrator', async () => {
+  vi.mocked(usersAPI.createPasswordResetLink).mockResolvedValue({
+    url: `http://app.test/reset-password?token=${token}`,
+    expiresAt: '2026-10-19T12:30:00.000Z',
+  });
+  render(<PasswordResetLinkDialog userId="9" name="Deniz Ak" targetIsAdmin onClose={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Bağlantı oluştur' }));
+  expect(await screen.findByRole('alert')).toBeTruthy();
+  expect(usersAPI.createPasswordResetLink).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText('Onay için şifren'), { target: { value: 'manager-password' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Bağlantı oluştur' }));
+  await screen.findByLabelText('Bağlantı');
+  expect(usersAPI.createPasswordResetLink).toHaveBeenCalledWith('9', 'manager-password');
 });

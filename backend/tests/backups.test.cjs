@@ -44,6 +44,7 @@ describe('consistent snapshots and recovery',()=>{
     await assert.rejects(restoreSnapshot(backup.id),/checksum/);
     assert.ok(await User.findByPk(student.id)); assert.equal(isDatabaseUnavailable(),false);
     await fs.rm(backup.path); await assert.rejects(restoreSnapshot(backup.id));
+    await assert.rejects(restoreSnapshot(999999), (error) => error.statusCode === 404 && error.code === 'recordNotFound');
     assert.ok(await User.findByPk(student.id));
   });
   it('restores atomically, retains the external catalog and revokes all restored sessions',async()=>{
