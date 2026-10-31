@@ -15,6 +15,7 @@ import { useAuthStore } from '../../../store/authStore';
 import AccountDataCard from './AccountDataCard';
 import AccountInfoCard from './AccountInfoCard';
 import PasswordCard from './PasswordCard';
+import SessionsCard from './SessionsCard';
 import ProfilePictureCard from './ProfilePictureCard';
 import type { PasswordFormState, ProfileFormState } from './profileForm';
 import { useText } from '../../../store/languageStore';
@@ -203,6 +204,7 @@ const AccountTab = () => {
             onFileUpload={handleFileUpload}
           />
           <AccountInfoCard user={user} />
+          <SessionsCard />
         </div>
 
         {/* Right Column - Profile & Password Forms */}

@@ -10,7 +10,7 @@ import UserSettingsPage from '../src/pages/settings/UserSettingsPage';
 import { authAPI } from '../src/services/api';
 import { useAuthStore } from '../src/store/authStore';
 
-vi.mock('../src/services/api', () => ({ authAPI: { changePassword: vi.fn() } }));
+vi.mock('../src/services/api', () => ({ authAPI: { changePassword: vi.fn(), otherSessions: vi.fn().mockResolvedValue(0), signOutOthers: vi.fn() } }));
 vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn() } }));
 
 const mount = (page: ReactElement) =>
@@ -87,4 +87,15 @@ it('keeps an edited study draft when stored preferences refresh, and follows the
   fireEvent.change(shortBreak(), { target: { value: '9' } });
   refresh({ defaultShortBreak: 8 });
   expect(shortBreak().value).toBe('9');
+});
+
+it('shows how many other sessions are signed in and signs them out from the account tab', async () => {
+  vi.mocked(authAPI.otherSessions).mockResolvedValueOnce(2).mockResolvedValue(0);
+  vi.mocked(authAPI.signOutOthers).mockResolvedValue(2);
+  mount(<AccountTab />);
+  expect(await screen.findByText('Hesabın bu cihazın dışında 2 oturumda daha açık.')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Diğer oturumları kapat' }));
+  await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Diğer oturumlar kapatıldı.'));
+  expect(await screen.findByText('Hesabın yalnız bu cihazda açık.')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Diğer oturumları kapat' })).toBeNull();
 });

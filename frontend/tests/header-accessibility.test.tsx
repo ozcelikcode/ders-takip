@@ -169,18 +169,20 @@ it('closes on outside interaction while leaving focus on the outside target', as
   );
   expect(document.activeElement).toBe(outside);
 });
-it('marks only the visible latest five on the server and preserves focus after the action disappears', async () => {
+it('asks the server for the latest five, marks only those and preserves focus after the action disappears', async () => {
+  // The server answers with the newest five, newest first.
   vi.mocked(studySessionsAPI.getSessions).mockResolvedValue(
     response(
-      Array.from({ length: 7 }, (_, index) => ({
+      [7, 6, 5, 4, 3].map((id) => ({
         ...session,
-        id: index + 1,
-        title: `Fixture ${index + 1}`,
-        endTime: `2026-10-${String(index + 1).padStart(2, '0')}T07:00:00Z`,
+        id,
+        title: `Fixture ${id}`,
+        endTime: `2026-10-${String(id).padStart(2, '0')}T07:00:00Z`,
       })),
     ),
   );
   mount();
+  expect(studySessionsAPI.getSessions).toHaveBeenCalledWith({ status: 'completed', latest: 5 });
   await waitFor(() =>
     expect(trigger().getAttribute('aria-label')).toBe(
       'Bildirimler, 5 okunmamış',

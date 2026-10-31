@@ -13,6 +13,7 @@ import { productionLimit } from '../middleware/rateLimits';
 import { completePasswordReset, forgotPassword } from '../controllers/passwordResetController';
 import { deleteMyAccount, downloadAccountData, importAccountData } from '../controllers/accountController';
 import { requireTrustedAuthRequest } from '../middleware/authCookies';
+import { countOtherSessions, revokeOtherSessions } from '../services/authSessions';
 import {
   changePasswordSchema,
   forgotPasswordSchema,
@@ -54,6 +55,16 @@ router.post('/refresh-token', refreshToken);
 router.post('/logout', logout);
 
 router.get('/me', protect, getMe);
+
+// Other signed-in sessions of the account: how many there are, and ending them all except this one.
+router.get('/sessions', protect, async (req, res, next) => {
+  try { res.json({ success: true, data: { others: await countOtherSessions(req.user!.id, req.authSessionId!) } }); }
+  catch (error) { next(error); }
+});
+router.post('/sessions/sign-out-others', protect, async (req, res, next) => {
+  try { res.json({ success: true, data: { signedOut: await revokeOtherSessions(req.user!.id, req.authSessionId!) } }); }
+  catch (error) { next(error); }
+});
 
 // The user's own data: a JSON download, loading such a file into an empty account, and deletion confirmed with the current password.
 router.get('/account/export', protect, downloadAccountData);

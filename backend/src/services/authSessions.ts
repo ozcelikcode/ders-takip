@@ -63,6 +63,19 @@ export const revokeUserSessions = async (userId: number, transaction?: DatabaseT
   await AuthSession.update({ revokedAt: new Date() }, { where: { userId, revokedAt: null }, ...(transaction ? { transaction } : {}) });
 };
 
+const otherLiveSessions = (userId: number, currentSessionId: string) => ({
+  userId, id: { [Op.ne]: currentSessionId }, revokedAt: null, expiresAt: { [Op.gt]: new Date() },
+});
+
+export const countOtherSessions = (userId: number, currentSessionId: string): Promise<number> =>
+  AuthSession.count({ where: otherLiveSessions(userId, currentSessionId) });
+
+/** Ends every other signed-in session of the account; the one making the request stays signed in. */
+export const revokeOtherSessions = async (userId: number, currentSessionId: string): Promise<number> => {
+  const [count] = await AuthSession.update({ revokedAt: new Date() }, { where: otherLiveSessions(userId, currentSessionId) });
+  return count;
+};
+
 export const purgeExpiredSessions = async (): Promise<void> => {
   await AuthSession.destroy({ where: { expiresAt: { [Op.lte]: new Date() } } });
 };

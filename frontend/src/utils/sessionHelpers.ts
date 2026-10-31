@@ -33,12 +33,6 @@ export const canStartSession = (session: StudySession): boolean => {
   return session.status !== 'in_progress' && canTransitionSession(session.status, 'in_progress');
 };
 
-export const getRecentSessions = <T extends { endTime: string; completedAt?: string | null }>(sessions: readonly T[], limit = 5): T[] => (
-  [...sessions]
-    .sort((first, second) => new Date(second.completedAt || second.endTime).getTime() - new Date(first.completedAt || first.endTime).getTime())
-    .slice(0, limit)
-);
-
 /** Measured study with a partial marker, or that it was not measured, in the interface language. */
 export const measuredSessionLabel = (
   session: Pick<StudySession, 'trackingCoverage' | 'studySeconds'>,

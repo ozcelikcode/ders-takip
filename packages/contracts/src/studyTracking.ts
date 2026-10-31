@@ -70,6 +70,8 @@ export const sessionQuerySchema = z
     unfinished: z.literal('true').optional(),
     // Sessions with this tag, directly or through their record.
     tagId: z.coerce.number().int().positive().optional(),
+    // Only the most recently finished sessions, newest first.
+    latest: z.coerce.number().int().min(1).max(50).optional(),
   })
   .strict()
   .refine(

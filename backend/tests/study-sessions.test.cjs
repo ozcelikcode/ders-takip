@@ -194,6 +194,17 @@ it('lists only sessions that can still run when asked for unfinished ones, on an
   assert.deepEqual((await titles('')).sort(), [planned.id, done.id].sort());
   await auth('get', '/api/study-sessions?unfinished=false').expect(400);
 });
+it('lists only the latest finished sessions, newest by completion time or else end time', async () => {
+  const ids = [];
+  for (let day = 1; day <= 7; day++) ids.push((await create(`2099-02-0${day}T09:00:00Z`, `2099-02-0${day}T10:00:00Z`)).id);
+  await StudySession.update({ status: 'completed' }, { where: { id: ids } });
+  // A session planned early but completed last comes first; one without a completion time sorts by its end.
+  await StudySession.update({ completedAt: new Date('2099-03-01T00:00:00Z') }, { where: { id: ids[0] } });
+  const latest = async (query) => (await auth('get', `/api/study-sessions?${query}`).expect(200)).body.data.sessions.map(session => session.id);
+  assert.deepEqual(await latest('status=completed&latest=3'), [ids[0], ids[6], ids[5]]);
+  assert.equal((await latest('status=completed')).length, 7);
+  for (const value of ['0', '51', 'x']) await auth('get', `/api/study-sessions?latest=${value}`).expect(400);
+});
 it('logs study done without the timer as measured, completed and marked manual', async () => {
   const log = (patch, status) => auth('post', '/api/study-sessions/log').send({ title: 'Kitap okuma', startTime: '2026-01-05T09:00:00Z', endTime: '2026-01-05T10:30:00Z', notes: 'Bölüm 3', ...patch }).expect(status);
   const session = (await log({}, 201)).body.data.session;

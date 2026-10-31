@@ -51,7 +51,11 @@ Source: two read-only audits (backend security and bugs, frontend bugs and dead 
 6. **Done (31 October):** from two characters the palette offers "Search records for …", which opens `/search?q=…`.
 7. **Heat map done (31 October):** the last 365 days in weeks from the user's week start, five neutral levels, a screen-reader summary; the drawing is decorative. Category and record distribution already existed; **tag distribution done (31 October):** the stats response carries `tags` (the person's own tags, directly or through the record; a session with several tags counts in each) and the statistics page lists them when the person has tags, as shares of all measured time.
 
-Backlog: signed-in devices list with "sign out everywhere", later TOTP 2FA; reminders when a goal falls behind.
+**Sign out other sessions done (31 October):** Settings › Account has a "Signed-in sessions" card: `GET /api/auth/sessions` answers how many other live sessions the account has (not revoked, not expired, not the one asking; `protect` now sets `req.authSessionId`), and `POST /api/auth/sessions/sign-out-others` revokes them all and answers `{signedOut}`; the current session stays signed in. No device names are shown, because sessions do not store a user agent (that would need a migration).
+
+**Bounded recent sessions (31 October):** `GET /study-sessions` takes `latest` (1–50): the most recently finished sessions, newest by `completedAt` or else `endTime`; ids are picked first so the limit does not apply to joined interval rows. `useRecentSessions` asks for `status=completed&latest=5` instead of every completed session every 60 s; the client-side `getRecentSessions` sort was removed.
+
+Backlog: device names in the sessions card (needs a user-agent column), later TOTP 2FA; reminders when a goal falls behind.
 
 **D — Deployment and operations**
 

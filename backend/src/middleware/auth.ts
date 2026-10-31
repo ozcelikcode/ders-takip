@@ -10,6 +10,8 @@ declare global {
   namespace Express {
     interface Request {
       user?: User;
+      /** The signed-in session the access token belongs to. */
+      authSessionId?: string;
     }
   }
 }
@@ -61,6 +63,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
     if (user.role !== 'admin' && (await readSiteSettings()).maintenanceMode) { sendMaintenance(res); return; }
 
     req.user = user;
+    req.authSessionId = session.id;
     next();
   } catch (error) {
     if (!(error instanceof JsonWebTokenError) && !(error instanceof ZodError)) { next(error); return; }

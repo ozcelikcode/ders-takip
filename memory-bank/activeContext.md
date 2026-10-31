@@ -6,8 +6,8 @@ Last updated: 31 October 2026. Historical packages live in `progress.md` and `im
 
 - **Done:** roadmaps R1–R15 and F1–F6 (weekly routines, per-record goals, calendar subscription, tags, data import, the "Go to page" palette); administrator security (password confirmation for sensitive actions and a hash-chained activity log kept outside the database); English custom words; dashboard mobile Lighthouse 91 (sign-in 95); major dependency upgrades with `npm audit` at 0; a text alternative for charts; backup retention. The real database schema is at 014.
 - **Cleanup (24 October):** temporary pre-migration copies, generated reports and test leftovers were removed, and the outdated automatic backup (schema 008, no longer restorable) was deleted with its catalog row. The server has since taken automatic backup #8 (24 October); `npm run backup:verify` confirmed it restores cleanly (31 October).
-- **Open:** manual screen-reader and physical-device testing (needs a person); DST fold rows in the grid and native drag/resize browser tests; a remote CI run; owner-side operations (VAPID/SMTP, `BACKUP_COPY_DIR`, off-site backups, an off-server copy of the activity log).
-- **Next:** the S/Q/P/G/D roadmap in `progress.md` (31 October), starting with S (backend security and robustness). All earlier commits are pushed; commits and pushes happen only with the owner's approval.
+- **Open:** manual screen-reader and physical-device testing (needs a person); DST fold rows in the grid and native drag/resize browser tests; owner-side operations (VAPID/SMTP, `BACKUP_COPY_DIR`, off-site backups, an off-server copy of the activity log).
+- **Next:** the S/Q/P/G/D roadmap in `progress.md` (31 October) is done except the Docker trial (owner decision: Docker is not installed) and the off-server activity-log copy. Backlog: device names for signed-in sessions, TOTP 2FA, goal reminders. Since 31 October verified work is committed and pushed without asking; real-database migrations still need the owner's approval each time.
 
 ## Lasting instructions
 

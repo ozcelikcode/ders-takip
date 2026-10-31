@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
-import type { WhereOptions } from 'sequelize';
+import { Op, type WhereOptions } from 'sequelize';
+import { sequelize } from '../config/database';
 import { StudySession } from '../models';
 import { createSession, logStudy, updateSession, deleteSession, sessionIncludes } from '../services/studySessions';
 import type { SessionQuery, UpdateSessionInput } from '@study-tracker/contracts';
@@ -11,18 +12,24 @@ export const getStudySessions = async (req: Request, res: Response, next: NextFu
     // `protect` guarantees the user and `validate` has already parsed the query.
     const userId = req.user!.id;
     const query = req.query as unknown as SessionQuery;
-    const { planId, status, sessionType, tagId, unfinished } = query;
+    const { planId, status, sessionType, tagId, unfinished, latest } = query;
     const where: WhereOptions = { userId, ...scheduledRange(query, sessionTimezone(req.user!, query)), ...(tagId ? await sessionsWithTag(req.user!, tagId) : {}) };
     if (planId) where.planId = planId;
     const runnable = ['planned', 'in_progress', 'paused'];
     if (status) where.status = unfinished && !runnable.includes(status) ? [] : status;
     else if (unfinished) where.status = runnable;
     if (sessionType) where.sessionType = sessionType;
+    const finishedAt = sequelize.fn('COALESCE', sequelize.col('StudySession.completedAt'), sequelize.col('StudySession.endTime'));
+    if (latest) {
+      // The ids are picked first, so the limit is not applied to the joined interval rows.
+      const picked = await StudySession.findAll({ where, attributes: ['id'], order: [[finishedAt, 'DESC'], ['id', 'DESC']], limit: latest });
+      where.id = { [Op.in]: picked.map(session => session.id) };
+    }
 
     const sessions = await StudySession.findAll({
       where,
       include: sessionIncludes,
-      order: [['startTime', 'ASC']],
+      order: latest ? [[finishedAt, 'DESC'], ['id', 'DESC']] : [['startTime', 'ASC']],
     });
 
     res.json({

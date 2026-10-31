@@ -98,6 +98,9 @@ export const resetPasswordSchema = z
 /** How a reset link reaches the user; the same answer is given whether or not the account exists. */
 export const forgotPasswordResponseSchema = z.object({ delivery: z.enum(['email', 'admin']) });
 export const passwordResetLinkSchema = z.object({ url: z.url(), expiresAt: z.iso.datetime() });
+/** How many other signed-in sessions the account has, and how many a sign-out of them ended. */
+export const otherSessionsResponseSchema = z.object({ data: z.object({ others: z.number().int().nonnegative() }) });
+export const signOutOthersResponseSchema = z.object({ data: z.object({ signedOut: z.number().int().nonnegative() }) });
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type ForgotPasswordResponse = z.infer<typeof forgotPasswordResponseSchema>;

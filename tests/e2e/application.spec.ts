@@ -695,6 +695,29 @@ test('returns to the requested page after sign-in, but not after a deliberate si
   await login(page);
 });
 
+test('signs out the account on another device from the account settings and keeps this one', async ({ page, browser, application }) => {
+  // A second browser profile with its own cookies stands in for another device.
+  const device = await browser.newContext({ baseURL: application.url, serviceWorkers: 'block' });
+  await device.route('**/*', (route) =>
+    new URL(route.request().url()).origin === application.url ? route.continue() : route.abort('blockedbyclient'),
+  );
+  try {
+    const other = await device.newPage();
+    await login(other);
+    await login(page);
+    await page.goto('/settings');
+    await expect(page.getByText('Hesabın bu cihazın dışında 1 oturumda daha açık.')).toBeVisible();
+    await page.getByRole('button', { name: 'Diğer oturumları kapat' }).click();
+    await expect(page.getByText('Hesabın yalnız bu cihazda açık.')).toBeVisible();
+    await other.reload();
+    await expect(other).toHaveURL(/\/login$/);
+    await page.reload();
+    await expect(page.getByText('Hesabın yalnız bu cihazda açık.')).toBeVisible();
+  } finally {
+    await device.close();
+  }
+});
+
 test('jumps to any page or settings tab by name, from the keyboard or the header button', async ({ page }) => {
   await login(page);
   const palette = page.getByRole('dialog', { name: 'Sayfaya git' });

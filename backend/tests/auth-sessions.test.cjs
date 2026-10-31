@@ -124,6 +124,25 @@ describe('revocable browser sessions', () => {
     const { createAuthSession }=require('../dist/services/authSessions');
     await assert.rejects(createAuthSession(stale),(error)=>error.code==='credentialsChanged');
   });
+  it('counts the account\'s other sessions and signs them all out except the current one', async () => {
+    const user = await account(); const stranger = await account();
+    const [current, laptop, phone] = [await login(user), await login(user), await login(user)];
+    const strangerSession = await login(stranger);
+    const token = current.body.data.tokens.accessToken;
+    const sessions = (accessToken) => request(app).get('/api/auth/sessions').set('X-Requested-With','StudyTracker').auth(accessToken,{type:'bearer'});
+    assert.deepEqual((await sessions(token).expect(200)).body.data, { others: 2 });
+    await write('/api/auth/sessions/sign-out-others').expect(401);
+    const signedOut = await write('/api/auth/sessions/sign-out-others').auth(token,{type:'bearer'}).expect(200);
+    assert.deepEqual(signedOut.body.data, { signedOut: 2 });
+    await me(token).expect(200);
+    for (const other of [laptop, phone]) {
+      await me(other.body.data.tokens.accessToken).expect(401);
+      await write('/api/auth/refresh-token',cookieOf(other)).expect(401);
+    }
+    await me(strangerSession.body.data.tokens.accessToken).expect(200);
+    assert.deepEqual((await sessions(token).expect(200)).body.data, { others: 0 });
+    assert.deepEqual((await write('/api/auth/sessions/sign-out-others').auth(token,{type:'bearer'}).expect(200)).body.data, { signedOut: 0 });
+  });
   it('recovers exactly the active admin and preserves other accounts', async () => {
     const admin = await account('admin'); const other = await account(); const first = await login(admin);
     const count = await User.count();

@@ -71,6 +71,8 @@ import { useUserPreferencesStore } from '../store/userPreferencesStore';
 
 import {
   forgotPasswordResponseSchema,
+  otherSessionsResponseSchema,
+  signOutOthersResponseSchema,
   passwordResetLinkSchema,
   searchResultSchema,
   type ForgotPasswordInput,
@@ -190,6 +192,12 @@ export const authAPI = {
 
   deleteAccount: (input: DeleteAccountInput): Promise<HttpResponse<ApiResponse>> =>
     api.delete('/auth/account', { data: input }),
+
+  /** How many other signed-in sessions the account has; this one is not counted. */
+  otherSessions: async (): Promise<number> =>
+    otherSessionsResponseSchema.parse((await api.get('/auth/sessions')).data).data.others,
+  signOutOthers: async (): Promise<number> =>
+    signOutOthersResponseSchema.parse((await api.post('/auth/sessions/sign-out-others')).data).data.signedOut,
 
   refreshToken: (): Promise<HttpResponse<AuthResponse>> => {
     const early = takeInitialSessionRefresh();
