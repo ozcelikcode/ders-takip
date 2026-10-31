@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 jobs:
-  verify:
+  check:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -25,19 +25,67 @@ jobs:
         run: npm ci
       - name: Verify naming, types, lint, tests, and production builds
         run: npm run check
+
+  # The browser journeys take about twenty minutes in one process, so each browser profile runs as its own job.
+  browser:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium-desktop, webkit-desktop, chromium-mobile]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Use the pinned package manager
+        run: npm install --global npm@11.19.0
+      - name: Install locked dependencies
+        run: npm ci
       - name: Install browser test engines
-        run: npx playwright install --with-deps chromium webkit
+        run: npx playwright install --with-deps ${{ matrix.project == 'webkit-desktop' && 'webkit' || 'chromium' }}
       - name: Verify isolated browser journeys
-        run: npm run test:e2e
+        run: npm run test:e2e -- --project=${{ matrix.project }}
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: browser-test-report-${{ matrix.project }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  lighthouse:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Use the pinned package manager
+        run: npm install --global npm@11.19.0
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install the browser engine
+        run: npx playwright install --with-deps chromium
       - name: Measure isolated Lighthouse pages
         run: npm run test:lighthouse
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
-          name: browser-test-report
+          name: lighthouse-report
           path: |
-            playwright-report/
-            test-results/
             lighthouse-report/
             lighthouse-results/
           if-no-files-found: ignore
