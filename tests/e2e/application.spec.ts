@@ -501,6 +501,18 @@ test('logs study done without the timer as measured time', async ({ page, applic
   await expect(page.getByText('Çalışma kaydedildi')).toBeVisible();
 });
 
+test('downloads the sessions of the shown statistics range as a spreadsheet file', async ({ page }) => {
+  await login(page);
+  await page.goto('/stats');
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'CSV indir', exact: true }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/^calisma-\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}\.csv$/);
+  const content = (await import('node:fs')).readFileSync((await file.path())!, 'utf8');
+  expect(content.split('\r\n')[0]).toBe('\uFEFFTarih;Başlangıç;Bitiş;Başlık;Kategori;Kayıt;Alt başlık;Durum;Planlanan (dk);Ölçülen (dk);Ölçüm;Notlar');
+  await expect(page.getByRole('region', { name: 'Süreklilik' })).toBeVisible();
+});
+
 test('plans a weekly routine, edits it as a whole and ends it', async ({ page, application }) => {
   // Start tomorrow so the test does not depend on the time of day.
   const tomorrow = new Date(Date.parse(`${application.day}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);

@@ -52,12 +52,13 @@ export interface StudySession {
   };
   course?: {
     id: number;
-    title: string;
-  };
+    name: string;
+    category?: { id: number; name: string } | null;
+  } | null;
   topic?: {
     id: number;
-    title: string;
-  };
+    name: string;
+  } | null;
 }
 
 export type CreateStudySessionRequest = CreateSessionInput;

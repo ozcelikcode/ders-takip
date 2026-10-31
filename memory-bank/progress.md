@@ -44,7 +44,7 @@ Source: two read-only audits (backend security and bugs, frontend bugs and dead 
 **G — New features (owner's choice, 31 October)**
 
 1. **Done (31 October):** streaks and badges on the statistics page (`pages/stats/consistency.ts`, `ConsistencySection`). A streak counts days with measured study in a row; rest days (not active study days) neither break nor extend it, and today without study yet keeps yesterday's streak. Six badges: first study, 7- and 30-day streaks, the daily goal reached on 10 days, 10 and 100 hours in total. Computed in the browser from two existing stats requests (the last 365 days and all time); the longest streak covers the last year only.
-2. Reports: weekly and monthly summary page, CSV export for a date range.
+2. **Done (31 October):** the statistics page already covers week, month and custom ranges; "Download CSV" now saves the sessions behind the shown range and tag (`pages/stats/sessionCsv.ts`): one row per session in the user's zone, `;` for Turkish and `,` for English spreadsheets, a UTF-8 byte order mark. The frontend session type now matches the server (`course.name`, `topic.name`).
 3. **Done (31 October), no migration:** logging time afterwards. `POST /api/study-sessions/log` (`logStudySchema`) stores a completed session with one study interval over its whole range and `trackingCoverage: 'manual'` (a new value of the existing text column); it must have ended and may not overlap another session. Correcting a logged entry's times moves its interval with them. Planner header › "Log past study" (`LogStudyDialog`); the session label says "logged afterwards".
 4. Pomodoro: sound, vibration and a browser notification at the end of a phase; a countdown in the tab title.
 5. PWA: manifest, installable app, offline shell.

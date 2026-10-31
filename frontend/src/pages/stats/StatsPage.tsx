@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import DailyStudyChart from '../../components/charts/DailyStudyChart';
 import ConsistencySection from './ConsistencySection';
+import { sessionsCsv } from './sessionCsv';
+import { Download } from 'lucide-react';
+import toast from 'react-hot-toast';
 import PageHeader from '../../components/common/PageHeader';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useAllCourses } from '../../hooks/useAllCourses';
@@ -79,6 +82,8 @@ export default function StatsPage() {
   const [custom, setCustom] = useState<DateRange>(() => presetRange('last30', today, weekStart));
   const range = preset === 'custom' ? custom : presetRange(preset, today, weekStart);
   const [tagId, setTagId] = useState<number | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const sessionText = useText().session;
   const rangeProblem = rangeError(range);
   const invalid = rangeProblem === 'tooLong' ? text.rangeErrors.tooLong(maxRangeDays) : rangeProblem ? text.rangeErrors[rangeProblem] : null;
   const stats = useQuery({
@@ -98,9 +103,39 @@ export default function StatsPage() {
     { label: text.breaks, value: formatMeasuredSeconds(data?.breakSeconds ?? 0, language), detail: text.breaksDetail },
   ];
 
+  // The sessions behind the shown range and tag, as a spreadsheet file.
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const sessions = (await studySessionsAPI.getSessions({ ...range, ...(tagId ? { tagId } : {}) })).data.data?.sessions ?? [];
+      const csv = sessionsCsv(sessions, preferences.timezone, language === 'tr' ? ';' : ',', {
+        headers: text.csvHeaders, statuses: sessionText.statuses, coverage: text.csvCoverage,
+      });
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = text.csvFile(range.startDate, range.endDate);
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error(text.csvFailed);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <PageHeader title={text.title} description={text.description} />
+      <PageHeader
+        title={text.title}
+        description={text.description}
+        actions={
+          <button type="button" className="btn btn-secondary" disabled={!!invalid || exporting} onClick={() => void exportCsv()}>
+            <Download aria-hidden="true" className="h-4 w-4" />
+            {exporting ? text.csvExporting : text.csvExport}
+          </button>
+        }
+      />
 
       <div className="flex flex-wrap items-end gap-3">
         <TagFilter value={tagId} onChange={setTagId} />
