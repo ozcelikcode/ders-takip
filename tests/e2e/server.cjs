@@ -116,6 +116,8 @@ process.once('disconnect', shutdown);
     JSON.stringify(
       await StudySession.findAll({
         where: { id: protectedIds },
+        // Reading a notification marks the session silently; that is not study data.
+        attributes: { exclude: ['notificationReadAt'] },
         order: [['id', 'ASC']],
       }),
     );
