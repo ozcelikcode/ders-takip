@@ -36,10 +36,10 @@ Source: two read-only audits (backend security and bugs, frontend bugs and dead 
 
 **P — Performance**
 
-- P1 `DailyStudyChart` (358 kB, recharts + d3) → a plain SVG bar chart with the goal line; the hidden table stays; `StatsPage` loads it lazily too.
-- P2 `languageStore` (172 kB) → load `tr` dynamically, import contracts through subpaths.
-- P3 Load the second date-fns locale on demand; lazy planner modals; replace `motion` with CSS transitions.
-- Target: dashboard mobile Lighthouse ≥ 95 under the same conditions.
+- P1 **Done (31 October):** `DailyStudyChart` is plain SVG (358 KB → 4 KB; `recharts` and its peer `react-is` removed); bars, value labels, goal line and a hover card; colours from the theme tokens, so no dark-mode observer. Small enough that `StatsPage` imports it directly.
+- P2 **Not done (measured):** the chunk is the Turkish catalog (~65 KB, the default language, needed on every first screen) plus Zod and the contracts the sign-in form needs anyway; loading Turkish dynamically would add a request to the critical path for the default language instead of saving one.
+- P3 **Done (31 October):** `motion` replaced by two CSS entrance animations (`animate-fade-in`, `animate-dialog-in`; the global reduced-motion rule applies); PlannerPage 188 KB → 61 KB, so lazy modals were no longer worth it. The date-fns locales are a few KB and stay.
+- Target: dashboard mobile Lighthouse ≥ 95 under the same conditions. **Result (31 October, one run):** sign-in 100 / 94, dashboard 100 / 90 (desktop/mobile), accessibility 100 everywhere. The dashboard already lazy-loaded the chart, so its mobile score stays in the earlier 86–91 range; the target needs the deployment work (HTTP/2, compression) in D.
 
 **G — New features (owner's choice, 31 October)**
 

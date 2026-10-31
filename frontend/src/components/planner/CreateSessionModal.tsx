@@ -13,7 +13,6 @@ import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { contractResolver } from '../../lib/contractResolver';
-import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { Coffee, Repeat, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -408,24 +407,17 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
   ]);
 
   return (
-    <MotionConfig reducedMotion="user">
     <Dialog
       key="create-session-modal"
-      as={motion.div}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
       open
       onClose={handleClose}
-      className="relative z-50"
+      className="relative z-50 animate-fade-in"
     >
       <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
 
       <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
         <DialogPanel
-          as={motion.div}
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="panel mx-auto my-8 flex max-h-[90vh] w-full max-w-lg flex-col shadow-xl"
+          className="animate-dialog-in panel mx-auto my-8 flex max-h-[90vh] w-full max-w-lg flex-col shadow-xl"
           aria-busy={mutation.isPending}
         >
           <div className="flex items-center justify-between p-5 border-b border-(--line)">
@@ -711,19 +703,11 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 />
               )}
 
-              <AnimatePresence>
-                {showPomodoroSettings && (
-                  <motion.div
-                    key="pomodoro-settings"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <PomodoroSettingsFields register={register} setValue={setValue} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {showPomodoroSettings && (
+                <div className="animate-fade-in">
+                  <PomodoroSettingsFields register={register} setValue={setValue} />
+                </div>
+              )}
 
               <SessionColorPicker
                 selected={watch('color')}
@@ -810,7 +794,6 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
         )}
       </ConfirmDialog>
     </Dialog>
-    </MotionConfig>
   );
 };
 
