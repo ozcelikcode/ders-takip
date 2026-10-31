@@ -11,6 +11,9 @@ export const notificationPreferencesSchema = z.object({
   reminderLeadMinutes: reminderLeadSchema,
   dailyPlanEmail: z.boolean(),
   weeklySummaryEmail: z.boolean(),
+  /** An evening nudge on active days while today's measured study is below the daily goal. Added later, so older stored choices read as off. */
+  goalReminderEmail: z.boolean().default(false),
+  goalReminderPush: z.boolean().default(false),
 }).strict();
 export type NotificationPreferences = z.infer<typeof notificationPreferencesSchema>;
 
@@ -20,11 +23,14 @@ export const defaultNotificationPreferences: NotificationPreferences = {
   reminderLeadMinutes: 10,
   dailyPlanEmail: false,
   weeklySummaryEmail: false,
+  goalReminderEmail: false,
+  goalReminderPush: false,
 };
 
 /** Local wall-clock times for the scheduled emails (24h, in the user's own time zone). */
 export const dailyPlanHour = 7;
 export const weeklySummaryHour = 19;
+export const goalReminderHour = 20;
 
 /**
  * Delivery channels on this server. `configured`: the operator set up SMTP / VAPID keys.

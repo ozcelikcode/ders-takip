@@ -22,6 +22,8 @@ export interface NotificationText {
   weeklyTopRecords: (t: Terms) => string;
   weeklySubject: (studied: string) => string;
   openStats: string;
+  goalTitle: (remaining: string) => string;
+  goalBody: (studied: string, goal: string) => string;
   testTitle: string;
   testGreeting: (name: string) => string;
   testEmailBody: string;
@@ -54,6 +56,8 @@ export const notificationText: Record<Language, NotificationText> = {
     weeklyTopRecords: (t) => `En çok zaman ayırdığın ${t.course({ plural: true })}:`,
     weeklySubject: (studied) => `Haftalık özet: ${studied}`,
     openStats: 'İstatistikleri aç',
+    goalTitle: (remaining) => `Bugünkü hedefine ${remaining} kaldı`,
+    goalBody: (studied, goal) => `Bugün ${studied} çalıştın; günlük hedefin ${goal}.`,
     testTitle: 'Deneme bildirimi',
     testGreeting: (name) => `Merhaba ${name},`,
     testEmailBody: 'E-posta bildirimleri çalışıyor.',
@@ -84,6 +88,8 @@ export const notificationText: Record<Language, NotificationText> = {
     weeklyTopRecords: (t) => `The ${t.course({ plural: true })} you spent the most time on:`,
     weeklySubject: (studied) => `Weekly summary: ${studied}`,
     openStats: 'Open statistics',
+    goalTitle: (remaining) => `${remaining} left of today's goal`,
+    goalBody: (studied, goal) => `You have studied ${studied} today; your daily goal is ${goal}.`,
     testTitle: 'Test notification',
     testGreeting: (name) => `Hello ${name},`,
     testEmailBody: 'Email notifications are working.',

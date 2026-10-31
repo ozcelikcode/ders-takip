@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { defaultNotificationPreferences, defaultPreferences, type NotificationChannels, type UserPreferences } from '@study-tracker/contracts';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import * as push from '../src/lib/push';
@@ -52,7 +52,7 @@ it('offers only email choices when push is not set up and saves each choice as a
   expect(screen.queryByRole('heading', { name: 'Bu tarayıcı' })).toBeNull();
   expect(screen.queryByLabelText(/Tarayıcı bildirimi ile/)).toBeNull();
   expect((screen.getByLabelText(/Sabah günlük plan/) as HTMLInputElement).checked).toBe(true);
-  fireEvent.click(screen.getByLabelText('E-posta ile'));
+  fireEvent.click(screen.getAllByLabelText('E-posta ile')[0]!);
   expect(onSave).toHaveBeenLastCalledWith({ notifications: { ...defaultNotificationPreferences, dailyPlanEmail: true, sessionReminderEmail: true } });
   fireEvent.change(screen.getByLabelText('Ne kadar önce'), { target: { value: '30' } });
   expect(onSave).toHaveBeenLastCalledWith({ notifications: { ...defaultNotificationPreferences, dailyPlanEmail: true, reminderLeadMinutes: 30 } });
@@ -84,4 +84,22 @@ it('says when the browser blocks the site instead of offering a button that cann
   mount();
   expect(await screen.findByText(/tarayıcı ayarlarında engellenmiş/)).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Bu tarayıcıda bildirimleri aç' })).toBeNull();
+});
+
+it('offers the evening goal reminder by each enabled channel and names the daily goal it checks', async () => {
+  vi.mocked(notificationsAPI.channels).mockResolvedValue(channels(true, true));
+  const onSave = mount({ ...defaultPreferences, dailyStudyGoal: 1.5 });
+  const goal = await screen.findByRole('region', { name: 'Günlük hedef hatırlatması' });
+  expect(within(goal).getByText(/günlük hedefinin \(1 sa 30 dk\) altındaysa/)).toBeTruthy();
+  fireEvent.click(within(goal).getByLabelText('Tarayıcı bildirimi ile'));
+  expect(onSave).toHaveBeenLastCalledWith({ notifications: { ...defaultNotificationPreferences, goalReminderPush: true } });
+  fireEvent.click(within(goal).getByLabelText('E-posta ile'));
+  expect(onSave).toHaveBeenLastCalledWith({ notifications: { ...defaultNotificationPreferences, goalReminderEmail: true } });
+});
+
+it('says the goal reminder needs a daily goal when there is none', async () => {
+  vi.mocked(notificationsAPI.channels).mockResolvedValue(channels(true, false));
+  mount({ ...defaultPreferences, dailyStudyGoal: 0 });
+  const goal = await screen.findByRole('region', { name: 'Günlük hedef hatırlatması' });
+  expect(within(goal).getByText(/Günlük hedefin yok/)).toBeTruthy();
 });

@@ -1,4 +1,4 @@
-import { reminderLeadOptions, resolveNotifications, type NotificationPreferences, type PreferencesPatch, type UserPreferences } from '@study-tracker/contracts';
+import { formatGoalMinutes, reminderLeadOptions, resolveNotifications, type NotificationPreferences, type PreferencesPatch, type UserPreferences } from '@study-tracker/contracts';
 import { useQuery } from '@tanstack/react-query';
 import { serverMessage } from '../../lib/messages';
 import { useEffect, useId, useState, type ReactNode } from 'react';
@@ -8,7 +8,7 @@ import { useTerms } from '../../hooks/useTerms';
 import { browserPushState, PushPermissionError, subscribeBrowser, unsubscribeBrowser, type BrowserPushState } from '../../lib/push';
 import { notificationsAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
-import { useText } from '../../store/languageStore';
+import { useLanguage, useText } from '../../store/languageStore';
 
 interface NotificationsTabProps {
   preferences: UserPreferences;
@@ -34,7 +34,10 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
   const text = useText().notificationSettings;
   const keys = useAccountQueryKeys();
   const email = useAuthStore((state) => state.user?.email);
+  const language = useLanguage();
   const leadId = useId();
+  const goalId = useId();
+  const remindersId = useId();
   const channels = useQuery({ queryKey: keys.resource('notification-channels'), queryFn: notificationsAPI.channels });
   const [browser, setBrowser] = useState<BrowserPushState | null>(null);
   const [busy, setBusy] = useState<'browser' | 'test-email' | 'test-push' | null>(null);
@@ -126,9 +129,9 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
         </section>
       )}
 
-      <section className="space-y-4 border-t border-(--line) pt-6 first:border-t-0 first:pt-0">
+      <section aria-labelledby={remindersId} className="space-y-4 border-t border-(--line) pt-6 first:border-t-0 first:pt-0">
         <div>
-          <h2 className="text-base font-medium">{text.remindersTitle(t)}</h2>
+          <h2 id={remindersId} className="text-base font-medium">{text.remindersTitle(t)}</h2>
           <p className="mt-1 text-sm text-(--muted)">{text.remindersHint(t)}</p>
         </div>
         {mail.enabled && <Toggle checked={options.sessionReminderEmail} onChange={(sessionReminderEmail) => save({ sessionReminderEmail })} label={text.byEmail} />}
@@ -151,6 +154,24 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
             {reminderLeadOptions.map((minutes) => <option key={minutes} value={minutes}>{text.leadOption(minutes)}</option>)}
           </select>
         </div>
+      </section>
+
+      <section aria-labelledby={goalId} className="space-y-4 border-t border-(--line) pt-6">
+        <div>
+          <h2 id={goalId} className="text-base font-medium">{text.goalTitle}</h2>
+          <p className="mt-1 text-sm text-(--muted)">
+            {preferences.dailyStudyGoal > 0 ? text.goalHint(formatGoalMinutes(preferences.dailyStudyGoal * 60, language)) : text.goalNone}
+          </p>
+        </div>
+        {mail.enabled && <Toggle checked={options.goalReminderEmail} onChange={(goalReminderEmail) => save({ goalReminderEmail })} label={text.byEmail} />}
+        {push.enabled && (
+          <Toggle
+            checked={options.goalReminderPush}
+            onChange={(goalReminderPush) => save({ goalReminderPush })}
+            label={text.byPush}
+            hint={options.goalReminderPush && browser !== 'subscribed' ? text.pushNeedsBrowser : undefined}
+          />
+        )}
       </section>
 
       {mail.enabled && (

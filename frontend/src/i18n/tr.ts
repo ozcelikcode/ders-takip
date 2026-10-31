@@ -944,6 +944,9 @@ export const tr = {
     weeklySummary: 'Haftalık özet',
     weeklySummaryHint: "Haftanın son günü 19:00'da: ölçülen süre, hedef ve dağılım.",
     sendTestEmail: 'Deneme e-postası gönder',
+    goalTitle: 'Günlük hedef hatırlatması',
+    goalHint: (goal: string) => `Aktif günlerde 20:00'de, bugün ölçülen çalışman günlük hedefinin (${goal}) altındaysa bir kez haber verir.`,
+    goalNone: 'Günlük hedefin yok; Çalışma sekmesinden bir hedef belirlediğinde hatırlatma çalışır.',
   },
   profile: {
     profileUpdated: 'Profil başarıyla güncellendi',

@@ -158,6 +158,52 @@ it('sends the morning plan once on active days, in the user\'s own time zone', a
   assert.equal(mails.length, 1);
 });
 
+it('nudges once on an active evening while today\'s measured study is below the daily goal', async (t) => {
+  const { mails, pushes } = capture(t);
+  const { SessionInterval } = require('../dist/models');
+  await setNotifications(ada, { goalReminderEmail: true, goalReminderPush: true });
+  assert.equal((await call('post', '/api/notifications/push-subscriptions', ada, subscription('ada-goal'))).status, 200);
+  const studied = async (start, minutes) => {
+    const done = await session(ada, start, { status: 'completed' });
+    await SessionInterval.create({ sessionId: done.id, kind: 'study', startedAt: start, endedAt: new Date(start.getTime() + minutes * minute) });
+  };
+  // Wednesday 2026-10-21 in Tokyo (UTC+9): 30 of the 90-minute goal measured.
+  await studied(new Date('2026-10-21T01:00:00Z'), 30);
+  await runDueNotifications(new Date('2026-10-21T10:59:00Z')); // 19:59 local
+  assert.equal(mails.length + pushes.length, 0);
+  // A running session means the person is studying; the decision waits for it.
+  const running = await session(ada, new Date('2026-10-21T10:30:00Z'), { status: 'in_progress' });
+  await runDueNotifications(new Date('2026-10-21T11:05:00Z'));
+  assert.equal(mails.length + pushes.length, 0);
+  await running.destroy();
+  await runDueNotifications(new Date('2026-10-21T11:10:00Z'));
+  await runDueNotifications(new Date('2026-10-21T12:00:00Z'));
+  assert.equal(mails.length, 1);
+  assert.equal(mails[0].subject, 'Bugünkü hedefine 1 sa kaldı · Görev Takip Sistemi');
+  assert.match(mails[0].text, /Bugün 30 dk çalıştın; günlük hedefin 1 sa 30 dk\./);
+  assert.deepEqual(pushes.map(({ title, url, tag }) => ({ title, url, tag })), [{ title: 'Bugünkü hedefine 1 sa kaldı', url: '/planner?date=2026-10-21', tag: 'goal-2026-10-21' }]);
+  // Thursday's goal is met: nothing is sent and the day is not looked at again.
+  await studied(new Date('2026-10-22T01:00:00Z'), 90);
+  await runDueNotifications(new Date('2026-10-22T11:10:00Z'));
+  // Saturday is not an active day.
+  await runDueNotifications(new Date('2026-10-24T11:10:00Z'));
+  assert.equal(mails.length, 1);
+  assert.equal(await NotificationDelivery.count({ where: { kind: 'goal-reminder' } }), 2);
+});
+
+it('reads choices stored before the goal reminder existed as off', async () => {
+  const { goalReminderEmail, goalReminderPush, ...older } = defaultNotificationPreferences;
+  assert.equal(goalReminderEmail || goalReminderPush, false);
+  ada.preferences = { ...ada.preferences, notifications: { ...older, dailyPlanEmail: true } };
+  await ada.save();
+  const response = await call('get', '/api/auth/me', ada);
+  assert.equal(response.status, 200);
+  const { notifications } = response.body.data.user.preferences;
+  assert.equal(notifications.dailyPlanEmail, true);
+  assert.equal(notifications.goalReminderEmail, false);
+  assert.equal(notifications.goalReminderPush, false);
+});
+
 it('sends the weekly summary on the week\'s last evening with the derived weekly goal', async (t) => {
   const { mails } = capture(t);
   await setNotifications(ben, { weeklySummaryEmail: true }, { dailyStudyGoal: 1, activeStudyDays: [1, 2, 3], weekStartsOn: 1 });

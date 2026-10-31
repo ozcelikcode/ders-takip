@@ -8,6 +8,7 @@ import {
   fail,
   formatGoalMinutes,
   formatZonedTime,
+  goalReminderHour,
   notificationText,
   resolveNotifications,
   resolveTerminology,
@@ -187,6 +188,37 @@ async function sendWeeklySummaries(now: Date, recipients: Recipient[], site: Sit
   }
 }
 
+/**
+ * In the evening of an active day, one nudge when today's measured study is still below the daily goal. The day is
+ * decided once: a goal already met is recorded too, so later ticks do not recount. While a session runs the person
+ * is studying, so the decision waits.
+ */
+async function sendGoalReminders(now: Date, recipients: Recipient[], channels: NotificationChannels, site: Site) {
+  const { text, language } = site;
+  for (const { user, preferences } of recipients) {
+    const options = resolveNotifications(preferences);
+    const email = options.goalReminderEmail && channels.email.enabled;
+    const push = options.goalReminderPush && channels.push.enabled;
+    const goal = Math.round(preferences.dailyStudyGoal * 60);
+    if ((!email && !push) || !goal) continue;
+    const { timezone } = preferences;
+    const today = dateKeyInZone(now, timezone);
+    if (localHour(now, timezone) < goalReminderHour || !preferences.activeStudyDays.includes(weekday(today))) continue;
+    if (await StudySession.count({ where: { userId: user.id, status: 'in_progress' } })) continue;
+    if (!(await claim(user.id, 'goal-reminder', today))) continue;
+    const studied = Math.floor((await getStudyStats(user.id, timezone, { startDate: today, endDate: today })).studySeconds / 60);
+    if (studied >= goal) continue;
+    const title = text.goalTitle(formatGoalMinutes(goal - studied, language));
+    const body = text.goalBody(studied ? formatGoalMinutes(studied, language) : text.noStudy, formatGoalMinutes(goal, language));
+    const path = `/planner?date=${today}`;
+    if (email) {
+      await mailer.send(composeMail(user.email, site.name, text, title, [text.reminderGreeting(user.firstName), body], { label: text.planDay, path }))
+        .catch((error: unknown) => console.error('Goal reminder mail failed:', error instanceof Error ? error.message : error));
+    }
+    if (push) await pushTo(user.id, { title, body, url: path, tag: `goal-${today}` });
+  }
+}
+
 /** One scheduler tick: everything that is due at `now`, each at most once. */
 export async function runDueNotifications(now = new Date()): Promise<void> {
   const settings = await readSiteSettings();
@@ -195,7 +227,8 @@ export async function runDueNotifications(now = new Date()): Promise<void> {
   const recipients: Recipient[] = (await User.findAll({ where: { isActive: true } }))
     .filter((user) => {
       const options = resolveNotifications(user.preferences);
-      return options.sessionReminderEmail || options.sessionReminderPush || options.dailyPlanEmail || options.weeklySummaryEmail;
+      return options.sessionReminderEmail || options.sessionReminderPush || options.dailyPlanEmail || options.weeklySummaryEmail
+        || options.goalReminderEmail || options.goalReminderPush;
     })
     .map((user) => ({
       user,
@@ -205,6 +238,7 @@ export async function runDueNotifications(now = new Date()): Promise<void> {
   if (!recipients.length) return;
   const site: Site = { name: settings.siteName, language: settings.language, text: notificationText[settings.language] };
   await sendSessionReminders(now, recipients, channels, site);
+  await sendGoalReminders(now, recipients, channels, site);
   if (channels.email.enabled) {
     await sendDailyPlans(now, recipients, site);
     await sendWeeklySummaries(now, recipients, site);

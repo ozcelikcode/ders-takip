@@ -55,7 +55,9 @@ Source: two read-only audits (backend security and bugs, frontend bugs and dead 
 
 **Bounded recent sessions (31 October):** `GET /study-sessions` takes `latest` (1–50): the most recently finished sessions, newest by `completedAt` or else `endTime`; ids are picked first so the limit does not apply to joined interval rows. `useRecentSessions` asks for `status=completed&latest=5` instead of every completed session every 60 s; the client-side `getRecentSessions` sort was removed.
 
-Backlog: device names in the sessions card (needs a user-agent column), later TOTP 2FA; reminders when a goal falls behind.
+**Goal reminder done (31 October, owner choice: the recommended form):** an opt-in evening nudge, by email and/or browser notification (`goalReminderEmail`, `goalReminderPush`, both off; choices stored before they existed read as off through a schema default, so no data migration). From 20:00 local on active days with a daily goal, the scheduler decides the day once (`goal-reminder` claim keyed by the local date): below the goal it sends "N left of today's goal" with studied and goal times and a planner link; a goal already met is claimed silently; while a session is running the decision waits. `notification_deliveries.kind` is a plain TEXT column in SQLite, so the new kind needed no migration. Settings › Notifications has its own "Daily goal reminder" section (a named region, since its checkbox labels repeat the session-reminder ones) and says when there is no daily goal.
+
+Backlog: device names in the sessions card (needs a user-agent column), later TOTP 2FA.
 
 **D — Deployment and operations**
 

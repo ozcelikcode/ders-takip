@@ -938,6 +938,9 @@ export const en: Text = {
     weeklySummary: 'Weekly summary',
     weeklySummaryHint: 'At 19:00 on the last day of the week: measured time, goal and breakdown.',
     sendTestEmail: 'Send a test email',
+    goalTitle: 'Daily goal reminder',
+    goalHint: (goal: string) => `At 20:00 on active days, once, if today's measured study is below your daily goal (${goal}).`,
+    goalNone: 'You have no daily goal; the reminder works once you set one in the Study tab.',
   },
   profile: {
     profileUpdated: 'Profile updated',

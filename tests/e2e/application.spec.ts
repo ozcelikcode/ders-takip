@@ -456,12 +456,17 @@ test('lets a user choose browser reminders and keeps the choice after a reload',
   await expect(page.getByRole('heading', { name: 'Bu tarayıcı' })).toBeVisible();
   // No SMTP in the fixture: email choices are not offered at all.
   await expect(page.getByLabel('E-posta ile')).toHaveCount(0);
-  await page.getByLabel(/Tarayıcı bildirimi ile/).check();
+  const reminders = page.getByRole('region', { name: 'Seans hatırlatmaları' });
+  const goal = page.getByRole('region', { name: 'Günlük hedef hatırlatması' });
+  await reminders.getByLabel(/Tarayıcı bildirimi ile/).check();
   await page.getByLabel('Ne kadar önce').selectOption('15');
   await expect(page.getByRole('status').filter({ hasText: 'Tercihler hesabınızda saklanır' })).toBeVisible();
+  await goal.getByLabel(/Tarayıcı bildirimi ile/).check();
+  await expect(goal.getByLabel(/Tarayıcı bildirimi ile/)).toBeChecked();
   await page.reload();
   await page.getByRole('navigation', { name: 'Ayar bölümleri' }).getByRole('button', { name: 'Bildirimler' }).click();
-  await expect(page.getByLabel(/Tarayıcı bildirimi ile/)).toBeChecked();
+  await expect(reminders.getByLabel(/Tarayıcı bildirimi ile/)).toBeChecked();
+  await expect(goal.getByLabel(/Tarayıcı bildirimi ile/)).toBeChecked();
   await expect(page.getByLabel('Ne kadar önce')).toHaveValue('15');
 });
 
