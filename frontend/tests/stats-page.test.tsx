@@ -100,7 +100,7 @@ it('shows the streak, a year summary and badges from measured study, independent
   );
   const section = await screen.findByRole('region', { name: 'Süreklilik' });
   // Studied Monday and Tuesday; today (Wednesday) is not studied yet, so the streak is still alive.
-  expect(within(section).getByText('Güncel seri').nextElementSibling?.textContent).toBe('2 gün');
+  expect(within(section).getByText('Güncel seri').closest('dt')?.nextElementSibling?.textContent).toBe('2 gün');
   expect(within(section).getByText('Son 365 günün 2 gününde çalışma ölçüldü.')).toBeTruthy();
   const first = within(section).getByText('İlk adım').closest('li')!;
   expect(within(first).getByText('Kazanıldı')).toBeTruthy();

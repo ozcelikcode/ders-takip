@@ -52,12 +52,12 @@ export default function ConsistencySection({ today }: { today: string }) {
             { label: text.currentStreak, value: current },
             { label: text.longestStreak, value: longest },
           ].map((item) => (
-            <div key={item.label} className="flex items-center gap-3">
-              <Flame aria-hidden="true" className="h-5 w-5 shrink-0 text-(--muted)" />
-              <div>
-                <dt className="text-xs text-(--muted)">{item.label}</dt>
-                <dd className="text-lg font-medium tabular-nums">{text.streakDays(item.value)}</dd>
-              </div>
+            <div key={item.label}>
+              <dt className="flex items-center gap-2 text-xs text-(--muted)">
+                <Flame aria-hidden="true" className="h-4 w-4 shrink-0" />
+                {item.label}
+              </dt>
+              <dd className="text-lg font-medium tabular-nums">{text.streakDays(item.value)}</dd>
             </div>
           ))}
         </dl>
