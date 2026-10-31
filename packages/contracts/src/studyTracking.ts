@@ -5,7 +5,12 @@ import { calendarDateSchema, timezoneSchema } from './time.js';
 export const activityKindSchema = z.enum(['study', 'break']);
 export type ActivityKind = z.infer<typeof activityKindSchema>;
 export type IntervalKind = ActivityKind | 'pause';
-export type TrackingCoverage = 'complete' | 'partial' | 'untracked';
+/**
+ * How a session's study time was recorded: by the timer (`complete`), not at all (`untracked`, before measurement
+ * existed), partly (`partial`), or typed in afterwards for work done without the timer (`manual`).
+ */
+export const trackingCoverageSchema = z.enum(['complete', 'partial', 'untracked', 'manual']);
+export type TrackingCoverage = z.infer<typeof trackingCoverageSchema>;
 export interface ActivityInterval {
   id: number;
   kind: IntervalKind;

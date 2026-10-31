@@ -5,6 +5,7 @@ import { planGoalsSchema } from './plans.js';
 import { seriesWeekdaysSchema } from './sessionSeries.js';
 import { pomodoroSettingsSchema, sessionDurationLimits, sessionStatusSchema, sessionTypeSchema } from './studySessions.js';
 import { tagNameSchema } from './tags.js';
+import { trackingCoverageSchema } from './studyTracking.js';
 import { calendarDateSchema, timezoneSchema } from './time.js';
 
 export const accountExportFormat = 'study-tracker-account-export';
@@ -82,7 +83,7 @@ const sessionRow = z
     startTime: instant,
     endTime: instant,
     duration: z.number().int().min(sessionDurationLimits.minMinutes).max(sessionDurationLimits.maxMinutes),
-    trackingCoverage: z.enum(['complete', 'partial', 'untracked']),
+    trackingCoverage: trackingCoverageSchema,
     status: sessionStatusSchema,
     sessionType: sessionTypeSchema,
     color: sessionColor.nullish(),

@@ -69,6 +69,15 @@ export const createSessionSchema = z
     pomodoroSettings: pomodoroSettingsSchema.optional(),
   })
   .strict();
+/**
+ * Study done without the timer, typed in afterwards. It is stored as a completed session whose whole range counts as
+ * measured study, marked `manual`; it must have ended already.
+ */
+export const logStudySchema = createSessionSchema
+  .pick({ planId: true, topicId: true, courseId: true, title: true, description: true, startTime: true, endTime: true, color: true })
+  .extend({ sessionType: z.enum(['study', 'review']).optional(), notes: z.string().max(5000).optional() })
+  .strict();
+export type LogStudyInput = z.infer<typeof logStudySchema>;
 export const sessionVersionSchema = z
   .object({ expectedUpdatedAt: instant })
   .strict();

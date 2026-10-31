@@ -47,4 +47,6 @@ export const measuredSessionLabel = (
 ) =>
   session.trackingCoverage === undefined || session.trackingCoverage === 'untracked'
     ? text.untracked
-    : text.studied(formatMeasuredSeconds(session.studySeconds ?? 0, language), session.trackingCoverage === 'partial');
+    : session.trackingCoverage === 'manual'
+      ? text.studiedManual(formatMeasuredSeconds(session.studySeconds ?? 0, language))
+      : text.studied(formatMeasuredSeconds(session.studySeconds ?? 0, language), session.trackingCoverage === 'partial');

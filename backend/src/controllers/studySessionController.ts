@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import type { WhereOptions } from 'sequelize';
 import { StudySession } from '../models';
-import { createSession, updateSession, deleteSession, sessionIncludes } from '../services/studySessions';
+import { createSession, logStudy, updateSession, deleteSession, sessionIncludes } from '../services/studySessions';
 import type { SessionQuery, UpdateSessionInput } from '@study-tracker/contracts';
 import { getStudyStats, scheduledRange, sessionTimezone, sessionDTO } from '../services/studyTracking';
 import { sessionsWithTag } from '../services/tags';
@@ -64,6 +64,13 @@ export const getStudySession = async (req: Request, res: Response, next: NextFun
 export const createStudySession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const session = await createSession(req.user!, req.body);
+    res.status(201).json({ success: true, data: { session: sessionDTO(session) } });
+  } catch (error) { next(error); }
+};
+
+export const logStudySession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const session = await logStudy(req.user!, req.body);
     res.status(201).json({ success: true, data: { session: sessionDTO(session) } });
   } catch (error) { next(error); }
 };

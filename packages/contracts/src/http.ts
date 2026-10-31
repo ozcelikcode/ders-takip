@@ -73,6 +73,7 @@ export const apiErrorCodes = [
   'resetBeforeDurations',
   'transitionNotAllowed',
   'plannedEndPassed',
+  'loggedStudyNotEnded',
   'pauseActiveFirst',
   'pomodoroPhaseManaged',
   'activityKindRunningOnly',

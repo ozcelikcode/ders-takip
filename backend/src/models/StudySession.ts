@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
-import type { SessionStatus, TrackingCoverage } from '@study-tracker/contracts';
+import { trackingCoverageSchema, type SessionStatus, type TrackingCoverage } from '@study-tracker/contracts';
 import type { SessionInterval } from './SessionInterval';
 import type { PomodoroClock } from './PomodoroClock';
 import type { User } from './User';
@@ -163,7 +163,7 @@ StudySession.init(
         max: 1440, // 24 hours in minutes
       },
     },
-    trackingCoverage: { type: DataTypes.ENUM('complete', 'partial', 'untracked'), allowNull: false, defaultValue: 'complete' },
+    trackingCoverage: { type: DataTypes.ENUM(...trackingCoverageSchema.options), allowNull: false, defaultValue: 'complete' },
     status: {
       type: DataTypes.ENUM('planned', 'in_progress', 'completed', 'cancelled', 'paused'),
       allowNull: false,

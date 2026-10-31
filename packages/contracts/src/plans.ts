@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { topicDifficultySchema } from './catalog.js';
+import { trackingCoverageSchema } from './studyTracking.js';
 import {
   sessionStatusSchema,
   sessionTypeSchema,
@@ -88,7 +89,7 @@ const linkedSessionSchema = z.object({
   notes: z.string().nullable(),
   productivity: z.number().nullable(),
   completedAt: responseInstant.nullable(),
-  trackingCoverage: z.enum(['complete', 'partial', 'untracked']),
+  trackingCoverage: trackingCoverageSchema,
   createdAt: responseInstant,
   updatedAt: responseInstant,
   course: namedRelation

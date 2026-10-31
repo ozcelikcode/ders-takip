@@ -1,5 +1,5 @@
 import { Op, Transaction, type Includeable } from 'sequelize';
-import { canTransitionSession, reservesSessionTime, isSessionDurationValid, type CreateSessionInput, type UpdateSessionInput, type PomodoroCommand, fail } from '@study-tracker/contracts';
+import { canTransitionSession, reservesSessionTime, isSessionDurationValid, type CreateSessionInput, type LogStudyInput, type UpdateSessionInput, type PomodoroCommand, fail } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
 import { Category, Course, Plan, SessionSeries, StudySession, Topic, SessionInterval, PomodoroClock } from '../models';
 import { createPomodoroClock, settlePomodoroClock, updatePomodoroClock, savePomodoroClock } from './pomodoroClocks';
@@ -104,6 +104,32 @@ export async function createSession(actor: Actor, input: CreateSessionInput) {
   });
 }
 
+/**
+ * Records study done without the timer: a completed session whose whole range is one measured study interval, marked
+ * `manual`. It must already have ended and, like any kept session, may not overlap another one.
+ */
+export async function logStudy(actor: Actor, input: LogStudyInput) {
+  return sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
+    const startTime = new Date(input.startTime);
+    const endTime = new Date(input.endTime);
+    const duration = scheduledDuration(startTime, endTime);
+    if (endTime.getTime() > Date.now()) fail(400, 'loggedStudyNotEnded');
+    const courseId = await validateRelations(actor, input, transaction);
+    await assertAvailable(actor.id, startTime, endTime, transaction);
+    const session = StudySession.build({
+      userId: actor.id, title: input.title, startTime, endTime, duration, sessionType: input.sessionType ?? 'study',
+      status: 'completed', completedAt: endTime, trackingCoverage: 'manual',
+    });
+    for (const field of ['planId', 'topicId', 'description', 'color', 'notes'] as const) {
+      if (input[field] !== undefined) session.set(field, input[field]);
+    }
+    if (courseId !== undefined) session.courseId = courseId;
+    await session.save({ transaction });
+    await SessionInterval.create({ sessionId: session.id, kind: 'study', startedAt: startTime, endedAt: endTime }, { transaction });
+    return session.reload({ include: sessionIncludes, transaction });
+  });
+}
+
 export async function updateSession(actor: Actor, id: number, input: UpdateSessionInput, timerCommand?: PomodoroCommand) {
   return sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async transaction => {
     const session = await loadOwned(actor, id, input.expectedUpdatedAt, transaction);
@@ -125,6 +151,13 @@ export async function updateSession(actor: Actor, id: number, input: UpdateSessi
     const reopening = session.status === 'cancelled' && nextStatus === 'planned';
     if ((scheduleChanged || reopening) && reservesSessionTime(nextStatus)) {
       await assertAvailable(actor.id, startTime, endTime, transaction, session.id);
+    }
+    // A logged entry's measurement is its range; correcting the times corrects what was measured with them.
+    if (scheduleChanged && session.trackingCoverage === 'manual' && session.status === 'completed' && nextStatus === 'completed') {
+      if (endTime.getTime() > Date.now()) fail(400, 'loggedStudyNotEnded');
+      const intervals = await SessionInterval.findAll({ where: { sessionId: session.id }, transaction });
+      if (intervals.length === 1 && intervals[0]!.kind === 'study')
+        await intervals[0]!.update({ startedAt: startTime, endedAt: endTime }, { transaction });
     }
     if (nextStatus === 'in_progress' && session.status !== 'in_progress') {
       if (endTime.getTime() <= Date.now()) fail(409, 'plannedEndPassed');

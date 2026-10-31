@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { catalogPathIdSchema, createSessionSchema, updateSessionSchema, sessionVersionSchema, completeSessionSchema, startSessionSchema, sessionQuerySchema, pomodoroCommandSchema } from '@study-tracker/contracts';
+import { catalogPathIdSchema, logStudySchema, createSessionSchema, updateSessionSchema, sessionVersionSchema, completeSessionSchema, startSessionSchema, sessionQuerySchema, pomodoroCommandSchema } from '@study-tracker/contracts';
 import {
 completeStudySession,
 createStudySession,
@@ -8,6 +8,7 @@ deleteStudySession,
 getStudySession,
 getStudySessions,
 getSessionStats,
+logStudySession,
 controlPomodoro,
 pauseStudySession,
 startStudySession,
@@ -34,6 +35,9 @@ router.get('/stats', validate(z.object({ query: sessionQuerySchema })), getSessi
 router.route('/')
   .get(validate(z.object({ query: sessionQuerySchema })), getStudySessions)
   .post(validate(createStudySessionSchema), createStudySession);
+
+// Study done without the timer, typed in afterwards.
+router.post('/log', validate(z.object({ body: logStudySchema })), logStudySession);
 
 router.route('/:id')
   .get(validate(sessionParamsSchema), getStudySession)

@@ -21,6 +21,7 @@ import {
   type CourseGoal,
   type ChangePasswordInput,
   type CreateSeriesInput,
+  type LogStudyInput,
   type SeriesRecord,
   type UpdateSeriesInput,
 } from '@study-tracker/contracts';
@@ -381,6 +382,12 @@ export const studySessionsAPI = {
     data: CreateStudySessionRequest,
   ): Promise<HttpResponse<ApiResponse<{ session: StudySession }>>> =>
     api.post('/study-sessions', data),
+
+  // Study done without the timer, recorded afterwards as measured time.
+  logStudy: (
+    data: LogStudyInput,
+  ): Promise<HttpResponse<ApiResponse<{ session: StudySession }>>> =>
+    api.post('/study-sessions/log', data),
 
   updateSession: (
     session: Pick<StudySession, 'id' | 'updatedAt'>,

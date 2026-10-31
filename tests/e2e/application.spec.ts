@@ -486,6 +486,21 @@ test('lets a user name records with their own word and keeps it after a reload',
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Projeler');
 });
 
+test('logs study done without the timer as measured time', async ({ page, application }) => {
+  const yesterday = new Date(Date.parse(`${application.day}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+  await login(page);
+  await page.goto('/planner');
+  await page.getByRole('button', { name: 'Sonradan kaydet', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Geçmiş çalışmayı kaydet' });
+  await dialog.getByLabel('Başlık').fill('Kitap okuma');
+  await dialog.getByLabel('Tarih').fill(yesterday);
+  await dialog.getByLabel('Başlangıç saati').fill('20:00');
+  await dialog.getByLabel('Süre (dakika)').fill('45');
+  await dialog.getByRole('button', { name: 'Kaydet', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByText('Çalışma kaydedildi')).toBeVisible();
+});
+
 test('plans a weekly routine, edits it as a whole and ends it', async ({ page, application }) => {
   // Start tomorrow so the test does not depend on the time of day.
   const tomorrow = new Date(Date.parse(`${application.day}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);

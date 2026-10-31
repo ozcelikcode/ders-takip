@@ -194,3 +194,24 @@ it('lists only sessions that can still run when asked for unfinished ones, on an
   assert.deepEqual((await titles('')).sort(), [planned.id, done.id].sort());
   await auth('get', '/api/study-sessions?unfinished=false').expect(400);
 });
+it('logs study done without the timer as measured, completed and marked manual', async () => {
+  const log = (patch, status) => auth('post', '/api/study-sessions/log').send({ title: 'Kitap okuma', startTime: '2026-01-05T09:00:00Z', endTime: '2026-01-05T10:30:00Z', notes: 'Bölüm 3', ...patch }).expect(status);
+  const session = (await log({}, 201)).body.data.session;
+  assert.equal(session.status, 'completed');
+  assert.equal(session.trackingCoverage, 'manual');
+  assert.equal(session.studySeconds, 90 * 60);
+  assert.equal(session.notes, 'Bölüm 3');
+  assert.equal(new Date(session.completedAt).toISOString(), '2026-01-05T10:30:00.000Z');
+  const stats = (await auth('get', '/api/study-sessions/stats?startDate=2026-01-05&endDate=2026-01-05&timezone=UTC').expect(200)).body.data.stats;
+  assert.equal(stats.studySeconds, 90 * 60);
+  // The range is kept like any other session's, and only finished work can be logged.
+  assert.equal((await log({ startTime: '2026-01-05T10:00:00Z', endTime: '2026-01-05T11:00:00Z' }, 409)).body.success, false);
+  const future = new Date(Date.now() + 3600000).toISOString();
+  assert.equal((await log({ startTime: new Date(Date.now() - 600000).toISOString(), endTime: future }, 400)).body.error.code, 'loggedStudyNotEnded');
+  await log({ status: 'planned' }, 400);
+  assert.equal((await log({ courseId: 999999 }, 400)).body.error.code, 'invalidParent');
+  // Correcting a logged entry's times corrects its measured time with them.
+  const corrected = await put(session, { startTime: '2026-01-05T09:00:00Z', endTime: '2026-01-05T09:45:00Z' });
+  assert.equal(corrected.studySeconds, 45 * 60);
+  assert.equal(corrected.trackingCoverage, 'manual');
+});
