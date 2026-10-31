@@ -31,11 +31,14 @@ export const newPasswordSchema = z
     (value) => new TextEncoder().encode(value).length <= 72,
     'passwordBytes',
   );
+/** Email addresses are compared without case: `Ada@Example.com` and `ada@example.com` are one account. */
+export const emailSchema = z.string().trim().toLowerCase().pipe(z.email({ error: 'email' }));
+
 /** The fields of a new account; registration and administrator-created accounts both start from these. */
 export const accountFieldsSchema = z
   .object({
     username: usernameSchema,
-    email: z.email({ error: 'email' }),
+    email: emailSchema,
     password: newPasswordSchema,
     firstName: personNameSchema,
     lastName: personNameSchema,

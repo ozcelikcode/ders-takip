@@ -6,6 +6,7 @@ import { getEnvironment } from '../config/environment';
 import { PasswordResetToken, User } from '../models';
 import { revokeUserSessions } from './authSessions';
 import { mailer } from './mailer';
+import { emailEquals } from '../utils/textSearch';
 import { readSiteSettings } from './siteSettings';
 
 const lifetimeMs = 30 * 60 * 1000;
@@ -31,7 +32,7 @@ async function issueToken(userId: number, issuedBy: 'self' | 'admin', transactio
  */
 export async function requestPasswordReset(email: string): Promise<'email' | 'admin'> {
   if (!mailer.enabled()) return 'admin';
-  const user = await User.findOne({ where: { email, isActive: true } });
+  const user = await User.findOne({ where: { [Op.and]: [emailEquals(email), { isActive: true }] } });
   if (!user) return 'email';
   const recent = await PasswordResetToken.findOne({
     where: { userId: user.id, issuedBy: 'self', createdAt: { [Op.gt]: new Date(Date.now() - resendCooldownMs) } },

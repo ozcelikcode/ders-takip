@@ -218,3 +218,14 @@ it('answers a taken email or username at registration with 409', async () => {
     .send({ ...registration, username: 'someoneelse', email: admin.email }).expect(409);
   assert.equal(response.body.error.code, 'emailTaken');
 });
+
+it('treats email addresses without case, including older rows stored in mixed case', async () => {
+  const send = (url, body) => request(app).post(url).set('X-Requested-With', 'StudyTracker').send(body);
+  const created = (await send('/api/auth/register', { ...registration, username: 'mixedcase', email: ' Mixed@Example.COM ' }).expect(201)).body.data.user;
+  assert.equal(created.email, 'mixed@example.com');
+  await send('/api/auth/login', { email: 'MIXED@example.com', password: registration.password }).expect(200);
+  await send('/api/auth/register', { ...registration, username: 'mixedcase2', email: 'mixed@EXAMPLE.com' }).expect(409);
+  await User.create({ username: 'legacycase', email: 'Legacy@Example.com', password: 'fixture-password', firstName: 'Old', lastName: 'Row' });
+  await send('/api/auth/login', { email: 'legacy@example.com', password: 'fixture-password' }).expect(200);
+  assert.equal((await send('/api/auth/register', { ...registration, username: 'legacycase2', email: 'LEGACY@example.com' }).expect(409)).body.error.code, 'emailTaken');
+});

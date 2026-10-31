@@ -2,7 +2,7 @@ import { userResponse } from '../services/userResponses';
 import { recordAdminEvent } from '../services/adminAudit';
 import { getAllTimeSummaries, getStudyStats } from '../services/studyTracking';
 import { defaultPreferences, mergePreferences, preferencesSchema, fail } from '@study-tracker/contracts';
-import { columnContains } from '../utils/textSearch';
+import { columnContains, emailEquals } from '../utils/textSearch';
 import { Op, Transaction, type WhereOptions } from 'sequelize';
 import { sequelize } from '../config/database';
 import { revokeUserSessions } from '../services/authSessions';
@@ -108,13 +108,13 @@ export const createUser = async (
       async (transaction) => {
         const existingUser = await User.findOne({
           where: {
-            [Op.or]: [{ email }, { username }],
+            [Op.or]: [emailEquals(email), { username }],
           },
           transaction,
         });
 
         if (existingUser) {
-          fail(409, existingUser.email === email ? 'emailTaken' : 'usernameTaken');
+          fail(409, existingUser.email.toLowerCase() === email ? 'emailTaken' : 'usernameTaken');
         }
 
         return User.create(

@@ -13,6 +13,7 @@ import {
 } from '../services/authSessions';
 import { readSiteSettings, sendMaintenance } from '../services/siteSettings';
 import { recordAdminEvent } from '../services/adminAudit';
+import { emailEquals } from '../utils/textSearch';
 import {
   clearRefreshCookie,
   readRefreshCookie,
@@ -44,14 +45,14 @@ export const register = async (
 
     const existingUser = await User.findOne({
       where: {
-        [Op.or]: [{ email }, { username }],
+        [Op.or]: [emailEquals(email), { username }],
       },
     });
 
     if (existingUser) {
       res.status(409).json({
         success: false,
-        error: { code: existingUser.email === email ? 'emailTaken' : 'usernameTaken' },
+        error: { code: existingUser.email.toLowerCase() === email ? 'emailTaken' : 'usernameTaken' },
       });
       return;
     }
@@ -95,7 +96,7 @@ export const login = async (
     const { email, password } = req.body;
 
     const user = await User.findOne({
-      where: { email },
+      where: emailEquals(email),
       attributes: { include: ['password'] },
     });
 

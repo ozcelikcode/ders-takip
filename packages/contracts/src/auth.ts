@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   accountFieldsSchema,
+  emailSchema,
   usernameSchema,
   personNameSchema,
   newPasswordSchema,
@@ -18,7 +19,7 @@ export const registerSchema = accountFieldsSchema
   .strict();
 export const loginSchema = z
   .object({
-    email: z.email({ error: 'email' }),
+    email: emailSchema,
     password: z.string().min(1, 'passwordRequired'),
   })
   .strict();
@@ -89,7 +90,7 @@ export type ProfilePatch = z.infer<typeof profilePatchSchema>;
 /** 32 random bytes in base64url. */
 export const passwordResetTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'resetLinkInvalid');
 export const forgotPasswordSchema = z
-  .object({ email: z.email({ error: 'email' }) })
+  .object({ email: emailSchema })
   .strict();
 export const resetPasswordSchema = z
   .object({ token: passwordResetTokenSchema, password: newPasswordSchema })
