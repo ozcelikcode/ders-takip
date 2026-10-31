@@ -1,0 +1,15 @@
+# Never send local data, secrets or build leftovers into an image.
+**/node_modules
+**/dist
+**/.env
+**/.env.*
+!**/.env.example
+.local
+.git
+**/*.sqlite*
+**/backups
+**/admin-audit*.jsonl
+test-results
+playwright-report
+lighthouse-report
+lighthouse-results

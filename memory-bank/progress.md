@@ -57,6 +57,8 @@ Backlog: signed-in devices list with "sign out everywhere", later TOTP 2FA; remi
 
 Dockerfile + compose, Caddy (HTTPS, HTTP/2, compression, cache headers), `robots.txt`, `npm run backup:verify` (restores a backup into a separate copy and checks it), the first GitHub Actions run, an off-server copy of the activity log.
 
+**Done (31 October):** `npm run backup:verify [-- id]` (`verifyBackupRestore`: checksum, a temporary copy, integrity, foreign keys and current schema; the live database is never opened) — the real automatic backup #8 of 24 October passed. `Dockerfile` (targets `api` and `web`), `compose.yaml`, `deploy/Caddyfile` (HTTPS, HTTP/2 and 3, zstd/gzip, immutable `/assets/*`, `no-cache` pages, security headers), `deploy/.env.example`, `.dockerignore` (no local data, secrets or databases in images), `frontend/public/robots.txt`; README › Deployment has the commands. **Not verified:** Docker and Caddy are not installed on the development machine, so the images were never built or run. Still open: the first GitHub Actions run (needs a push) and an off-server copy of the activity log (an operations step, documented).
+
 ## Current status and next steps (25 October 2026)
 
 **Status:** `check` exit 0 (contracts 46, backend 209, frontend 310; after administrator security), browser tests 123/123, Lighthouse (24 October, after F1–F6, 3 runs): sign-in desktop 100 / mobile 94–95, dashboard desktop 99–100 / mobile 91 (no regression; an occasional 86 can occur, see the note below), accessibility and best practices 100 in 12/12 runs. The interface language is one site-wide setting; the server returns codes only; email and push follow the site language; stored data is never translated.

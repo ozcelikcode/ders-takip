@@ -168,6 +168,7 @@ The backend reads `backend/.env` in development; production deployments provide 
 | `npm run dev` | Run the API and the frontend together |
 | `npm run db:migrate` | Apply pending migrations |
 | `npm run admin:manage` | Create the first administrator or recover one |
+| `npm run backup:verify` | Restore the newest (or a chosen) backup into a temporary copy and check it |
 | `npm run check` | Naming and interface-text checks, strict type checks, lint (zero warnings), all workspace tests and production builds |
 | `npm run test:e2e` | Isolated browser tests in Chromium, WebKit and mobile Chromium |
 | `npm run test:lighthouse` | Lighthouse measurements of the sign-in page and the dashboard |
@@ -297,9 +298,30 @@ An account can download everything it owns as JSON, with the names of the shared
 
 ## Deployment notes
 
+The repository ships a container setup: [`Dockerfile`](Dockerfile) builds an `api` image (the backend, data under the `/data` volume) and a `web` image (Caddy serving the interface and forwarding `/api`, with automatic HTTPS, HTTP/2, compression and long-lived caching for hashed build files). [`compose.yaml`](compose.yaml) runs both.
+
+```bash
+cp deploy/.env.example deploy/.env      # set SITE_ADDRESS and JWT_SECRET
+docker compose --env-file deploy/.env build
+docker compose --env-file deploy/.env run --rm api node backend/dist/scripts/migrate.js
+docker compose --env-file deploy/.env run --rm -v /absolute/path/to/admin-password.txt:/run/admin-password.txt:ro api \
+  node backend/dist/scripts/manage-admin.js --mode create --email admin@example.com --username admin --password-file /run/admin-password.txt
+docker compose --env-file deploy/.env up -d
+```
+
+Prove a backup can be restored at any time without touching the live database:
+
+```bash
+npm run backup:verify            # the newest verified backup
+npm run backup:verify -- 12      # a chosen one
+docker compose --env-file deploy/.env exec api node backend/dist/scripts/verify-backup.js
+```
+
 - Provide configuration through environment variables and use HTTPS for `FRONTEND_URL`.
 - Route `/api` (including the public calendar feed under `/api/calendar/`) from your reverse proxy to the backend.
 - Run a single backend process: backup, restore and scheduled-job coordination is per process.
+- Behind a reverse proxy set `TRUST_PROXY=1` (the `api` image does), so rate limits and the activity log see visitors' addresses.
+- Copy the `/data` volume, or at least `backups/` and `admin-audit.jsonl`, off the server regularly; `BACKUP_COPY_DIR` can point at a mounted second disk.
 - Keep the server clock correct; the Pomodoro deadline and reminders rely on it.
 - The Vite dev server is for development only.
 

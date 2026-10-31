@@ -2,6 +2,7 @@ import { backupRecordSchema, fail } from '@study-tracker/contracts';
 import { createReadStream } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { z } from 'zod';
 import { Transaction } from 'sequelize';
@@ -225,6 +226,28 @@ export const runScheduledBackup = async (now = new Date()): Promise<boolean> => 
   });
   if (created) await mirrorBackups();
   return created;
+};
+
+/**
+ * A restore drill without touching the live database: the newest verified backup (or `id`) is checked against its
+ * manifest, copied into a private temporary folder, opened read-only and checked for integrity, foreign keys and the
+ * current schema there. The copy is removed afterwards.
+ */
+export const verifyBackupRestore = async (id?: number) => {
+  const manifests = (await verifiedManifests()).sort(newestFirst);
+  const manifest = id === undefined ? manifests[0] : manifests.find(entry => entry.id === id);
+  if (!manifest) throw new Error(id === undefined ? 'No verified backup was found' : `Backup ${id} was not found`);
+  const source = snapshotPath(manifest.filename);
+  if ((await checksum(source)) !== manifest.checksum) throw new Error('Snapshot checksum mismatch');
+  const folder = await fs.mkdtemp(path.join(os.tmpdir(), 'study-tracker-restore-drill-'));
+  try {
+    const copy = path.join(folder, 'restored.sqlite');
+    await copySqliteSnapshot(source, copy);
+    await validateSnapshot(copy);
+    return { id: manifest.id, type: manifest.type, createdAt: manifest.createdAt, size: manifest.size };
+  } finally {
+    await fs.rm(folder, { recursive: true, force: true });
+  }
 };
 
 export const listBackups = async () => {

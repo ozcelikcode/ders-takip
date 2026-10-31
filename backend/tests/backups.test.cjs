@@ -9,7 +9,7 @@ const directory = mkdtempSync(path.join(tmpdir(),'study-backup-'));
 Object.assign(process.env,{NODE_ENV:'test',JWT_SECRET:randomBytes(48).toString('hex'),DB_PATH:path.join(directory,'live.sqlite'),BACKUP_DIR:path.join(directory,'backups')});
 const { sequelize } = require('../dist/config/database');
 const { applyMigrations, assertDatabaseReady } = require('../dist/database/migrations');
-const { performBackup, restoreSnapshot, resetApplicationData, runScheduledBackup, isBackupDue } = require('../dist/services/backups');
+const { performBackup, restoreSnapshot, resetApplicationData, runScheduledBackup, isBackupDue, verifyBackupRestore } = require('../dist/services/backups');
 const { isDatabaseUnavailable, withDatabaseMaintenance } = require('../dist/services/databaseMaintenance');
 const { User, Course, Category, Settings, AuthSession, Backup } = require('../dist/models');
 const { createAuthSession } = require('../dist/services/authSessions');
@@ -37,6 +37,18 @@ describe('consistent snapshots and recovery',()=>{
     const first = withDatabaseMaintenance(()=>waiting);
     await assert.rejects(performBackup('manual'),/already active/);
     release(); await first; assert.equal(isDatabaseUnavailable(),false);
+  });
+  it('proves a backup restores in a temporary copy without touching the live database',async()=>{
+    const backup = await performBackup('manual');
+    const before = (await fs.stat(process.env.DB_PATH)).mtimeMs;
+    const result = await verifyBackupRestore(backup.id);
+    assert.equal(result.id, backup.id);
+    assert.equal((await verifyBackupRestore()).id >= backup.id, true);
+    assert.equal((await fs.stat(process.env.DB_PATH)).mtimeMs, before);
+    await assert.rejects(verifyBackupRestore(999999), /not found/);
+    await fs.appendFile(backup.path, 'corrupt');
+    // A changed file no longer matches its manifest, so it is not offered as a verified backup at all.
+    await assert.rejects(verifyBackupRestore(backup.id), /not found/);
   });
   it('rejects corrupt or missing snapshots without changing current data',async()=>{
     const backup = await performBackup('manual');

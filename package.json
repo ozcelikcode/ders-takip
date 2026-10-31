@@ -32,6 +32,7 @@
     "push:keys": "node scripts/generate-push-keys.mjs",
     "db:migrate": "npm run db:migrate --workspace backend",
     "admin:manage": "npm run admin:manage --workspace backend --",
+    "backup:verify": "npm run backup:verify --workspace backend --",
     "pretypecheck": "npm run build --workspace @study-tracker/contracts",
     "pretest": "npm run build --workspace @study-tracker/contracts",
     "predev:all": "npm run build --workspace @study-tracker/contracts",

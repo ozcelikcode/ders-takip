@@ -12,6 +12,7 @@
     "test": "npm run build && node --test tests/*.test.cjs",
     "db:migrate": "npm run build && node dist/scripts/migrate.js",
     "admin:manage": "npm run build && node dist/scripts/manage-admin.js",
+    "backup:verify": "npm run build && node dist/scripts/verify-backup.js",
     "prebuild": "npm run build --workspace @study-tracker/contracts"
   },
   "keywords": [

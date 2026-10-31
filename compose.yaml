@@ -1,0 +1,39 @@
+# Production: `docker compose --env-file deploy/.env up -d --build`. See README › Deployment.
+services:
+  api:
+    build: { context: ., target: api }
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in deploy/.env}
+      FRONTEND_URL: https://${SITE_ADDRESS:?Set SITE_ADDRESS in deploy/.env}
+      BACKUP_COPY_DIR: ${BACKUP_COPY_DIR:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+    volumes:
+      - study-data:/data
+
+  web:
+    build: { context: ., target: web }
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  study-data:
+  caddy-data:
+  caddy-config:
