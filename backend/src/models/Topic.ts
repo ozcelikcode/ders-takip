@@ -1,3 +1,4 @@
+import { topicDifficulties, type TopicDifficulty } from '@study-tracker/contracts';
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
 import { Course } from './Course';
@@ -8,7 +9,7 @@ interface TopicAttributes {
   courseId: number;
   description?: string;
   estimatedTime: number;
-  difficulty: 'Kolay' | 'Orta' | 'Zor';
+  difficulty: TopicDifficulty;
   order: number;
   isActive: boolean;
   createdAt: Date;
@@ -24,7 +25,7 @@ export class Topic extends Model<TopicAttributes, TopicCreationAttributes> imple
   public courseId!: number;
   public description?: string;
   public estimatedTime!: number;
-  public difficulty!: 'Kolay' | 'Orta' | 'Zor';
+  public difficulty!: TopicDifficulty;
   public order!: number;
   public isActive!: boolean;
 
@@ -65,7 +66,7 @@ Topic.init(
       },
     },
     difficulty: {
-      type: DataTypes.ENUM('Kolay', 'Orta', 'Zor'),
+      type: DataTypes.ENUM(...topicDifficulties),
       allowNull: false,
       defaultValue: 'Orta',
     },

@@ -1,7 +1,7 @@
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import type { PasswordFormState } from './profileForm';
-import { useText } from '../../store/languageStore';
+import { useText } from '../../../store/languageStore';
 
 interface PasswordCardProps {
   isEditingPassword: boolean;

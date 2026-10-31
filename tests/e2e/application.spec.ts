@@ -426,7 +426,7 @@ test('lets an account download its data and delete itself with its password', as
   await registerAccount(page, 'leaving');
   await page.getByRole('button', { name: 'Şimdilik atla' }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  await page.goto('/profile');
+  await page.goto('/settings');
   const data = page.getByRole('region', { name: 'Verilerin' });
   const download = page.waitForEvent('download');
   await data.getByRole('button', { name: 'İndir' }).click();
@@ -467,7 +467,7 @@ test('lets a user choose browser reminders and keeps the choice after a reload',
 
 test('lets a user name records with their own word and keeps it after a reload', async ({ page }) => {
   await login(page);
-  await page.goto('/settings');
+  await page.goto('/settings?tab=appearance');
   await page.getByRole('radio', { name: /Özel kelimeler/ }).check();
   const course = page.getByRole('group', { name: 'Ana kayıt' });
   await course.getByLabel('Kelime').fill('kitap');
@@ -479,7 +479,7 @@ test('lets a user name records with their own word and keeps it after a reload',
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Kitaplar');
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Kitaplar');
-  await page.goto('/settings');
+  await page.goto('/settings?tab=appearance');
   await page.getByRole('radio', { name: /Site varsayılanı/ }).check();
   await expect(page.getByRole('status').filter({ hasText: 'Tercihler hesabınızda saklanır' })).toBeVisible();
   await page.goto('/courses');
@@ -635,7 +635,7 @@ test('tags a session and filters the planner and statistics by that tag', async 
 
 test('moves an account into a new one through the downloaded data file', async ({ page }, info) => {
   await login(page);
-  await page.goto('/profile');
+  await page.goto('/settings');
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'İndir', exact: true }).click();
   const file = info.outputPath('account.json');
@@ -650,11 +650,22 @@ test('moves an account into a new one through the downloaded data file', async (
   await dailyPlanner(page);
 
   // The account is no longer empty, so the same file is refused the second time.
-  await page.goto('/profile');
+  await page.goto('/settings');
   const again = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Dosya seç', exact: true }).click();
   await (await again).setFiles(file);
   await expect(page.getByRole('main').getByRole('alert')).toHaveText('Veriler yalnız boş bir hesaba yüklenebilir; bu hesapta zaten veri var');
+});
+
+test('returns to the requested page after sign-in, but not after a deliberate sign-out', async ({ page }) => {
+  await page.goto('/settings?tab=calendar');
+  await expect(page).toHaveURL(/\/login$/);
+  await page.getByLabel('E-posta Adresi').fill('owner@example.test');
+  await page.getByLabel('Şifre', { exact: true }).fill('fixture-password');
+  await page.getByRole('button', { name: 'Giriş Yap', exact: true }).click();
+  await expect(page).toHaveURL(/\/settings\?tab=calendar$/);
+  await logout(page);
+  await login(page);
 });
 
 test('jumps to any page or settings tab by name, from the keyboard or the header button', async ({ page }) => {
@@ -1129,7 +1140,7 @@ test.describe('Site language', () => {
 
     // Turkish words on the Turkish site.
     await login(page);
-    await page.goto('/settings');
+    await page.goto('/settings?tab=appearance');
     await page.getByRole('radio', { name: /Özel kelimeler/ }).check();
     const turkishRecord = page.getByRole('group', { name: 'Ana kayıt' });
     await turkishRecord.getByLabel('Kelime').fill('kitap');
@@ -1145,7 +1156,7 @@ test.describe('Site language', () => {
     await signInInEnglish('owner@example.test');
     await page.goto('/courses');
     await expect(heading).toHaveText('Projects');
-    await page.goto('/settings');
+    await page.goto('/settings?tab=appearance');
     await page.getByRole('radio', { name: /Custom words/ }).check();
     const record = page.getByRole('group', { name: 'Main record' });
     await record.getByLabel('Word').fill('book');

@@ -30,7 +30,6 @@ function useDestinations(): Destination[] {
     workspace(nav.records(t), '/courses'),
     workspace(nav.pomodoro, '/pomodoro'),
     workspace(nav.search, '/search'),
-    account(nav.profile, '/profile'),
     account(nav.settings, '/settings'),
     ...keys(settings.tabs).map((tab) => settingsTab(settings.tabs[tab], `/settings?tab=${tab}`)),
     ...(isAdmin

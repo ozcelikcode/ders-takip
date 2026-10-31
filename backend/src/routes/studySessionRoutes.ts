@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { createSessionSchema, updateSessionSchema, sessionVersionSchema, completeSessionSchema, startSessionSchema, sessionQuerySchema, pomodoroCommandSchema } from '@study-tracker/contracts';
+import { catalogPathIdSchema, createSessionSchema, updateSessionSchema, sessionVersionSchema, completeSessionSchema, startSessionSchema, sessionQuerySchema, pomodoroCommandSchema } from '@study-tracker/contracts';
 import {
 completeStudySession,
 createStudySession,
@@ -18,7 +18,7 @@ import { validate } from '../middleware/validate';
 
 const router = Router();
 
-const params = z.object({ id: z.string().regex(/^[1-9]\d*$/).refine(value => Number.isSafeInteger(Number(value))) });
+const params = z.object({ id: catalogPathIdSchema });
 const sessionParamsSchema = z.object({ params });
 const versionedSessionSchema = z.object({ params, body: sessionVersionSchema });
 const createStudySessionSchema = z.object({ body: createSessionSchema });

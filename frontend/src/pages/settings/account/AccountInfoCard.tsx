@@ -1,6 +1,6 @@
-import type { User } from '../../types/auth';
-import { useLocale } from '../../lib/locale';
-import { useText } from '../../store/languageStore';
+import type { User } from '../../../types/auth';
+import { useLocale } from '../../../lib/locale';
+import { useText } from '../../../store/languageStore';
 
 const AccountInfoCard = ({ user }: { user: User | null }) => {
   const text = useText().profile;

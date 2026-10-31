@@ -1,8 +1,8 @@
 import { Camera, Upload, User as UserIcon, X } from 'lucide-react';
 import type { ChangeEvent } from 'react';
-import type { User } from '../../types/auth';
+import type { User } from '../../../types/auth';
 import type { ProfileFormState } from './profileForm';
-import { useText } from '../../store/languageStore';
+import { useText } from '../../../store/languageStore';
 
 interface ProfilePictureCardProps {
   user: User | null;

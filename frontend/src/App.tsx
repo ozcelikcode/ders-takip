@@ -34,10 +34,9 @@ const shellPages = {
   stats: shellPage('/stats', () => import('./pages/stats/StatsPage')),
   search: shellPage('/search', () => import('./pages/search/SearchPage')),
   pomodoro: shellPage('/pomodoro', () => import('./pages/pomodoro/PomodoroPage')),
-  profile: shellPage('/profile', () => import('./pages/profile/ProfilePage')),
   settings: shellPage('/settings', () => import('./pages/settings/UserSettingsPage')),
 };
-const { dashboard, courses, courseDetail, planner, stats, search, pomodoro, profile, settings: userSettings } = shellPages;
+const { dashboard, courses, courseDetail, planner, stats, search, pomodoro, settings: userSettings } = shellPages;
 
 // The authenticated shell stays out of the public pages' first load. The page at the opened address
 // downloads alongside it; otherwise it would only start once the shell has rendered its outlet.
@@ -103,7 +102,8 @@ function App() {
         <Route path={stats.path} element={<stats.Page />} />
         <Route path={search.path} element={<search.Page />} />
         <Route path={pomodoro.path} element={<pomodoro.Page />} />
-        <Route path={profile.path} element={<profile.Page />} />
+        {/* The profile now lives in Settings; old links keep working. */}
+        <Route path="profile" element={<Navigate to="/settings" replace />} />
         <Route path={userSettings.path} element={<userSettings.Page />} />
 
         {/* Admin routes */}

@@ -1,5 +1,5 @@
 import { currentLocaleTag } from '../../lib/locale';
-import type { TopicProgressStatus } from '@study-tracker/contracts';
+import { topicDifficulties, type TopicDifficulty, type TopicProgressStatus } from '@study-tracker/contracts';
 import type { CatalogTopic as Topic } from '../../types/catalog';
 
 export type TopicStatus = TopicProgressStatus;
@@ -10,11 +10,8 @@ export type FilterOption =
   | 'not_started'
   | 'in_progress'
   | 'completed'
-  | 'Kolay'
-  | 'Orta'
-  | 'Zor';
+  | TopicDifficulty;
 
-const difficultyOrder = { Kolay: 1, Orta: 2, Zor: 3 };
 
 export const sortTopics = (
   topics: readonly Topic[],
@@ -31,7 +28,7 @@ export const sortTopics = (
         comparison = a.name.localeCompare(b.name, currentLocaleTag());
         break;
       case 'difficulty':
-        comparison = difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+        comparison = topicDifficulties.indexOf(a.difficulty) - topicDifficulties.indexOf(b.difficulty);
         break;
       case 'time':
         comparison = a.estimatedTime - b.estimatedTime;
@@ -46,7 +43,7 @@ export const filterTopics = (
   statusOf: (topicId: number) => TopicStatus,
 ) => {
   if (filterBy === 'all') return [...topics];
-  if (filterBy === 'Kolay' || filterBy === 'Orta' || filterBy === 'Zor')
+  if ((topicDifficulties as readonly string[]).includes(filterBy))
     return topics.filter((topic) => topic.difficulty === filterBy);
   return topics.filter((topic) => statusOf(topic.id) === filterBy);
 };

@@ -14,8 +14,10 @@ import { studySessionsAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import type { StudySession } from '../../types/planner';
-import DailyCalendar from './DailyCalendar';
-import WeeklyPlanner from './WeeklyPlanner';
+import PlannerCalendar, { type PlannerCalendarProps } from './PlannerCalendar';
+
+const DailyCalendar = (props: PlannerCalendarProps) => <PlannerCalendar {...props} mode="daily" />;
+const WeeklyPlanner = (props: PlannerCalendarProps) => <PlannerCalendar {...props} mode="weekly" />;
 vi.mock('../../services/api', () => ({
   studySessionsAPI: {
     getSessions: vi.fn(),

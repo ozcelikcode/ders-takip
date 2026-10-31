@@ -59,6 +59,8 @@ export const sessionQuerySchema = z
       .enum(['planned', 'in_progress', 'paused', 'completed', 'cancelled'])
       .optional(),
     sessionType: z.enum(['study', 'break', 'pomodoro', 'review']).optional(),
+    // Only sessions that can still run (planned, running or paused), on any date.
+    unfinished: z.literal('true').optional(),
     // Sessions with this tag, directly or through their record.
     tagId: z.coerce.number().int().positive().optional(),
   })

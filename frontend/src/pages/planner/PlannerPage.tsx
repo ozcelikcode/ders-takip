@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { calendarDateSchema, type SeriesRecord } from '@study-tracker/contracts';
 import { Repeat } from 'lucide-react';
-import WeeklyPlanner from '../../components/planner/WeeklyPlanner';
-import DailyCalendar from '../../components/planner/DailyCalendar';
+import PlannerCalendar from '../../components/planner/PlannerCalendar';
 import CreateSessionModal from '../../components/planner/CreateSessionModal';
 import TodaysPlans from '../../components/planner/TodaysPlans';
 import PlannerNavigation from '../../components/planner/PlannerNavigation';
@@ -42,7 +41,7 @@ const PlannerPage = () => {
         </div>} />
       <TodaysPlans />
       <section aria-label={activeView === 'weekly' ? text.weeklyCalendar : text.dailyCalendar}>
-        {activeView === 'weekly' ? <WeeklyPlanner key={`${timezone}:${initialDate}`} initialDate={initialDate} tagId={tagId} onCreateSession={handleCreateSession} /> : <DailyCalendar key={`${timezone}:${initialDate}`} initialDate={initialDate} tagId={tagId} onCreateSession={handleCreateSession} />}
+        <PlannerCalendar key={`${activeView}:${timezone}:${initialDate}`} mode={activeView === 'weekly' ? 'weekly' : 'daily'} initialDate={initialDate} tagId={tagId} onCreateSession={handleCreateSession} />
       </section>
       <CreateSessionModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} selectedDate={selectedDate} selectedHour={selectedHour} />
       {routinesOpen && <RoutinesDialog onClose={() => setRoutinesOpen(false)} onEdit={(series) => { setRoutinesOpen(false); setEditingRoutine(series); }} />}

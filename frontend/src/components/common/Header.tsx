@@ -148,7 +148,7 @@ export default function Header({ onMenuClick, onPaletteClick }: HeaderProps) {
                     </div>
                     <nav aria-label={text.account}>
                       <Link
-                        to="/profile"
+                        to="/settings"
                         onClick={() => close()}
                         className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-(--subtle)"
                       >

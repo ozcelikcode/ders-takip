@@ -2,6 +2,7 @@ import { useTerms } from '../../hooks/useTerms';
 import { useId, useState, type FormEvent } from 'react';
 import {
   createTopicSchema,
+  topicDifficulties,
   type UpdateTopicInput,
 } from '@study-tracker/contracts';
 import { topicsAPI } from '../../services/api';
@@ -164,7 +165,7 @@ function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
               })
             }
           >
-            {(['Kolay', 'Orta', 'Zor'] as const).map((value) => (
+            {topicDifficulties.map((value) => (
               // The stored value stays Turkish; only the shown name follows the language.
               <option key={value} value={value}>{courseText.difficulties[value]}</option>
             ))}

@@ -5,15 +5,15 @@ vi.mock('../services/api',()=>({authAPI:{updateProfile:vi.fn()}}));
 import { useCurrentDateKey, dateKeyAt } from './useCurrentDateKey';
 import { useUserPreferencesStore } from '../store/userPreferencesStore';
 import { useReadNotifications } from './useReadNotifications';
-import { archiveUnscopedState } from '../lib/archiveUnscopedState';
+import { clearLegacyStorage } from '../lib/legacyStorage';
 afterEach(()=>{cleanup();vi.useRealTimers();localStorage.clear();});
-it('archives unowned browser preferences without adopting them for another account',()=>{
+it('removes unowned browser preferences from older versions without adopting them for another account',()=>{
  localStorage.setItem('user-preferences-storage','{"state":{"preferences":{"theme":"dark"}}}');
  localStorage.setItem('readNotifications','[12]');
- archiveUnscopedState();
- expect(localStorage.getItem('user-preferences-storage')).toBeNull();
- const archived=JSON.parse(localStorage.getItem('unassigned-account-state') || '{}');
- expect(archived.values.readNotifications).toBe('[12]');
+ localStorage.setItem('unassigned-account-state','{}');
+ localStorage.setItem('auth-storage','{"state":{"accessToken":"old"}}');
+ clearLegacyStorage();
+ for (const key of ['user-preferences-storage','readNotifications','unassigned-account-state','auth-storage']) expect(localStorage.getItem(key)).toBeNull();
  useUserPreferencesStore.getState().bindUser('B',defaultPreferences);
  expect(useUserPreferencesStore.getState().preferences.theme).toBe('system');
 });

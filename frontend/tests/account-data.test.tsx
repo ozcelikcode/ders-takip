@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import AccountDataCard from '../src/pages/profile/AccountDataCard';
+import AccountDataCard from '../src/pages/settings/account/AccountDataCard';
 import { authAPI } from '../src/services/api';
 import { useAuthStore } from '../src/store/authStore';
 

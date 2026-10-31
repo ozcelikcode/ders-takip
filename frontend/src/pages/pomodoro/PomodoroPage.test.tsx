@@ -15,5 +15,8 @@ it('recovers an unfinished session from a previous day and renders the shared ti
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter><PomodoroPage /></MemoryRouter></QueryClientProvider>);
   const timer = await screen.findByRole('region', { name: 'Pomodoro sayacı' });
   expect(within(timer).getByRole('status').textContent).toBe('Kısa mola'); expect(within(timer).getByRole('timer').textContent).toBe('Kalan süre: 00:44');
-  expect(studySessionsAPI.getSessions).toHaveBeenCalledWith({ sessionType: 'pomodoro' });
+  // Only unfinished sessions and the last week are requested, never the whole history.
+  expect(studySessionsAPI.getSessions).toHaveBeenCalledWith({ sessionType: 'pomodoro', unfinished: 'true' });
+  expect(studySessionsAPI.getSessions).toHaveBeenCalledWith({ sessionType: 'pomodoro', startDate: '2026-10-10', endDate: '2026-10-16' });
+  expect(screen.getAllByRole('button', { name: /Previous day/ })).toHaveLength(1);
 });

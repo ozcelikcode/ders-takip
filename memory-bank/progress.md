@@ -24,14 +24,14 @@ Source: two read-only audits (backend security and bugs, frontend bugs and dead 
 
 **Q — Logic, UX and old code**
 
-- Q1 Return to the requested page after sign-in (`state.from`, only paths starting with `/` and not `//`).
-- Q2 Merge Profile into Settings (owner approved): an Account tab under `/settings`, the focus area in the Study tab, one save pattern, `/profile` redirects.
-- Q3 Draft loss: stale form copy on profile image load, the Study draft reset on preference refresh, an unsaved-changes guard (`useBlocker` + `beforeunload`) for administrator settings and the Study tab.
-- Q4 Cross-tab auth: typed BroadcastChannel messages; a sign-in in another tab refreshes the session instead of clearing it.
-- Q5 The Pomodoro page fetches the whole history every 60 s: filter by status and date on the server.
-- Q6 Notification read state on the server (consistent across devices; migration).
-- Q7 Dead and duplicate code: `DailyCalendar`/`WeeklyPlanner` wrappers, the dead loading branch in `ProtectedRoute`, the `performBackup` re-export, repeated parsing and impossible `!id` checks in controllers, a local id regex, a repeated course fetch, settings validation moved to the `validate` middleware, old `localStorage.removeItem` lines, the `archiveUnscopedState` archive, hand-written catalog and session types replaced by contract `z.infer` types, one shared `difficultySchema`.
-- Q8 One time zone for the cron jobs (backups are fixed to `Europe/Istanbul`, routines use server-local time).
+- Q1 **Done (31 October):** sign-in returns to the requested page (not after a deliberate sign-out: `signedOut` in the auth store) (`lib/returnPath.ts`; only same-site paths, never `//`, `/\` or `/login`).
+- Q2 **Done (31 October):** Profile is the first Settings tab, "Account" (`pages/settings/account/AccountTab.tsx`); `/profile` redirects to `/settings`; the sidebar, header menu and palette point there. The focus area stays in the account form with the name (it is saved together with it); a single save pattern across tabs is still open.
+- Q3 **Done (31 October):** functional update when a picture loads; an edited Study draft survives a preference refresh (an unedited one follows it); `useUnsavedChangesWarning` (`beforeunload`) for the Study draft, the account forms and administrator settings. In-app navigation is not guarded: `useBlocker` needs a data router and the app uses `BrowserRouter`.
+- Q4 **Done (31 October):** `signed-in` / `signed-out` messages; a sign-in elsewhere makes this tab pick up the new session.
+- Q5 **Done (31 October):** new `unfinished=true` session filter; the Pomodoro page loads unfinished sessions plus the last 7 days. The general list without a date range stays unbounded (only the Pomodoro page used it that way).
+- Q6 Notification read state on the server (consistent across devices; migration). **Deferred:** the owner chose not to touch the real database for now.
+- Q7 **Done (31 October):** the `DailyCalendar`/`WeeklyPlanner` wrappers, the dead loading branch in `ProtectedRoute`, the `performBackup` re-export, re-parsed queries and impossible checks in the session controller, the local id regex, the repeated course fetch and the old storage shims are gone (one `lib/legacyStorage.ts` now removes every key older versions left, including the never-cleared archive); difficulty values come from one `topicDifficulties`/`topicDifficultySchema`. Kept on purpose: settings validation stays in the controller because it answers with its own `invalidSettings` code; replacing the hand-written frontend catalog types with contract types is still open.
+- Q8 **Done (31 October, with S):** the five-minute backup tick no longer pins `Europe/Istanbul`; it does not depend on the zone.
 - Q9 knip as a permanent `check` gate.
 
 **P — Performance**

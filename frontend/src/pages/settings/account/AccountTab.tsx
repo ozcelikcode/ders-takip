@@ -4,28 +4,30 @@ import {
   type ProfilePatch,
   type ChangePasswordInput,
 } from '@study-tracker/contracts';
-import { issueMessage, serverMessage } from '../../lib/messages';
-import { shrinkProfileImage } from '../../lib/profileImage';
+import { issueMessage, serverMessage } from '../../../lib/messages';
+import { shrinkProfileImage } from '../../../lib/profileImage';
 import { useMutation } from '@tanstack/react-query';
 import { Mail, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { authAPI } from '../../services/api';
-import PageHeader from '../../components/common/PageHeader';
-import { useAuthStore } from '../../store/authStore';
+import { authAPI } from '../../../services/api';
+import { useAuthStore } from '../../../store/authStore';
 import AccountDataCard from './AccountDataCard';
 import AccountInfoCard from './AccountInfoCard';
 import PasswordCard from './PasswordCard';
 import ProfilePictureCard from './ProfilePictureCard';
 import type { PasswordFormState, ProfileFormState } from './profileForm';
-import { useText } from '../../store/languageStore';
+import { useText } from '../../../store/languageStore';
+import { useUnsavedChangesWarning } from '../../../hooks/useUnsavedChangesWarning';
 
-const ProfilePage = () => {
+/** Name, username, picture, password and the account's own data; the first tab of Settings. */
+const AccountTab = () => {
   const { user } = useAuthStore();
   const text = useText().profile;
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingPassword, setIsEditingPassword] = useState(false);
   const [imageInputType, setImageInputType] = useState<'url' | 'file'>('url');
+  useUnsavedChangesWarning(isEditingProfile || isEditingPassword);
 
   // Profile form state
   const [profileForm, setProfileForm] = useState<ProfileFormState>({
@@ -188,8 +190,6 @@ const ProfilePage = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={text.title} description={text.description} />
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Profile Picture & Account Info */}
         <div className="lg:col-span-1 space-y-6">
@@ -379,4 +379,4 @@ const ProfilePage = () => {
   );
 };
 
-export default ProfilePage;
+export default AccountTab;

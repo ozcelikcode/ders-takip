@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { topicDifficultySchema } from './catalog.js';
 import {
   sessionStatusSchema,
   sessionTypeSchema,
@@ -99,7 +100,7 @@ const linkedSessionSchema = z.object({
     .nullable()
     .optional(),
   topic: namedRelation
-    .extend({ difficulty: z.enum(['Kolay', 'Orta', 'Zor']) })
+    .extend({ difficulty: topicDifficultySchema })
     .nullable()
     .optional(),
 });

@@ -26,6 +26,7 @@ import { backupAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useText } from '../../store/languageStore';
+import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
 
 // Custom words are an object; compare settings by value, not identity.
 const sameSetting = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
@@ -73,6 +74,7 @@ function SettingsForm({
   const dirty = (Object.keys(draft) as (keyof SiteSettings)[]).some(
     (key) => !sameSetting(draft[key], baseline[key]),
   );
+  useUnsavedChangesWarning(dirty);
   useEffect(() => {
     if (!dirty && !mutation.isPending && adminSettings) {
       setDraft(adminSettings);

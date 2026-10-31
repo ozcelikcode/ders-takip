@@ -1,3 +1,4 @@
+import type { TopicDifficulty } from '@study-tracker/contracts';
 export interface CatalogCategory {
   id: number;
   name: string;
@@ -18,7 +19,7 @@ export interface CatalogTopic {
   name: string;
   description?: string | null;
   estimatedTime: number;
-  difficulty: 'Kolay' | 'Orta' | 'Zor';
+  difficulty: TopicDifficulty;
   order: number;
   updatedAt: string;
   isActive?: boolean;

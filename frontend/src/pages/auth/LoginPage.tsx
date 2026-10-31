@@ -1,6 +1,7 @@
 import AuthCard from '../../components/auth/AuthCard';
 import { useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
+import { returnPath } from '../../lib/returnPath';
 import { useForm } from 'react-hook-form';
 import { contractResolver } from '../../lib/contractResolver';
 import { loginSchema, type LoginInput } from '@study-tracker/contracts';
@@ -17,6 +18,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login, isAuthenticated } = useAuthStore();
+  const location = useLocation();
   const text = useText().auth;
   const allowRegistration = useSettingsStore(
     (state) => state.settings.allowRegistration,
@@ -31,7 +33,7 @@ const LoginPage = () => {
   });
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={returnPath(location.state)} replace />;
   }
 
   const onSubmit = async (data: LoginFormData) => {

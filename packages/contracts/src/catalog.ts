@@ -3,6 +3,10 @@ import { z } from 'zod';
 export const catalogIdSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 export const catalogPathIdSchema = z.string().regex(/^[1-9]\d*$/).refine(value => Number.isSafeInteger(Number(value)));
 const order = catalogIdSchema;
+/** Stored difficulty values; the interface shows them in the site language. */
+export const topicDifficulties = ['Kolay', 'Orta', 'Zor'] as const;
+export const topicDifficultySchema = z.enum(topicDifficulties);
+export type TopicDifficulty = z.infer<typeof topicDifficultySchema>;
 const appearance = {
   description: z.string().optional(),
   color: z.string().regex(/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i).optional(),
@@ -23,7 +27,7 @@ export const updateCourseSchema = createCourseSchema.partial().refine(value => O
 export const createTopicSchema = z.object({
   name: z.string().trim().min(1).max(200), courseId: catalogIdSchema,
   description: z.string().optional(), estimatedTime: z.number().int().min(5).max(480),
-  difficulty: z.enum(['Kolay', 'Orta', 'Zor']), order: order.optional(),
+  difficulty: topicDifficultySchema, order: order.optional(),
 }).strict();
 export const updateTopicSchema = createTopicSchema.omit({ courseId: true }).partial().extend({ isActive: z.boolean().optional() })
   .refine(value => Object.keys(value).length > 0);

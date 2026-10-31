@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { defaultPreferences, mergePreferences, preferencesSchema, preferencesPatchSchema, type PreferencesPatch, type UserPreferences } from '@study-tracker/contracts';
 import { authAPI } from '../services/api';
-import { archiveUnscopedState } from '../lib/archiveUnscopedState';
+import { clearLegacyStorage } from '../lib/legacyStorage';
 import { useLanguageStore } from './languageStore';
 export type { ThemeMode } from '@study-tracker/contracts';
 
@@ -27,8 +27,8 @@ let confirmed: UserPreferences = { ...defaultPreferences };
 let unsaved: PendingChange[] = [];
 let nextChangeId = 0;
 const optimisticView = () => unsaved.reduce((preferences, change) => mergePreferences(preferences, change.patch), confirmed);
-// Unscoped legacy storage cannot be assigned to a known account safely.
-archiveUnscopedState();
+// Storage from older versions cannot be assigned to a known account safely, so it is removed.
+clearLegacyStorage();
 export const useUserPreferencesStore = create<PreferencesState>()((set, get) => ({
   userId: null, preferences: { ...defaultPreferences }, pending: 0, revision: 0, error: null,
   bindUser: (id, stored) => {

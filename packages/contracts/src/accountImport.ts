@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { topicDifficultySchema } from './catalog.js';
 import { maxWeeklyGoalMinutes } from './courseGoals.js';
 import { planGoalsSchema } from './plans.js';
 import { seriesWeekdaysSchema } from './sessionSeries.js';
@@ -16,7 +17,7 @@ const optionalText = z.string().nullish();
 const catalogColor = z.string().regex(/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i);
 const sessionColor = z.string().regex(/^#[0-9a-f]{6}$/i);
 const order = z.number().int().min(1);
-const difficulty = z.enum(['Kolay', 'Orta', 'Zor']);
+const difficulty = topicDifficultySchema;
 const estimatedTime = z.number().int().min(5).max(480);
 /**
  * Upper bound for every list in an import. Years of daily use stay well inside it, while one request can no longer

@@ -184,3 +184,13 @@ it('rolls back status, metadata and version when a write fails after the SQL upd
   assert.equal(saved.updatedAt.toISOString(), session.updatedAt);
   await action(session, 'start');
 });
+it('lists only sessions that can still run when asked for unfinished ones, on any date', async () => {
+  const planned = await create('2099-01-01T09:00:00Z', '2099-01-01T10:00:00Z');
+  const done = await create('2099-01-02T09:00:00Z', '2099-01-02T10:00:00Z');
+  await action(done, 'complete');
+  const titles = async (query) => (await auth('get', `/api/study-sessions?${query}`).expect(200)).body.data.sessions.map(session => session.id);
+  assert.deepEqual(await titles('unfinished=true'), [planned.id]);
+  assert.deepEqual(await titles('unfinished=true&status=completed'), []);
+  assert.deepEqual((await titles('')).sort(), [planned.id, done.id].sort());
+  await auth('get', '/api/study-sessions?unfinished=false').expect(400);
+});

@@ -2,8 +2,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { studySessionsAPI } from '../../services/api';
-import DailyCalendar from './DailyCalendar';
-import WeeklyPlanner from './WeeklyPlanner';
+import PlannerCalendar, { type PlannerCalendarProps } from './PlannerCalendar';
+
+const DailyCalendar = (props: PlannerCalendarProps) => <PlannerCalendar {...props} mode="daily" />;
+const WeeklyPlanner = (props: PlannerCalendarProps) => <PlannerCalendar {...props} mode="weekly" />;
 vi.mock('../../services/api', () => ({ studySessionsAPI: { getSessions: vi.fn(), startSession: vi.fn() } }));
 vi.mock('../../hooks/useAccountQueryKeys', () => ({ useAccountQueryKeys: () => ({ sessions: (...parts: unknown[]) => ['account', '1', 'sessions', ...parts] }) }));
 vi.mock('./PomodoroModal', () => ({ default: ({ isOpen }: { isOpen: boolean }) => isOpen ? <div role="dialog">Shared timer</div> : null }));

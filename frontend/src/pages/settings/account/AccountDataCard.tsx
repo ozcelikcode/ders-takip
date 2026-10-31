@@ -1,15 +1,15 @@
-import { serverMessage } from '../../lib/messages';
+import { serverMessage } from '../../../lib/messages';
 import { Download, Trash2 } from 'lucide-react';
 import { useId, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import AccountImportButton from '../../components/account/AccountImportButton';
-import ConfirmDialog from '../../components/common/ConfirmDialog';
-import { useTerms } from '../../hooks/useTerms';
-import { unsubscribeBrowser } from '../../lib/push';
-import { authAPI } from '../../services/api';
-import { useAuthStore } from '../../store/authStore';
-import { useText } from '../../store/languageStore';
+import AccountImportButton from '../../../components/account/AccountImportButton';
+import ConfirmDialog from '../../../components/common/ConfirmDialog';
+import { useTerms } from '../../../hooks/useTerms';
+import { unsubscribeBrowser } from '../../../lib/push';
+import { authAPI } from '../../../services/api';
+import { useAuthStore } from '../../../store/authStore';
+import { useText } from '../../../store/languageStore';
 
 /** Lets a user take their data with them, bring it into a new account, and close their account. */
 export default function AccountDataCard() {

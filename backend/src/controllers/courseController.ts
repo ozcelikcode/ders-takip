@@ -125,7 +125,10 @@ export const getCourseTopics = async (req: Request, res: Response, next: NextFun
     const { id } = req.params;
     const { isActive = 'true' } = req.query;
 
-    const course = await Course.findOne({ where: { id, ...visibleCourseWhere(req.user!) } });
+    const course = await Course.findOne({
+      where: { id, ...visibleCourseWhere(req.user!) },
+      include: [{ model: Category, as: 'category', attributes: ['id', 'name', 'color', 'icon'] }],
+    });
 
     if (!course) {
       res.status(404).json({
@@ -146,19 +149,10 @@ export const getCourseTopics = async (req: Request, res: Response, next: NextFun
       order: [['order', 'ASC'], ['name', 'ASC']],
     });
 
-    // Fetch course with category
-    const courseWithCategory = await Course.findByPk(id, {
-      include: [{
-        model: Category,
-        as: 'category',
-        attributes: ['id', 'name', 'color', 'icon'],
-      }]
-    });
-
     res.json({
       success: true,
       data: {
-        course: courseWithCategory,
+        course,
         topics,
       },
     });

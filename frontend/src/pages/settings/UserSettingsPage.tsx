@@ -1,11 +1,13 @@
 import { defaultPreferences, resolveTerminology } from '@study-tracker/contracts';
 import type { PreferencesPatch } from '@study-tracker/contracts';
 import PageHeader from '../../components/common/PageHeader';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
 import { useUserPreferencesStore, ThemeMode } from '../../store/userPreferencesStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { Bell, CalendarDays, Settings, Clock, Globe } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Bell, CalendarDays, Settings, Clock, Globe, User } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import AccountTab from './account/AccountTab';
 import toast from 'react-hot-toast';
 import AppearanceTab from './AppearanceTab';
 import RegionTab from './RegionTab';
@@ -14,9 +16,10 @@ import CalendarTab from './CalendarTab';
 import StudyTab, { type StudyPreferencesDraft } from './StudyTab';
 import { useText } from '../../store/languageStore';
 
-type TabType = 'appearance' | 'region' | 'study' | 'notifications' | 'calendar';
+type TabType = 'account' | 'appearance' | 'region' | 'study' | 'notifications' | 'calendar';
 
 const tabs = [
+  { id: 'account', icon: User },
   { id: 'appearance', icon: Settings },
   { id: 'region', icon: Globe },
   { id: 'study', icon: Clock },
@@ -39,16 +42,24 @@ const UserSettingsPage = () => {
   // The open tab lives in the address (`?tab=calendar`), so a link or the page switcher can open it directly.
   const [params, setParams] = useSearchParams();
   const requested = params.get('tab');
-  const activeTab: TabType = isTab(requested) ? requested : 'appearance';
-  const setActiveTab = (tab: TabType) => setParams(tab === 'appearance' ? {} : { tab }, { replace: true });
+  const activeTab: TabType = isTab(requested) ? requested : 'account';
+  const setActiveTab = (tab: TabType) => setParams(tab === 'account' ? {} : { tab }, { replace: true });
   const { preferences, updatePreferences, resetPreferences, pending, error: preferencesError } = useUserPreferencesStore();
   const { settings: siteSettings } = useSettingsStore();
 
   // Study preferences stay local until saved to prevent instant updates.
   const [studyPrefs, setStudyPrefs] = useState(() => studyDraftFrom(preferences));
+  // The stored values the draft started from: a refresh replaces the draft only while it is unedited.
+  const [studyBaseline, setStudyBaseline] = useState(studyPrefs);
+  const baselineRef = useRef(studyBaseline);
+  useUnsavedChangesWarning(JSON.stringify(studyPrefs) !== JSON.stringify(studyBaseline));
 
   useEffect(() => {
-    setStudyPrefs(studyDraftFrom(preferences));
+    const previous = baselineRef.current;
+    const next = studyDraftFrom(preferences);
+    setStudyPrefs((draft) => (JSON.stringify(draft) === JSON.stringify(previous) ? next : draft));
+    baselineRef.current = next;
+    setStudyBaseline(next);
   }, [
     preferences.defaultPomodoroDuration,
     preferences.defaultShortBreak,
@@ -74,10 +85,6 @@ const UserSettingsPage = () => {
   return (
     <div className="space-y-6">
       <PageHeader title={text.title} description={text.description} />
-      <p className="text-sm text-(--muted)">
-        {text.profileNote[0]}
-        <Link to="/profile" className="font-medium text-(--text) underline underline-offset-4">{text.profileNote[1]}</Link>{text.profileNote[2]}
-      </p>
       <div role="status" aria-live="polite" className="text-xs text-(--muted)">{pending ? text.saving : preferencesError || text.storedInAccount}</div>
 
       <nav aria-label={text.sections} className="flex flex-wrap gap-1 border-b border-(--line) pb-3">
@@ -98,6 +105,8 @@ const UserSettingsPage = () => {
         })}
       </nav>
 
+      {/* The account tab is a set of its own panels; the preference tabs share one. */}
+      {activeTab === 'account' ? <AccountTab /> : (
       <div className="panel p-5 sm:p-6">
         {activeTab === 'appearance' && (
           <AppearanceTab
@@ -127,6 +136,7 @@ const UserSettingsPage = () => {
           />
         )}
       </div>
+      )}
     </div>
   );
 };

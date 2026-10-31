@@ -77,7 +77,6 @@ for (const theme of ['light', 'dark'] as const) {
         'search',
         'courses',
         'pomodoro',
-        'profile',
         'settings',
       ]) {
         await page.goto(`/${route}`);
@@ -101,7 +100,8 @@ for (const theme of ['light', 'dark'] as const) {
           await scan(page, info, 'tag-manager');
           await page.keyboard.press('Escape');
         }
-        if (route === 'profile') {
+        // Settings opens on the account tab: scan its edit forms before the preference tabs.
+        if (route === 'settings') {
           await page
             .getByRole('button', { name: 'Düzenle', exact: true })
             .click();

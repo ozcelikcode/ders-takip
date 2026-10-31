@@ -21,7 +21,6 @@ interface SettingsState {
   clearAdminSettings: () => void;
   updateSettings: (data: SettingsPatch) => Promise<void>;
 }
-localStorage.removeItem('settings-storage');
 const initial = () => {
   try {
     // Defaults first so a cache written before a field existed still loads.

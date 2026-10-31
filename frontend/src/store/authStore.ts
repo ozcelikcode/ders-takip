@@ -17,6 +17,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   epoch: number;
+  /** True after someone signed out on purpose (here or in another tab); sign-in then starts fresh on the dashboard. */
+  signedOut: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
@@ -32,7 +34,8 @@ let refreshPromise: Promise<string> | null = null;
 let logoutPromise: Promise<unknown> | null = null;
 let initialized = false;
 const channel = typeof window.BroadcastChannel === 'function' ? new window.BroadcastChannel('study-tracker-auth') : null;
-const notifyPeers = () => channel?.postMessage('session-changed');
+type PeerMessage = 'signed-in' | 'signed-out';
+const notifyPeers = (message: PeerMessage) => channel?.postMessage(message);
 const finishLogout = async () => { await authAPI.logout(); localStorage.removeItem('auth-logout-pending'); };
 
 const acceptUserSnapshot = (user: User, preferenceRevision: number): User => {
@@ -44,9 +47,8 @@ const acceptUserSnapshot = (user: User, preferenceRevision: number): User => {
 };
 
 // Access credentials live only in memory. The refresh cookie is HttpOnly.
-localStorage.removeItem('auth-storage');
 export const useAuthStore = create<AuthState>()((set, get) => ({
-  user: null, accessToken: null, isAuthenticated: false, isLoading: true, epoch: 0,
+  user: null, accessToken: null, isAuthenticated: false, isLoading: true, epoch: 0, signedOut: false,
   login: async credentials => {
     if (logoutPromise) await logoutPromise;
     if (refreshPromise) await refreshPromise.catch(() => undefined);
@@ -55,8 +57,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     set({ epoch });
     const response = await authAPI.login(credentials).catch(error => { toast.error(serverMessage(error) || useLanguageStore.getState().text.errors.signInFailed); throw error; });
     if (get().epoch !== epoch) throw new Error('Authentication attempt superseded');
-    set({ user: response.data.data.user, accessToken: response.data.data.tokens.accessToken, isAuthenticated: true, isLoading: false });
-    notifyPeers();
+    set({ user: response.data.data.user, accessToken: response.data.data.tokens.accessToken, isAuthenticated: true, isLoading: false, signedOut: false });
+    notifyPeers('signed-in');
   },
   register: async data => {
     if (logoutPromise) await logoutPromise;
@@ -66,8 +68,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     set({ epoch });
     const response = await authAPI.register(data).catch(error => { toast.error(serverMessage(error) || useLanguageStore.getState().text.errors.signUpFailed); throw error; });
     if (get().epoch !== epoch) throw new Error('Authentication attempt superseded');
-    set({ user: response.data.data.user, accessToken: response.data.data.tokens.accessToken, isAuthenticated: true, isLoading: false });
-    notifyPeers();
+    set({ user: response.data.data.user, accessToken: response.data.data.tokens.accessToken, isAuthenticated: true, isLoading: false, signedOut: false });
+    notifyPeers('signed-in');
   },
   logout: () => {
     // This browser must not keep showing the account's reminders once it is signed out.
@@ -75,7 +77,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     const pending = refreshPromise;
     localStorage.setItem('auth-logout-pending', '1');
     get().clearAuth();
-    notifyPeers();
+    set({ signedOut: true });
+    notifyPeers('signed-out');
     // Let any rotation finish before clearing its cookie, then revoke the resulting session.
     logoutPromise = (async () => { await pending?.catch(() => undefined); await finishLogout(); })().catch(() => undefined).finally(() => { logoutPromise = null; });
   },
@@ -144,4 +147,11 @@ useAuthStore.subscribe((state, previous) => {
   }
 });
 
-if (channel) channel.onmessage = () => useAuthStore.getState().clearAuth();
+// Another tab signed in or out. A sign-in elsewhere replaced the shared cookie, so this tab drops its old
+// account and picks up the new session instead of staying signed out (and signing in a second time).
+if (channel) channel.onmessage = (event: MessageEvent<unknown>) => {
+  const store = useAuthStore.getState();
+  store.clearAuth();
+  if (event.data === 'signed-out') useAuthStore.setState({ signedOut: true });
+  if (event.data === 'signed-in') void store.refreshSession().catch(() => undefined);
+};
