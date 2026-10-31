@@ -169,7 +169,7 @@ The backend reads `backend/.env` in development; production deployments provide 
 | `npm run db:migrate` | Apply pending migrations |
 | `npm run admin:manage` | Create the first administrator or recover one |
 | `npm run backup:verify` | Restore the newest (or a chosen) backup into a temporary copy and check it |
-| `npm run check` | Naming and interface-text checks, strict type checks, lint (zero warnings), all workspace tests and production builds |
+| `npm run check` | Naming and interface-text checks, strict type checks, unused code (knip), lint (zero warnings), all workspace tests and production builds |
 | `npm run test:e2e` | Isolated browser tests in Chromium, WebKit and mobile Chromium |
 | `npm run test:lighthouse` | Lighthouse measurements of the sign-in page and the dashboard |
 | `npm run push:keys` | Generate Web Push keys into `backend/.env` |

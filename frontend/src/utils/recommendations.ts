@@ -37,7 +37,7 @@ export interface RecommendationInput {
   focusMinutes: number;
 }
 
-export const recommendationLimit = 3;
+const recommendationLimit = 3;
 
 /**
  * Personal next steps from the user's own records, plans, goals and measured time.

@@ -15,7 +15,7 @@ export const purposeIds = ['education', 'work', 'personal', 'skills', 'other'] a
 export type PurposeId = (typeof purposeIds)[number];
 
 export const rhythmIds = ['classic', 'extended', 'deep'] as const;
-export type RhythmId = (typeof rhythmIds)[number];
+type RhythmId = (typeof rhythmIds)[number];
 
 interface Purpose {
   preset: TerminologyPresetId;
@@ -32,7 +32,7 @@ export const purposes: Record<PurposeId, Purpose> = {
   other: { preset: 'general', dailyGoalMinutes: 60, rhythm: 'classic' },
 };
 
-export const rhythms: Record<RhythmId, Pick<UserPreferences, 'defaultPomodoroDuration' | 'defaultShortBreak' | 'defaultLongBreak' | 'pomodorosUntilLongBreak'>> = {
+const rhythms: Record<RhythmId, Pick<UserPreferences, 'defaultPomodoroDuration' | 'defaultShortBreak' | 'defaultLongBreak' | 'pomodorosUntilLongBreak'>> = {
   classic: { defaultPomodoroDuration: 25, defaultShortBreak: 5, defaultLongBreak: 15, pomodorosUntilLongBreak: 4 },
   extended: { defaultPomodoroDuration: 50, defaultShortBreak: 10, defaultLongBreak: 20, pomodorosUntilLongBreak: 3 },
   deep: { defaultPomodoroDuration: 90, defaultShortBreak: 15, defaultLongBreak: 30, pomodorosUntilLongBreak: 2 },

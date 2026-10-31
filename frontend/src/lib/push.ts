@@ -1,5 +1,5 @@
 /** Browser side of Web Push. The server keeps one subscription per browser endpoint. */
-export const pushSupported = () =>
+const pushSupported = () =>
   typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
 export type BrowserPushState = 'unsupported' | 'denied' | 'subscribed' | 'off';

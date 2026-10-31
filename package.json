@@ -27,7 +27,8 @@
     "test": "npm run test --workspaces",
     "check:naming": "node scripts/check-naming.mjs",
     "check:text": "node scripts/check-interface-text.mjs",
-    "check": "npm run check:naming && npm run check:text && npm run typecheck && npm run typecheck:e2e && npm run lint && npm test && npm run build",
+    "check:unused": "knip",
+    "check": "npm run check:naming && npm run check:text && npm run typecheck && npm run check:unused && npm run typecheck:e2e && npm run lint && npm test && npm run build",
     "configure": "node scripts/configure-development.mjs",
     "push:keys": "node scripts/generate-push-keys.mjs",
     "db:migrate": "npm run db:migrate --workspace backend",
@@ -56,6 +57,7 @@
     "eslint": "^10.12.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
+    "knip": "6.41.0",
     "lighthouse": "13.5.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.71.2"

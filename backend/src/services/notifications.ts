@@ -33,7 +33,7 @@ import { readSiteSettings } from './siteSettings';
 import { getStudyStats } from './studyTracking';
 
 /** A channel works only when the operator configured it and the admin's site switch allows it. */
-export const channelsFor = (settings: Pick<SiteSettings, 'emailNotifications' | 'pushNotifications'>): NotificationChannels => ({
+const channelsFor = (settings: Pick<SiteSettings, 'emailNotifications' | 'pushNotifications'>): NotificationChannels => ({
   email: { configured: mailer.enabled(), enabled: mailer.enabled() && settings.emailNotifications },
   push: { configured: pushSender.enabled(), enabled: pushSender.enabled() && settings.pushNotifications, publicKey: pushSender.enabled() && settings.pushNotifications ? pushSender.publicKey() : null },
 });

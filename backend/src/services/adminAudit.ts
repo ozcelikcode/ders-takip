@@ -9,7 +9,7 @@ interface Person { id: number; username: string }
 interface StoredEntry extends AdminAuditEntry { prev: string; hash: string }
 
 const genesis = '0'.repeat(64);
-export const person = (user: Person): Person => ({ id: user.id, username: user.username });
+const person = (user: Person): Person => ({ id: user.id, username: user.username });
 // The fields are listed explicitly so the hashed text has one fixed key order on write and on check.
 const body = (entry: AdminAuditEntry): AdminAuditEntry => ({
   seq: entry.seq, at: entry.at, action: entry.action, actor: entry.actor, target: entry.target, details: entry.details, ip: entry.ip,

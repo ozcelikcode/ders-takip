@@ -1,7 +1,7 @@
 import type { ApiError } from '@study-tracker/contracts';
 
 /** HTTP error and response shapes shared by the transport, the API modules and their callers; free of side effects. */
-export type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
+type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
 export interface HttpRequestConfig {
   method?: HttpMethod;
