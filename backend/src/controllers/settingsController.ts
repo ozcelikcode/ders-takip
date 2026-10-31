@@ -98,3 +98,27 @@ export const updateSettings = async (
     next(error);
   }
 };
+
+/** The web app manifest: the site's own name and language, so an installed app carries the configured identity. */
+export const getManifest = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const settings = publicSettingsSchema.parse(await readSiteSettings());
+    res.type('application/manifest+json').json({
+      name: settings.siteName,
+      short_name: settings.siteName.slice(0, 12),
+      description: settings.siteDescription,
+      lang: settings.language,
+      start_url: '/dashboard',
+      scope: '/',
+      display: 'standalone',
+      background_color: '#ffffff',
+      theme_color: '#171717',
+      icons: [
+        { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      ],
+    });
+  } catch (error) {
+    next(error);
+  }
+};

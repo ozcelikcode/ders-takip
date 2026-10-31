@@ -13,6 +13,10 @@ import { useLanguageStore } from './store/languageStore';
 import { useSettingsStore } from './store/settingsStore';
 
 
+// The service worker keeps the app shell available offline and shows push reminders; development serves no build.
+if (import.meta.env.PROD && 'serviceWorker' in navigator)
+  window.addEventListener('load', () => void navigator.serviceWorker.register('/sw.js').catch(() => undefined));
+
 const render = () => ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>

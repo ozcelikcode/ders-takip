@@ -20,6 +20,8 @@ export default defineConfig({
     reducedMotion: 'reduce',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    // The app's offline service worker would answer page loads itself and bypass the per-test network guard.
+    serviceWorkers: 'block',
   },
   projects: [
     { name: 'chromium-desktop', use: { ...devices['Desktop Chrome'] } },

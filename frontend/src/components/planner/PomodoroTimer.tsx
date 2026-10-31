@@ -2,6 +2,7 @@ import { useTerms } from '../../hooks/useTerms';
 import { Coffee, Pause, Play, RotateCcw, Square, Target } from 'lucide-react';
 import { defaultPomodoroSettings } from '@study-tracker/contracts';
 import { usePomodoro } from '../../hooks/usePomodoro';
+import { usePomodoroAlerts } from '../../hooks/usePomodoroAlerts';
 import type { StudySession } from '../../types/planner';
 import { useText } from '../../store/languageStore';
 
@@ -15,6 +16,13 @@ export default function PomodoroTimer({ session: initialSession, onComplete }: P
   const { session } = timer;
   const settings = session.pomodoroSettings ?? defaultPomodoroSettings;
   const terminal = session.status === 'completed' || session.status === 'cancelled';
+  const alerts = usePomodoroAlerts({
+    phaseKey: `${timer.phase}:${timer.cycle}`,
+    phaseName: text.phases[timer.phase],
+    timeLeft: formatTime(timer.timeLeft),
+    isRunning: timer.isRunning,
+    title: session.title,
+  });
   return (
     <section className="space-y-7" aria-label={text.timer}>
       <div className="text-center">
@@ -43,6 +51,10 @@ export default function PomodoroTimer({ session: initialSession, onComplete }: P
         <label className="flex items-center justify-center gap-2">
           <input type="checkbox" checked={session.pomodoroClock?.autoStartBreaks ?? false} disabled={terminal || timer.isPending} onChange={event => timer.run({ command: 'configure', autoStartBreaks: event.target.checked })} />
           {text.autoStartBreaks}
+        </label>
+        <label className="flex items-center justify-center gap-2">
+          <input type="checkbox" checked={alerts.enabled} onChange={event => alerts.setEnabled(event.target.checked)} />
+          {text.phaseAlerts}
         </label>
         <p className="text-center text-xs leading-5 text-(--muted)">{text.serverNote}</p>
       </div>

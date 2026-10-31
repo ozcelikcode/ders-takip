@@ -53,6 +53,8 @@ export const tr = {
     inputLabel: 'Sayfa ya da ayar ara',
     placeholder: 'Sayfa ya da ayar ara…',
     empty: 'Eşleşen sayfa yok.',
+    searchData: (query: string) => `"${query}" için kayıtlarda ara`,
+    searchGroup: 'Arama',
     hint: '↑ ↓ ile seç, Enter ile aç, Esc ile kapat.',
   },
   calendar: {
@@ -484,6 +486,7 @@ export const tr = {
     unverified: 'Sayaç durumu doğrulanamadı. Sunucudaki kayıt korunuyor.',
     refresh: 'Yenile',
     autoStartBreaks: 'Otomatik mola başlat',
+    phaseAlerts: 'Faz bittiğinde bu tarayıcıda sesle ve bildirimle haber ver',
     serverNote: 'Sayaç sunucuda sürer. Ekranı kapatmak duraklatmaz. Mola bitince çalışma kendiliğinden başlamaz.',
     work: 'Çalışma',
     shortBreak: 'Kısa mola',

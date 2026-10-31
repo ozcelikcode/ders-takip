@@ -38,7 +38,7 @@ it('opens with Ctrl+K and goes to the chosen settings tab with Enter', async () 
   press({ ctrlKey: true });
   expect(await screen.findByRole('dialog', { name: 'Sayfaya git' })).toBeTruthy();
   search('takv');
-  expect(options()).toEqual(['TakvimAyarlar']);
+  expect(options()).toEqual(['TakvimAyarlar', '"takv" için kayıtlarda araArama']);
   fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
   await waitFor(() => expect(screen.getByTestId('address').textContent).toBe('/settings?tab=calendar'));
   expect(screen.queryByRole('dialog')).toBeNull();
@@ -48,9 +48,9 @@ it('matches without regard to case or Turkish letters and lists administration o
   mount();
   press({ metaKey: true });
   search('ISTATIS');
-  expect(options()).toEqual(['İstatistiklerÇalışma alanı']);
+  expect(options()).toEqual(['İstatistiklerÇalışma alanı', '"ISTATIS" için kayıtlarda araArama']);
   search('yedek');
-  expect(screen.queryAllByRole('option')).toEqual([]);
+  expect(options()).toEqual(['"yedek" için kayıtlarda araArama']);
   expect(screen.getByText('Eşleşen sayfa yok.')).toBeTruthy();
   // One Escape closes the palette even with text in the field.
   fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Escape' });
@@ -59,7 +59,7 @@ it('matches without regard to case or Turkish letters and lists administration o
   act(() => useAuthStore.setState({ user: { id: '1', role: 'admin' } as never }));
   press({ ctrlKey: true });
   search('yedek');
-  expect(options()).toEqual(['Yedekleme ve sıfırlamaSite ayarları']);
+  expect(options()).toEqual(['Yedekleme ve sıfırlamaSite ayarları', '"yedek" için kayıtlarda araArama']);
   fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
   await waitFor(() => expect(screen.getByTestId('address').textContent).toBe('/admin/settings?section=backup'));
 });
@@ -70,4 +70,15 @@ it('stays shut while another dialog is open, so an open form is never left behin
   expect(screen.queryByRole('dialog', { name: 'Sayfaya git' })).toBeNull();
   press({ key: 'k' });
   expect(screen.queryByRole('dialog', { name: 'Sayfaya git' })).toBeNull();
+});
+
+it('sends a typed word to the record search when no page is wanted', async () => {
+  mount();
+  press({ ctrlKey: true });
+  search('a');
+  expect(screen.queryByText(/için kayıtlarda ara/)).toBeNull();
+  search('gitar dersi');
+  expect(options()).toEqual(['"gitar dersi" için kayıtlarda araArama']);
+  fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
+  await waitFor(() => expect(screen.getByTestId('address').textContent).toBe('/search?q=gitar%20dersi'));
 });

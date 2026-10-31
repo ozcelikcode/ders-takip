@@ -50,6 +50,8 @@ export const en: Text = {
     inputLabel: 'Search pages and settings',
     placeholder: 'Search pages and settings…',
     empty: 'No matching page.',
+    searchData: (query: string) => `Search records for "${query}"`,
+    searchGroup: 'Search',
     hint: '↑ ↓ to choose, Enter to open, Esc to close.',
   },
   calendar: {
@@ -479,6 +481,7 @@ export const en: Text = {
     unverified: 'The timer state could not be confirmed. The record on the server is kept.',
     refresh: 'Refresh',
     autoStartBreaks: 'Start breaks automatically',
+    phaseAlerts: 'Chime and notify in this browser when a phase ends',
     serverNote: 'The timer runs on the server. Closing the screen does not pause it. Work does not restart by itself after a break.',
     work: 'Focus',
     shortBreak: 'Short break',

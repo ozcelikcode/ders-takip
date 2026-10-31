@@ -1,3 +1,49 @@
+// Offline shell: the last loaded page and the hashed build files stay available without a network. API calls are
+// never cached; they always go to the server, so data is never stale.
+const shellCache = 'shell-v1';
+
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== shellCache).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim()),
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+  if (request.mode === 'navigate') {
+    // Network first, so a new release is picked up at once; the last good page is the fallback offline.
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            void caches.open(shellCache).then((cache) => cache.put('/', copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match('/').then((cached) => cached || Response.error())),
+    );
+    return;
+  }
+  if (url.pathname.startsWith('/assets/')) {
+    // Build files carry a content hash in their name, so a cached copy is never outdated.
+    event.respondWith(
+      caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+        if (response.ok) {
+          const copy = response.clone();
+          void caches.open(shellCache).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      })),
+    );
+  }
+});
+
 // Web Push service worker: shows reminders sent by the server, also when no tab is open.
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};

@@ -61,6 +61,11 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('');
   const field = useRef<HTMLInputElement>(null);
   const results = matching(destinations, query);
+  // Two characters is where the server search starts; it finds records, sub-items and sessions, not pages.
+  const term = query.trim();
+  const searchOption: Destination | null = term.length >= 2
+    ? { href: `/search?q=${encodeURIComponent(term)}`, label: text.searchData(term), group: text.searchGroup }
+    : null;
 
   useEffect(() => {
     // Headless UI leaves focus alone on touch devices; the palette exists to be typed into, so focus its field.
@@ -99,7 +104,7 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
               />
             </div>
             <ComboboxOptions static className="max-h-80 overflow-y-auto p-2 empty:hidden">
-              {results.map((destination) => (
+              {[...results, ...(searchOption ? [searchOption] : [])].map((destination) => (
                 <ComboboxOption
                   key={destination.href}
                   value={destination}
