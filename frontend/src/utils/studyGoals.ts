@@ -2,7 +2,7 @@ import { weeklyGoalHours, type UserPreferences } from '@study-tracker/contracts'
 
 const hour = 3600;
 
-type GoalPreferences = Pick<UserPreferences, 'dailyStudyGoal' | 'activeStudyDays'>;
+export type GoalPreferences = Pick<UserPreferences, 'dailyStudyGoal' | 'activeStudyDays'>;
 
 /** Largest daily goal, in minutes (24 hours). */
 export const maxDailyGoalMinutes = 24 * 60;

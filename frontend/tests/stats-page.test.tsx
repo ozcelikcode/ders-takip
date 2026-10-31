@@ -89,3 +89,23 @@ it('shows range totals, goal comparison and course/category distribution, and re
   expect(await screen.findByRole('alert')).toBeTruthy();
   expect(screen.getByRole('alert').textContent).toMatch(/Başlangıç, bitişten sonra olamaz/);
 });
+
+it('shows the streak, a year summary and badges from measured study, independent of the chosen range', async () => {
+  render(
+    <MemoryRouter>
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <StatsPage />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+  const section = await screen.findByRole('region', { name: 'Süreklilik' });
+  // Studied Monday and Tuesday; today (Wednesday) is not studied yet, so the streak is still alive.
+  expect(within(section).getByText('Güncel seri').nextElementSibling?.textContent).toBe('2 gün');
+  expect(within(section).getByText('Son 365 günün 2 gününde çalışma ölçüldü.')).toBeTruthy();
+  const first = within(section).getByText('İlk adım').closest('li')!;
+  expect(within(first).getByText('Kazanıldı')).toBeTruthy();
+  const hundred = within(section).getByText('100 saat').closest('li')!;
+  expect(within(hundred).getByText('Henüz değil')).toBeTruthy();
+  expect(studySessionsAPI.getStats).toHaveBeenCalledWith({ startDate: '2025-10-22', endDate: '2026-10-21' });
+  expect(studySessionsAPI.getStats).toHaveBeenCalledWith();
+});

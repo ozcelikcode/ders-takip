@@ -3,6 +3,7 @@ import TagFilter from '../../components/tags/TagFilter';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import DailyStudyChart from '../../components/charts/DailyStudyChart';
+import ConsistencySection from './ConsistencySection';
 import PageHeader from '../../components/common/PageHeader';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useAllCourses } from '../../hooks/useAllCourses';
@@ -229,6 +230,8 @@ export default function StatsPage() {
           )}
         </>
       )}
+      {/* Independent of the chosen range and tag: always the last year of all measured study. */}
+      <ConsistencySection today={today} />
     </div>
   );
 }
