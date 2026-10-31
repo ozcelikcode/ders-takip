@@ -2,7 +2,7 @@ import { sessionsWithTag } from './tags';
 import { Op, type Transaction, type WhereOptions } from 'sequelize';
 import { addDateDays, dayBounds, defaultPreferences, type ActivityKind, type SessionQuery, type SessionStats, type StudyTotals, type SessionStatus, type UserStudySummary, fail } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
-import { SessionInterval, StudySession, PomodoroClock } from '../models';
+import { CourseTag, SessionInterval, SessionTag, StudySession, PomodoroClock, Tag } from '../models';
 
 const emptyTotals = (): StudyTotals => ({ studySeconds: 0, breakSeconds: 0, pauseSeconds: 0 });
 const totalKey = (kind: SessionInterval['kind']) => kind === 'study' ? 'studySeconds' : kind === 'break' ? 'breakSeconds' : 'pauseSeconds';
@@ -56,8 +56,20 @@ export async function getStudyStats(userId: number, timezone: string, query: Ses
     const where: WhereOptions = { userId, ...(query.planId === undefined ? {} : { planId: query.planId }), ...(query.sessionType === undefined ? {} : { sessionType: query.sessionType }), ...(query.status === undefined ? {} : { status: query.status }), ...(query.tagId === undefined ? {} : await sessionsWithTag({ id: userId }, query.tagId)) };
     const sessions = await StudySession.findAll({ where, include: [{ model: SessionInterval, as: 'activityIntervals' }, { model: PomodoroClock, as: 'pomodoroClock' }], transaction });
     const asOf = new Date(sessions.reduce((value, session) => (session.activityIntervals ?? []).reduce((latest, interval) => Math.max(latest, interval.endedAt?.getTime() ?? interval.startedAt.getTime()), value), Date.now()));
-    const result: SessionStats = { ...emptyTotals(), days, courses: [], asOf: asOf.toISOString(), timezone, totalSessions: 0, lastActivity: null, completedSessions: 0, partialSessions: 0, untrackedSessions: 0 };
+    const result: SessionStats = { ...emptyTotals(), days, courses: [], tags: [], asOf: asOf.toISOString(), timezone, totalSessions: 0, lastActivity: null, completedSessions: 0, partialSessions: 0, untrackedSessions: 0 };
     const byCourse = new Map<number | null, SessionStats['courses'][number]>();
+    const byTag = new Map<number, SessionStats['tags'][number]>();
+    const tagIds = (await Tag.findAll({ where: { userId }, attributes: ['id'], transaction })).map(tag => tag.id);
+    const [sessionTags, courseTags] = tagIds.length
+      ? await Promise.all([
+        SessionTag.findAll({ where: { tagId: tagIds, sessionId: sessions.map(session => session.id) }, attributes: ['sessionId', 'tagId'], transaction }),
+        CourseTag.findAll({ where: { tagId: tagIds }, attributes: ['courseId', 'tagId'], transaction }),
+      ])
+      : [[], []];
+    const tagsOf = (session: StudySession) => new Set([
+      ...sessionTags.filter(row => row.sessionId === session.id).map(row => row.tagId),
+      ...courseTags.filter(row => row.courseId === session.courseId).map(row => row.tagId),
+    ]);
     for (const session of sessions) {
       const intervals = session.activityIntervals ?? [];
       const total = measuredTotals(intervals, asOf, start, end, session.pomodoroClock?.deadlineAt);
@@ -82,11 +94,18 @@ export async function getStudyStats(userId: number, timezone: string, query: Ses
         entry.studySeconds += total.studySeconds;
         entry.sessions++;
         byCourse.set(courseId, entry);
+        for (const tagId of tagsOf(session)) {
+          const tagEntry = byTag.get(tagId) ?? { tagId, studySeconds: 0, sessions: 0 };
+          tagEntry.studySeconds += total.studySeconds;
+          tagEntry.sessions++;
+          byTag.set(tagId, tagEntry);
+        }
       }
       if (inScope && session.trackingCoverage === 'untracked') result.untrackedSessions++;
       if (inScope && session.trackingCoverage === 'partial') result.partialSessions++;
     }
     result.courses = [...byCourse.values()].sort((a, b) => b.studySeconds - a.studySeconds);
+    result.tags = [...byTag.values()].sort((a, b) => b.studySeconds - a.studySeconds);
     return result;
   });
 }

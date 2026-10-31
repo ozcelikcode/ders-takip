@@ -1,5 +1,5 @@
 import { useTerms } from '../../hooks/useTerms';
-import { dateKeyInZone, formatZonedTime } from '@study-tracker/contracts';
+import { addDateDays, dateKeyInZone, formatZonedTime } from '@study-tracker/contracts';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -10,9 +10,6 @@ import { useCurrentDateKey } from '../../hooks/useCurrentDateKey';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { studySessionsAPI } from '../../services/api';
 import { useText } from '../../store/languageStore';
-
-// The calendar day `days` before `dateKey` (both yyyy-MM-dd); date-only arithmetic, so no zone is involved.
-const daysBefore = (dateKey: string, days: number) => new Date(Date.parse(`${dateKey}T00:00:00Z`) - days * 86400000).toISOString().slice(0, 10);
 
 export default function PomodoroPage() {
   const { session: sessionText, pomodoro: text } = useText();
@@ -28,7 +25,7 @@ export default function PomodoroPage() {
       // history; the full history is never loaded here.
       const [open, recent] = await Promise.all([
         studySessionsAPI.getSessions({ sessionType: 'pomodoro', unfinished: 'true' }),
-        studySessionsAPI.getSessions({ sessionType: 'pomodoro', startDate: daysBefore(today, 6), endDate: today }),
+        studySessionsAPI.getSessions({ sessionType: 'pomodoro', startDate: addDateDays(today, -6), endDate: today }),
       ]);
       const byId = new Map([...(open.data.data?.sessions ?? []), ...(recent.data.data?.sessions ?? [])].map(session => [session.id, session]));
       return [...byId.values()].sort((a, b) => a.startTime.localeCompare(b.startTime));

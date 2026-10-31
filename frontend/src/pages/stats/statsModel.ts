@@ -109,3 +109,17 @@ export const compareWithGoal = (
     metDays,
   };
 };
+
+/**
+ * Measured study per tag, as a share of all measured study in the range. A session with several tags counts in each,
+ * so the shares can add up to more than the whole.
+ */
+export const tagDistribution = (
+  tags: SessionStats['tags'],
+  names: readonly { id: number; name: string }[],
+  totalSeconds: number,
+): DistributionRow[] =>
+  tags.flatMap((row) => {
+    const tag = names.find((item) => item.id === row.tagId);
+    return tag ? [{ key: String(row.tagId), label: tag.name, color: null, studySeconds: row.studySeconds, share: totalSeconds > 0 ? Math.min(1, row.studySeconds / totalSeconds) : 0 }] : [];
+  });

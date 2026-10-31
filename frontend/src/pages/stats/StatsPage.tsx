@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import PageHeader from '../../components/common/PageHeader';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useAllCourses } from '../../hooks/useAllCourses';
+import { useTags } from '../../hooks/useTags';
 import { useCurrentDateKey } from '../../hooks/useCurrentDateKey';
 import { useTerms } from '../../hooks/useTerms';
 import { useWeekStart } from '../../hooks/useWeekStart';
@@ -20,6 +21,7 @@ import {
   compareWithGoal,
   distribution,
   maxRangeDays,
+  tagDistribution,
   presetRange,
   rangeDays,
   rangeError,
@@ -94,6 +96,8 @@ export default function StatsPage() {
   const courses = useAllCourses();
   const data = stats.data;
   const split = distribution(data?.courses ?? [], courses.data ?? [], text.unassigned);
+  const tagList = useTags().data?.tags ?? [];
+  const byTag = tagDistribution(data?.tags ?? [], tagList, data?.studySeconds ?? 0);
   const goal = compareWithGoal(data?.days ?? [], preferences);
   const days = rangeDays(range);
   const summary = [
@@ -257,6 +261,13 @@ export default function StatsPage() {
             <DistributionList title={text.byCategory} rows={split.byCategory} />
             <DistributionList title={text.byRecord(t)} rows={split.byCourse} />
           </div>
+
+          {tagList.length > 0 && (
+            <div className="space-y-2">
+              <DistributionList title={text.byTag} rows={byTag} />
+              <p className="text-xs text-(--muted)">{text.byTagHint}</p>
+            </div>
+          )}
 
           {(data.untrackedSessions > 0 || data.partialSessions > 0) && (
             <p className="text-xs text-(--muted)">

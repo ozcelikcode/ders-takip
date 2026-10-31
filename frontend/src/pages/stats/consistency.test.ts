@@ -41,3 +41,13 @@ it('earns badges from streaks, goal days and the all-time total', () => {
   });
   expect(Object.values(earnedBadges([], 0, 0, preferences)).some(Boolean)).toBe(false);
 });
+
+it('shares measured time by tag against the whole range, naming only known tags', async () => {
+  const { tagDistribution } = await import('./statsModel');
+  const rows = tagDistribution(
+    [{ tagId: 1, studySeconds: 1800, sessions: 2 }, { tagId: 2, studySeconds: 900, sessions: 1 }, { tagId: 9, studySeconds: 60, sessions: 1 }],
+    [{ id: 1, name: 'Sınav' }, { id: 2, name: 'Okuma' }],
+    3600,
+  );
+  expect(rows.map((row) => [row.label, row.share])).toEqual([['Sınav', 0.5], ['Okuma', 0.25]]);
+});

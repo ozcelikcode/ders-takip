@@ -33,6 +33,8 @@ export interface SessionStats extends StudyTotals {
   days: (StudyTotals & { date: string })[];
   /** Measured study per course in range, largest first; null groups sessions without a course. */
   courses: { courseId: number | null; studySeconds: number; sessions: number }[];
+  /** The person's own tags, directly on a session or through its record; a session with several tags counts in each. */
+  tags: { tagId: number; studySeconds: number; sessions: number }[];
 }
 export const userStudySummarySchema = z.object({
   totalSessions: z.number().int().nonnegative(),

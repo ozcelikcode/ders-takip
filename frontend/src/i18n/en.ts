@@ -610,6 +610,8 @@ export const en: Text = {
     goalHint: 'The goal is the sum of the daily goals of the active study days in the range.',
     dailyStudy: 'Daily study',
     byCategory: 'By category',
+    byTag: 'By tag',
+    byTagHint: 'Study with several tags counts in each; shares are of all measured time.',
     byRecord: (t: Terms) => `By ${t.course()}`,
     unassigned: 'Unassigned',
     csvExport: 'Download CSV',

@@ -81,6 +81,17 @@ it('tags records and sessions per person and filters sessions through either', a
   assert.ok(exported.tags.tags.some((item) => item.name === 'Exam'));
 });
 
+it('breaks measured study down by the person\'s own tags, through the session or its record', async () => {
+  const { SessionInterval } = require('../dist/models');
+  for (const [session, minutes] of [[sessions.viaCourse, 20], [sessions.direct, 10], [sessions.plain, 5]])
+    await SessionInterval.create({ sessionId: session.id, kind: 'study', startedAt: session.startTime, endedAt: new Date(session.startTime.getTime() + minutes * 60000) });
+  const exam = (await tagsOf(owner)).tags.find((item) => item.name === 'Exam');
+  const stats = (await auth('get', '/api/study-sessions/stats?startDate=2099-01-05&endDate=2099-01-05&timezone=UTC', owner).expect(200)).body.data.stats;
+  // Another person's tag on the shared record never shows up here; the untagged session is in no tag.
+  assert.deepEqual(stats.tags, [{ tagId: exam.id, studySeconds: 30 * 60, sessions: 2 }]);
+  assert.equal(stats.studySeconds, 35 * 60);
+});
+
 it('drops attachments with their tag, record or session', async () => {
   const temporary = await tag(owner, 'Temporary');
   await auth('put', `/api/tags/sessions/${sessions.plain.id}`, owner).send({ tagIds: [temporary.id] }).expect(200);

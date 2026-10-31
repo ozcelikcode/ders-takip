@@ -615,6 +615,8 @@ export const tr = {
     goalHint: 'Hedef, aralıktaki aktif çalışma günlerinin günlük hedeflerinin toplamıdır.',
     dailyStudy: 'Günlük çalışma',
     byCategory: 'Kategoriye göre',
+    byTag: 'Etikete göre',
+    byTagHint: 'Birden çok etiketi olan çalışma her birinde sayılır; oranlar toplam ölçülen süreye göredir.',
     byRecord: (t: Terms) => `${t.course({ capitalize: true })} bazında`,
     unassigned: 'Atanmamış',
     csvExport: 'CSV indir',
