@@ -13,7 +13,7 @@ import {
 } from '../services/authSessions';
 import { readSiteSettings, sendMaintenance } from '../services/siteSettings';
 import { recordAdminEvent } from '../services/adminAudit';
-import { emailEquals } from '../utils/textSearch';
+import { emailEquals, usernameEquals } from '../utils/textSearch';
 import {
   clearRefreshCookie,
   readRefreshCookie,
@@ -45,7 +45,7 @@ export const register = async (
 
     const existingUser = await User.findOne({
       where: {
-        [Op.or]: [emailEquals(email), { username }],
+        [Op.or]: [emailEquals(email), usernameEquals(username)],
       },
     });
 
@@ -239,7 +239,12 @@ export const updateProfile = async (
           fail(404, 'userNotFound');
         if (firstName) current.firstName = firstName;
         if (lastName) current.lastName = lastName;
-        if (username) current.username = username;
+        if (username) {
+          // Someone else's name, in any letter case, is taken.
+          if (await User.findOne({ where: { [Op.and]: [usernameEquals(username), { id: { [Op.ne]: current.id } }] }, attributes: ['id'], transaction }))
+            fail(409, 'usernameTaken');
+          current.username = username;
+        }
         if (profileImage !== undefined)
           current.profileImage = profileImage || null;
         if (preferences !== undefined)
