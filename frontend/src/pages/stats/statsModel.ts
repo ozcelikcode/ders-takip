@@ -35,6 +35,10 @@ export const presetRange = (preset: Exclude<RangePreset, 'custom'>, today: strin
 export const rangeDays = ({ startDate, endDate }: DateRange) =>
   Math.round(day(endDate).diff(day(startDate), 'days').days) + 1;
 
+/** Days of the range that have begun by `today`: an average or a day count never includes days still ahead. */
+export const elapsedDays = (range: DateRange, today: string) =>
+  today < range.startDate ? 0 : rangeDays({ startDate: range.startDate, endDate: today < range.endDate ? today : range.endDate });
+
 export type RangeError = 'missing' | 'reversed' | 'tooLong';
 /** Why a user-entered range cannot be requested, or null when it can; screens word it. */
 export const rangeError = (range: DateRange): RangeError | null => {
@@ -82,6 +86,7 @@ export interface GoalComparison {
   /** Sum of daily goals over the active days in range; null when no daily goal is set. */
   targetSeconds: number | null;
   studySeconds: number;
+  /** Active days that have begun by today; days still ahead cannot have met the goal yet. */
   activeDays: number;
   metDays: number;
 }
@@ -90,17 +95,18 @@ export interface GoalComparison {
 export const compareWithGoal = (
   days: readonly { date: string; studySeconds: number }[],
   preferences: Pick<UserPreferences, 'dailyStudyGoal' | 'weeklyStudyGoal' | 'activeStudyDays'>,
+  today: string,
 ): GoalComparison => {
   let target = 0;
   let activeDays = 0;
   let metDays = 0;
   for (const { date, studySeconds } of days) {
     if (!isActiveStudyDay(date, preferences.activeStudyDays)) continue;
-    activeDays++;
     const goal = dailyGoalSeconds(date, preferences);
-    if (goal === null) continue;
-    target += goal;
-    if (studySeconds >= goal) metDays++;
+    if (goal !== null) target += goal;
+    if (date > today) continue;
+    activeDays++;
+    if (goal !== null && studySeconds >= goal) metDays++;
   }
   return {
     targetSeconds: preferences.dailyStudyGoal > 0 ? target : null,

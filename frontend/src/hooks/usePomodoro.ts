@@ -11,7 +11,7 @@ const observePomodoro = (session: StudySession) => ({ session, wallTime: Date.no
 export type PomodoroObservation = ReturnType<typeof observePomodoro>;
 const observedServerTime = (observation: PomodoroObservation) => observation.serverTime + Math.max(0, Date.now() - observation.wallTime, performance.now() - observation.monotonicTime);
 
-export function usePomodoro(initialSession: StudySession, onComplete?: () => void) {
+export function usePomodoro(initialSession: StudySession, onComplete?: (session: StudySession) => void) {
   const keys = useAccountQueryKeys();
   const client = useQueryClient();
   const queryKey = keys.sessions('pomodoro-clock', initialSession.id);
@@ -65,7 +65,7 @@ export function usePomodoro(initialSession: StudySession, onComplete?: () => voi
       if (useAuthStore.getState().epoch !== epoch) return;
       client.setQueryData(queryKey, observePomodoro(updated));
       void client.invalidateQueries({ queryKey: keys.sessions() });
-      if (input.command === 'complete') onComplete?.();
+      if (input.command === 'complete') onComplete?.(updated);
     },
     onError: () => { if (operationEpoch.current === useAuthStore.getState().epoch) void query.refetch(); },
   });

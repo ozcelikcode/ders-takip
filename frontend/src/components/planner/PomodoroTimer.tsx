@@ -6,7 +6,7 @@ import { usePomodoroAlerts } from '../../hooks/usePomodoroAlerts';
 import type { StudySession } from '../../types/planner';
 import { useText } from '../../store/languageStore';
 
-interface PomodoroTimerProps { session: StudySession; onComplete?: (() => void) | undefined }
+interface PomodoroTimerProps { session: StudySession; onComplete?: ((session: StudySession) => void) | undefined }
 const formatTime = (seconds: number) => `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
 
 export default function PomodoroTimer({ session: initialSession, onComplete }: PomodoroTimerProps) {

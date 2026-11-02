@@ -2,11 +2,12 @@
   "$schema": "https://unpkg.com/knip@6.41.0/schema.json",
   "workspaces": {
     ".": {
-      "entry": ["scripts/*.mjs", "tests/e2e/*.{ts,cjs,mjs}", "playwright*.config.ts"],
+      "entry": ["scripts/*.mjs", "tests/e2e/*.{ts,cjs,mjs}", "tests/screenshots/*.ts", "playwright*.config.ts"],
       "ignoreDependencies": ["express", "web-push"]
     },
     "backend": {
-      "entry": ["src/scripts/*.ts", "tests/*.cjs"]
+      "entry": ["src/scripts/*.ts", "tests/*.cjs"],
+      "paths": { "../dist/*": ["src/*"] }
     },
     "frontend": {
       "entry": ["public/sw.js"]

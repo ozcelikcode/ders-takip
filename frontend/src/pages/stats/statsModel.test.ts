@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CatalogCourse } from '../../types/catalog';
-import { compareWithGoal, distribution, presetRange, rangeDays, rangeError } from './statsModel';
+import { compareWithGoal, distribution, elapsedDays, presetRange, rangeDays, rangeError } from './statsModel';
 
 const course = (id: number, categoryId: number, name: string): CatalogCourse => ({
   id,
@@ -57,7 +57,15 @@ describe('statistics model', () => {
       { date: '2026-10-25', studySeconds: 1800 },
     ];
     const preferences = { dailyStudyGoal: 2, weeklyStudyGoal: 10, activeStudyDays: [1, 2, 3, 4, 5] };
-    expect(compareWithGoal(days, preferences)).toEqual({ targetSeconds: 14400, studySeconds: 12600, activeDays: 2, metDays: 1 });
-    expect(compareWithGoal(days, { ...preferences, dailyStudyGoal: 0 }).targetSeconds).toBeNull();
+    expect(compareWithGoal(days, preferences, '2026-12-31')).toEqual({ targetSeconds: 14400, studySeconds: 12600, activeDays: 2, metDays: 1 });
+    expect(compareWithGoal(days, { ...preferences, dailyStudyGoal: 0 }, '2026-12-31').targetSeconds).toBeNull();
+    // Days still ahead keep their share of the target but are not counted as missed.
+    const ahead = compareWithGoal(days, preferences, days[0]!.date);
+    expect([ahead.targetSeconds, ahead.activeDays]).toEqual([14400, 1]);
+  });
+
+  it('averages over the days of the range that have begun, never over days still ahead', () => {
+    const week = { startDate: '2026-11-02', endDate: '2026-11-08' };
+    expect([elapsedDays(week, '2026-11-02'), elapsedDays(week, '2026-11-05'), elapsedDays(week, '2026-11-20'), elapsedDays(week, '2026-10-30')]).toEqual([1, 4, 7, 0]);
   });
 });

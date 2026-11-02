@@ -10,6 +10,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Archive, Plus, SortAsc, SortDesc } from 'lucide-react';
 import { useState } from 'react';
+import { flushSync } from 'react-dom';
 import toast from 'react-hot-toast';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import TopicEditorModal from '../components/modals/TopicEditorModal';
@@ -55,6 +56,8 @@ const CourseDetailPage = () => {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [topicEditorOpen, setTopicEditorOpen] = useState(false);
+  // Once this record is deleted its queries stop, so the refresh after the delete never asks for it again.
+  const [removed, setRemoved] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -101,10 +104,11 @@ const CourseDetailPage = () => {
     isLoading,
     isFetching,
     error,
+    refetch,
   } = useQuery({
     queryKey: accountKeys.catalog('course', id, { includeTopics: true }),
     queryFn: () => coursesAPI.getCourse(id!, { includeTopics: true }),
-    enabled: !!id,
+    enabled: !!id && !removed,
   });
 
   const course: CatalogCourse | undefined = courseData?.data?.data?.course;
@@ -115,7 +119,7 @@ const CourseDetailPage = () => {
     queryFn: async () =>
       (await coursesAPI.getCourseTopics(id!, { isActive: false })).data.data
         ?.topics,
-    enabled: !!id && archived && canEdit,
+    enabled: !!id && archived && canEdit && !removed,
   });
 
   const updateTopicStatus = (topicId: number, status: TopicStatus) =>
@@ -160,7 +164,8 @@ const CourseDetailPage = () => {
     );
   }
 
-  if (error || !course) {
+  // A failed refresh keeps the record on screen with a retry; only a record that never loaded shows the error page.
+  if (!course) {
     return (
       <div className="text-center py-12">
         <p className="text-red-600">{text.loadFailed(t)}</p>
@@ -194,6 +199,12 @@ const CourseDetailPage = () => {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div role="alert" className="panel flex flex-wrap items-center gap-3 p-4 text-sm">
+          {text.loadFailed(t)}
+          <button type="button" className="btn btn-secondary" disabled={isFetching} onClick={() => void refetch()}>{text.retry}</button>
+        </div>
+      )}
       <Link
         to="/courses"
         className="inline-flex items-center gap-2 text-sm text-(--muted)"
@@ -394,6 +405,10 @@ const CourseDetailPage = () => {
       <CatalogDeleteDialog
         target={deleting}
         onClose={() => setDeleting(null)}
+        onRemoved={() => {
+          // Applied at once: the refresh that follows must already see this record's queries stopped.
+          if (deleting?.kind === 'course') flushSync(() => setRemoved(true));
+        }}
         onDeleted={() => {
           if (deleting?.kind === 'course') navigate('/courses');
         }}

@@ -70,8 +70,10 @@ it('shows range totals, goal comparison and course/category distribution, and re
   );
   expect(await screen.findByText('1 sa 30 dk')).toBeTruthy();
   expect(studySessionsAPI.getStats).toHaveBeenCalledWith({ startDate: '2026-10-19', endDate: '2026-10-25' });
-  // Week has 5 active days with a 1 hour goal; Monday met it.
-  expect(screen.getByText('Hedefe ulaşılan gün: 1 / 5')).toBeTruthy();
+  // Monday to Wednesday of the 5 active days have begun (today is Wednesday); Monday met the 1 hour goal.
+  // The average spreads over those 3 days, not over the days still ahead.
+  expect(screen.getByText('Hedefe ulaşılan gün: 1 / 3')).toBeTruthy();
+  expect(screen.getByText('3 gün üzerinden')).toBeTruthy();
   const byCategory = await screen.findByRole('region', { name: 'Kategoriye göre' });
   expect(within(byCategory).getByText('İş')).toBeTruthy();
   expect(within(byCategory).getByText('Atanmamış')).toBeTruthy();

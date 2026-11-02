@@ -23,7 +23,7 @@ import {
   maxRangeDays,
   tagDistribution,
   presetRange,
-  rangeDays,
+  elapsedDays,
   rangeError,
   type DateRange,
   type DistributionRow,
@@ -98,8 +98,8 @@ export default function StatsPage() {
   const split = distribution(data?.courses ?? [], courses.data ?? [], text.unassigned);
   const tagList = useTags().data?.tags ?? [];
   const byTag = tagDistribution(data?.tags ?? [], tagList, data?.studySeconds ?? 0);
-  const goal = compareWithGoal(data?.days ?? [], preferences);
-  const days = rangeDays(range);
+  const goal = compareWithGoal(data?.days ?? [], preferences, today);
+  const days = Math.max(1, elapsedDays(range, today));
   const summary = [
     { label: text.measured, value: formatMeasuredSeconds(data?.studySeconds ?? 0, language), detail: text.measuredDetail },
     { label: text.dailyAverage, value: formatMeasuredSeconds((data?.studySeconds ?? 0) / days, language), detail: text.overDays(days) },

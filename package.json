@@ -39,7 +39,8 @@
     "predev:all": "npm run build --workspace @study-tracker/contracts",
     "predev:backend": "npm run build --workspace @study-tracker/contracts",
     "predev:frontend": "npm run build --workspace @study-tracker/contracts",
-    "test:lighthouse": "node tests/e2e/run.mjs --config playwright.lighthouse.config.ts"
+    "test:lighthouse": "node tests/e2e/run.mjs --config playwright.lighthouse.config.ts",
+    "docs:screenshots": "node tests/e2e/run.mjs --config playwright.screenshots.config.ts"
   },
   "keywords": [
     "study-tracker",

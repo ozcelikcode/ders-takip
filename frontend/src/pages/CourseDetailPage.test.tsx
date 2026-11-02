@@ -8,6 +8,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -54,7 +55,7 @@ vi.mock('@hello-pangea/dnd', () => ({
     ),
 }));
 vi.mock('../services/api', () => ({
-  coursesAPI: { getCourse: vi.fn(), getCourseTopics: vi.fn() },
+  coursesAPI: { getCourse: vi.fn(), getCourseTopics: vi.fn(), deleteCourse: vi.fn() },
   topicsAPI: {
     reorderTopics: vi.fn(),
     getTopicProgress: vi.fn(),
@@ -132,6 +133,7 @@ async function mount() {
       >
         <Routes>
           <Route path="/courses/:id" element={<CourseDetailPage />} />
+          <Route path="/courses" element={<p>Records list</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -283,4 +285,24 @@ it('loads archived topics only on request, disables reordering and restores thro
   await waitFor(() =>
     expect(coursesAPI.getCourseTopics).toHaveBeenCalledTimes(2),
   );
+});
+
+it('deletes the open record, goes back to the list and never asks for the deleted record again', async () => {
+  await mount();
+  vi.mocked(coursesAPI.deleteCourse).mockResolvedValue({ data: { success: true } } as never);
+  const loads = vi.mocked(coursesAPI.getCourse).mock.calls.length;
+  fireEvent.click(screen.getByRole('button', { name: 'Dersi sil' }));
+  const dialog = await screen.findByRole('dialog');
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Dersi sil' }));
+  expect(await screen.findByText('Records list')).toBeTruthy();
+  expect(coursesAPI.deleteCourse).toHaveBeenCalledWith('10');
+  expect(vi.mocked(coursesAPI.getCourse).mock.calls.length).toBe(loads);
+});
+
+it('keeps a loaded record on screen with a retry when a refresh fails', async () => {
+  const client = await mount();
+  vi.mocked(coursesAPI.getCourse).mockRejectedValueOnce(new Error('offline'));
+  await act(() => client.invalidateQueries());
+  expect((await screen.findByRole('alert')).textContent).toContain('Tekrar dene');
+  expect(screen.getByText('Fixture course')).toBeTruthy();
 });

@@ -9,6 +9,7 @@ import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useCurrentDateKey } from '../../hooks/useCurrentDateKey';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { studySessionsAPI } from '../../services/api';
+import type { StudySession } from '../../types/planner';
 import { useText } from '../../store/languageStore';
 
 export default function PomodoroPage() {
@@ -18,6 +19,9 @@ export default function PomodoroPage() {
   const keys = useAccountQueryKeys();
   const today = useCurrentDateKey();
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  // A session finished here stays listed for this visit, even when it falls outside the loaded range
+  // (a session started early, or an unfinished one from more than a week ago); otherwise the page would jump away.
+  const [finished, setFinished] = useState<StudySession | null>(null);
   const query = useQuery({
     queryKey: keys.sessions('pomodoro-sessions', today),
     queryFn: async () => {
@@ -33,7 +37,9 @@ export default function PomodoroPage() {
     refetchInterval: 60000,
     refetchOnWindowFocus: true,
   });
-  const sessions = query.data;
+  const sessions = query.data && finished && !query.data.some(session => session.id === finished.id)
+    ? [...query.data, finished].sort((a, b) => a.startTime.localeCompare(b.startTime))
+    : query.data;
   useEffect(() => {
     if (!sessions || sessions.some(session => session.id === selectedId)) return;
     setSelectedId(sessions.find(session => session.status === 'in_progress')?.id ?? sessions.find(session => session.status === 'paused')?.id ?? sessions.find(session => session.status === 'planned')?.id ?? sessions[0]?.id ?? null);
@@ -55,7 +61,7 @@ export default function PomodoroPage() {
               </button>)}
             </div>
           </section>
-          <div className="panel p-6 sm:p-8 lg:col-span-2">{selected ? <PomodoroTimer key={selected.id} session={selected} /> : <p>{text.choose(t)}</p>}</div>
+          <div className="panel p-6 sm:p-8 lg:col-span-2">{selected ? <PomodoroTimer key={selected.id} session={selected} onComplete={setFinished} /> : <p>{text.choose(t)}</p>}</div>
         </div>
       )}
     </div>

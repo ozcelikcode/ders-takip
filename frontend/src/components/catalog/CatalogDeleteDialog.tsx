@@ -13,10 +13,13 @@ export type CatalogDeleteTarget = {
 function DeleteConfirmation({
   target,
   onClose,
+  onRemoved,
   onDeleted,
 }: {
   target: CatalogDeleteTarget;
   onClose: () => void;
+  /** Runs as soon as the server deleted it, before the views refresh. */
+  onRemoved?: () => void;
   onDeleted?: () => void;
 }) {
   const t = useTerms();
@@ -37,10 +40,12 @@ function DeleteConfirmation({
       type={course ? 'danger' : 'warning'}
       onConfirm={async () => {
         const saved = await mutation.save(
-          () =>
-            course
+          async () => {
+            await (course
               ? coursesAPI.deleteCourse(String(target.id))
-              : topicsAPI.deleteTopic(String(target.id)),
+              : topicsAPI.deleteTopic(String(target.id)));
+            onRemoved?.();
+          },
           course
             ? text.recordDeleted(t)
             : text.topicArchived(t),
@@ -64,6 +69,7 @@ export default function CatalogDeleteDialog({
 }: {
   target: CatalogDeleteTarget | null;
   onClose: () => void;
+  onRemoved?: () => void;
   onDeleted?: () => void;
 }) {
   return target ? (

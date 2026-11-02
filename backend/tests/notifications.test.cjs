@@ -225,7 +225,7 @@ it('writes emails and browser notifications in the site language', async (t) => 
   await session(ada, new Date('2026-10-21T01:00:00Z'), { title: 'Japanese' });
   await runDueNotifications(new Date('2026-10-20T22:30:00Z')); // 07:30 in Tokyo
   await runDueNotifications(new Date('2026-10-21T00:51:00Z')); // 9 minutes before the session
-  assert.deepEqual(mails.map((mail) => mail.subject), ['Today\'s plan: 1 session · Görev Takip Sistemi', '“Japanese” starts in 9 min · Görev Takip Sistemi']);
+  assert.deepEqual(mails.map((mail) => mail.subject), ['Today\'s plan: 1 session · Task Tracker', '“Japanese” starts in 9 min · Task Tracker']);
   assert.match(mails[0].text, /Good morning ada,\nToday's goal: 1 h 30 min\.\n1 session planned for today:/);
   assert.match(mails[1].text, /Your session starts in 9 minutes:/);
   assert.match(mails[1].text, /notification settings; turn it off in Settings › Notifications\./);
