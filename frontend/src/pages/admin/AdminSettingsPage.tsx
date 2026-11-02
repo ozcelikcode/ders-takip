@@ -25,7 +25,7 @@ import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { backupAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useText } from '../../store/languageStore';
+import { useLanguageStore, useText } from '../../store/languageStore';
 import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
 
 // Custom words are an object; compare settings by value, not identity.
@@ -183,8 +183,12 @@ function SettingsForm({
     }
     setErrors({});
     const saved = await mutation.save(
-      () => updateSettings(patch),
-      text.saved,
+      async () => {
+        await updateSettings(patch);
+        // Switch before confirming, so the confirmation already speaks the new language.
+        if (patch.language) await useLanguageStore.getState().setLanguage(patch.language);
+      },
+      () => useLanguageStore.getState().text.siteSettings.saved,
     );
     const confirmed = useSettingsStore.getState().adminSettings;
     if (saved && current() && confirmed) resetDraft(confirmed);

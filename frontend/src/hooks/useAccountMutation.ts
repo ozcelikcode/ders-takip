@@ -20,7 +20,8 @@ export function useAccountMutation(invalidateKeys: readonly QueryKey[]) {
   const [errorMessage, setErrorMessage] = useState('');
   const isCurrent = () =>
     mounted.current && useAuthStore.getState().epoch === boundEpoch.current;
-  const save = async (operation: () => Promise<unknown>, message: string) => {
+  // A message function is read after the operation, so it can follow a language the operation switched to.
+  const save = async (operation: () => Promise<unknown>, message: string | (() => string)) => {
     if (!isCurrent() || busy.current) return false;
     busy.current = true;
     setPending(true);
@@ -37,7 +38,7 @@ export function useAccountMutation(invalidateKeys: readonly QueryKey[]) {
       );
       if (!mounted.current || useAuthStore.getState().epoch !== epoch)
         return false;
-      toast.success(message);
+      toast.success(typeof message === 'function' ? message() : message);
       return true;
     } catch (error) {
       if (mounted.current && useAuthStore.getState().epoch === epoch) {

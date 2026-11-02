@@ -4,6 +4,7 @@ const {
   inflect, createTerms, terminologyPresets, terminologyPresetIds, publicSettingsSchema, defaultSiteSettings, settingsPatchSchema,
   accusativeFits, suggestAccusative, customTerminologySchema, customTerminologyFrom, resolveTerminology, preferencesPatchSchema,
   inflectEnglish, registerSchema, defaultPreferences, suggestPlural, suggestArticle, normalizeTermWord,
+  withSiteIdentity, defaultSiteIdentity,
 } = require('../dist/cjs');
 
 // Hand-verified Turkish forms: [word, acc, dat, gen, loc, abl, plural, pluralDat]
@@ -189,4 +190,11 @@ it('keeps the interface language a site setting, not a per-account or browser ch
   const account = { username: 'reader', email: 'reader@example.com', password: 'long-enough-password', firstName: 'Ada', lastName: 'Byron' };
   assert.equal(registerSchema.safeParse(account).success, true);
   assert.equal(registerSchema.safeParse({ ...account, language: 'en' }).success, false);
+});
+
+it('shows the built-in site name in the site language but never translates a name the administrator wrote', () => {
+  const english = withSiteIdentity({ ...defaultSiteSettings, language: 'en' });
+  assert.deepEqual([english.siteName, english.siteDescription], [defaultSiteIdentity.en.siteName, defaultSiteIdentity.en.siteDescription]);
+  assert.equal(withSiteIdentity({ ...english, language: 'tr' }).siteName, defaultSiteIdentity.tr.siteName);
+  assert.equal(withSiteIdentity({ ...defaultSiteSettings, language: 'en', siteName: 'Kütüphane' }).siteName, 'Kütüphane');
 });

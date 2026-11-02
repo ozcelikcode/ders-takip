@@ -222,7 +222,7 @@ Lighthouse keeps the real login cookie in a separate empty Chromium profile on a
 
 ## Language and vocabulary (23 October 2026)
 
-The interface language is one site-wide setting (English or Turkish). Stored data and the words people type are never translated. A custom word set carries the language it was written in and is used only in that language; the other language shows a preset. Word forms come from one module (`contracts/terminology.ts`): the Turkish accusative form, and the English plural and a/an, are kept as a suggestion the person can correct plus the stored value. Interface text never hard-codes an English article; it uses `t.x({ article: true })`.
+The interface language is one site-wide setting (English or Turkish). Stored data and the words people type are never translated; every fixed value follows the language, including the built-in site name and description (`withSiteIdentity`: a name that is still the built-in one follows the language, a written one stays). `tests/e2e/site-language.spec.ts` guards that an English site shows no Turkish interface text. A custom word set carries the language it was written in and is used only in that language; the other language shows a preset. Word forms come from one module (`contracts/terminology.ts`): the Turkish accusative form, and the English plural and a/an, are kept as a suggestion the person can correct plus the stored value. Interface text never hard-codes an English article; it uses `t.x({ article: true })`.
 
 ## Weekly routines (23 October 2026)
 

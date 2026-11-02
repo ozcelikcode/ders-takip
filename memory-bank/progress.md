@@ -1,7 +1,18 @@
 # Study Tracker — Progress
 
-Last updated: 31 October 2026. Roadmaps R1–R15, F1–F6 and administrator security are complete and pushed; the latest work was a project cleanup (temporary backups, reports, test leftovers), `npm audit` patches and a documentation refresh. The next roadmap (S/Q/P/G/D) is planned below. Commits and pushes happen only with the owner's approval. The real database schema is at 013.
+Last updated: 2 November 2026. Roadmaps R1–R15, F1–F6, administrator security and the S/Q/P/G/D roadmap (except the Docker trial and the off-server activity-log copy) are complete and pushed; the latest work completed the English site (below). Since 31 October verified work is committed and pushed without asking; real-database migrations still need the owner's approval. The real database schema is at 014.
 
+
+## English site completed (2 November 2026)
+
+Owner request: when the site language is English every fixed value is English, when Turkish everything is Turkish; content (what people typed) is never translated. A crawl found the gaps that were left:
+
+- **Built-in site identity:** the default name and description were Turkish constants. `contracts` now has `defaultSiteIdentity` (`tr` / `en`) and `withSiteIdentity`; `readSiteSettings` applies it, so a name or description that is still the built-in one (absent or stored unchanged) follows the language, while a name the administrator wrote stays as written. The sidebar, page title, manifest, calendar feed name and email subjects follow automatically.
+- **Language switch confirmation:** saving the site language switched the interface after the success message, so the message appeared in the old language. The save now switches the catalog first; `useAccountMutation.save` accepts a message function read after the operation.
+- **Static page shell:** `index.html` no longer carries a Turkish loading title, description or keywords; the inline branding script sets `lang` from the cached site settings before the app starts.
+- **Guard:** `tests/e2e/site-language.spec.ts` sets the site to English and visits every page, settings tab, administrator section and three dialogs in all three browser profiles. A page fails on any Turkish letter (except the language option "Türkçe") or any fixed Turkish catalog phrase that English does not share, so Turkish words without Turkish letters are caught too. A source scan for Turkish catalog phrases outside the catalogs found only stored values (difficulty) and the Turkish halves of the email and duration tables.
+
+Verified: `npm run check` exit 0 (contracts 47, backend 224, frontend 330); browser tests below.
 ## Next roadmap (31 October 2026; owner request: more variety, fix illogical behaviour, bugs, old and risky code)
 
 Source: two read-only audits (backend security and bugs, frontend bugs and dead code). No critical issue was found; JWT, refresh rotation, cookies, CSRF, backups, the ICS feed and authorization are already sound and will not be redone. Order: S → Q → P → G → D. Each phase is a separate commit with `npm run check` and the related browser tests; migrations need a backup and the owner's explicit approval first.

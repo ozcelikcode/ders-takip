@@ -25,7 +25,7 @@ export * from './textSearch.js';
 export * from './notifications.js';
 export * from './language.js';
 import { customTerminologySchema, defaultTerminologyPreset, terminologyPresetSchema } from './terminology.js';
-import { defaultLanguage, languageSchema } from './language.js';
+import { defaultLanguage, languageSchema, type Language } from './language.js';
 
 export const brandIconNames = [
   'GraduationCap',
@@ -72,9 +72,23 @@ export const settingsPatchSchema = siteSettingsSchema.partial().strict();
 export type SettingsPatch = z.infer<typeof settingsPatchSchema>;
 export type PublicSettings = z.infer<typeof publicSettingsSchema>;
 export type SiteSettings = z.infer<typeof siteSettingsSchema>;
+/** The built-in name and description, shown in the site language until an administrator writes their own. */
+export const defaultSiteIdentity: Record<Language, Pick<SiteSettings, 'siteName' | 'siteDescription'>> = {
+  tr: { siteName: 'Görev Takip Sistemi', siteDescription: 'Herkes için modern görev takip ve zaman yönetimi platformu' },
+  en: { siteName: 'Task Tracker', siteDescription: 'A modern task tracking and time management platform for everyone' },
+};
+/** A stored built-in name or description is still the built-in one, so it follows the language too. */
+export const withSiteIdentity = <T extends Pick<SiteSettings, 'siteName' | 'siteDescription' | 'language'>>(settings: T): T => {
+  const builtIn = Object.values(defaultSiteIdentity);
+  const own = defaultSiteIdentity[settings.language];
+  return {
+    ...settings,
+    siteName: builtIn.some((identity) => identity.siteName === settings.siteName) ? own.siteName : settings.siteName,
+    siteDescription: builtIn.some((identity) => identity.siteDescription === settings.siteDescription) ? own.siteDescription : settings.siteDescription,
+  };
+};
 export const defaultSiteSettings: SiteSettings = {
-  siteName: 'Görev Takip Sistemi',
-  siteDescription: 'Herkes için modern görev takip ve zaman yönetimi platformu',
+  ...defaultSiteIdentity[defaultLanguage],
   siteLogo: '',
   siteIcon: 'GraduationCap',
   siteUrl: 'http://localhost:3000',

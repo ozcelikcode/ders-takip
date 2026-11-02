@@ -17,6 +17,8 @@ import {
   within,
 } from '@testing-library/react';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
+import { tr } from '../src/i18n/tr';
+import { useLanguageStore } from '../src/store/languageStore';
 import toast from 'react-hot-toast';
 import { MemoryRouter } from 'react-router-dom';
 import { settingsAPI, backupAPI } from '../src/services/api';
@@ -123,6 +125,8 @@ async function backups() {
 const save = () =>
   fireEvent.submit(screen.getByRole('form', { name: 'Site ayarları formu' }));
 beforeEach(() => {
+  // Saving the site language switches the interface; every test starts in Turkish.
+  useLanguageStore.setState({ language: 'tr', text: tr });
   auth.epoch = 1;
   auth.user = { id: '1', role: 'admin' };
   useSettingsStore.getState().clearAdminSettings();
@@ -613,6 +617,8 @@ it('asks for English words when the administrator sets the site to English', asy
       },
     }),
   );
+  // The page and its confirmation switch to the saved language.
+  expect(await screen.findByRole('heading', { level: 1, name: 'Site settings' })).toBeTruthy();
 });
 
 it('asks for the administrator password before restoring and sends nothing without it', async () => {

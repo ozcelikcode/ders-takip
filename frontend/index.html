@@ -4,18 +4,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description"
-    content="Öğrenci, öğretmen, çalışan ve yazılımcılar için modern görev takip ve zaman yönetimi sistemi" />
+  <meta name="description" content="" />
   <meta name="application-name" content="" />
   <meta property="og:site_name" content="" />
-  <meta name="keywords"
-    content="görev takibi, zaman yönetimi, pomodoro, planlama, üretkenlik, çalışma, öğrenci, öğretmen" />
   <link rel="icon" type="image/svg+xml" href="/brand-mark.svg" />
   <link rel="manifest" href="/api/settings/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <meta name="theme-color" content="#171717" />
 
-  <title>Yükleniyor…</title>
+  <title></title>
 
   <!-- Only public branding is read before account authentication. -->
   <script>
@@ -23,6 +20,7 @@
       const settings = JSON.parse(localStorage.getItem('site-branding') || 'null');
       if (typeof settings?.siteName === 'string') document.title = settings.siteName;
       if (typeof settings?.siteDescription === 'string') document.querySelector('meta[name="description"]').setAttribute('content', settings.siteDescription);
+      if (settings?.language === 'en' || settings?.language === 'tr') document.documentElement.lang = settings.language;
       document.documentElement.classList.toggle('dark', window.matchMedia('(prefers-color-scheme: dark)').matches);
     } catch { /* Public cache is optional. */ }
   </script>
