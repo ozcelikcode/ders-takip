@@ -39,6 +39,7 @@ function useDestinations(): Destination[] {
           admin(nav.recordManagement(t), '/admin/courses'),
           admin(nav.siteSettings, '/admin/settings'),
           ...keys(siteSettings.sections).map((section) => siteSection(siteSettings.sections[section], `/admin/settings?section=${section}`)),
+          admin(nav.system, '/admin/system'),
         ]
       : []),
   ];

@@ -8,6 +8,7 @@ import {
   backupCreateResponseSchema,
   resetDataResponseSchema,
   adminAuditListResponseSchema,
+  systemStatusResponseSchema,
   seriesListResponseSchema,
   seriesWriteResponseSchema,
   courseGoalListResponseSchema,
@@ -300,6 +301,10 @@ export const usersAPI = {
 export const adminAuditAPI = {
   list: async (before?: number) =>
     adminAuditListResponseSchema.parse((await api.get('/admin-audit', { params: before === undefined ? {} : { before } })).data).data,
+};
+
+export const systemAPI = {
+  status: async () => systemStatusResponseSchema.parse((await api.get('/admin/system')).data).data,
 };
 
 // Study Sessions API

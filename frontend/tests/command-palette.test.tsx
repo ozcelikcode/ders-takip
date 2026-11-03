@@ -62,6 +62,12 @@ it('matches without regard to case or Turkish letters and lists administration o
   expect(options()).toEqual(['Yedekleme ve sıfırlamaSite ayarları', '"yedek" için kayıtlarda araArama']);
   fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
   await waitFor(() => expect(screen.getByTestId('address').textContent).toBe('/admin/settings?section=backup'));
+
+  press({ ctrlKey: true });
+  search('sistem');
+  expect(options()[0]).toBe('SistemYönetim');
+  fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
+  await waitFor(() => expect(screen.getByTestId('address').textContent).toBe('/admin/system'));
 });
 
 it('stays shut while another dialog is open, so an open form is never left behind', () => {

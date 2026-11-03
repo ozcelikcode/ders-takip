@@ -192,6 +192,8 @@ for (const theme of ['light', 'dark'] as const) {
         'admin',
         'admin/users',
         'admin/courses',
+        'admin/system',
+        // Last: the settings sections below are opened from this page.
         'admin/settings',
       ]) {
         await page.goto(`/${route}`);

@@ -52,7 +52,7 @@ test.describe('English site', () => {
       await page.getByRole('navigation', { name: 'Site settings sections' }).getByRole('button', { name: section }).click();
       await expectEnglish(page, `site settings › ${section}`);
     }
-    for (const path of ['/admin', '/admin/users', '/admin/courses']) {
+    for (const path of ['/admin', '/admin/users', '/admin/courses', '/admin/system']) {
       await page.goto(path);
       await expectEnglish(page, path);
     }

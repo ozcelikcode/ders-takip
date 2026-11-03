@@ -1,6 +1,6 @@
 import { useTerms } from '../../hooks/useTerms';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, BookOpen, Settings, Users } from 'lucide-react';
+import { ArrowRight, BookOpen, Server, Settings, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PageHeader from '../../components/common/PageHeader';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
@@ -76,6 +76,12 @@ function AdminOverview() {
       href: '/admin/settings',
       icon: Settings,
     },
+    {
+      title: text.systemShortcut,
+      detail: text.systemShortcutDetail,
+      href: '/admin/system',
+      icon: Server,
+    },
   ];
   return (
     <div className="space-y-6">
@@ -120,7 +126,7 @@ function AdminOverview() {
       </section>
       <nav
         aria-label={text.shortcuts}
-        className="grid gap-3 lg:grid-cols-3"
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
       >
         {shortcuts.map((item) => (
           <Link

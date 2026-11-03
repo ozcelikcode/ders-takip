@@ -24,6 +24,7 @@ export * from './onboarding.js';
 export * from './textSearch.js';
 export * from './notifications.js';
 export * from './language.js';
+export * from './systemStatus.js';
 import { customTerminologySchema, defaultTerminologyPreset, terminologyPresetSchema } from './terminology.js';
 import { defaultLanguage, languageSchema, type Language } from './language.js';
 

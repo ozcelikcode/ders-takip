@@ -86,6 +86,7 @@ The screenshots come from demo data on the isolated test site and are regenerate
 
 **Administration**
 - User management (including correcting a person's name, username or email), shared catalog, site identity (name, description, logo, icon, accent color) and site language. The site name is also the sender name of the site's emails, and replies go to the administrator contact address when one is set.
+- A read-only **System** page: server uptime, memory and load, database file and write-ahead log size, row count and size of every table, migrations, sign-in and study activity, backups and the server configuration (paths and host names only, never passwords, keys or tokens). It refreshes every 30 seconds.
 - Verified SQLite snapshots with automatic retention, an optional second backup folder, restore and reset with a safety copy taken first.
 - Sensitive actions ask for the administrator's password again, and every administration action is written to a hash-chained activity log kept outside the database.
 
@@ -212,8 +213,8 @@ npm run check
 | Suite | Tool | Tests |
 |---|---|---|
 | Shared contracts | Node test runner | 48 |
-| Backend (HTTP + SQLite, temporary databases) | Node test runner, Supertest | 232 |
-| Frontend (components and screen flows) | Vitest, Testing Library, jsdom | 348 |
+| Backend (HTTP + SQLite, temporary databases) | Node test runner, Supertest | 234 |
+| Frontend (components and screen flows) | Vitest, Testing Library, jsdom | 349 |
 | Browser journeys and accessibility | Playwright, axe-core | 46 scenarios × 3 browsers = 138 runs |
 
 ```bash

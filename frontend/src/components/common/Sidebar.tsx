@@ -1,7 +1,7 @@
 import { Brand } from './Brand';
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { NavLink, Link } from 'react-router-dom';
-import { X, Home, BarChart3, BookOpen, Calendar, Users, Settings, LayoutDashboard, Timer, Sliders, ArrowUpRight, type LucideIcon } from 'lucide-react';
+import { X, Home, BarChart3, BookOpen, Calendar, Users, Settings, LayoutDashboard, Timer, Sliders, ArrowUpRight, type LucideIcon, Server } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { Terms } from '@study-tracker/contracts';
 import { useTerms } from '../../hooks/useTerms';
@@ -32,6 +32,7 @@ const adminNavigation = (text: Text['nav'], t: Terms): NavigationItem[] => [
   { name: text.users, href: '/admin/users', icon: Users },
   { name: text.recordManagement(t), href: '/admin/courses', icon: BookOpen },
   { name: text.siteSettings, href: '/admin/settings', icon: Sliders },
+  { name: text.system, href: '/admin/system', icon: Server },
 ];
 const accountNavigation = (text: Text['nav']): NavigationItem[] => [
   { name: text.settings, href: '/settings', icon: Settings },

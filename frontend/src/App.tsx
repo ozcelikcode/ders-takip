@@ -17,6 +17,7 @@ import LoadingScreen from './components/common/LoadingScreen';
 const AdminCoursesPage = lazy(() => import('./pages/admin/AdminCoursesPage'));
 const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage'));
+const AdminSystemPage = lazy(() => import('./pages/admin/AdminSystemPage'));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
@@ -112,6 +113,7 @@ function App() {
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="courses" element={<AdminCoursesPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
+          <Route path="system" element={<AdminSystemPage />} />
         </Route>
       </Route>
 

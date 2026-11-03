@@ -4,6 +4,17 @@ Last updated: 3 November 2026. Roadmaps R1–R15, F1–F6, administrator securit
 
 
 
+## Administrator System page (3 November 2026)
+
+Owner request: a page where the administrator sees site information and statistics, "like watching a MySQL database". Owner chose the read-only status panel (no table browser, no SQL console) with safe server settings visible (paths, host names; never secrets).
+
+- `GET /api/admin/system` (`routes/systemRoutes.ts`, administrators only, `Cache-Control: no-store`) returns `systemStatusSchema` (contracts `systemStatus.ts`), built by `services/systemStatus.ts`: server (environment, Node, OS, uptime, memory, load, CPUs), database (path, SQLite version, journal mode, file, WAL and free bytes, migrations applied vs required, rows per table from `sqlite_master` and bytes per table with its indexes from `dbstat` when the build has it, otherwise null), activity counts, backups (folders, count, total size, latest with verified flag, interval) and configuration (FRONTEND_URL, TRUST_PROXY, language, maintenance, sign-ups, audit log path and size, SMTP host and port, push on/off). The test asserts JWT and SMTP secrets never appear.
+- Interface: Administration › System (`pages/admin/AdminSystemPage.tsx`), refreshes every 30 s, flags unapplied migrations and an unverified latest backup in red. Added to the accessibility scan and the English-site crawl.
+
+- Also reachable from the command palette and the administration overview shortcuts.
+
+Verified: `npm run check` exit 0 (contracts 48, backend 234, frontend 349); full browser suite 138/138; after the palette and shortcut addition the admin and English browser tests 42/42.
+
 ## Configurable site gaps closed (3 November 2026)
 
 Owner noticed that configurable things might be missing ("site ismi değiştirilebilir olmalı… bunun gibi eksik ne var?"). The site name was already editable (Site settings › General); an audit of every setting and every fixed identity value found six real gaps, all fixed at the owner's request ("hepsini düzeltelim"):
