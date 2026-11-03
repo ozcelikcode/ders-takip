@@ -15,7 +15,7 @@ Owner request: scan again for bugs and illogical behaviour, run a general test b
 - **Not changed:** a drag can stay stuck if the calendar switches weeks mid-drag (not reproducible in tests); password hashing still runs inside the write transaction (performance only).
 - **README:** a light/dark hero and screenshot table from `docs/screenshots/`, regenerated with `npm run docs:screenshots` (`playwright.screenshots.config.ts`, `tests/screenshots/readme.spec.ts`: demo account on the isolated test site, English, light and dark, one phone view). Stale facts fixed (Recharts and motion are gone, test counts).
 
-Verified: `npm run check` exit 0 (contracts 48, backend 226, frontend 339).
+Verified: `npm run check` exit 0 (contracts 48, backend 226, frontend 339); browser suite 138/138; the Pomodoro test 45/45 (15 per profile).
 ## English site completed (2 November 2026)
 
 Owner request: when the site language is English every fixed value is English, when Turkish everything is Turkish; content (what people typed) is never translated. A crawl found the gaps that were left:
