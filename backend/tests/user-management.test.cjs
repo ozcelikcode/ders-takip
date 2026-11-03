@@ -87,3 +87,15 @@ it('never leaves the site without an administrator when two administrators demot
     admin.token = (await createAuthSession(admin)).tokens.accessToken;
   }
 });
+it('stores a password hashed before the transaction as it is, and still hashes any plain assignment', async () => {
+  const user = await User.findOne({ where: { username: 'fixture1' } });
+  const hash = await User.hashPassword('prepared-password');
+  user.setHashedPassword(hash);
+  await user.save();
+  await user.reload();
+  assert.equal(user.password, hash); assert.equal(await user.comparePassword('prepared-password'), true);
+  // The mark is spent by that save: a later plain value is hashed.
+  user.password = 'plain-password-1';
+  await user.save();
+  assert.notEqual(user.password, 'plain-password-1'); assert.equal(await user.comparePassword('plain-password-1'), true);
+});

@@ -148,8 +148,17 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate, ta
     const cancel = (event: KeyboardEvent) => {
       if (event.key === 'Escape') clearDrag();
     };
+    // Switching the week mid-drag can unmount the dragged card, and then its dragend never reaches React.
+    // The browser sends no mouse events while a drag runs, so the first move with no button held means it ended.
+    const settle = (event: globalThis.MouseEvent) => {
+      if (event.buttons === 0) clearDrag();
+    };
     window.addEventListener('keydown', cancel);
-    return () => window.removeEventListener('keydown', cancel);
+    window.addEventListener('mousemove', settle);
+    return () => {
+      window.removeEventListener('keydown', cancel);
+      window.removeEventListener('mousemove', settle);
+    };
   }, [drag]);
   useEffect(() => {
     if (hoverDirection === null || !drag) return;

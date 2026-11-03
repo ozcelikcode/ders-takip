@@ -142,6 +142,7 @@ export const en: Text = {
     loading: 'Loading…',
     processing: 'Working…',
     actionFailed: 'That did not work. Please try again.',
+    retry: 'Try again',
     closeConfirm: 'Close confirmation',
     closeEditor: 'Close editor',
     minutesShort: (minutes: number) => `${minutes} min`,

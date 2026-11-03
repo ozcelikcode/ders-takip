@@ -4,6 +4,7 @@ import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { formatGoalMinutes, goalPercent, summarizeGoals } from '../../utils/studyGoals';
 import { formatMeasuredSeconds } from '@study-tracker/contracts';
 import { useLanguage, useText } from '../../store/languageStore';
+import LoadError from '../common/LoadError';
 
 export function GoalRow({ label, studySeconds, goalSeconds, empty }: { label: string; studySeconds: number; goalSeconds: number | null; empty: string }) {
   const language = useLanguage();
@@ -54,7 +55,7 @@ export default function GoalProgress() {
         {query.isPending ? (
           <p role="status" className="text-sm text-(--muted)">{text.loading}</p>
         ) : query.isError ? (
-          <p className="text-sm text-red-600">{text.failed}</p>
+          <LoadError message={text.failed} query={query} />
         ) : (
           <>
             <GoalRow

@@ -23,6 +23,9 @@ interface UserAttributes {
 
 interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt' | 'lastLogin' | 'profileImage' | 'role' | 'isActive' | 'preferences'> {}
 
+// Passwords already hashed outside the transaction, per instance; any other assignment is hashed on save.
+const preparedHashes = new WeakMap<object, string>();
+
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: number;
   public username!: string;
@@ -51,6 +54,17 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public static async spendPasswordCheck(candidatePassword: string): Promise<void> {
     User.unknownAccountHash ??= bcrypt.hash('unknown-account', getEnvironment().BCRYPT_SALT_ROUNDS);
     await bcrypt.compare(candidatePassword, await User.unknownAccountHash);
+  }
+
+  /** Hashes a new password before a write transaction opens, so the database lock is never held during bcrypt work. */
+  public static hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, getEnvironment().BCRYPT_SALT_ROUNDS);
+  }
+
+  /** Sets a password hashed with `hashPassword`; the save hook stores it as it is. */
+  public setHashedPassword(hash: string): void {
+    this.password = hash;
+    preparedHashes.set(this, hash);
   }
 
   public getFullName(): string {
@@ -160,9 +174,10 @@ User.init(
     ],
     hooks: {
       beforeSave: async (user: User) => {
-        if (user.changed('password')) {
-          const saltRounds = getEnvironment().BCRYPT_SALT_ROUNDS;
-          user.password = await bcrypt.hash(user.password, saltRounds);
+        const prepared = preparedHashes.get(user);
+        preparedHashes.delete(user);
+        if (user.changed('password') && prepared !== user.password) {
+          user.password = await User.hashPassword(user.password);
         }
       },
     },

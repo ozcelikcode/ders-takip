@@ -4,6 +4,7 @@ import { useAccountMutation } from '../../../hooks/useAccountMutation';
 import { useAccountQueryKeys } from '../../../hooks/useAccountQueryKeys';
 import { authAPI } from '../../../services/api';
 import { useText } from '../../../store/languageStore';
+import LoadError from '../../../components/common/LoadError';
 
 /** How many other places the account is signed in, and ending them all except this one. */
 const SessionsCard = () => {
@@ -21,7 +22,7 @@ const SessionsCard = () => {
         {others.isPending ? (
           <p role="status" className="text-(--muted)">{text.sessionsLoading}</p>
         ) : others.isError ? (
-          <p className="text-red-600">{text.sessionsFailed}</p>
+          <LoadError message={text.sessionsFailed} query={others} className="" />
         ) : (
           <>
             <p>{others.data === 0 ? text.sessionsNone : text.sessionsOthers(others.data)}</p>

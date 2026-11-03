@@ -212,8 +212,8 @@ npm run check
 | Suite | Tool | Tests |
 |---|---|---|
 | Shared contracts | Node test runner | 48 |
-| Backend (HTTP + SQLite, temporary databases) | Node test runner, Supertest | 226 |
-| Frontend (components and screen flows) | Vitest, Testing Library, jsdom | 339 |
+| Backend (HTTP + SQLite, temporary databases) | Node test runner, Supertest | 227 |
+| Frontend (components and screen flows) | Vitest, Testing Library, jsdom | 344 |
 | Browser journeys and accessibility | Playwright, axe-core | 46 scenarios × 3 browsers = 138 runs |
 
 ```bash

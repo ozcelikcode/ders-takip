@@ -8,12 +8,15 @@ import { useTerms } from '../../hooks/useTerms';
 import { useLocale } from '../../lib/locale';
 import { calendarFeedAPI } from '../../services/api';
 import { useText } from '../../store/languageStore';
+import { useUserPreferencesStore } from '../../store/userPreferencesStore';
+import LoadError from '../../components/common/LoadError';
 
 /** The calendar subscription: create, renew or turn off its private address; the address is shown only once. */
 export default function CalendarTab() {
   const t = useTerms();
   const text = useText().calendarFeed;
   const { tag } = useLocale();
+  const timeZone = useUserPreferencesStore((state) => state.preferences.timezone);
   const id = useId();
   const keys = useAccountQueryKeys();
   const status = useQuery({ queryKey: keys.resource('calendar-feed'), queryFn: calendarFeedAPI.status });
@@ -46,7 +49,7 @@ export default function CalendarTab() {
       {status.isPending ? (
         <p role="status" className="text-sm">{text.loading}</p>
       ) : status.isError ? (
-        <p role="alert" className="text-sm text-red-600">{text.failed}</p>
+        <LoadError message={text.failed} query={status} />
       ) : (
         <div className="space-y-4">
           {url ? (
@@ -62,7 +65,7 @@ export default function CalendarTab() {
           ) : (
             <p className="text-sm">
               {status.data.active && status.data.createdAt
-                ? text.activeSince(new Intl.DateTimeFormat(tag, { dateStyle: 'long' }).format(new Date(status.data.createdAt)))
+                ? text.activeSince(new Intl.DateTimeFormat(tag, { dateStyle: 'long', timeZone }).format(new Date(status.data.createdAt)))
                 : text.inactive}
             </p>
           )}

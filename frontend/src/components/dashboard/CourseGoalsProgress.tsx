@@ -7,6 +7,7 @@ import { coursesWithTopicsQuery } from '../../lib/accountQueries';
 import { useText } from '../../store/languageStore';
 import type { CatalogCourse } from '../../types/catalog';
 import { GoalRow } from './GoalProgress';
+import LoadError from '../common/LoadError';
 
 /** This week's measured time for every active record the person set a weekly goal for; nothing while there are none. */
 export default function CourseGoalsProgress() {
@@ -31,7 +32,7 @@ export default function CourseGoalsProgress() {
       </div>
       <div className="grid gap-5 p-5 sm:grid-cols-2">
         {weekly.isError ? (
-          <p className="text-sm text-red-600">{text.failed}</p>
+          <LoadError message={text.failed} query={weekly} />
         ) : (
           rows.map(({ goal, course }) => (
             <GoalRow

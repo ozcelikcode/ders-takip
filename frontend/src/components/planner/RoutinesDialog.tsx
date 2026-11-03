@@ -8,6 +8,7 @@ import { useWeekStart } from '../../hooks/useWeekStart';
 import { orderedWeekdays, useLocale } from '../../lib/locale';
 import { seriesAPI } from '../../services/api';
 import { useText } from '../../store/languageStore';
+import LoadError from '../common/LoadError';
 
 interface RoutinesDialogProps {
   onClose: () => void;
@@ -48,7 +49,7 @@ export default function RoutinesDialog({ onClose, onEdit }: RoutinesDialogProps)
             {routines.isPending ? (
               <p role="status" className="text-sm">{text.routinesLoading}</p>
             ) : routines.isError ? (
-              <p role="alert" className="text-sm text-red-600">{text.routinesFailed}</p>
+              <LoadError message={text.routinesFailed} query={routines} />
             ) : !routines.data.length ? (
               <p className="text-sm text-(--muted)">{text.noRoutines}</p>
             ) : (

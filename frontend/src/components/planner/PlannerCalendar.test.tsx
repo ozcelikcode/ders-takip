@@ -242,6 +242,19 @@ describe.each([
       finish(response({ success: true, data: { session: base } })),
     );
   });
+  it('ends a drag whose card left the screen once the mouse moves with no button held', async () => {
+    mount();
+    const item = await card();
+    bounds(item, 100, height);
+    nativeDrag(item, 'dragstart', 110);
+    expect(item.className).toContain('opacity-30');
+    // A move with the button still held belongs to the drag itself.
+    fireEvent.mouseMove(window, { buttons: 1 });
+    expect(item.className).toContain('opacity-30');
+    // No dragend arrives (the card was unmounted by a week switch); the next plain move clears the drag.
+    fireEvent.mouseMove(window, { buttons: 0 });
+    expect(item.className).not.toContain('opacity-30');
+  });
   it('previews a resize and commits elapsed minutes with the original version', async () => {
     vi.mocked(studySessionsAPI.updateSession).mockResolvedValue(
       response({ success: true, data: { session: base } }),

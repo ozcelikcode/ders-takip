@@ -9,6 +9,7 @@ import { courseGoalsAPI } from '../../services/api';
 import { useText } from '../../store/languageStore';
 import { GoalRow } from '../dashboard/GoalProgress';
 import GoalDurationInput from '../settings/GoalDurationInput';
+import LoadError from '../common/LoadError';
 
 const weeklyPresets = [60, 120, 180, 300, 420, 600];
 
@@ -44,7 +45,7 @@ export default function CourseGoalPanel({ courseId }: { courseId: number }) {
         {goals.isPending ? (
           <p role="status" className="text-sm text-(--muted)">{text.loading}</p>
         ) : goals.isError ? (
-          <p className="text-sm text-red-600">{text.failed}</p>
+          <LoadError message={text.failed} query={goals} />
         ) : editing ? (
           <form
             className="space-y-4"
@@ -67,7 +68,7 @@ export default function CourseGoalPanel({ courseId }: { courseId: number }) {
             </fieldset>
           </form>
         ) : goal ? (
-          weekly.isError ? <p className="text-sm text-red-600">{text.failed}</p>
+          weekly.isError ? <LoadError message={text.failed} query={weekly} />
             : <GoalRow label={text.thisWeek} studySeconds={studied} goalSeconds={goal.weeklyMinutes * 60} empty="" />
         ) : (
           <p className="text-sm text-(--muted)">{text.courseNone}</p>

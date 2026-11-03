@@ -293,6 +293,7 @@ export const changePassword = async (
       return;
     }
 
+    const hash = await User.hashPassword(newPassword);
     await sequelize.transaction(
       { type: Transaction.TYPES.IMMEDIATE },
       async (transaction) => {
@@ -302,7 +303,7 @@ export const changePassword = async (
         });
         if (!current?.isActive || current.password !== user.password)
           fail(409, 'credentialsChanged');
-        current.password = newPassword;
+        current.setHashedPassword(hash);
         await current.save({ transaction });
         await revokeUserSessions(user.id, transaction);
       },

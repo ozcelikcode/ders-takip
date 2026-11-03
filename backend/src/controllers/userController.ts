@@ -103,6 +103,7 @@ export const createUser = async (
       isActive = true,
     } = req.body;
 
+    const hash = await User.hashPassword(password);
     const user = await sequelize.transaction(
       { type: Transaction.TYPES.IMMEDIATE },
       async (transaction) => {
@@ -117,19 +118,18 @@ export const createUser = async (
           fail(409, existingUser.email.toLowerCase() === email ? 'emailTaken' : 'usernameTaken');
         }
 
-        return User.create(
-          {
-            username,
-            email,
-            password,
-            firstName,
-            lastName,
-            role,
-            isActive,
-            preferences: { ...defaultPreferences, onboarding: 'pending' },
-          },
-          { transaction },
-        );
+        const created = User.build({
+          username,
+          email,
+          password: hash,
+          firstName,
+          lastName,
+          role,
+          isActive,
+          preferences: { ...defaultPreferences, onboarding: 'pending' },
+        });
+        created.setHashedPassword(hash);
+        return created.save({ transaction });
       },
     );
 

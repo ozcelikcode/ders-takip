@@ -146,6 +146,7 @@ export const tr = {
     loading: 'Yükleniyor…',
     processing: 'İşleniyor…',
     actionFailed: 'İşlem tamamlanamadı. Lütfen tekrar deneyin.',
+    retry: 'Tekrar dene',
     closeConfirm: 'Onay penceresini kapat',
     closeEditor: 'Düzenleyiciyi kapat',
     minutesShort: (minutes: number) => `${minutes} dk`,

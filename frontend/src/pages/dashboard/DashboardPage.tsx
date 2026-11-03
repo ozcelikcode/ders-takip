@@ -66,7 +66,7 @@ const DashboardPage = () => {
       <section aria-label={text.summary} className="panel grid grid-cols-2 divide-x divide-(--line) lg:grid-cols-4">
         {stats.map((stat, index) => <div key={stat.label} className={`p-5 sm:p-6 ${index > 1 ? 'border-t lg:border-t-0' : ''}`}>
           <div className="flex items-center justify-between gap-3 text-xs text-(--muted)"><span>{stat.label}</span><stat.icon className="h-4 w-4" strokeWidth={1.6} /></div>
-          <p className="my-4 text-[30px] font-medium leading-none tracking-tight tabular-nums">{stat.loading ? '—' : stat.error ? '—' : stat.value}</p>
+          <p className="my-4 text-[24px] font-medium leading-none tracking-tight tabular-nums sm:text-[30px]">{stat.loading ? '—' : stat.error ? '—' : stat.value}</p>
           <p className={`text-[11px] leading-5 ${stat.error ? 'text-red-600 dark:text-red-400' : 'text-(--muted)'}`}>{stat.error ? text.loadFailed : stat.detail}</p>
         </div>)}
       </section>

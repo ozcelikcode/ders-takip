@@ -68,13 +68,14 @@ export async function createAdminResetLink(targetId: number) {
 
 /** Consumes a valid token, sets the new password and signs the user out everywhere. */
 export async function resetPassword(token: string, password: string): Promise<void> {
+  const hash = await User.hashPassword(password);
   await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async (transaction) => {
     const record = await PasswordResetToken.findOne({ where: { tokenHash: hashToken(token) }, transaction });
     if (!record || record.usedAt || record.expiresAt.getTime() <= Date.now())
       return fail(400, 'resetLinkExpired');
     const user = await User.findByPk(record.userId, { transaction });
     if (!user?.isActive) return fail(400, 'resetLinkExpired');
-    user.password = password;
+    user.setHashedPassword(hash);
     await user.save({ transaction });
     await PasswordResetToken.update({ usedAt: new Date() }, { where: { userId: user.id, usedAt: null }, transaction });
     await revokeUserSessions(user.id, transaction);
