@@ -26,7 +26,7 @@ Owner noticed that configurable things might be missing ("site ismi değiştiril
 - **Admin could not correct a person's details** in the interface. `managedUserPatchSchema` accepts `username` and `email` too (unique without case, 409 `usernameTaken`/`emailTaken`); a new email for an administrator asks for the password (`adminEmailChange`); a changed email invalidates unused reset links; the log records `userDetailsChanged` with field names only. Interface: Users › actions › Edit details (`EditUserDialog`), not offered for one's own account.
 - **Browser and installed-app colour and icon** were fixed (`#171717`, bundled PNGs). `theme-color` follows the effective accent color; the manifest uses `primaryColor` and lists the site icon first (`siteIconUrl` in contracts, shared by `Brand`, the favicon and the manifest).
 
-Verified: `npm run check` exit 0 (contracts 48, backend 232, frontend 348); browser suite 137/138: one WebKit run of "keeps custom words…" timed out waiting for `/login` to load (45 s); the same test then passed 6/6 alone on WebKit. Watch for it again.
+Verified: `npm run check` exit 0 (contracts 48, backend 232, frontend 348); browser suite 137/138: one WebKit run of "keeps custom words…" timed out waiting for `/login` to load (45 s); the same test then passed 6/6 and later 30/30 alone on WebKit (slowest 27 s), and the next two full suites were 138/138. Not reproduced, so nothing was changed; the failed run also lasted 4.4 min, so teardown hung too. If it returns, copy `test-results/` (trace.zip) before the next run clears it.
 
 ## Bug sweep, flaky tests and README screenshots (2–3 November 2026)
 
