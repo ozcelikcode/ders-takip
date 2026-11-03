@@ -99,7 +99,8 @@ export default function TodaysPlans() {
     confirmation &&
     query.data?.find((session) => session.id === confirmation.session.id);
   const confirm = async () => {
-    if (!confirmation || !current || busy || query.isError) return false;
+    // A background refresh must not swallow the click; only a write already on its way does.
+    if (!confirmation || !current || mutation.isPending || query.isError) return false;
     const { action } = confirmation;
     const saved = await perform(
       () =>
@@ -242,6 +243,17 @@ export default function TodaysPlans() {
                           ) : (
                             <Play className="h-4 w-4" />
                           )}
+                        </button>
+                      )}
+                      {/* A paused session can always be finished, even after its planned end, when it can no longer resume. */}
+                      {session.status === 'paused' && (
+                        <button
+                          className="icon-button"
+                          disabled={busy}
+                          aria-label={text.complete(t, session.title)}
+                          onClick={() => requestConfirmation(session, 'complete')}
+                        >
+                          <Check className="h-4 w-4" />
                         </button>
                       )}
                       {session.status === 'in_progress' && (

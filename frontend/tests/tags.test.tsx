@@ -70,6 +70,13 @@ it('offers the tag filter only once there are tags', async () => {
   expect(container.textContent).toBe('');
 });
 
+it('drops a filter whose tag no longer exists, so the view is never stuck empty', async () => {
+  vi.mocked(tagsAPI.list).mockResolvedValue(assignments({ tags: [{ id: 2, name: 'Okuma' }] }));
+  const onChange = vi.fn();
+  mount(<TagFilter value={1} onChange={onChange} />);
+  await waitFor(() => expect(onChange).toHaveBeenCalledWith(null));
+});
+
 it('tags a new session after saving it, and a failed tag write does not undo or repeat the session', async () => {
   vi.mocked(tagsAPI.list).mockResolvedValue(assignments());
   vi.mocked(studySessionsAPI.createSession).mockResolvedValue({ data: { success: true, data: { session: { id: 41 } } } } as never);

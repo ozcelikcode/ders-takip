@@ -102,6 +102,17 @@ export default function CalendarSessionCard(props: Props) {
                 <Play className="h-3.5 w-3.5" />
               </button>
             )}
+            {/* A paused session can always be finished, even after its planned end, when it can no longer resume. */}
+            {session.status === 'paused' && (
+              <button
+                disabled={pending}
+                aria-label={text.complete(t)}
+                onClick={props.onComplete}
+                className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm hover:bg-(--subtle)"
+              >
+                <CheckCircle className="h-3.5 w-3.5" />
+              </button>
+            )}
             {session.status === 'in_progress' && (
               <>
                 {session.sessionType === 'pomodoro' && (

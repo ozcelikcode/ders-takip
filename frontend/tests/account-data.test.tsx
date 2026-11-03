@@ -37,7 +37,7 @@ const imported = (unlinked: number, preferences: 'imported' | 'skipped') => ({
 const serverError = (code: ApiErrorCode) => new HttpError(code, { status: 400, data: { error: { code } } });
 
 beforeEach(() => {
-  useAuthStore.setState({ clearAuth: vi.fn() });
+  useAuthStore.setState({ accountDeleted: vi.fn() });
   URL.createObjectURL = vi.fn(() => 'blob:export');
   URL.revokeObjectURL = vi.fn();
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -73,13 +73,13 @@ it('deletes the account only after the password is confirmed, then signs out', a
   fireEvent.change(within(dialog).getByLabelText('Onay için şifren'), { target: { value: 'wrong' } });
   fireEvent.click(confirm);
   expect((await within(dialog).findByRole('alert')).textContent).toBe('Şifre hatalı');
-  expect(useAuthStore.getState().clearAuth).not.toHaveBeenCalled();
+  expect(useAuthStore.getState().accountDeleted).not.toHaveBeenCalled();
 
   fireEvent.change(within(dialog).getByLabelText('Onay için şifren'), { target: { value: 'right-password' } });
   fireEvent.click(confirm);
   expect(await screen.findByText('Giriş sayfası')).toBeTruthy();
   expect(authAPI.deleteAccount).toHaveBeenLastCalledWith({ password: 'right-password' });
-  expect(useAuthStore.getState().clearAuth).toHaveBeenCalledTimes(1);
+  expect(useAuthStore.getState().accountDeleted).toHaveBeenCalledTimes(1);
 });
 
 it('loads a downloaded file into the account and says what came over and what did not', async () => {

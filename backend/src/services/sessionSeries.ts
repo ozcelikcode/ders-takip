@@ -10,7 +10,7 @@ import {
   type UpdateSeriesInput,
 } from '@study-tracker/contracts';
 import { sequelize } from '../config/database';
-import { SessionInterval, SessionSeries, StudySession } from '../models';
+import { SessionInterval, SessionSeries, SessionTag, StudySession } from '../models';
 import { validateRelations } from './studySessions';
 
 interface Actor { id: number; role: string }
@@ -96,14 +96,19 @@ async function materialize(series: SessionSeries, from: string, through: string,
   return skipped;
 }
 
-/** Removes the routine's future sessions that nobody touched: still planned, never measured, not changed one by one. */
+/** Removes the routine's future sessions that nobody touched: still planned, never measured, not changed or tagged one by one. */
 async function removeUntouchedFuture(series: SessionSeries, now: Date, transaction: Transaction) {
   const sessions = await StudySession.findAll({
     where: { seriesId: series.id, status: 'planned', startTime: { [Op.gte]: now } },
     include: [{ model: SessionInterval, as: 'activityIntervals', attributes: ['id'] }],
     transaction,
   });
-  const untouched = sessions.filter((session) => !session.activityIntervals?.length && !series.exceptionDates.includes(session.seriesDate ?? ''));
+  const tagged = new Set((await SessionTag.findAll({
+    where: { sessionId: { [Op.in]: sessions.map((session) => session.id) } },
+    attributes: ['sessionId'],
+    transaction,
+  })).map((row) => row.sessionId));
+  const untouched = sessions.filter((session) => !session.activityIntervals?.length && !tagged.has(session.id) && !series.exceptionDates.includes(session.seriesDate ?? ''));
   if (untouched.length) await StudySession.destroy({ where: { id: { [Op.in]: untouched.map((session) => session.id) } }, transaction });
 }
 

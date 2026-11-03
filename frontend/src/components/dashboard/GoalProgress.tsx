@@ -46,7 +46,7 @@ export default function GoalProgress() {
           <h2 id="goal-progress-heading" className="text-sm font-medium">{text.title}</h2>
           <p className="mt-1 text-xs text-(--muted)">{text.hint}</p>
         </div>
-        <Link to="/settings" className="text-xs text-(--muted) hover:text-(--text)">
+        <Link to="/settings?tab=study" className="text-xs text-(--muted) hover:text-(--text)">
           {text.edit}
         </Link>
       </div>

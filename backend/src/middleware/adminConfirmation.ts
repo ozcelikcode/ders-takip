@@ -11,14 +11,19 @@ const guessLimit = productionLimit({ windowMs: 15 * 60 * 1000, limit: 10, skipSu
  * Asks for the signed-in administrator's password again before `operation` (when `applies` says it is one), so an
  * unattended or stolen session alone cannot do it. A wrong password is logged. The password never reaches the handler.
  */
-export const confirmAdminPassword = (operation: ConfirmedOperation, applies: (req: Request) => boolean | Promise<boolean> = () => true): RequestHandler[] => [
+export const confirmAdminPassword = (operation: ConfirmedOperation, applies: (req: Request) => boolean | Promise<boolean> = () => true): RequestHandler[] =>
+  confirmAdminPasswordFor(async (req) => ((await applies(req)) ? operation : null));
+
+/** The same check for a route where the request decides which confirmed operation it is, if any. */
+export const confirmAdminPasswordFor = (decide: (req: Request) => ConfirmedOperation | null | Promise<ConfirmedOperation | null>): RequestHandler[] => [
   ...guessLimit,
   async (req: Request, _res: Response, next: NextFunction) => {
     try {
       const body = (req.body ?? {}) as { adminPassword?: unknown };
       const password = body.adminPassword;
       delete body.adminPassword;
-      if (!(await applies(req))) return next();
+      const operation = await decide(req);
+      if (!operation) return next();
       const actor = await User.findByPk(req.user!.id, { attributes: { include: ['password'] } });
       if (!actor || typeof password !== 'string' || !(await actor.comparePassword(password))) {
         await recordAdminEvent({ action: 'confirmationFailed', actor: req.user!, details: { operation }, request: req });

@@ -50,7 +50,7 @@ export default function AccountDataCard() {
       return false;
     }
     void unsubscribeBrowser().catch(() => undefined);
-    useAuthStore.getState().clearAuth();
+    useAuthStore.getState().accountDeleted();
     toast.success(text.deleted);
     navigate('/login', { replace: true });
     return true;

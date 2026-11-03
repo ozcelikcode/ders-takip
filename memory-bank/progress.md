@@ -1,8 +1,21 @@
 # Study Tracker — Progress
 
-Last updated: 2 November 2026. Roadmaps R1–R15, F1–F6, administrator security and the S/Q/P/G/D roadmap (except the Docker trial and the off-server activity-log copy) are complete and pushed; the latest work completed the English site (below). Since 31 October verified work is committed and pushed without asking; real-database migrations still need the owner's approval. The real database schema is at 014.
+Last updated: 3 November 2026. Roadmaps R1–R15, F1–F6, administrator security and the S/Q/P/G/D roadmap (except the Docker trial and the off-server activity-log copy) are complete and pushed; the latest work was a bug sweep, a flaky-test hunt and a README with screenshots (below). Since 31 October verified work is committed and pushed without asking; real-database migrations still need the owner's approval. The real database schema is at 014.
 
 
+
+## Bug sweep, flaky tests and README screenshots (2–3 November 2026)
+
+Owner request: scan again for bugs and illogical behaviour, run a general test because parts occasionally failed, and give the README real screenshots in a plain GitHub style. Sources: CI history, repeated browser runs and two read-only review passes (frontend, backend); every finding was checked against the code before fixing and has a regression test.
+
+- **CI was red** on `main`: knip reported three backend exports as unused only when no build existed (backend tests import `../dist/...`). `knip.json` maps `../dist/*` to `src/*` for the backend; a planted unused export is still reported.
+- **The intermittent browser failure was a product bug:** the Pomodoro page lists unfinished sessions plus the last week, so a session completed outside that range (started early, or older than a week) vanished after the refresh and the page jumped away. The page keeps a session it finished for the visit (`usePomodoro` passes the updated session to `onComplete`). The test then passed 15× per profile.
+- **Fixed (frontend):** deleting a record from its own page refetched the deleted record (404 toast, stuck error page); its queries stop first (`onRemoved`, `flushSync`). A failed refresh keeps a loaded record with a retry banner. Statistics average and "goal met" count only days that have begun (`elapsedDays`); the goal target reads as a goal duration. A paused session can be completed after its planned end (card and Today's plans). The minimized timer is a non-modal corner panel. A tag filter whose tag was deleted is dropped (`TagFilter`). "Reset all preferences" asks first and keeps time zone and week start (custom words reset too). Study number fields keep a typed draft with an inline range error. A failed write is reported only by its screen (the transport toasts failed reads only). Today's plans confirm is no longer swallowed by a background refresh. Choosing tags and then "Repeat weekly" shows that routines carry no tags. "Edit goals" links open the Study tab. Deleting an account signs out the browser's other tabs (`accountDeleted`).
+- **Fixed (backend):** a routine edit or end deleted future routine sessions the person had tagged. Deactivating another administrator asks for the password (`adminDeactivate`, `confirmAdminPasswordFor`). Admin totals and "recent sessions" count only sessions that have begun (started, or the planned start passed) and are not cancelled; last activity is measured time or completion, never creation. Usernames are unique without case and a taken name answers `usernameTaken` on profile changes too. A routine time in the repeated autumn hour always takes the earlier moment.
+- **Not changed:** a drag can stay stuck if the calendar switches weeks mid-drag (not reproducible in tests); password hashing still runs inside the write transaction (performance only).
+- **README:** a light/dark hero and screenshot table from `docs/screenshots/`, regenerated with `npm run docs:screenshots` (`playwright.screenshots.config.ts`, `tests/screenshots/readme.spec.ts`: demo account on the isolated test site, English, light and dark, one phone view). Stale facts fixed (Recharts and motion are gone, test counts).
+
+Verified: `npm run check` exit 0 (contracts 48, backend 226, frontend 339).
 ## English site completed (2 November 2026)
 
 Owner request: when the site language is English every fixed value is English, when Turkish everything is Turkish; content (what people typed) is never translated. A crawl found the gaps that were left:

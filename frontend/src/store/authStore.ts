@@ -22,6 +22,8 @@ interface AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
+  /** The account was deleted: every tab of this browser signs out; there is no session left to revoke. */
+  accountDeleted: () => void;
   updateProfile: (data: ProfileUpdate) => Promise<void>;
   completeOnboarding: (input: CompleteOnboardingInput) => Promise<void>;
   importAccount: (file: unknown) => Promise<AccountImportResult>;
@@ -81,6 +83,11 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     notifyPeers('signed-out');
     // Let any rotation finish before clearing its cookie, then revoke the resulting session.
     logoutPromise = (async () => { await pending?.catch(() => undefined); await finishLogout(); })().catch(() => undefined).finally(() => { logoutPromise = null; });
+  },
+  accountDeleted: () => {
+    get().clearAuth();
+    set({ signedOut: true });
+    notifyPeers('signed-out');
   },
   clearAuth: () => set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false, epoch: get().epoch + 1 }),
   refreshSession: () => {

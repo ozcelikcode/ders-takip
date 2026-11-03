@@ -33,5 +33,8 @@ export const calendarViewInstant = (view: Date, timezone: string) => new Date(wa
 export const routineOccurrenceInstant = (date: string, time: string, timezone: string): Date => {
   const parsed = DateTime.fromISO(`${calendarDateSchema.parse(date)}T${time}`, { zone: timezone });
   if (!parsed.isValid) throw new CalendarTimeError('Invalid routine time');
-  return parsed.toJSDate();
+  // Luxon resolves a repeated wall time by the offset it guesses first, which can differ by when this runs;
+  // the earlier of the two moments is picked explicitly.
+  const candidates = parsed.getPossibleOffsets();
+  return candidates.length > 1 ? new Date(Math.min(...candidates.map((candidate) => candidate.toMillis()))) : parsed.toJSDate();
 };

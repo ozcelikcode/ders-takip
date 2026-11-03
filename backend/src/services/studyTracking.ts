@@ -84,9 +84,8 @@ export async function getStudyStats(userId: number, timezone: string, query: Ses
       const inScope = session.startTime.getTime() < end && session.endTime.getTime() > start || Object.values(total).some(value => value > 0);
       if (inScope) {
         result.totalSessions++;
-        const activity = [...intervals.map(interval => (interval.endedAt ?? interval.startedAt).getTime()), session.createdAt.getTime()];
-        const latest = new Date(Math.max(...activity)).toISOString();
-        if (!result.lastActivity || latest > result.lastActivity) result.lastActivity = latest;
+        const latest = lastActivityOf(session, intervals);
+        if (latest && (!result.lastActivity || latest > result.lastActivity)) result.lastActivity = latest;
       }
       if (total.studySeconds > 0) {
         const courseId = session.courseId ?? null;
@@ -110,22 +109,36 @@ export async function getStudyStats(userId: number, timezone: string, query: Ses
   });
 }
 
-/** All-time measured summaries for several users from a single query; omit userIds to cover every user. */
+/**
+ * When the person last did something with a session: the end of measured time, or when they finished it.
+ * Creating a session is not activity: a weekly routine or an import creates many without the person doing anything.
+ */
+const lastActivityOf = (session: StudySession, intervals: readonly SessionInterval[]): string | null => {
+  const moments = [...intervals.map(interval => (interval.endedAt ?? interval.startedAt).getTime()), ...(session.completedAt ? [session.completedAt.getTime()] : [])];
+  return moments.length ? new Date(Math.max(...moments)).toISOString() : null;
+};
+
+/**
+ * All-time measured summaries for several users from a single query; omit userIds to cover every user. A session
+ * counts once it has begun (started, or its planned start has passed) and was not cancelled, so planned future
+ * sessions (a routine creates months of them) do not.
+ */
 export async function getAllTimeSummaries(userIds?: readonly number[]): Promise<Map<number, UserStudySummary>> {
   const sessions = await StudySession.findAll({
     ...(userIds ? { where: { userId: { [Op.in]: [...userIds] } } } : {}),
     include: [{ model: SessionInterval, as: 'activityIntervals' }, { model: PomodoroClock, as: 'pomodoroClock' }],
   });
   const asOf = new Date(sessions.reduce((value, session) => (session.activityIntervals ?? []).reduce((latest, interval) => Math.max(latest, interval.endedAt?.getTime() ?? interval.startedAt.getTime()), value), Date.now()));
+  const now = Date.now();
   const summaries = new Map<number, UserStudySummary>((userIds ?? []).map(id => [id, { totalSessions: 0, completedSessions: 0, studySeconds: 0, lastActivity: null }]));
   for (const session of sessions) {
     const summary = summaries.get(session.userId) ?? { totalSessions: 0, completedSessions: 0, studySeconds: 0, lastActivity: null };
     const intervals = session.activityIntervals ?? [];
-    summary.totalSessions++;
+    if (session.status !== 'cancelled' && (session.status !== 'planned' || session.startTime.getTime() <= now)) summary.totalSessions++;
     if (session.status === 'completed') summary.completedSessions++;
     summary.studySeconds += measuredTotals(intervals, asOf, -Infinity, Infinity, session.pomodoroClock?.deadlineAt).studySeconds;
-    const latest = new Date(Math.max(session.createdAt.getTime(), ...intervals.map(interval => (interval.endedAt ?? interval.startedAt).getTime()))).toISOString();
-    if (!summary.lastActivity || latest > summary.lastActivity) summary.lastActivity = latest;
+    const latest = lastActivityOf(session, intervals);
+    if (latest && (!summary.lastActivity || latest > summary.lastActivity)) summary.lastActivity = latest;
     summaries.set(session.userId, summary);
   }
   return summaries;

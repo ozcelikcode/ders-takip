@@ -1,7 +1,8 @@
 const { it } = require('node:test');
 const assert = require('node:assert/strict');
 const { execFileSync } = require('node:child_process');
-const { dayBounds, wallTimeToInstant, dateKeyInZone, calendarViewDate, calendarViewInstant } = require('../dist/cjs');
+const c = require('../dist/cjs');
+const { dayBounds, wallTimeToInstant, dateKeyInZone, calendarViewDate, calendarViewInstant } = c;
 
 it('builds local half-open day bounds including 23-hour and 25-hour DST days', () => {
   const istanbul = dayBounds('2026-10-16', 'Europe/Istanbul'); assert.equal(istanbul.start.toISOString(), '2026-10-15T21:00:00.000Z');
@@ -33,4 +34,12 @@ it('derives local day keys with Intl exactly as luxon does across zones, DST edg
   }
   assert.throws(() => dateKeyInZone('not a date', 'UTC'));
   assert.throws(() => dateKeyInZone(Date.now(), 'Mars/Base'));
+});
+
+it('starts a routine in a repeated autumn hour at the earlier of the two moments, whenever it is computed', () => {
+  // 25 October 2026, Berlin: 02:30 happens at +02:00 and again at +01:00.
+  assert.equal(c.routineOccurrenceInstant('2026-10-25', '02:30', 'Europe/Berlin').toISOString(), '2026-10-25T00:30:00.000Z');
+  // A gap in spring moves past it; an ordinary time is unchanged.
+  assert.equal(c.routineOccurrenceInstant('2026-03-29', '02:30', 'Europe/Berlin').toISOString(), '2026-03-29T01:30:00.000Z');
+  assert.equal(c.routineOccurrenceInstant('2026-07-01', '09:00', 'Europe/Berlin').toISOString(), '2026-07-01T07:00:00.000Z');
 });

@@ -2,7 +2,7 @@ import { userResponse } from '../services/userResponses';
 import { recordAdminEvent } from '../services/adminAudit';
 import { getAllTimeSummaries, getStudyStats } from '../services/studyTracking';
 import { defaultPreferences, mergePreferences, preferencesSchema, fail } from '@study-tracker/contracts';
-import { columnContains, emailEquals } from '../utils/textSearch';
+import { columnContains, emailEquals, usernameEquals } from '../utils/textSearch';
 import { Op, Transaction, type WhereOptions } from 'sequelize';
 import { sequelize } from '../config/database';
 import { revokeUserSessions } from '../services/authSessions';
@@ -108,7 +108,7 @@ export const createUser = async (
       async (transaction) => {
         const existingUser = await User.findOne({
           where: {
-            [Op.or]: [emailEquals(email), { username }],
+            [Op.or]: [emailEquals(email), usernameEquals(username)],
           },
           transaction,
         });
@@ -296,7 +296,10 @@ export const getAdminOverview = async (
       Course.count(),
       Course.count({ where: { isActive: true } }),
       getAllTimeSummaries(),
+      // Recent work: sessions that have begun (started, or their planned start has passed), newest first;
+      // a routine's planned sessions months ahead are not recent.
       StudySession.findAll({
+        where: { [Op.or]: [{ status: { [Op.ne]: 'planned' } }, { startTime: { [Op.lte]: new Date(Date.now()) } }] },
         order: [
           ['startTime', 'DESC'],
           ['id', 'DESC'],

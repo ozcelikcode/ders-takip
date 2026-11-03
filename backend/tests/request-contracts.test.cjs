@@ -229,3 +229,13 @@ it('treats email addresses without case, including older rows stored in mixed ca
   await send('/api/auth/login', { email: 'legacy@example.com', password: 'fixture-password' }).expect(200);
   assert.equal((await send('/api/auth/register', { ...registration, username: 'legacycase2', email: 'LEGACY@example.com' }).expect(409)).body.error.code, 'emailTaken');
 });
+
+it('treats usernames without case and says a taken name is taken, also when it is changed later', async () => {
+  const send = (url, body) => request(app).post(url).set('X-Requested-With', 'StudyTracker').send(body);
+  await send('/api/auth/register', { ...registration, username: 'Ada', email: 'ada-one@example.com' }).expect(201);
+  assert.equal((await send('/api/auth/register', { ...registration, username: 'ada', email: 'ada-two@example.com' }).expect(409)).body.error.code, 'usernameTaken');
+  const second = (await send('/api/auth/register', { ...registration, username: 'grace', email: 'grace@example.com' }).expect(201)).body.data;
+  const rename = (username) => request(app).put('/api/auth/profile').set('X-Requested-With', 'StudyTracker').auth(second.tokens.accessToken, { type: 'bearer' }).send({ username });
+  assert.equal((await rename('ADA').expect(409)).body.error.code, 'usernameTaken');
+  await rename('Grace').expect(200);
+});

@@ -43,8 +43,8 @@ function UserActionDialog({
   const mutation = useAccountMutation([keys.resource()]);
   const { user, kind } = action;
   const nextRole = user.role === 'admin' ? 'student' : 'admin';
-  // Deleting an account and changing a role are confirmed with the administrator's password.
-  const confirmed = kind !== 'status';
+  // Deleting an account, changing a role and deactivating an administrator are confirmed with the administrator's password.
+  const confirmed = kind !== 'status' || (user.isActive && user.role === 'admin');
   const [confirmation, setConfirmation] = useState({ password: '', missing: false });
   const name = `${user.firstName} ${user.lastName}`;
   const title =
@@ -85,7 +85,9 @@ function UserActionDialog({
                   String(user.id),
                   kind === 'role'
                     ? { role: nextRole, adminPassword: confirmation.password }
-                    : { isActive: !user.isActive },
+                    : confirmed
+                      ? { isActive: !user.isActive, adminPassword: confirmation.password }
+                      : { isActive: !user.isActive },
                 ),
           kind === 'delete' ? text.userDeleted : text.userUpdated,
         );

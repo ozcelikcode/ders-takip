@@ -160,6 +160,10 @@ const afterFailure = (error: HttpError) => {
     });
   }
 
+  // A failed write is reported by the screen that made it (inline or as its own message); a second, global
+  // message would repeat it. Only background reads, which have nobody else to report them, are shown here.
+  if ((config?.method ?? 'get') !== 'get') return;
+
   // Handle common errors with debouncing
   const text = useLanguageStore.getState().text.errors;
   const errorMessage = serverMessage(error) ?? (error.code === 'ERR_NETWORK' ? text.network : text.unexpected);

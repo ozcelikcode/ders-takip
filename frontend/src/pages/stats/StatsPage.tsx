@@ -29,7 +29,7 @@ import {
   type DistributionRow,
   type RangePreset,
 } from './statsModel';
-import { formatMeasuredSeconds } from '@study-tracker/contracts';
+import { formatGoalMinutes, formatMeasuredSeconds } from '@study-tracker/contracts';
 import { useLanguage, useText } from '../../store/languageStore';
 
 const PRESETS: RangePreset[] = ['week', 'month', 'last30', 'last90', 'custom'];
@@ -212,7 +212,7 @@ export default function StatsPage() {
           <section aria-labelledby="goal-comparison-heading" className="panel">
             <div className="panel-heading">
               <h2 id="goal-comparison-heading" className="text-sm font-medium">{text.goalComparison}</h2>
-              <Link to="/settings" className="text-xs text-(--muted) hover:text-(--text)">{text.editGoals}</Link>
+              <Link to="/settings?tab=study" className="text-xs text-(--muted) hover:text-(--text)">{text.editGoals}</Link>
             </div>
             <div className="space-y-3 p-5 text-sm">
               {goal.targetSeconds === null ? (
@@ -221,7 +221,7 @@ export default function StatsPage() {
                 <>
                   <div className="flex flex-wrap items-baseline justify-between gap-3">
                     <span>
-                      {formatMeasuredSeconds(goal.studySeconds, language)} / {formatMeasuredSeconds(goal.targetSeconds, language)}
+                      {formatMeasuredSeconds(goal.studySeconds, language)} / {formatGoalMinutes(goal.targetSeconds / 60, language)}
                     </span>
                     <span className="text-(--muted)">
                       {text.goalDays(goal.metDays, goal.activeDays)}

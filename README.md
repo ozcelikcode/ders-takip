@@ -2,7 +2,7 @@
 
 # Study Tracker
 
-**Plan your study time, focus with a server-backed Pomodoro timer and follow progress built on measured time, not guesses.**
+**A self-hosted planner and Pomodoro timer that measures the time you actually study.**
 
 [![CI](https://github.com/ozcelikcode/ders-takip/actions/workflows/ci.yml/badge.svg)](https://github.com/ozcelikcode/ders-takip/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -11,12 +11,20 @@
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
 
+<br>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dashboard-dark.png">
+  <img alt="Dashboard with totals, suggestions and today's goal progress" src="docs/screenshots/dashboard-light.png" width="900">
+</picture>
+
 </div>
 
 Study Tracker is a self-hosted web application for anyone who works toward goals in blocks of focused time: school and exam preparation, work projects, personal goals or practising a skill. The words the interface uses (course/topic, project/task, goal/step, skill/exercise) are configurable, the interface is available in English and Turkish, and every number on the dashboard comes from time the server actually measured.
 
 ## Contents
 
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Tech stack](#tech-stack)
 - [Getting started](#getting-started)
@@ -28,6 +36,23 @@ Study Tracker is a self-hosted web application for anyone who works toward goals
 - [Deployment notes](#deployment-notes)
 - [Documentation](#documentation)
 - [License](#license)
+
+## Screenshots
+
+| Planner | Pomodoro |
+|---|---|
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/planner-dark.png"><img alt="Weekly planner with planned sessions" src="docs/screenshots/planner-light.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/pomodoro-dark.png"><img alt="A running Pomodoro timer" src="docs/screenshots/pomodoro-light.png"></picture> |
+| **Statistics** | **A course and its topics** |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/statistics-dark.png"><img alt="Statistics for the last 30 days" src="docs/screenshots/statistics-light.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/record-dark.png"><img alt="A course with its topics and weekly goal" src="docs/screenshots/record-light.png"></picture> |
+
+<details>
+<summary>On a phone</summary>
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/mobile-dashboard-dark.png"><img alt="Dashboard on a phone" src="docs/screenshots/mobile-dashboard-light.png" width="320"></picture>
+
+</details>
+
+The screenshots come from demo data on the isolated test site and are regenerated with `npm run docs:screenshots`.
 
 ## Features
 
@@ -68,7 +93,7 @@ Study Tracker is a self-hosted web application for anyone who works toward goals
 
 | Layer | Technologies |
 |---|---|
-| Frontend | React 19, Vite 8, TypeScript (strict), TanStack Query 5, Zustand 5, Headless UI 2, Tailwind CSS 4, Recharts 3 |
+| Frontend | React 19, Vite 8, TypeScript (strict), TanStack Query 5, Zustand 5, Headless UI 2, Tailwind CSS 4; charts are plain SVG |
 | Backend | Node.js 24, Express 4, Sequelize 6, SQLite, Zod 4 |
 | Shared | `@study-tracker/contracts`: one TypeScript source for request/response schemas, built for Node (CJS) and the browser (ESM) |
 | Time | Luxon with IANA time zones |
@@ -172,6 +197,7 @@ The backend reads `backend/.env` in development; production deployments provide 
 | `npm run check` | Naming and interface-text checks, strict type checks, unused code (knip), lint (zero warnings), all workspace tests and production builds |
 | `npm run test:e2e` | Isolated browser tests in Chromium, WebKit and mobile Chromium |
 | `npm run test:lighthouse` | Lighthouse measurements of the sign-in page and the dashboard |
+| `npm run docs:screenshots` | Regenerate the README screenshots from demo data on the isolated test site |
 | `npm run push:keys` | Generate Web Push keys into `backend/.env` |
 | `npm run seed` | Development sample data |
 
@@ -185,10 +211,10 @@ npm run check
 
 | Suite | Tool | Tests |
 |---|---|---|
-| Shared contracts | Node test runner | 46 |
-| Backend (HTTP + SQLite, temporary databases) | Node test runner, Supertest | 209 |
-| Frontend (components and screen flows) | Vitest, Testing Library, jsdom | 310 |
-| Browser journeys and accessibility | Playwright, axe-core | 41 scenarios × 3 browsers = 123 runs |
+| Shared contracts | Node test runner | 48 |
+| Backend (HTTP + SQLite, temporary databases) | Node test runner, Supertest | 226 |
+| Frontend (components and screen flows) | Vitest, Testing Library, jsdom | 339 |
+| Browser journeys and accessibility | Playwright, axe-core | 46 scenarios × 3 browsers = 138 runs |
 
 ```bash
 npx playwright install chromium webkit
@@ -225,6 +251,8 @@ frontend/
     store/            Authentication, site settings, preferences and language
   tests/              Screen-flow tests
 tests/e2e/            Playwright journeys, accessibility scans and Lighthouse
+tests/screenshots/    Demo data and captures for the README images
+docs/screenshots/     README images (generated)
 scripts/              Local setup, naming and interface-text checks
 memory-bank/          Architecture decisions, current state and implementation notes
 ```
@@ -276,7 +304,7 @@ Snapshots use SQLite's online backup API and are checked for integrity, foreign 
 <details>
 <summary><b>Administrator security and activity log</b></summary>
 
-Restoring a backup, both kinds of reset, changing a role, creating an administrator and deleting an account require the administrator's password on each request (`adminPassword`). A wrong password returns `400 wrongPassword`, is logged and, in production, is limited to 10 attempts per 15 minutes; the password is removed from the request after the check and stored nowhere.
+Restoring a backup, both kinds of reset, changing a role, creating an administrator, deactivating another administrator, a reset link for an administrator and deleting an account require the administrator's password on each request (`adminPassword`). A wrong password returns `400 wrongPassword`, is logged and, in production, is limited to 10 attempts per 15 minutes; the password is removed from the request after the check and stored nowhere.
 
 Administration actions (administrator sign-ins, wrong passwords for administrator accounts, failed confirmations, setting changes by name only, backups, restores, resets, account creation, role, status and deletion, reset links) are appended to a JSON Lines file. Each entry carries the SHA-256 hash of the previous one, so changing, removing or reordering entries shows up in **Site settings › Activity log**. The log lives outside the database, so restoring a backup never rewinds it. Someone with write access to the server could still rewrite the whole file; keep a copy off the server for full protection.
 

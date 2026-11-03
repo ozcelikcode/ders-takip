@@ -288,6 +288,7 @@ export const en: Text = {
     courseHint: (t: Terms) => `Tags on this ${t.course()} that only you see. Filtering by one also matches this ${t.course()}’s ${t.session({ plural: true })}.`,
     saved: 'Tags saved.',
     sessionTagsFailed: (t: Terms) => `The ${t.session()} was saved but its tags were not; try again.`,
+    routineHint: (t: Terms) => `Routines do not carry tags, so the tags you chose are not saved. You can tag each ${t.session()} once it is created.`,
   },
   calendarFeed: {
     title: 'Calendar subscription',
@@ -899,6 +900,9 @@ export const en: Text = {
     plural: 'Plural',
     article: 'Article (a/an)',
     forms: (forms: string) => `Forms: ${forms}`,
+    resetConfirmTitle: 'Reset all preferences?',
+    resetConfirmMessage: 'Theme, colour, words, focus lengths, goals and active days go back to their defaults. Your time zone and week start are kept. Your records and study history do not change.',
+    numberRange: (min: number, max: number) => `Enter a whole number from ${min} to ${max}.`,
   },
   notificationSettings: {
     browserStates: {
@@ -1071,6 +1075,7 @@ export const en: Text = {
       adminCreate: 'creating an administrator',
       userDelete: 'deleting an account',
       adminResetLink: 'a reset link for an administrator',
+      adminDeactivate: 'deactivating an administrator',
     },
     resetModes: { all: 'user and study data', settings_only: 'site settings only' },
     backup: (id: number) => `Backup #${id}`,

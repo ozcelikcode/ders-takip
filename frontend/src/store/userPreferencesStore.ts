@@ -73,7 +73,9 @@ export const useUserPreferencesStore = create<PreferencesState>()((set, get) => 
     queue = operation;
     return operation;
   },
+  // Back to the defaults, but the person's place stays: their time zone and week start describe where they are.
   resetPreferences: () => {
-    return get().updatePreferences({ ...defaultPreferences });
+    const { timezone, weekStartsOn } = get().preferences;
+    return get().updatePreferences({ ...defaultPreferences, customTerminology: null, timezone, ...(weekStartsOn === undefined ? {} : { weekStartsOn }) });
   },
 }));

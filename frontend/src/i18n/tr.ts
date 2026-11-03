@@ -293,6 +293,7 @@ export const tr = {
     courseHint: (t: Terms) => `Bu ${t.course()} için yalnız sana görünen etiketler. Bu etiketle süzdüğünde ${t.course({ case: 'gen' })} ${t.session({ plural: true })} de eşleşir.`,
     saved: 'Etiketler kaydedildi.',
     sessionTagsFailed: (t: Terms) => `${t.session({ capitalize: true })} kaydedildi ama etiketleri kaydedilemedi; tekrar dene.`,
+    routineHint: (t: Terms) => `Rutinler etiket taşımaz; seçtiğin etiketler kaydedilmez. Oluşan ${t.session({ case: 'acc', plural: true })} tek tek etiketleyebilirsin.`,
   },
   calendarFeed: {
     title: 'Takvim aboneliği',
@@ -905,6 +906,9 @@ export const tr = {
     plural: 'Çoğul',
     article: 'Tanımlık (a/an)',
     forms: (forms: string) => `Biçimler: ${forms}`,
+    resetConfirmTitle: 'Tüm tercihler sıfırlansın mı?',
+    resetConfirmMessage: 'Tema, renk, kelimeler, çalışma süreleri, hedefler ve aktif günler varsayılana döner. Saat dilimin ve hafta başlangıcın korunur. Kayıtların ve çalışma geçmişin değişmez.',
+    numberRange: (min: number, max: number) => `${min} ile ${max} arasında bir tam sayı girin.`,
   },
   notificationSettings: {
     browserStates: {
@@ -1073,6 +1077,7 @@ export const tr = {
       adminCreate: 'yönetici oluşturma',
       userDelete: 'hesap silme',
       adminResetLink: 'yönetici için sıfırlama bağlantısı',
+      adminDeactivate: 'yönetici pasifleştirme',
     },
     resetModes: { all: 'kullanıcı ve çalışma verileri', settings_only: 'yalnız site ayarları' },
     backup: (id: number) => `Yedek #${id}`,

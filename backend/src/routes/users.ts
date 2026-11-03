@@ -18,7 +18,7 @@ import {
 } from '@study-tracker/contracts';
 import { issuePasswordResetLink } from '../controllers/passwordResetController';
 import { validate } from '../middleware/validate';
-import { confirmAdminPassword } from '../middleware/adminConfirmation';
+import { confirmAdminPassword, confirmAdminPasswordFor } from '../middleware/adminConfirmation';
 import { User } from '../models';
 
 const router = express.Router();
@@ -48,7 +48,12 @@ router.put(
   '/:id',
   authorize('admin'),
   validate(z.object({ params, body: managedUserPatchSchema })),
-  ...confirmAdminPassword('roleChange', (req) => req.body.role !== undefined),
+  // A role change, and locking out another administrator, are as powerful as the accounts involved.
+  ...confirmAdminPasswordFor(async (req) => {
+    if (req.body.role !== undefined) return 'roleChange';
+    if (req.body.isActive !== false) return null;
+    return (await User.findByPk(Number(req.params.id), { attributes: ['role'] }))?.role === 'admin' ? 'adminDeactivate' : null;
+  }),
   updateUser,
 );
 

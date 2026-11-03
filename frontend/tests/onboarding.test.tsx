@@ -197,6 +197,30 @@ it('settings let a user pick their own word set and restart the wizard', () => {
   expect(onRestartOnboarding).toHaveBeenCalledTimes(1);
 });
 
+it('lets a study number be cleared and retyped, never saves an out-of-range value and asks before resetting everything', () => {
+  const { activeStudyDays, dailyStudyGoal, defaultPomodoroDuration, defaultShortBreak, defaultLongBreak, pomodorosUntilLongBreak } = defaultPreferences;
+  const setStudyPrefs = vi.fn();
+  const onReset = vi.fn();
+  render(
+    <StudyTab studyPrefs={{ activeStudyDays: [...activeStudyDays], dailyStudyGoal, defaultPomodoroDuration, defaultShortBreak, defaultLongBreak, pomodorosUntilLongBreak }} setStudyPrefs={setStudyPrefs} pending={0} onSave={vi.fn()} onReset={onReset} onRestartOnboarding={vi.fn()} />,
+  );
+  const focus = screen.getByLabelText('Varsayılan Pomodoro Süresi (dk)') as HTMLInputElement;
+  fireEvent.change(focus, { target: { value: '' } });
+  expect(focus.value).toBe('');
+  expect(setStudyPrefs).not.toHaveBeenCalled();
+  fireEvent.change(focus, { target: { value: '500' } });
+  expect(screen.getByText('1 ile 120 arasında bir tam sayı girin.')).toBeTruthy();
+  expect(setStudyPrefs).not.toHaveBeenCalled();
+  fireEvent.change(focus, { target: { value: '30' } });
+  expect(setStudyPrefs).toHaveBeenLastCalledWith(expect.objectContaining({ defaultPomodoroDuration: 30 }));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Tüm Tercihleri Sıfırla' }));
+  expect(onReset).not.toHaveBeenCalled();
+  const confirmations = screen.getAllByRole('button', { name: 'Tüm Tercihleri Sıfırla' });
+  fireEvent.click(confirmations[confirmations.length - 1]!);
+  expect(onReset).toHaveBeenCalledTimes(1);
+});
+
 function within(group: string, name: string) {
   const container = screen.getByRole('group', { name: group });
   return [...container.querySelectorAll('button')].find((button) => button.textContent === name)!;

@@ -10,6 +10,9 @@ const folded = (column: string) =>
 /** SQL condition: the account email equals `email` regardless of case (older rows may hold mixed case). */
 export const emailEquals = (email: string) =>
   Sequelize.where(Sequelize.fn('lower', Sequelize.col('email')), email.trim().toLowerCase());
+/** Usernames are ASCII letters and digits; "Ada" and "ada" are the same name, so it is compared without case too. */
+export const usernameEquals = (username: string) =>
+  Sequelize.where(Sequelize.fn('lower', Sequelize.col('username')), username.trim().toLowerCase());
 
 /** SQL condition: `column` contains `query` under the shared search fold. instr() has no wildcards, so "%" and "_" stay literal. */
 export const columnContains = (column: string, query: string) =>

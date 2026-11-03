@@ -107,14 +107,18 @@ it('serves global admin overview and bulk user summaries without per-user reques
   await create({ startTime: '2099-01-02T09:00:00Z', endTime: '2099-01-02T10:00:00Z' });
   let foreign = await auth('post', '/api/study-sessions', other).send({ title: 'Other fixture', startTime: '2099-01-03T09:00:00Z', endTime: '2099-01-03T10:00:00Z' }).expect(201);
   foreign = foreign.body.data.session; foreign = (await auth('patch', `/api/study-sessions/${foreign.id}/start`, other).send({ expectedUpdatedAt: foreign.updatedAt }).expect(200)).body.data.session; now += 60000; await auth('patch', `/api/study-sessions/${foreign.id}/complete`, other).send({ expectedUpdatedAt: foreign.updatedAt }).expect(200);
+  // Creating a session (as a routine or an import does) is not activity.
+  await auth('post', '/api/study-sessions', admin).send({ title: 'Planned only', startTime: '2099-02-01T09:00:00Z', endTime: '2099-02-01T10:00:00Z' }).expect(201);
   await auth('get', '/api/users/admin-stats', other).expect(403);
   const { overview } = (await auth('get', '/api/users/admin-stats', admin).expect(200)).body.data;
-  assert.equal(overview.users.total, 3); assert.equal(overview.sessions.totalSessions, 3); assert.equal(overview.sessions.completedSessions, 2); assert.equal(overview.sessions.studySeconds, 180);
-  assert.equal(overview.recentSessions.length, 3); assert.equal(overview.recentSessions[0].userName, 'Test User');
+  // The planned 2099 session has not begun, so it is neither counted nor listed as recent work.
+  assert.equal(overview.users.total, 3); assert.equal(overview.sessions.totalSessions, 2); assert.equal(overview.sessions.completedSessions, 2); assert.equal(overview.sessions.studySeconds, 180);
+  assert.equal(overview.recentSessions.length, 2); assert.equal(overview.recentSessions[0].userName, 'Test User');
   const { users } = (await auth('get', '/api/users?includeStats=true', admin).expect(200)).body.data;
   const byName = Object.fromEntries(users.map(user => [user.username, user.stats]));
-  assert.deepEqual([byName.owner.totalSessions, byName.owner.completedSessions, byName.owner.studySeconds], [2, 1, 120]);
+  assert.deepEqual([byName.owner.totalSessions, byName.owner.completedSessions, byName.owner.studySeconds], [1, 1, 120]);
   assert.deepEqual([byName.other.totalSessions, byName.other.studySeconds], [1, 60]); assert.equal(byName.admin.totalSessions, 0);
+  assert.equal(byName.admin.lastActivity, null);
   assert.equal((await auth('get', '/api/users', admin).expect(200)).body.data.users[0].stats, undefined);
 });
 it('rolls back interval closure when the session write fails and enforces one open interval', async () => {

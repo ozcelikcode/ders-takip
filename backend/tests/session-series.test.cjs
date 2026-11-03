@@ -15,7 +15,7 @@ Date.now = () => now;
 const app = require('../dist/app').default;
 const { sequelize } = require('../dist/config/database');
 const { applyMigrations } = require('../dist/database/migrations');
-const { User, StudySession, SessionSeries } = require('../dist/models');
+const { User, StudySession, SessionSeries, SessionTag } = require('../dist/models');
 const { createAuthSession } = require('../dist/services/authSessions');
 const { extendAllSeries } = require('../dist/services/sessionSeries');
 
@@ -102,6 +102,18 @@ it('ends a routine by removing its untouched future sessions and keeping the res
   assert.equal(await SessionSeries.count(), 0);
   const left = await StudySession.findAll();
   assert.deepEqual(left.map((session) => [session.notes, session.seriesId, session.seriesDate]), [['Bring the capo', null, null]]);
+});
+
+it('keeps a future routine session the person tagged, with its tag, when the routine ends', async () => {
+  const { series } = await createRoutine({ endsOn: '2099-01-14' });
+  const [, wednesday] = await sessionsOf(series.id);
+  const tag = (await auth('post', '/api/tags').send({ name: 'Exam' }).expect(201)).body.data.tag;
+  await auth('put', `/api/tags/sessions/${wednesday.id}`).send({ tagIds: [tag.id] }).expect(200);
+  const current = await SessionSeries.findByPk(series.id);
+  await auth('delete', `/api/session-series/${series.id}`).send({ expectedUpdatedAt: current.updatedAt.toISOString() }).expect(200);
+  const left = await StudySession.findAll();
+  assert.deepEqual(left.map((session) => session.id), [wednesday.id]);
+  assert.equal(await SessionTag.count({ where: { sessionId: wednesday.id, tagId: tag.id } }), 1);
 });
 
 it('moves the horizon forward each day without changing the routine version', async () => {

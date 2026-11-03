@@ -52,6 +52,14 @@ it('asks for the administrator password before granting administration, deleting
   await create({ username: 'plain' }).expect(201);
   assert.deepEqual((await log(admin)).entries.slice(0, 2).map((entry) => [entry.action, entry.target.username, entry.details.role]), [['userCreated', 'plain', 'student'], ['userCreated', 'helper', 'admin']]);
 
+  // Locking out another administrator is confirmed too; reactivating is not.
+  const helper = await User.findOne({ where: { username: 'helper' } });
+  assert.equal((await auth('put', `/api/users/${helper.id}`, admin).send({ isActive: false }).expect(400)).body.error.code, 'wrongPassword');
+  assert.equal((await helper.reload()).isActive, true);
+  assert.deepEqual((await lastEntry(admin)).details, { operation: 'adminDeactivate' });
+  await auth('put', `/api/users/${helper.id}`, admin).send({ isActive: false, adminPassword: password }).expect(200);
+  await auth('put', `/api/users/${helper.id}`, admin).send({ isActive: true }).expect(200);
+
   await auth('delete', `/api/users/${target.id}`, admin).send({}).expect(400);
   await auth('delete', `/api/users/${target.id}`, admin).send({ adminPassword: 'not-it' }).expect(400);
   await auth('delete', `/api/users/${target.id}`, admin).send({ adminPassword: password }).expect(200);

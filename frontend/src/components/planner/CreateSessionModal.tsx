@@ -571,11 +571,13 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 />
               </div>
 
-              {!repeat && (
+              {!repeat ? (
                 <div className="space-y-2">
                   <p className="text-sm font-medium">{tagText.picker}</p>
                   <TagPicker tags={tags.data?.tags ?? []} selected={sessionTags} onChange={setChosenTags} />
                 </div>
+              ) : (
+                (chosenTags?.length ?? 0) > 0 && <p role="note" className="text-sm text-(--muted)">{tagText.routineHint(t)}</p>
               )}
 
               {/* Start Date and Time */}
