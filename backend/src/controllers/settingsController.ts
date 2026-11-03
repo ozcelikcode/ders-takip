@@ -3,6 +3,7 @@ import { Transaction } from 'sequelize';
 import {
   publicSettingsSchema,
   settingsPatchSchema,
+  siteIconUrl,
   validationError,
 } from '@study-tracker/contracts';
 import { Settings } from '../models';
@@ -103,6 +104,7 @@ export const updateSettings = async (
 export const getManifest = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const settings = publicSettingsSchema.parse(await readSiteSettings());
+    const icon = siteIconUrl(settings.siteIcon);
     res.type('application/manifest+json').json({
       name: settings.siteName,
       short_name: settings.siteName.slice(0, 12),
@@ -112,8 +114,10 @@ export const getManifest = async (_req: Request, res: Response, next: NextFuncti
       scope: '/',
       display: 'standalone',
       background_color: '#ffffff',
-      theme_color: '#171717',
+      theme_color: settings.primaryColor,
+      // The site icon first; the bundled images stay for browsers that need a fixed-size picture.
       icons: [
+        { src: icon, sizes: 'any', ...(icon.endsWith('.svg') ? { type: 'image/svg+xml' } : {}) },
         { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
       ],

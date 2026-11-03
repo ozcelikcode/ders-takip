@@ -270,7 +270,14 @@ function SettingsForm({
               <h2 className="text-base font-medium">{text.identity}</h2>
               <div className="grid gap-5 sm:grid-cols-2">
                 {input('siteName', text.siteName)}
-                {input('siteUrl', text.siteUrl, 'url')}
+                {field(
+                  'siteUrl',
+                  text.siteUrl,
+                  <>
+                    <input id={`${prefix}-siteUrl`} className="input" type="url" readOnly value={draft.siteUrl} aria-describedby={`${prefix}-siteUrl-hint`} />
+                    <p id={`${prefix}-siteUrl-hint`} className="mt-1 text-xs text-(--muted)">{text.siteUrlHint}</p>
+                  </>,
+                )}
               </div>
               {field(
                 'siteDescription',
@@ -292,6 +299,7 @@ function SettingsForm({
                 />,
               )}
               {input('adminEmail', text.adminEmail, 'email')}
+              <p className="-mt-3 text-xs text-(--muted)">{text.adminEmailHint}</p>
               {field(
                 'language',
                 text.language,

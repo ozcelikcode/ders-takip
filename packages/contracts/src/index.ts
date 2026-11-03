@@ -51,6 +51,7 @@ export const publicSettingsSchema = z.object({
     .or(z.url({ protocol: /^https?$/ }))
     .or(z.literal(''))
     .nullable(),
+  // The browser address the server is configured with (FRONTEND_URL); shown, never edited.
   siteUrl: z.url({ protocol: /^https?$/ }),
   primaryColor: colorSchema,
   allowRegistration: z.boolean(),
@@ -62,13 +63,17 @@ export const publicSettingsSchema = z.object({
   customTerminology: customTerminologySchema.nullable(),
 });
 export const siteSettingsSchema = publicSettingsSchema.extend({
-  adminEmail: z.email(),
+  // Replies to the site's emails go here; empty means no reply address.
+  adminEmail: z.email().or(z.literal('')),
   sessionTimeout: z.number().int().min(1).max(1440),
   emailNotifications: z.boolean(),
   pushNotifications: z.boolean(),
   backup_interval: z.enum(['1', '5', '7']),
 });
-export const settingsPatchSchema = siteSettingsSchema.partial().strict();
+/** The address of the site icon: a built-in icon, an image URL, or the default mark. */
+export const siteIconUrl = (siteIcon: PublicSettings['siteIcon']): string =>
+  brandIconNames.some((name) => name === siteIcon) ? `/brand-icons/${siteIcon}.svg` : siteIcon || '/brand-mark.svg';
+export const settingsPatchSchema = siteSettingsSchema.omit({ siteUrl: true }).partial().strict();
 export type SettingsPatch = z.infer<typeof settingsPatchSchema>;
 export type PublicSettings = z.infer<typeof publicSettingsSchema>;
 export type SiteSettings = z.infer<typeof siteSettingsSchema>;
@@ -93,7 +98,7 @@ export const defaultSiteSettings: SiteSettings = {
   siteIcon: 'GraduationCap',
   siteUrl: 'http://localhost:3000',
   primaryColor: '#3B82F6',
-  adminEmail: 'admin@example.com',
+  adminEmail: '',
   allowRegistration: true,
   maintenanceMode: false,
   language: defaultLanguage,

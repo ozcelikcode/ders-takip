@@ -1,5 +1,7 @@
 import nodemailer, { type Transporter } from 'nodemailer';
+import type { SendMailOptions } from 'nodemailer';
 import { getEnvironment } from '../config/environment';
+import { readSiteSettings } from './siteSettings';
 
 export interface MailMessage {
   to: string;
@@ -9,6 +11,13 @@ export interface MailMessage {
 }
 
 let transporter: Transporter | undefined;
+
+/** The sender carries the current site name over MAIL_FROM's address; replies go to the administrator contact when one is set. */
+export async function mailEnvelope(mailFrom: string): Promise<Pick<SendMailOptions, 'from' | 'replyTo'>> {
+  const { siteName, adminEmail } = await readSiteSettings();
+  const address = /<([^<>]+)>\s*$/.exec(mailFrom)?.[1]?.trim() ?? mailFrom.trim();
+  return { from: { name: siteName, address }, ...(adminEmail ? { replyTo: adminEmail } : {}) };
+}
 
 /** SMTP delivery; disabled when SMTP_HOST or MAIL_FROM is missing. Exposed as an object so tests can replace `send`. */
 export const mailer = {
@@ -27,6 +36,6 @@ export const mailer = {
         ? { auth: { user: environment.SMTP_USER, pass: environment.SMTP_PASS } }
         : {}),
     });
-    await transporter.sendMail({ from: environment.MAIL_FROM, ...message });
+    await transporter.sendMail({ ...(await mailEnvelope(environment.MAIL_FROM)), ...message });
   },
 };

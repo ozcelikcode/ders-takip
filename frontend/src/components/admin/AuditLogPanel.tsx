@@ -15,6 +15,7 @@ function useDetails() {
     if (typeof details.mode === 'string') lines.push(text.resetModes[details.mode as ResetMode]);
     if (typeof details.backupId === 'number') lines.push(text.backup(details.backupId));
     if (typeof details.operation === 'string') lines.push(text.attempted(text.operations[details.operation as ConfirmedOperation]));
+    if (Array.isArray(details.fields)) lines.push(text.changedSettings(details.fields.map((field) => text.changedFields[field] ?? field).join(', ')));
     if (Array.isArray(details.keys)) lines.push(text.changedSettings(details.keys.map((key) => siteSettings.fieldNames[key] ?? key).join(', ')));
     return lines;
   };

@@ -17,8 +17,8 @@ const auth = vi.hoisted(() => ({
 vi.mock('../src/store/authStore', () => ({ useAuthStore: () => auth }));
 vi.mock('../src/store/settingsStore', () => ({
   useSettingsStore: (
-    select: (state: { settings: { allowRegistration: boolean } }) => unknown,
-  ) => select({ settings: { allowRegistration: true } }),
+    select: (state: { settings: { allowRegistration: boolean; siteDescription: string } }) => unknown,
+  ) => select({ settings: { allowRegistration: true, siteDescription: 'Planning for the whole team' } }),
 }));
 vi.mock('../src/components/common/Brand', () => ({
   Brand: () => <span>Fixture brand</span>,
@@ -103,4 +103,9 @@ it('rejects bcrypt-truncated multibyte registration passwords before HTTP submis
   );
   await screen.findByText('Şifre en fazla 72 UTF-8 baytı olabilir');
   expect(auth.register).not.toHaveBeenCalled();
+});
+
+it('introduces the site with its own description on the sign-in page', () => {
+  render(<MemoryRouter><LoginPage /></MemoryRouter>);
+  expect(screen.getByText('Planning for the whole team')).toBeTruthy();
 });

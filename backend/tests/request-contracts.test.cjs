@@ -152,7 +152,8 @@ it('validates user path/query/body boundaries without revoking sessions on inval
     { isActive: 'false' },
     { role: 'owner' },
     { preferences: { unknown: true } },
-    { username: 'changed' },
+    { username: 'not valid' },
+    { password: 'changed-password' },
   ])
     await auth('put', `/api/users/${target.id}`).send(body).expect(400);
   assert.equal(await AuthSession.count({ where: { revokedAt: null } }), active);

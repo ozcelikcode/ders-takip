@@ -48,11 +48,13 @@ router.put(
   '/:id',
   authorize('admin'),
   validate(z.object({ params, body: managedUserPatchSchema })),
-  // A role change, and locking out another administrator, are as powerful as the accounts involved.
+  // A role change, locking out another administrator and moving an administrator's email (where reset links go)
+  // are as powerful as the accounts involved.
   ...confirmAdminPasswordFor(async (req) => {
     if (req.body.role !== undefined) return 'roleChange';
-    if (req.body.isActive !== false) return null;
-    return (await User.findByPk(Number(req.params.id), { attributes: ['role'] }))?.role === 'admin' ? 'adminDeactivate' : null;
+    if (req.body.isActive !== false && req.body.email === undefined) return null;
+    if ((await User.findByPk(Number(req.params.id), { attributes: ['role'] }))?.role !== 'admin') return null;
+    return req.body.isActive === false ? 'adminDeactivate' : 'adminEmailChange';
   }),
   updateUser,
 );

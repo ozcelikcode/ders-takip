@@ -235,16 +235,16 @@ it('validates hidden section fields and keeps the draft on a rejected save for r
     .mockResolvedValue(response({ ...educationSettings, siteName: 'Valid' }));
   mount();
   await ready();
-  fireEvent.change(screen.getByLabelText('Site URL'), {
+  fireEvent.change(screen.getByLabelText('Yönetici iletişim e-postası'), {
     target: { value: 'bad' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Güvenlik' }));
   save();
   expect(settingsAPI.updateSettings).not.toHaveBeenCalled();
-  expect(screen.getByRole('alert').textContent).toContain('Site URL');
+  expect(screen.getByRole('alert').textContent).toContain('Yönetici e-postası');
   fireEvent.click(screen.getByRole('button', { name: 'Genel' }));
-  fireEvent.change(screen.getByLabelText('Site URL'), {
-    target: { value: defaultSiteSettings.siteUrl },
+  fireEvent.change(screen.getByLabelText('Yönetici iletişim e-postası'), {
+    target: { value: '' },
   });
   fireEvent.change(screen.getByLabelText('Site adı'), {
     target: { value: 'Valid' },

@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
+  Pencil,
   Plus,
   Search,
   Shield,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import CreateUserModal from '../../components/admin/CreateUserModal';
+import EditUserDialog from '../../components/admin/EditUserDialog';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import AdminPasswordField from '../../components/admin/AdminPasswordField';
 import PageHeader from '../../components/common/PageHeader';
@@ -122,6 +124,7 @@ function UserManagement() {
   const [filters, setFilters] = useState({ search: '', page: 1 });
   const [creating, setCreating] = useState(false);
   const [action, setAction] = useState<UserAction | null>(null);
+  const [editing, setEditing] = useState<ManagedUser | null>(null);
   const [resetTarget, setResetTarget] = useState<{ id: string; name: string; isAdmin: boolean } | null>(null);
   const params = { ...filters, limit: 20, includeStats: true };
   const query = useQuery({
@@ -274,6 +277,18 @@ function UserManagement() {
                           <MoreHorizontal className="h-5 w-5" />
                         </MenuButton>
                         <MenuItems className="dropdown-panel w-56 py-1">
+                          <MenuItem disabled={self || query.isFetching}>
+                            {({ focus, disabled }) => (
+                              <button
+                                disabled={disabled}
+                                onClick={() => setEditing(user)}
+                                className={`flex w-full items-center gap-2 border-b px-4 py-2 text-left text-sm disabled:opacity-40 ${focus ? 'bg-(--subtle)' : ''}`}
+                              >
+                                <Pencil className="h-4 w-4" />
+                                {text.editDetails}
+                              </button>
+                            )}
+                          </MenuItem>
                           {(
                             [
                               {
@@ -415,6 +430,7 @@ function UserManagement() {
         )
       )}
       <CreateUserModal isOpen={creating} onClose={() => setCreating(false)} />
+      {editing && <EditUserDialog user={editing} onClose={() => setEditing(null)} />}
       {resetTarget && (
         <PasswordResetLinkDialog
           userId={resetTarget.id}

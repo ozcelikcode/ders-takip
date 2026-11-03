@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
+import { useSettingsStore } from '../../store/settingsStore';
 import { Brand } from '../common/Brand';
 
 /** Shared frame for the public account pages. */
 export default function AuthCard({ title, description, children }: { title: string; description: string; children: ReactNode }) {
+  const siteDescription = useSettingsStore((state) => state.settings.siteDescription);
   return (
     <main className="flex min-h-screen items-center justify-center bg-(--canvas) px-4 py-12 text-(--text)">
       <div className="w-full max-w-md space-y-8">
@@ -10,6 +12,7 @@ export default function AuthCard({ title, description, children }: { title: stri
           <div className="flex justify-center">
             <Brand />
           </div>
+          {siteDescription && <p className="mx-auto mt-2 max-w-sm text-xs text-(--muted)">{siteDescription}</p>}
           <h1 className="mt-6 text-[28px] font-semibold tracking-tight">{title}</h1>
           <p className="mt-2 text-sm text-(--muted)">{description}</p>
         </div>

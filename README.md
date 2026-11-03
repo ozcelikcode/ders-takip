@@ -85,7 +85,7 @@ The screenshots come from demo data on the isolated test site and are regenerate
 - Password reset by email, or by a one-time link an administrator hands over when email is not configured.
 
 **Administration**
-- User management, shared catalog, site identity (name, description, logo, icon) and site language.
+- User management (including correcting a person's name, username or email), shared catalog, site identity (name, description, logo, icon, accent color) and site language. The site name is also the sender name of the site's emails, and replies go to the administrator contact address when one is set.
 - Verified SQLite snapshots with automatic retention, an optional second backup folder, restore and reset with a safety copy taken first.
 - Sensitive actions ask for the administrator's password again, and every administration action is written to a hash-chained activity log kept outside the database.
 
@@ -174,14 +174,14 @@ The backend reads `backend/.env` in development; production deployments provide 
 | `SESSION_TTL_DAYS` | Absolute session lifetime, 1–30 days. Default `7`. |
 | `BCRYPT_SALT_ROUNDS` | Password hashing cost, 12–16. Default `12`. |
 | `PORT` | API port. Default `5002`. |
-| `FRONTEND_URL` | Allowed browser origin. Default `http://localhost:3000`; must be HTTPS in production. |
+| `FRONTEND_URL` | Allowed browser origin and the site address used in email and calendar links (shown read-only in Site settings). Default `http://localhost:3000`; must be HTTPS in production. |
 | `DB_PATH` | SQLite file, absolute or relative to `backend/`. Default `database.sqlite`. |
 | `BACKUP_DIR` | Snapshot folder, absolute or relative to `backend/`. Default `backups`. |
 | `BACKUP_COPY_DIR` | Optional second folder (another disk or a synced folder) that receives a copy of every verified snapshot. |
 | `AUDIT_LOG_PATH` | Optional location of the administrator activity log. Default `admin-audit.jsonl` next to the database. |
 | `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS` | Production API rate limit. Default 100 requests per 15 minutes. |
 | `TRUST_PROXY` | Number of reverse proxies in front of the API. Set `1` behind Caddy or nginx so rate limits and the activity log see the visitor's address. Default `0`. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Optional SMTP delivery for password reset mail and email reminders. Any provider works; Mailpit is enough locally. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Optional SMTP delivery for password reset mail and email reminders. Any provider works; Mailpit is enough locally. The sender address comes from `MAIL_FROM`; the sender name is always the current site name. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Optional Web Push keys. `npm run push:keys -- you@example.com` generates them. |
 | `VITE_API_BASE_URL` | Frontend build setting. Default `/api`; set it only when the API is served from another origin. |
 
@@ -212,8 +212,8 @@ npm run check
 | Suite | Tool | Tests |
 |---|---|---|
 | Shared contracts | Node test runner | 48 |
-| Backend (HTTP + SQLite, temporary databases) | Node test runner, Supertest | 227 |
-| Frontend (components and screen flows) | Vitest, Testing Library, jsdom | 344 |
+| Backend (HTTP + SQLite, temporary databases) | Node test runner, Supertest | 232 |
+| Frontend (components and screen flows) | Vitest, Testing Library, jsdom | 348 |
 | Browser journeys and accessibility | Playwright, axe-core | 46 scenarios × 3 browsers = 138 runs |
 
 ```bash
@@ -304,9 +304,9 @@ Snapshots use SQLite's online backup API and are checked for integrity, foreign 
 <details>
 <summary><b>Administrator security and activity log</b></summary>
 
-Restoring a backup, both kinds of reset, changing a role, creating an administrator, deactivating another administrator, a reset link for an administrator and deleting an account require the administrator's password on each request (`adminPassword`). A wrong password returns `400 wrongPassword`, is logged and, in production, is limited to 10 attempts per 15 minutes; the password is removed from the request after the check and stored nowhere.
+Restoring a backup, both kinds of reset, changing a role, creating an administrator, deactivating another administrator, changing another administrator's email, a reset link for an administrator and deleting an account require the administrator's password on each request (`adminPassword`). A wrong password returns `400 wrongPassword`, is logged and, in production, is limited to 10 attempts per 15 minutes; the password is removed from the request after the check and stored nowhere.
 
-Administration actions (administrator sign-ins, wrong passwords for administrator accounts, failed confirmations, setting changes by name only, backups, restores, resets, account creation, role, status and deletion, reset links) are appended to a JSON Lines file. Each entry carries the SHA-256 hash of the previous one, so changing, removing or reordering entries shows up in **Site settings › Activity log**. The log lives outside the database, so restoring a backup never rewinds it. Someone with write access to the server could still rewrite the whole file; keep a copy off the server for full protection.
+Administration actions (administrator sign-ins, wrong passwords for administrator accounts, failed confirmations, setting changes by name only, backups, restores, resets, account creation, role, status, detail changes by field name only and deletion, reset links) are appended to a JSON Lines file. Each entry carries the SHA-256 hash of the previous one, so changing, removing or reordering entries shows up in **Site settings › Activity log**. The log lives outside the database, so restoring a backup never rewinds it. Someone with write access to the server could still rewrite the whole file; keep a copy off the server for full protection.
 
 </details>
 

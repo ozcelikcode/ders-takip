@@ -122,3 +122,21 @@ it('rolls back settings writes when a later upsert fails without returning inter
  finally {Settings.upsert=original;}
  assert.equal((await Settings.findOne({where:{key:'siteName'}})).value,before);
 });
+it('shows the server address as the site address and refuses to store another one',async()=>{
+ await Settings.upsert({key:'siteUrl',value:'https://stale.example.com',type:'string',category:'general'});
+ assert.equal((await request(app).get('/api/settings').expect(200)).body.data.siteUrl,'http://localhost:3000');
+ await auth('put','/api/settings',admin).send({siteUrl:'https://elsewhere.example.com'}).expect(400);
+});
+it('sends site mail under the site name, with replies going to the administrator contact when one is set',async()=>{
+ const { mailEnvelope } = require('../dist/services/mailer');
+ await auth('put','/api/settings',admin).send({siteName:'Ekip Planı',adminEmail:'help@example.org'}).expect(200);
+ assert.deepEqual(await mailEnvelope('Old Name <noreply@example.org>'),{from:{name:'Ekip Planı',address:'noreply@example.org'},replyTo:'help@example.org'});
+ await auth('put','/api/settings',admin).send({adminEmail:''}).expect(200);
+ assert.deepEqual(await mailEnvelope('noreply@example.org'),{from:{name:'Ekip Planı',address:'noreply@example.org'}});
+});
+it('gives an installed app the site name, accent color and icon',async()=>{
+ await auth('put','/api/settings',admin).send({siteName:'Ekip Planı',primaryColor:'#16A34A',siteIcon:'Calendar'}).expect(200);
+ const manifest=(await request(app).get('/api/settings/manifest.webmanifest').expect(200)).body;
+ assert.equal(manifest.name,'Ekip Planı');assert.equal(manifest.theme_color,'#16A34A');
+ assert.deepEqual(manifest.icons[0],{src:'/brand-icons/Calendar.svg',sizes:'any',type:'image/svg+xml'});
+});

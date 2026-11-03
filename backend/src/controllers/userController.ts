@@ -8,7 +8,7 @@ import { sequelize } from '../config/database';
 import { revokeUserSessions } from '../services/authSessions';
 import { assertNotLastAdmin, deleteAccount } from '../services/accounts';
 import { NextFunction, Request, Response } from 'express';
-import { Course, StudySession, User } from '../models';
+import { Course, PasswordResetToken, StudySession, User } from '../models';
 import type { AdminOverview } from '@study-tracker/contracts';
 
 export const getUsers = async (
@@ -152,9 +152,9 @@ export const updateUser = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, role, isActive, preferences } = req.body;
+    const { firstName, lastName, username, email, role, isActive, preferences } = req.body;
 
-    const changes: { role?: string; isActive?: boolean } = {};
+    const changes: { role?: string; isActive?: boolean; fields?: string[] } = {};
     const user = await sequelize.transaction(
       { type: Transaction.TYPES.IMMEDIATE },
       async (transaction) => {
@@ -173,14 +173,35 @@ export const updateUser = async (
         }
         if ((role !== undefined && role !== 'admin') || isActive === false)
           await assertNotLastAdmin(current, transaction);
+        if (username !== undefined || email !== undefined) {
+          const taken = await User.findOne({
+            where: {
+              id: { [Op.ne]: current.id },
+              [Op.or]: [
+                ...(email !== undefined ? [emailEquals(email)] : []),
+                ...(username !== undefined ? [usernameEquals(username)] : []),
+              ],
+            },
+            transaction,
+          });
+          if (taken)
+            fail(409, email !== undefined && taken.email.toLowerCase() === email ? 'emailTaken' : 'usernameTaken');
+        }
         if (firstName !== undefined) current.firstName = firstName;
         if (lastName !== undefined) current.lastName = lastName;
+        if (username !== undefined) current.username = username;
+        if (email !== undefined) current.email = email;
         if (role !== undefined) current.role = role;
         if (isActive !== undefined) current.isActive = isActive;
         if (preferences !== undefined)
           current.preferences = mergePreferences(current.preferences, preferences);
         if (current.changed('role')) changes.role = current.role;
         if (current.changed('isActive')) changes.isActive = current.isActive;
+        const fields = (['firstName', 'lastName', 'username', 'email'] as const).filter((field) => current.changed(field));
+        if (fields.length) changes.fields = [...fields];
+        // A reset link already sent to the old address must not open the account after the address changed.
+        if (current.changed('email'))
+          await PasswordResetToken.update({ usedAt: new Date() }, { where: { userId: current.id, usedAt: null }, transaction });
         const privilegesChanged =
           current.changed('role') || current.changed('isActive');
         await current.save({ transaction });
@@ -192,6 +213,9 @@ export const updateUser = async (
 
     if (changes.role !== undefined)
       await recordAdminEvent({ action: 'userRoleChanged', actor: req.user!, target: user, details: { role: changes.role }, request: req });
+    // Only which details changed is logged, never the old or new values.
+    if (changes.fields)
+      await recordAdminEvent({ action: 'userDetailsChanged', actor: req.user!, target: user, details: { fields: changes.fields }, request: req });
     if (changes.isActive !== undefined)
       await recordAdminEvent({ action: changes.isActive ? 'userActivated' : 'userDeactivated', actor: req.user!, target: user, request: req });
     const profile = userResponse(user);

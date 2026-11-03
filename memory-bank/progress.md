@@ -4,6 +4,19 @@ Last updated: 3 November 2026. Roadmaps R1–R15, F1–F6, administrator securit
 
 
 
+## Configurable site gaps closed (3 November 2026)
+
+Owner noticed that configurable things might be missing ("site ismi değiştirilebilir olmalı… bunun gibi eksik ne var?"). The site name was already editable (Site settings › General); an audit of every setting and every fixed identity value found six real gaps, all fixed at the owner's request ("hepsini düzeltelim"):
+
+- **Site address** was stored but used nowhere; links used `FRONTEND_URL`. Now `siteUrl` is the server's `FRONTEND_URL` (read by `readSiteSettings`, stored rows ignored), shown read-only with a hint; `settingsPatchSchema` omits it, so a write is refused (400). No migration: an old stored row stays and is ignored.
+- **Administrator contact email** was stored but used nowhere. It is now the Reply-To of every site email (`mailEnvelope` in `services/mailer.ts`); empty is allowed and is the new default (no reply address).
+- **Email sender name** came from `MAIL_FROM` and ignored a renamed site. The sender is now `{ name: siteName, address: MAIL_FROM's address }`.
+- **Site description** was visible only in metadata; the public account pages (`AuthCard`) now show it under the brand.
+- **Admin could not correct a person's details** in the interface. `managedUserPatchSchema` accepts `username` and `email` too (unique without case, 409 `usernameTaken`/`emailTaken`); a new email for an administrator asks for the password (`adminEmailChange`); a changed email invalidates unused reset links; the log records `userDetailsChanged` with field names only. Interface: Users › actions › Edit details (`EditUserDialog`), not offered for one's own account.
+- **Browser and installed-app colour and icon** were fixed (`#171717`, bundled PNGs). `theme-color` follows the effective accent color; the manifest uses `primaryColor` and lists the site icon first (`siteIconUrl` in contracts, shared by `Brand`, the favicon and the manifest).
+
+Verified: `npm run check` exit 0 (contracts 48, backend 232, frontend 348); browser suite 137/138: one WebKit run of "keeps custom words…" timed out waiting for `/login` to load (45 s); the same test then passed 6/6 alone on WebKit. Watch for it again.
+
 ## Bug sweep, flaky tests and README screenshots (2–3 November 2026)
 
 Owner request: scan again for bugs and illogical behaviour, run a general test because parts occasionally failed, and give the README real screenshots in a plain GitHub style. Sources: CI history, repeated browser runs and two read-only review passes (frontend, backend); every finding was checked against the code before fixing and has a regression test.

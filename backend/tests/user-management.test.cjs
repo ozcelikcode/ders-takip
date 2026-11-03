@@ -99,3 +99,26 @@ it('stores a password hashed before the transaction as it is, and still hashes a
   await user.save();
   assert.notEqual(user.password, 'plain-password-1'); assert.equal(await user.comparePassword('plain-password-1'), true);
 });
+it('lets an administrator correct a person’s name, username and email, and keeps both unique', async () => {
+  const { PasswordResetToken } = require('../dist/models');
+  const person = await User.findOne({ where: { username: 'fixture2' } });
+  const token = await PasswordResetToken.create({ userId: person.id, tokenHash: 'fixture-hash-details', issuedBy: 'self', expiresAt: new Date(Date.now() + 3_600_000) });
+  const { user } = (await auth('put', `/api/users/${person.id}`).send({ firstName: 'Deniz', username: 'deniz', email: ' Deniz@Example.com ' }).expect(200)).body.data;
+  assert.equal(user.firstName, 'Deniz'); assert.equal(user.username, 'deniz'); assert.equal(user.email, 'deniz@example.com');
+  // A link sent to the old address no longer works.
+  assert.notEqual((await token.reload()).usedAt, null);
+  await auth('put', `/api/users/${person.id}`).send({ username: 'ADMIN' }).expect(409).expect((response) => assert.equal(response.body.error.code, 'usernameTaken'));
+  await auth('put', `/api/users/${person.id}`).send({ email: 'admin@example.com' }).expect(409).expect((response) => assert.equal(response.body.error.code, 'emailTaken'));
+  // Keeping one's own values is not a conflict.
+  await auth('put', `/api/users/${person.id}`).send({ username: 'Deniz', email: 'deniz@example.com' }).expect(200);
+  await auth('put', `/api/users/${person.id}`).send({ username: 'not valid' }).expect(400);
+});
+it('asks for the password before moving another administrator’s email', async () => {
+  const other = await User.create({ username: 'otheradmin', email: 'other-admin@example.com', password: 'fixture-password', firstName: 'Other', lastName: 'Admin', role: 'admin' });
+  await auth('put', `/api/users/${other.id}`).send({ email: 'moved@example.com' }).expect(400);
+  await auth('put', `/api/users/${other.id}`).send({ email: 'moved@example.com', adminPassword: 'wrong-password' }).expect(400);
+  assert.equal((await other.reload()).email, 'other-admin@example.com');
+  await auth('put', `/api/users/${other.id}`).send({ email: 'moved@example.com', adminPassword: 'fixture-password' }).expect(200);
+  // A new name needs no password.
+  await auth('put', `/api/users/${other.id}`).send({ firstName: 'Renamed' }).expect(200);
+});

@@ -477,3 +477,36 @@ it('asks for the creator\'s password only when the new account is an administrat
   );
   expect(vi.mocked(usersAPI.createUser).mock.calls[0]![0]).not.toHaveProperty('confirmPassword');
 });
+it('corrects a person’s details, sending only what changed', async () => {
+  vi.mocked(usersAPI.updateUser).mockResolvedValue(response());
+  mount();
+  fireEvent.click(within(await menu()).getByRole('menuitem', { name: 'Bilgileri düzenle' }));
+  const dialog = await screen.findByRole('dialog', { name: 'Bilgileri düzenle' });
+  fireEvent.change(within(dialog).getByLabelText('Kullanıcı Adı'), { target: { value: 'not valid' } });
+  save();
+  expect(await within(dialog).findByText(/yalnızca İngilizce harf/)).toBeTruthy();
+  expect(usersAPI.updateUser).not.toHaveBeenCalled();
+  fireEvent.change(within(dialog).getByLabelText('Kullanıcı Adı'), { target: { value: 'ece2' } });
+  fireEvent.change(within(dialog).getByLabelText('E-posta'), { target: { value: 'Ece@New.example.com' } });
+  // A student's new email needs no password; the old reset links are said to stop working.
+  expect(within(dialog).queryByLabelText('Onay için şifren')).toBeNull();
+  expect(within(dialog).getByText(/artık çalışmaz/)).toBeTruthy();
+  save();
+  await waitFor(() => expect(usersAPI.updateUser).toHaveBeenCalledWith('2', { username: 'ece2', email: 'ece@new.example.com' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+});
+it('asks for the password before moving another administrator’s email', async () => {
+  const deputy = { ...admin, id: 3, username: 'deputy', email: 'deputy@example.com', firstName: 'Deputy' };
+  vi.mocked(usersAPI.getUsers).mockResolvedValue(response([admin, deputy]));
+  vi.mocked(usersAPI.updateUser).mockResolvedValue(response());
+  mount();
+  fireEvent.click(within(await menu('Deputy User')).getByRole('menuitem', { name: 'Bilgileri düzenle' }));
+  const dialog = await screen.findByRole('dialog', { name: 'Bilgileri düzenle' });
+  fireEvent.change(within(dialog).getByLabelText('E-posta'), { target: { value: 'moved@example.com' } });
+  save();
+  expect(await within(dialog).findByRole('alert')).toBeTruthy();
+  expect(usersAPI.updateUser).not.toHaveBeenCalled();
+  confirmWithPassword();
+  save();
+  await waitFor(() => expect(usersAPI.updateUser).toHaveBeenCalledWith('3', { email: 'moved@example.com', adminPassword: 'fixture-password' }));
+});

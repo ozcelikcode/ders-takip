@@ -55,10 +55,12 @@ export const managedUserPatchSchema = z
   .object({
     firstName: personNameSchema.optional(),
     lastName: personNameSchema.optional(),
+    username: usernameSchema.optional(),
+    email: emailSchema.optional(),
     role: userRoleSchema.optional(),
     isActive: z.boolean().optional(),
     preferences: preferencesPatchSchema.optional(),
-    // A role change asks for the administrator's password.
+    // A role change, and a new email for an administrator, ask for the administrator's password.
     adminPassword: adminPasswordSchema.optional(),
   })
   .strict()
