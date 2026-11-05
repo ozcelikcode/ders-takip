@@ -60,7 +60,7 @@ const CourseHeader = ({
                 {text.editRecord(t)}
               </button>
               <button
-                className="btn btn-secondary text-red-600"
+                className="btn btn-secondary text-red-600 dark:text-red-400"
                 onClick={onDelete}
               >
                 <Trash2 className="h-4 w-4" />

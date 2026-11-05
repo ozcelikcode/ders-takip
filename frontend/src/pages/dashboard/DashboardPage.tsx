@@ -71,25 +71,27 @@ const DashboardPage = () => {
         </div>)}
       </section>
 
-      <Recommendations />
-
-      <GoalProgress />
-
-      <CourseGoalsProgress />
-
-      <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
-        <section className="panel min-w-0">
-          <div className="panel-heading"><div><h2 className="text-sm font-medium">{text.weeklyProgress}</h2><p className="mt-1 text-xs text-(--muted)">{text.weeklyProgressHint}</p></div><span className="badge badge-gray">{text.thisWeek}</span></div>
-          <div className="h-[300px] px-5 pb-5 pt-7"><WeeklyProgressChart /></div>
-        </section>
-        <section className="panel min-w-0">
-          <div className="panel-heading"><div><h2 className="text-sm font-medium">{text.recentActivity}</h2><p className="mt-1 text-xs text-(--muted)">{text.recentActivityHint}</p></div><Link to="/planner" className="icon-button" aria-label={text.goToPlanner}><ArrowRight className="h-4 w-4" /></Link></div>
-          <div className="min-h-[300px] p-4"><RecentActivities /></div>
-        </section>
+      {/* Work on the left, where it stands against the goals and what to do next on the right. */}
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-5">
+          <section className="panel min-w-0">
+            <div className="panel-heading"><div><h2 className="text-sm font-medium">{text.weeklyProgress}</h2><p className="mt-1 text-xs text-(--muted)">{text.weeklyProgressHint}</p></div><span className="badge badge-gray">{text.thisWeek}</span></div>
+            <div className="h-[280px] px-5 pb-5 pt-7"><WeeklyProgressChart /></div>
+          </section>
+          <section className="panel min-w-0">
+            <div className="panel-heading"><div><h2 className="text-sm font-medium">{text.recentActivity}</h2><p className="mt-1 text-xs text-(--muted)">{text.recentActivityHint}</p></div><Link to="/planner" className="icon-button" aria-label={text.goToPlanner}><ArrowRight className="h-4 w-4" /></Link></div>
+            <div className="p-4"><RecentActivities /></div>
+          </section>
+        </div>
+        <div className="min-w-0 space-y-5">
+          <GoalProgress />
+          <CourseGoalsProgress />
+          <Recommendations />
+        </div>
       </div>
 
       <section aria-label={text.shortcuts} className="grid gap-3 md:grid-cols-3">
-        {shortcuts.map(item => <Link key={item.href} to={item.href} className="group flex items-center gap-4 rounded-lg border bg-(--surface) p-5 transition-colors hover:border-gray-400 dark:hover:border-gray-500">
+        {shortcuts.map(item => <Link key={item.href} to={item.href} className="group flex items-center gap-4 rounded-lg border bg-(--surface) p-5 transition-colors hover:border-(--muted)">
           <item.icon className="h-5 w-5 shrink-0 text-(--muted)" strokeWidth={1.5} />
           <div className="min-w-0 flex-1"><h2 className="text-sm font-medium">{item.title}</h2><p className="mt-1 text-xs leading-5 text-(--muted)">{item.description}</p></div><ArrowRight className="h-4 w-4 text-(--muted)" />
         </Link>)}

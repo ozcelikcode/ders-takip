@@ -47,11 +47,11 @@ const RecentActivities = () => {
   }
 
   return (
-    <div className="space-y-4 max-h-full overflow-y-auto pr-2 custom-scrollbar">
+    <div className="divide-y divide-(--line)">
       {recentSessions.map((session) => (
-        <div key={session.id} className="flex items-start space-x-3 group p-2 rounded-lg hover:bg-(--subtle) transition-colors">
+        <div key={session.id} className="flex items-start gap-3 px-1 py-2.5">
           <div className="mt-1">
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -60,7 +60,7 @@ const RecentActivities = () => {
                 {session.title}
               </p>
             </div>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="mt-0.5 flex items-center gap-2">
               <p className="text-xs text-(--muted) shrink-0">
                 {measuredSessionLabel(session, sessionText, language)}
               </p>

@@ -22,7 +22,7 @@ function TagRow({ tag, busy, onRename, onRemove }: { tag: Tag; busy: boolean; on
       <button type="button" className="btn btn-secondary" aria-label={text.rename(tag.name)} disabled={busy || !name.trim() || name.trim() === tag.name} onClick={() => void onRename(name)}>
         {text.save}
       </button>
-      <button type="button" className="btn btn-secondary text-red-600" aria-label={text.remove(tag.name)} disabled={busy} onClick={onRemove}>
+      <button type="button" className="btn btn-secondary text-red-600 dark:text-red-400" aria-label={text.remove(tag.name)} disabled={busy} onClick={onRemove}>
         <X className="h-4 w-4" />
       </button>
     </li>

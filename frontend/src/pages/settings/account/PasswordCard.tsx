@@ -75,7 +75,7 @@ const PasswordCard = ({
     <div className="panel-heading">
       <div className="flex items-center gap-2">
         <Lock className="h-4 w-4 text-(--muted)" />
-        <h2 className="text-base font-medium">{text.passwordTitle}</h2>
+        <h2 className="text-sm font-medium">{text.passwordTitle}</h2>
       </div>
       {!isEditingPassword && (
         <button onClick={() => setIsEditingPassword(true)} className="btn btn-secondary px-3 py-1.5 text-sm">

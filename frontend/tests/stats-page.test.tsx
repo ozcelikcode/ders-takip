@@ -72,7 +72,7 @@ it('shows range totals, goal comparison and course/category distribution, and re
   expect(studySessionsAPI.getStats).toHaveBeenCalledWith({ startDate: '2026-10-19', endDate: '2026-10-25' });
   // Monday to Wednesday of the 5 active days have begun (today is Wednesday); Monday met the 1 hour goal.
   // The average spreads over those 3 days, not over the days still ahead.
-  expect(screen.getByText('Hedefe ulaşılan gün: 1 / 3')).toBeTruthy();
+  expect(screen.getByText(/· 1\/3 gün hedefte$/)).toBeTruthy();
   expect(screen.getByText('3 gün üzerinden')).toBeTruthy();
   const byCategory = await screen.findByRole('region', { name: 'Kategoriye göre' });
   expect(within(byCategory).getByText('İş')).toBeTruthy();
@@ -104,9 +104,12 @@ it('shows the streak, a year summary and badges from measured study, independent
   // Studied Monday and Tuesday; today (Wednesday) is not studied yet, so the streak is still alive.
   expect(within(section).getByText('Güncel seri').closest('dt')?.nextElementSibling?.textContent).toBe('2 gün');
   expect(within(section).getByText('Son 365 günün 2 gününde çalışma ölçüldü.')).toBeTruthy();
-  const first = within(section).getByText('İlk adım').closest('li')!;
+  // Badges are their own panel now, beside the year and its streaks.
+  const badges = screen.getByRole('region', { name: 'Rozetler' });
+  expect(within(badges).getByText(/^\d \/ \d$/)).toBeTruthy();
+  const first = within(badges).getByText('İlk adım').closest('li')!;
   expect(within(first).getByText('Kazanıldı')).toBeTruthy();
-  const hundred = within(section).getByText('100 saat').closest('li')!;
+  const hundred = within(badges).getByText('100 saat').closest('li')!;
   expect(within(hundred).getByText('Henüz değil')).toBeTruthy();
   expect(studySessionsAPI.getStats).toHaveBeenCalledWith({ startDate: '2025-10-22', endDate: '2026-10-21' });
   expect(studySessionsAPI.getStats).toHaveBeenCalledWith();

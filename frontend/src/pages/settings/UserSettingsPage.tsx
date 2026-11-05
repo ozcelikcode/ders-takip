@@ -85,9 +85,10 @@ const UserSettingsPage = () => {
   return (
     <div className="space-y-6">
       <PageHeader title={text.title} description={text.description} />
-      <div role="status" aria-live="polite" className="text-xs text-(--muted)">{pending ? text.saving : preferencesError || text.storedInAccount}</div>
 
-      <nav aria-label={text.sections} className="flex flex-wrap gap-1 border-b border-(--line) pb-3">
+      {/* The tabs and, at their end, whether the preferences are saved. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-(--line) pb-3">
+      <nav aria-label={text.sections} className="flex flex-wrap gap-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -104,6 +105,8 @@ const UserSettingsPage = () => {
           );
         })}
       </nav>
+      <div role="status" aria-live="polite" className="text-xs text-(--muted)">{pending ? text.saving : preferencesError || text.storedInAccount}</div>
+      </div>
 
       {/* The account tab is a set of its own panels; the preference tabs share one. */}
       {activeTab === 'account' ? <AccountTab /> : (

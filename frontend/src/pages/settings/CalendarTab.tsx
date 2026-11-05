@@ -73,7 +73,7 @@ export default function CalendarTab() {
             {status.data.active ? (
               <>
                 <button type="button" className="btn btn-secondary" disabled={mutation.isPending} onClick={() => setConfirming('renew')}>{text.renew}</button>
-                <button type="button" className="btn btn-secondary text-red-600" disabled={mutation.isPending} onClick={() => setConfirming('remove')}>{text.remove}</button>
+                <button type="button" className="btn btn-secondary text-red-600 dark:text-red-400" disabled={mutation.isPending} onClick={() => setConfirming('remove')}>{text.remove}</button>
               </>
             ) : (
               <button type="button" className="btn btn-primary" disabled={mutation.isPending} onClick={() => void create()}>{text.create}</button>

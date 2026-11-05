@@ -164,7 +164,7 @@ export default function BackupPanel({
           </button>
           <button
             type="button"
-            className="btn btn-secondary text-red-600"
+            className="btn btn-secondary text-red-600 dark:text-red-400"
             disabled={busy || dirty}
             onClick={() => onAction({ kind: 'reset', mode: 'all' })}
           >

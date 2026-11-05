@@ -223,7 +223,7 @@ const CourseDetailPage = () => {
           setDeleting({ kind: 'course', id: course.id, name: course.name })
         }
       />
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid items-start gap-5 lg:grid-cols-2">
         <CourseGoalPanel courseId={course.id} />
         <CourseTagsPanel courseId={course.id} />
       </div>
@@ -290,7 +290,7 @@ const CourseDetailPage = () => {
         </div>
       </div>
       {canEdit && (
-        <p className="text-sm text-(--muted)" role="status">
+        <p className="text-xs text-(--muted)" role="status">
           {archived
             ? text.archiveNote(t)
             : reorderMutation.isPending

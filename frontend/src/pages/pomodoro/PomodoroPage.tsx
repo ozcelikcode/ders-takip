@@ -51,7 +51,7 @@ export default function PomodoroPage() {
       {query.isPending ? <p role="status">{text.listLoading(t)}</p> : query.isError ? <p role="alert">{text.listFailed(t)} <button className="underline" onClick={() => void query.refetch()}>{text.retry}</button></p> : !sessions?.length ? (
         <div className="panel p-12 text-center"><h2 className="text-lg font-medium">{text.emptyTitle(t)}</h2><p className="mt-2 text-sm text-(--muted)">{text.emptyHint(t)}</p></div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid items-start gap-6 lg:grid-cols-3">
           <section className="panel p-4" aria-label={text.listLabel(t)}>
             <h2 className="mb-3 text-sm font-medium">{text.listTitle(t)}</h2>
             <div className="max-h-[640px] space-y-2 overflow-y-auto">

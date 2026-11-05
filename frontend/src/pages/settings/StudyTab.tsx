@@ -100,7 +100,7 @@ const StudyTab = ({ studyPrefs, setStudyPrefs, pending, onSave, onReset, onResta
       <button type="button" onClick={onSave} className="btn btn-primary" disabled={pending > 0}>
         {text.save}
       </button>
-      <button type="button" onClick={() => setConfirmingReset(true)} className="btn btn-secondary text-red-600">
+      <button type="button" onClick={() => setConfirmingReset(true)} className="btn btn-secondary text-red-600 dark:text-red-400">
         {text.resetAll}
       </button>
     </div>

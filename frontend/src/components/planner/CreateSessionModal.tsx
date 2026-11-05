@@ -730,7 +730,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                   type="button"
                   onClick={(e) => handleDelete(e)}
                   disabled={mutation.isPending || needsRefresh}
-                  className="btn btn-secondary text-red-600"
+                  className="btn btn-secondary text-red-600 dark:text-red-400"
                 >
                   <Trash2 className="w-4 h-4" />
                   {editSeries ? text.endRoutine : text.delete}

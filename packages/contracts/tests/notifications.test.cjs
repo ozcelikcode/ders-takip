@@ -27,8 +27,8 @@ it('push subscriptions must point at an https push service', () => {
 it('formats durations the same way for screens and emails', () => {
   assert.deepEqual([0, 45, 60, 90].map((minutes) => formatGoalMinutes(minutes)), ['Hedef yok', '45 dk', '1 sa', '1 sa 30 dk']);
   assert.deepEqual([0, 45, 60, 90].map((minutes) => formatGoalMinutes(minutes, 'en')), ['No goal', '45 min', '1 h', '1 h 30 min']);
-  assert.deepEqual([40, 300, 7500].map((seconds) => formatMeasuredSeconds(seconds)), ['40 sn', '5 dk 0 sn', '2 sa 5 dk']);
-  assert.deepEqual([40, 300, 7500].map((seconds) => formatMeasuredSeconds(seconds, 'en')), ['40 s', '5 min 0 s', '2 h 5 min']);
+  assert.deepEqual([40, 300, 312, 7200, 7500].map((seconds) => formatMeasuredSeconds(seconds)), ['40 sn', '5 dk', '5 dk 12 sn', '2 sa', '2 sa 5 dk']);
+  assert.deepEqual([40, 300, 312, 7200, 7500].map((seconds) => formatMeasuredSeconds(seconds, 'en')), ['40 s', '5 min', '5 min 12 s', '2 h', '2 h 5 min']);
 });
 
 it('accepts only known browser push services as endpoints', () => {

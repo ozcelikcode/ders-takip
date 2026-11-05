@@ -59,7 +59,7 @@ export default function AccountDataCard() {
   return (
     <section aria-labelledby="account-data-heading" className="panel">
       <div className="panel-heading">
-        <h2 id="account-data-heading" className="text-base font-medium">{text.dataTitle}</h2>
+        <h2 id="account-data-heading" className="text-sm font-medium">{text.dataTitle}</h2>
       </div>
       <div className="divide-y divide-(--line)">
         <div className="flex flex-wrap items-center justify-between gap-4 p-5">

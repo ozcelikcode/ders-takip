@@ -123,3 +123,13 @@ The owner asked that radios, selects and lists never fall back to the browser's 
 - `.input` uses the tokens (surface, line, text, muted placeholder); the accent appears only as the focus border and ring, also while a Select is open.
 - Checkboxes and radios (the `@tailwindcss/forms` base) are checked in `--solid` with a theme-matching mark, 4 px corners on checkboxes, focus through the global accent outline.
 - The planner's press-and-drag draft looks like a session card in the making: surface, thin border, a `--solid` left edge, a lifted shadow, the time range and "New session · length". The accent is not used for it.
+
+## Page order (5 November 2026)
+
+The owner found pages, Statistics most of all, mixed up. Rules applied:
+- A page reads top to bottom: header, the controls that decide what is shown (one toolbar row), a summary strip, then the detail. Panels in one row are top-aligned (`items-start`) so a short panel never stretches into an empty block.
+- Statistics: range presets and dates on the left, the formatted range and tag filter on the right; four summary cards (measured with breaks as its detail, daily average, completed, goal with a thin bar and "edit goals"); the daily chart; "Where the time went" (by record beside by category and by tag); Consistency (year map beside the streaks); Badges in their own panel (earned ones in `--solid`, the rest muted, "n / 6").
+- Overview: summary strip, then two columns: the week's chart and recent activity on the left, goals, record goals and suggestions (compact rows) on the right; shortcuts last.
+- Percentages use `Intl.NumberFormat` (`33%` / `%33`); measured durations leave out a zero remainder (`5 min`, `2 h`).
+- Settings: the save status sits at the end of the tab row; panel headings are `text-sm font-medium` and read-only values `text-sm` everywhere.
+- Shared utilities (`btn-secondary`, `badge-gray`, `spinner`, scrollbars) use the theme tokens; the unused `card*` utilities were removed.

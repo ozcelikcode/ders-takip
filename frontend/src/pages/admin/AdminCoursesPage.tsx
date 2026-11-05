@@ -123,7 +123,7 @@ export default function AdminCoursesPage() {
                     {text.edit}
                   </button>
                   <button
-                    className="btn btn-secondary text-red-600"
+                    className="btn btn-secondary text-red-600 dark:text-red-400"
                     aria-label={text.deleteCourse(t, course.name)}
                     onClick={() =>
                       setDeleting({

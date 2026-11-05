@@ -192,7 +192,7 @@ export default function CoursesPage() {
                         {text.edit}
                       </button>
                       <button
-                        className="btn btn-secondary text-red-600"
+                        className="btn btn-secondary text-red-600 dark:text-red-400"
                         aria-label={text.deleteLabel(t, course.name)}
                         onClick={() =>
                           setDeleting({

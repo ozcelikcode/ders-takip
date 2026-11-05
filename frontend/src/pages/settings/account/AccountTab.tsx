@@ -212,7 +212,7 @@ const AccountTab = () => {
           {/* Profile Information */}
           <div className="panel">
             <div className="panel-heading">
-              <h2 className="text-base font-medium">
+              <h2 className="text-sm font-medium">
                 {text.infoTitle}
               </h2>
               {!isEditingProfile && (
@@ -245,7 +245,7 @@ const AccountTab = () => {
                         className="input"
                       />
                     ) : (
-                      <p className="py-2">
+                      <p className="py-2 text-sm">
                         {user?.firstName}
                       </p>
                     )}
@@ -268,7 +268,7 @@ const AccountTab = () => {
                         className="input"
                       />
                     ) : (
-                      <p className="py-2">
+                      <p className="py-2 text-sm">
                         {user?.lastName}
                       </p>
                     )}
@@ -293,7 +293,7 @@ const AccountTab = () => {
                       className="input"
                     />
                   ) : (
-                    <p className="py-2">
+                    <p className="py-2 text-sm">
                       {user?.username}
                     </p>
                   )}
@@ -303,7 +303,7 @@ const AccountTab = () => {
                   <label className="mb-2 block text-sm font-medium">
                     {text.email}
                   </label>
-                  <div className="flex items-center gap-2 py-2">
+                  <div className="flex items-center gap-2 py-2 text-sm">
                     <Mail className="h-4 w-4 text-(--muted)" />
                     <p>
                       {user?.email}
@@ -334,7 +334,7 @@ const AccountTab = () => {
                       className="input"
                     />
                   ) : (
-                    <p className="py-2">
+                    <p className="py-2 text-sm">
                       {user?.preferences?.studyField || text.notSet}
                     </p>
                   )}

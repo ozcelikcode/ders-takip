@@ -62,7 +62,7 @@
 }
 
 @utility btn-secondary {
-  @apply bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:ring-primary-500 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700;
+  @apply border-(--line) bg-(--surface) text-(--text) hover:bg-(--subtle) focus:ring-primary-500;
 }
 
 @utility page-heading {
@@ -150,28 +150,16 @@
   @apply border-error-300 text-error-900 placeholder-error-300 focus:ring-error-500 focus:border-error-500;
 }
 
-@utility card {
-  @apply bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700;
-}
-
-@utility card-header {
-  @apply px-6 py-4 border-b border-gray-200 dark:border-gray-700;
-}
-
-@utility card-body {
-  @apply px-6 py-4;
-}
-
 @utility badge {
   @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
 }
 
 @utility badge-gray {
-  @apply bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300;
+  @apply bg-(--subtle) text-(--muted);
 }
 
 @utility spinner {
-  @apply animate-spin rounded-full border-2 border-gray-300 border-t-primary-600;
+  @apply animate-spin rounded-full border-2 border-(--line) border-t-(--text);
 }
 
 @layer base {
@@ -230,15 +218,15 @@
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-gray-100 dark:bg-gray-800;
+    @apply bg-transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+    @apply rounded-full bg-(--line);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400 dark:bg-gray-500;
+    @apply bg-(--muted);
   }
 }
 

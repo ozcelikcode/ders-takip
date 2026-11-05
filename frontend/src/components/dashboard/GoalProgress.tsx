@@ -51,7 +51,7 @@ export default function GoalProgress() {
           {text.edit}
         </Link>
       </div>
-      <div className="grid gap-5 p-5 sm:grid-cols-2">
+      <div className="grid gap-5 p-5">
         {query.isPending ? (
           <p role="status" className="text-sm text-(--muted)">{text.loading}</p>
         ) : query.isError ? (

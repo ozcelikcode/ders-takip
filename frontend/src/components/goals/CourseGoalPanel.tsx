@@ -60,7 +60,7 @@ export default function CourseGoalPanel({ courseId }: { courseId: number }) {
                 <button type="submit" className="btn btn-primary" disabled={minutes === 0}>{text.saveCourseGoal}</button>
                 <button type="button" className="btn btn-secondary" onClick={() => setEditing(false)}>{common.cancel}</button>
                 {goal && (
-                  <button type="button" className="btn btn-secondary text-red-600" onClick={() => void mutation.save(() => courseGoalsAPI.clear(courseId), text.courseGoalRemoved).then(finish)}>
+                  <button type="button" className="btn btn-secondary text-red-600 dark:text-red-400" onClick={() => void mutation.save(() => courseGoalsAPI.clear(courseId), text.courseGoalRemoved).then(finish)}>
                     {text.removeCourseGoal}
                   </button>
                 )}

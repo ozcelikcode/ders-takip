@@ -83,22 +83,23 @@ export default function Recommendations() {
       ) : failed ? (
         <p className="p-5 text-sm text-red-600 dark:text-red-400">{text.failed}</p>
       ) : (
-        <ul className="grid divide-y divide-(--line) md:grid-cols-3 md:divide-x md:divide-y-0">
+        // One compact row per suggestion: icon, what and why, then the step to take.
+        <ul className="divide-y divide-(--line)">
           {items.map((item) => {
             const Icon = icons[item.kind];
             return (
-              <li key={item.kind} className="flex flex-col gap-3 p-5">
-                <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-lg bg-(--subtle)">
+              <li key={item.kind} className="flex items-start gap-3 px-5 py-4">
+                <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-(--subtle)">
                   <Icon className="h-4 w-4" strokeWidth={1.7} />
                 </span>
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <h3 className="text-sm font-medium">{item.title}</h3>
-                  <p className="mt-1 text-xs leading-5 text-(--muted)">{item.detail}</p>
+                  <p className="mt-0.5 text-xs leading-5 text-(--muted)">{item.detail}</p>
+                  <Link to={item.href} className="mt-2 inline-flex w-fit items-center gap-1.5 text-xs font-medium underline-offset-4 hover:underline">
+                    {item.action}
+                    <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
+                  </Link>
                 </div>
-                <Link to={item.href} className="inline-flex w-fit items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline">
-                  {item.action}
-                  <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
-                </Link>
               </li>
             );
           })}

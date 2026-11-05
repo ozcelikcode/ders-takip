@@ -49,7 +49,7 @@ it('compares measured time with the daily and weekly goals and requests the conf
   const today = await screen.findByRole('progressbar', { name: 'Bugün hedefi' });
   expect(today.getAttribute('aria-valuenow')).toBe('25');
   expect(screen.getByRole('progressbar', { name: 'Bu hafta hedefi' }).getAttribute('aria-valuenow')).toBe('15');
-  expect(screen.getByText('30 dk 0 sn / 2 sa')).toBeTruthy();
+  expect(screen.getByText('30 dk / 2 sa')).toBeTruthy();
   expect(studySessionsAPI.getStats).toHaveBeenCalledWith({ startDate: '2026-10-19', endDate: '2026-10-25' });
 });
 

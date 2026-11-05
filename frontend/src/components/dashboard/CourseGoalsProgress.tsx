@@ -30,7 +30,7 @@ export default function CourseGoalsProgress() {
           <p className="mt-1 text-xs text-(--muted)">{text.coursesHint}</p>
         </div>
       </div>
-      <div className="grid gap-5 p-5 sm:grid-cols-2">
+      <div className="grid gap-5 p-5">
         {weekly.isError ? (
           <LoadError message={text.failed} query={weekly} />
         ) : (

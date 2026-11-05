@@ -108,7 +108,10 @@ export const formatGoalMinutes = (minutes: number, language: Language = defaultL
 export const formatMeasuredSeconds = (seconds: number, language: Language = defaultLanguage): string => {
   const unit = durationUnits[language];
   const value = Math.max(0, Math.floor(seconds));
+  // A zero second part is left out ("5 min", "2 h"); a real remainder stays ("5 min 12 s").
+  const pair = (first: number, firstUnit: string, second: number, secondUnit: string) =>
+    second ? `${first} ${firstUnit} ${second} ${secondUnit}` : `${first} ${firstUnit}`;
   if (value < 60) return `${value} ${unit.seconds}`;
-  if (value < 3600) return `${Math.floor(value / 60)} ${unit.minutes} ${value % 60} ${unit.seconds}`;
-  return `${Math.floor(value / 3600)} ${unit.hours} ${Math.floor((value % 3600) / 60)} ${unit.minutes}`;
+  if (value < 3600) return pair(Math.floor(value / 60), unit.minutes, value % 60, unit.seconds);
+  return pair(Math.floor(value / 3600), unit.hours, Math.floor((value % 3600) / 60), unit.minutes);
 };
