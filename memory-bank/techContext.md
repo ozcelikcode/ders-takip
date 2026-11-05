@@ -20,7 +20,7 @@ Source and verification: the A22 accessibility and Lighthouse baseline of 18 Oct
 - Startup stops on a missing, weak or example JWT secret; there is no fixed-secret fallback. Environment values are never copied into error messages.
 - `PORT` defaults to 5002; CORS comes from `FRONTEND_URL`. The production rate limiter defaults to 100 requests per 15 minutes. Header and URL checks of the deployment are needed separately.
 - `npm run configure` creates `backend/.env` only when it does not exist, with a random signing secret and 0600 permissions, and never changes an existing file. The owner's first-setup authorisation created a new `.env` and database (there was no existing installation), and the administrator CLI created `admin@example.com`; the private password is in `.local/admin-password.txt` (0600, Git-ignored) and the values are not documented.
-- The frontend API base defaults to `/api`; the development proxy forwards to backend port 5002. A production reverse proxy is the deployment's responsibility.
+- The frontend API base defaults to `/api`; the development proxy forwards to backend port 5002. Root `npm run dev` starts Vite only after `scripts/wait-for-api.mjs` sees `/api/health` answer (60 s cap); otherwise an open tab reloads before the API listens, the session refresh fails through the proxy (`ECONNREFUSED`) and the tab looks signed out. A production reverse proxy is the deployment's responsibility.
 
 ## Database lifecycle
 
