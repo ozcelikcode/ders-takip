@@ -708,6 +708,10 @@ The ordering of recent activities, the dashboard topic data and counts, query re
   - *Month view:* six whole weeks (`usePlannerCalendar` mode `monthly`), three sessions per day plus "+N more", the day number opens the daily view, mouse drag moves to another day keeping the time.
   - *Page:* one calendar component for all three views (no remount on view change, so date, full screen and history stay); one toolbar row (navigation, range, view switch, undo, redo, shortcuts, full screen); the hours fill the window height (`100dvh - 13rem`, at least 420 px) and open an hour before now on today, else 30 minutes before the first session, else 08:00 (`data-opening-minute`). `PlannerNavigation` was removed.
 
+## Lost refresh responses (5 November 2026)
+
+CI (WebKit, English-site test) signed the administrator out between two `page.goto` calls: navigation aborted a refresh request after the server had rotated the credential, the browser kept the spent cookie, and the next refresh counted as reuse and revoked the family. Owner chose a 30-second tolerance: a spent credential gets a new successor within 30 s of its rotation while no later credential of the session has been used; any other reuse still revokes. The retry spends the undelivered successor first, so a session never has two live branches and a second retry is reuse (an automated security review flagged the first version, which forked the session). Two concurrent refreshes of one credential both succeed and leave one live credential. Tests in `backend/tests/auth-sessions.test.cjs`. The earlier unexplained WebKit timeouts (`page.goto('/login')`) fit the same cause. The Lighthouse job failure in the same CI run was Chrome not writing `DevToolsActivePort` in time (infrastructure, not reproduced).
+
 ## Dependencies
 
 The shared time-zone and calendar calculations use Luxon 3.7.2 with types 3.7.6. All three workspaces use Zod 4.6.7; Joi and the last Zod 3 form path were removed in A19. The root dev, build and check scripts build the contracts; Vite optimises the linked contracts workspace; the Zod major split is gone.

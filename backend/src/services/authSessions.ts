@@ -8,6 +8,13 @@ import { User } from '../models/User';
 import { readSiteSettings } from './siteSettings';
 import { generateAccessToken } from '../utils/jwt';
 
+/**
+ * A rotation whose response never arrived (a reload or navigation cut it off) leaves the browser with the
+ * credential it just spent. Within this window, and only while nothing issued after it has been used, that
+ * credential is a retry: the unused successor is spent and a new one replaces it, so the session never has
+ * two live branches. Spending that successor also makes a second retry count as reuse, which revokes.
+ */
+const retryWindowMs = 30_000;
 const hashCredential = (value: string) => createHash('sha256').update(value).digest('hex');
 const newCredential = () => randomBytes(32).toString('hex');
 const tokensFor = (user: User, session: AuthSession) => ({
@@ -32,10 +39,16 @@ export const rotateAuthSession = async (credential: string) => {
     const session = await AuthSession.findByPk(previous.sessionId, { transaction });
     if (!session || session.revokedAt || session.expiresAt.getTime() <= Date.now()) return null;
     if (previous.consumedAt) {
-      // Commit the family revocation even though the refresh request is rejected.
-      session.revokedAt = new Date();
-      await session.save({ transaction });
-      return null;
+      const successorUsed = await RefreshCredential.count({
+        where: { sessionId: session.id, createdAt: { [Op.gte]: previous.consumedAt }, consumedAt: { [Op.ne]: null } },
+        transaction,
+      });
+      if (successorUsed || Date.now() - previous.consumedAt.getTime() > retryWindowMs) {
+        // Commit the family revocation even though the refresh request is rejected.
+        session.revokedAt = new Date();
+        await session.save({ transaction });
+        return null;
+      }
     }
     // Idle timeout: refresh is lazy, so the effective limit never drops below the access token lifetime.
     const idleLimitMs = Math.max((await readSiteSettings()).sessionTimeout * 60000, durationInSeconds(getEnvironment().JWT_EXPIRE) * 1000);
@@ -46,8 +59,12 @@ export const rotateAuthSession = async (credential: string) => {
     }
     const user = await User.findByPk(session.userId, { transaction });
     if (!user?.isActive) return null;
-    previous.consumedAt = new Date();
-    await previous.save({ transaction });
+    if (previous.consumedAt) {
+      await RefreshCredential.update({ consumedAt: new Date() }, { where: { sessionId: session.id, consumedAt: null }, transaction });
+    } else {
+      previous.consumedAt = new Date();
+      await previous.save({ transaction });
+    }
     const replacement = newCredential();
     await RefreshCredential.create({ hash: hashCredential(replacement), sessionId: session.id }, { transaction });
     return { user, session, credential: replacement, tokens: tokensFor(user, session) };

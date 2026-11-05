@@ -60,20 +60,49 @@ describe('revocable browser sessions', () => {
     const unknown = await write('/api/auth/refresh-token','study_refresh=unknown-credential').expect(401);
     assert.match(unknown.headers['set-cookie'][0],/Expires=Thu, 01 Jan 1970/);
   });
-  it('rotates refresh credentials and revokes the complete family on replay', async () => {
+  it('rotates refresh credentials and revokes the complete family once a spent credential is replayed after its successor was used', async () => {
     const first = await login(await account());
     const rotated = await write('/api/auth/refresh-token',cookieOf(first)).expect(200);
     assert.notEqual(cookieOf(first),cookieOf(rotated));
+    const next = await write('/api/auth/refresh-token',cookieOf(rotated)).expect(200);
     await write('/api/auth/refresh-token',cookieOf(first)).expect(401);
-    await me(rotated.body.data.tokens.accessToken).expect(401);
-    await write('/api/auth/refresh-token',cookieOf(rotated)).expect(401);
+    await me(next.body.data.tokens.accessToken).expect(401);
+    await write('/api/auth/refresh-token',cookieOf(next)).expect(401);
   });
-  it('serializes concurrent rotations and fails closed when the same credential is reused', async () => {
+  it('treats a spent credential as a lost response for 30 seconds while nothing after it was used', async () => {
+    const first = await login(await account());
+    // The browser never received this rotation, as when a reload cuts the request off.
+    const lost = await write('/api/auth/refresh-token',cookieOf(first)).expect(200);
+    const retried = await write('/api/auth/refresh-token',cookieOf(first)).expect(200);
+    await me(retried.body.data.tokens.accessToken).expect(200);
+    // One live branch: the undelivered successor is spent, and the retry's successor works.
+    const kept = await write('/api/auth/refresh-token',cookieOf(retried)).expect(200);
+    // The spent successor and a second retry are reuse now, and end the session.
+    await write('/api/auth/refresh-token',cookieOf(lost)).expect(401);
+    await me(kept.body.data.tokens.accessToken).expect(401);
+
+    const twice = await login(await account());
+    await write('/api/auth/refresh-token',cookieOf(twice)).expect(200);
+    const once = await write('/api/auth/refresh-token',cookieOf(twice)).expect(200);
+    await write('/api/auth/refresh-token',cookieOf(twice)).expect(401);
+    await me(once.body.data.tokens.accessToken).expect(401);
+
+    const late = await login(await account());
+    await write('/api/auth/refresh-token',cookieOf(late)).expect(200);
+    const spent = await RefreshCredential.findOne({ where: { consumedAt: { [require('sequelize').Op.ne]: null } }, order: [['consumedAt','DESC']] });
+    await spent.update({ consumedAt: new Date(Date.now() - 31_000) });
+    await write('/api/auth/refresh-token',cookieOf(late)).expect(401);
+    assert.ok((await AuthSession.findByPk(spent.sessionId)).revokedAt);
+  });
+  it('serializes concurrent rotations of one credential and keeps the session', async () => {
     const first = await login(await account());
     const results = await Promise.all([write('/api/auth/refresh-token',cookieOf(first)),write('/api/auth/refresh-token',cookieOf(first))]);
-    assert.deepEqual(results.map(result=>result.status).sort(),[200,401]);
-    const accepted = results.find(result=>result.status===200);
-    await me(accepted.body.data.tokens.accessToken).expect(401);
+    assert.deepEqual(results.map(result=>result.status),[200,200]);
+    assert.notEqual(cookieOf(results[0]),cookieOf(results[1]));
+    for (const result of results) await me(result.body.data.tokens.accessToken).expect(200);
+    // The later response holds the only live credential; the browser keeps whichever cookie arrived last.
+    const live = await RefreshCredential.count({ where: { sessionId: jwt.decode(results[0].body.data.tokens.accessToken).sid, consumedAt: null } });
+    assert.equal(live,1);
   });
   it('invalidates access and refresh immediately on logout', async () => {
     const first = await login(await account());

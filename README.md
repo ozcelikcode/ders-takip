@@ -214,7 +214,7 @@ npm run check
 | Suite | Tool | Tests |
 |---|---|---|
 | Shared contracts | Node test runner | 48 |
-| Backend (HTTP + SQLite, temporary databases) | Node test runner, Supertest | 234 |
+| Backend (HTTP + SQLite, temporary databases) | Node test runner, Supertest | 235 |
 | Frontend (components and screen flows) | Vitest, Testing Library, jsdom | 373 |
 | Browser journeys and accessibility | Playwright, axe-core | 51 scenarios × 3 browsers = 153 runs (two touch scenarios run only in mobile Chromium) |
 
@@ -271,7 +271,7 @@ Every request body, query and response the frontend relies on is described once 
 <details>
 <summary><b>Authentication and sessions</b></summary>
 
-The access token lives only in memory. The refresh credential travels only in an `HttpOnly`, `SameSite=Strict` cookie scoped to `/api/auth` (`Secure` in production) and rotates on every use; reusing a consumed credential revokes the whole session family. Signing out ends that session; a password change, a role or status change and administrator recovery end all of the account's sessions. Idle sessions expire after the site's idle limit. `/api/auth` requests require the `X-Requested-With: StudyTracker` header and an allowed origin. Concurrent 401 responses share a single refresh, and other tabs follow sign-in and sign-out through `BroadcastChannel`.
+The access token lives only in memory. The refresh credential travels only in an `HttpOnly`, `SameSite=Strict` cookie scoped to `/api/auth` (`Secure` in production) and rotates on every use; reusing a consumed credential revokes the whole session family. The one exception is a rotation whose response was lost (a reload cut it off): for 30 seconds, and only while nothing issued after it has been used, the spent credential gets a fresh successor instead, once; the undelivered successor is spent at the same time, so a session never has two live branches. Signing out ends that session; a password change, a role or status change and administrator recovery end all of the account's sessions. Idle sessions expire after the site's idle limit. `/api/auth` requests require the `X-Requested-With: StudyTracker` header and an allowed origin. Concurrent 401 responses share a single refresh, and other tabs follow sign-in and sign-out through `BroadcastChannel`.
 
 </details>
 
