@@ -10,11 +10,13 @@ import { generateAccessToken } from '../utils/jwt';
 
 /**
  * A rotation whose response never arrived (a reload or navigation cut it off) leaves the browser with the
- * credential it just spent. Within this window, and only while nothing issued after it has been used, that
- * credential is a retry: the unused successor is spent and a new one replaces it, so the session never has
- * two live branches. Spending that successor also makes a second retry count as reuse, which revokes.
+ * credential it just spent. Within this window, at most `retryLimit` times, and only while nothing issued after
+ * it has been used, that credential is a retry: the successor nobody received is marked superseded and one new
+ * credential replaces it, so the session never has two live branches. Anything else revokes the session:
+ * a used successor, the window passing, too many retries, or a superseded credential coming back.
  */
 const retryWindowMs = 30_000;
+const retryLimit = 3;
 const hashCredential = (value: string) => createHash('sha256').update(value).digest('hex');
 const newCredential = () => randomBytes(32).toString('hex');
 const tokensFor = (user: User, session: AuthSession) => ({
@@ -39,11 +41,13 @@ export const rotateAuthSession = async (credential: string) => {
     const session = await AuthSession.findByPk(previous.sessionId, { transaction });
     if (!session || session.revokedAt || session.expiresAt.getTime() <= Date.now()) return null;
     if (previous.consumedAt) {
-      const successorUsed = await RefreshCredential.count({
-        where: { sessionId: session.id, createdAt: { [Op.gte]: previous.consumedAt }, consumedAt: { [Op.ne]: null } },
+      const successors = await RefreshCredential.findAll({
+        where: { sessionId: session.id, createdAt: { [Op.gte]: previous.consumedAt } },
         transaction,
       });
-      if (successorUsed || Date.now() - previous.consumedAt.getTime() > retryWindowMs) {
+      const successorUsed = successors.some((credential) => credential.consumedAt && !credential.supersededAt);
+      const retries = successors.filter((credential) => credential.supersededAt).length;
+      if (previous.supersededAt || successorUsed || retries >= retryLimit || Date.now() - previous.consumedAt.getTime() > retryWindowMs) {
         // Commit the family revocation even though the refresh request is rejected.
         session.revokedAt = new Date();
         await session.save({ transaction });
@@ -60,7 +64,8 @@ export const rotateAuthSession = async (credential: string) => {
     const user = await User.findByPk(session.userId, { transaction });
     if (!user?.isActive) return null;
     if (previous.consumedAt) {
-      await RefreshCredential.update({ consumedAt: new Date() }, { where: { sessionId: session.id, consumedAt: null }, transaction });
+      const now = new Date();
+      await RefreshCredential.update({ consumedAt: now, supersededAt: now }, { where: { sessionId: session.id, consumedAt: null }, transaction });
     } else {
       previous.consumedAt = new Date();
       await previous.save({ transaction });

@@ -22,6 +22,8 @@ export class RefreshCredential extends Model<InferAttributes<RefreshCredential>,
   declare hash: string;
   declare sessionId: string;
   declare consumedAt: CreationOptional<Date | null>;
+  /** Set when a lost-response retry replaced this credential before anyone used it; presenting it later is reuse. */
+  declare supersededAt: CreationOptional<Date | null>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 }
@@ -29,6 +31,7 @@ RefreshCredential.init({
   hash: { type: DataTypes.STRING(64), primaryKey: true },
   sessionId: { type: DataTypes.UUID, allowNull: false, references: { model: 'auth_sessions', key: 'id' }, onDelete: 'CASCADE' },
   consumedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: null },
+  supersededAt: { type: DataTypes.DATE, allowNull: true, defaultValue: null },
   createdAt: DataTypes.DATE,
   updatedAt: DataTypes.DATE,
 }, { sequelize, tableName: 'refresh_credentials', modelName: 'RefreshCredential', indexes: [{ fields: ['sessionId'] }] });

@@ -3,7 +3,7 @@ import { sequelize } from '../config/database';
 import { migrateStoredPreferences } from './preferenceMigration';
 import { AuthSession, RefreshCredential, SessionInterval, PomodoroClock, UserTopicProgress, PasswordResetToken, PushSubscription, NotificationDelivery, SessionSeries, CourseGoal, CalendarFeed, Tag, CourseTag, SessionTag } from '../models';
 
-export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1', '004-session-activity-intervals', '005-pomodoro-clocks', '006-user-topic-progress', '007-password-reset-tokens', '008-personal-categories', '009-notifications', '010-session-series', '011-course-goals', '012-calendar-feeds', '013-tags', '014-notification-reads'];
+export const requiredMigrations = ['001-initial-schema', '002-auth-sessions', '003-user-preferences-v1', '004-session-activity-intervals', '005-pomodoro-clocks', '006-user-topic-progress', '007-password-reset-tokens', '008-personal-categories', '009-notifications', '010-session-series', '011-course-goals', '012-calendar-feeds', '013-tags', '014-notification-reads', '015-refresh-superseded'];
 const personalCategoriesMigration = '008-personal-categories';
 // Columns that a still-pending migration adds itself, as `table.column`.
 async function validateExistingTables(addedByPendingMigrations: readonly string[] = []) {
@@ -39,6 +39,7 @@ async function applyTransactionalMigrations(): Promise<void> {
       ...(pending.includes(personalCategoriesMigration) ? ['categories.userId'] : []),
       ...(pending.includes('010-session-series') ? ['study_sessions.seriesId', 'study_sessions.seriesDate'] : []),
       ...(pending.includes('014-notification-reads') ? ['study_sessions.notificationReadAt'] : []),
+      ...(pending.includes('015-refresh-superseded') ? ['refresh_credentials.supersededAt'] : []),
     ]);
     for (const name of pending) {
       // The categories rebuild cannot run inside this transaction; it follows below.
@@ -94,6 +95,14 @@ async function applyTransactionalMigrations(): Promise<void> {
         const inspectionOptions: { transaction: typeof transaction; logging: false } = { transaction, logging: false };
         const columns = await query.describeTable('study_sessions', inspectionOptions);
         if (!columns.notificationReadAt) await query.addColumn('study_sessions', 'notificationReadAt', { type: DataTypes.DATE, allowNull: true }, { transaction });
+      }
+      else if (name === '015-refresh-superseded') {
+        // Refresh credentials a lost-response retry replaced are kept and marked, so a later use of one is caught.
+        // Existing credentials gain an empty column; nothing else changes.
+        const query = sequelize.getQueryInterface();
+        const inspectionOptions: { transaction: typeof transaction; logging: false } = { transaction, logging: false };
+        const columns = await query.describeTable('refresh_credentials', inspectionOptions);
+        if (!columns.supersededAt) await query.addColumn('refresh_credentials', 'supersededAt', { type: DataTypes.DATE, allowNull: true }, { transaction });
       }
       await sequelize.query('INSERT INTO schema_migrations (name) VALUES (:name)', { replacements: { name }, transaction });
     }

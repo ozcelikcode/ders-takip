@@ -73,19 +73,28 @@ describe('revocable browser sessions', () => {
     const first = await login(await account());
     // The browser never received this rotation, as when a reload cuts the request off.
     const lost = await write('/api/auth/refresh-token',cookieOf(first)).expect(200);
+    // Quick navigation can cut off the retry too; each retry marks the successor nobody received as superseded.
+    await write('/api/auth/refresh-token',cookieOf(first)).expect(200);
     const retried = await write('/api/auth/refresh-token',cookieOf(first)).expect(200);
     await me(retried.body.data.tokens.accessToken).expect(200);
-    // One live branch: the undelivered successor is spent, and the retry's successor works.
     const kept = await write('/api/auth/refresh-token',cookieOf(retried)).expect(200);
-    // The spent successor and a second retry are reuse now, and end the session.
+    await me(kept.body.data.tokens.accessToken).expect(200);
+    // A superseded credential coming back is reuse, and ends the session.
     await write('/api/auth/refresh-token',cookieOf(lost)).expect(401);
     await me(kept.body.data.tokens.accessToken).expect(401);
 
-    const twice = await login(await account());
-    await write('/api/auth/refresh-token',cookieOf(twice)).expect(200);
-    const once = await write('/api/auth/refresh-token',cookieOf(twice)).expect(200);
-    await write('/api/auth/refresh-token',cookieOf(twice)).expect(401);
-    await me(once.body.data.tokens.accessToken).expect(401);
+    // Once a successor was used, the spent credential is reuse too.
+    const used = await login(await account());
+    const next = await write('/api/auth/refresh-token',cookieOf(used)).expect(200);
+    const after = await write('/api/auth/refresh-token',cookieOf(next)).expect(200);
+    await write('/api/auth/refresh-token',cookieOf(used)).expect(401);
+    await me(after.body.data.tokens.accessToken).expect(401);
+
+    // At most three retries; the fourth is treated as reuse.
+    const capped = await login(await account());
+    for (let attempt = 0; attempt < 4; attempt++) await write('/api/auth/refresh-token',cookieOf(capped)).expect(200);
+    const fourth = await write('/api/auth/refresh-token',cookieOf(capped)).expect(401);
+    assert.match(fourth.headers['set-cookie'][0],/Expires=Thu, 01 Jan 1970/);
 
     const late = await login(await account());
     await write('/api/auth/refresh-token',cookieOf(late)).expect(200);
@@ -93,6 +102,17 @@ describe('revocable browser sessions', () => {
     await spent.update({ consumedAt: new Date(Date.now() - 31_000) });
     await write('/api/auth/refresh-token',cookieOf(late)).expect(401);
     assert.ok((await AuthSession.findByPk(spent.sessionId)).revokedAt);
+  });
+  it('adds the superseded mark to an existing credential table without touching its rows', async () => {
+    const user = await account();
+    await login(user);
+    const before = await RefreshCredential.count();
+    await sequelize.query('ALTER TABLE refresh_credentials DROP COLUMN supersededAt');
+    await sequelize.query("DELETE FROM schema_migrations WHERE name='015-refresh-superseded'");
+    await assert.rejects(assertDatabaseReady(),/pending/);
+    await applyMigrations();
+    assert.equal(await RefreshCredential.count(), before);
+    assert.equal(await RefreshCredential.count({ where: { supersededAt: null } }), before - (await RefreshCredential.count({ where: { supersededAt: { [require('sequelize').Op.ne]: null } } })));
   });
   it('serializes concurrent rotations of one credential and keeps the session', async () => {
     const first = await login(await account());
