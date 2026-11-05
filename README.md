@@ -215,7 +215,7 @@ npm run check
 |---|---|---|
 | Shared contracts | Node test runner | 48 |
 | Backend (HTTP + SQLite, temporary databases) | Node test runner, Supertest | 235 |
-| Frontend (components and screen flows) | Vitest, Testing Library, jsdom | 373 |
+| Frontend (components and screen flows) | Vitest, Testing Library, jsdom | 376 |
 | Browser journeys and accessibility | Playwright, axe-core | 51 scenarios × 3 browsers = 153 runs (two touch scenarios run only in mobile Chromium) |
 
 ```bash

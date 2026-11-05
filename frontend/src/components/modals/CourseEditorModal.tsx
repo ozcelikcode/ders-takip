@@ -12,8 +12,10 @@ import { useCatalogMutation } from '../../hooks/useCatalogMutation';
 import { canManageCourse } from '../../lib/catalogAccess';
 import type { CatalogCategory, CatalogCategoryRecord, CatalogCourse } from '../../types/catalog';
 import EditorDialog from '../common/EditorDialog';
-import { catalogIcons, catalogIcon } from '../catalog/catalogIcons';
+import { catalogIcon } from '../catalog/catalogIcons';
 import { useText } from '../../store/languageStore';
+import Select, { selectField } from '../common/Select';
+import { iconChoices } from '../catalog/iconChoices';
 
 interface Props {
   isOpen: boolean;
@@ -183,19 +185,18 @@ function CourseEditor({
       </div>
       <div>
         {label('categoryId', text.category)}
-        <select
-          {...field('categoryId')}
-          className="input"
+        <Select
+          {...selectField(field('categoryId'))}
           value={form.categoryId}
-          onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-        >
-          <option value="">{text.categoryPlaceholder}</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {personalIds.has(category.id) ? text.personalSuffix(category.name) : category.name}
-            </option>
-          ))}
-        </select>
+          options={[
+            { value: '', label: text.categoryPlaceholder },
+            ...categories.map((category) => ({
+              value: String(category.id),
+              label: personalIds.has(category.id) ? text.personalSuffix(category.name) : category.name,
+            })),
+          ]}
+          onChange={(categoryId) => setForm({ ...form, categoryId })}
+        />
         {error('categoryId')}
         {categoriesQuery.isPending && (
           <p role="status" className="mt-2 text-sm text-(--muted)">
@@ -272,21 +273,12 @@ function CourseEditor({
         {label('icon', text.icon)}
         <div className="flex items-center gap-2">
           <Icon className="h-5 w-5 shrink-0 text-(--muted)" />
-          <select
-            {...field('icon')}
-            className="input"
+          <Select
+            {...selectField(field('icon'))}
             value={form.icon}
-            onChange={(e) => setForm({ ...form, icon: e.target.value })}
-          >
-            {!Object.prototype.hasOwnProperty.call(catalogIcons, form.icon) && (
-              <option value={form.icon}>{text.currentIcon(form.icon)}</option>
-            )}
-            {Object.keys(catalogIcons).map((icon) => (
-              <option key={icon} value={icon}>
-                {icon}
-              </option>
-            ))}
-          </select>
+            options={iconChoices(form.icon, text.currentIcon(form.icon))}
+            onChange={(icon) => setForm({ ...form, icon })}
+          />
         </div>
         {error('icon')}
       </div>

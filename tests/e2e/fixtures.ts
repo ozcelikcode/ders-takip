@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from '@playwright/test';
+import { test as base, expect, type Locator, type Page } from '@playwright/test';
 import { fork } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -115,6 +115,13 @@ export const test = base.extend<{
 });
 
 export { expect };
+
+/** Picks an option of the site's Select: a long list (an input) is filtered by typing, a short one is opened. */
+export async function choose(control: Locator, option: string) {
+  if ((await control.evaluate((node) => node.tagName)) === 'INPUT') await control.fill(option);
+  else await control.click();
+  await control.page().getByRole('option', { name: option, exact: true }).click();
+}
 
 export async function login(page: Page, email = 'owner@example.test') {
   await page.goto('/login');

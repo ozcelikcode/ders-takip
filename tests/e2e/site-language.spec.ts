@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { test, expect, login } from './fixtures';
+import { test, expect, login, choose } from './fixtures';
 
 // Interface words in Turkish always carry at least one of these letters somewhere on a page;
 // the browser-test fixture's own data is English, so any match on an English site is a gap.
@@ -44,7 +44,7 @@ test.describe('English site', () => {
     expect(turkishPhrases.size, 'Turkish catalog phrases loaded').toBeGreaterThan(500);
     await login(page, 'manager@example.test');
     await page.goto('/admin/settings');
-    await page.getByLabel('Site dili').selectOption('en');
+    await choose(page.getByLabel('Site dili'), 'English');
     await page.getByRole('button', { name: 'Değişiklikleri kaydet' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Site settings');
 

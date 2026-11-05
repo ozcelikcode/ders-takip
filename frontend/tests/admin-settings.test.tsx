@@ -26,6 +26,7 @@ import { useSettingsStore } from '../src/store/settingsStore';
 import AdminSettingsPage from '../src/pages/admin/AdminSettingsPage';
 import type { BackupRecord } from '../src/types/backup';
 import { accountQueryKeys } from '../src/lib/queryKeys';
+import { choose } from './choose';
 const auth = vi.hoisted(() => ({
   epoch: 1,
   user: { id: '1', role: 'admin' },
@@ -596,7 +597,7 @@ it('lets an administrator write site-wide custom words and refuses ones that do 
 it('asks for English words when the administrator sets the site to English', async () => {
   mount();
   await ready();
-  fireEvent.change(screen.getByLabelText('Site dili'), { target: { value: 'en' } });
+  await choose(screen.getByLabelText('Site dili'), 'English');
   fireEvent.click(screen.getByRole('button', { name: 'Kelimeler' }));
   fireEvent.click(screen.getByRole('radio', { name: /Özel kelimeler/ }));
   const course = screen.getByRole('group', { name: 'Ana kayıt' });

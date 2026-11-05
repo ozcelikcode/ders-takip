@@ -10,8 +10,10 @@ import { useAuthStore } from '../../store/authStore';
 import { useCatalogMutation } from '../../hooks/useCatalogMutation';
 import type { CatalogCategoryRecord } from '../../types/catalog';
 import EditorDialog from '../common/EditorDialog';
-import { catalogIcons, catalogIcon } from '../catalog/catalogIcons';
+import { catalogIcon } from '../catalog/catalogIcons';
 import { useText } from '../../store/languageStore';
+import Select, { selectField } from '../common/Select';
+import { iconChoices } from '../catalog/iconChoices';
 
 interface Props {
   category: CatalogCategoryRecord | null;
@@ -194,19 +196,12 @@ export default function CategoryEditorModal({
         {label('icon', text.icon)}
         <div className="flex items-center gap-2">
           <Icon className="h-5 w-5 shrink-0 text-(--muted)" />
-          <select
-            {...field('icon')}
-            className="input"
+          <Select
+            {...selectField(field('icon'))}
             value={form.icon}
-            onChange={(e) => setForm({ ...form, icon: e.target.value })}
-          >
-            {!Object.prototype.hasOwnProperty.call(catalogIcons, form.icon) && (
-              <option value={form.icon}>{text.currentIcon(form.icon)}</option>
-            )}
-            {Object.keys(catalogIcons).map((icon) => (
-              <option key={icon}>{icon}</option>
-            ))}
-          </select>
+            options={iconChoices(form.icon, text.currentIcon(form.icon))}
+            onChange={(icon) => setForm({ ...form, icon })}
+          />
         </div>
         {error('icon')}
       </div>

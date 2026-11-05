@@ -91,7 +91,7 @@ const openingMinute = (minutes: { now: number | null; first: number | null }) =>
 
 export default function PlannerCalendar({ mode, onCreateSession, initialDate, tagId, onViewChange }: Props) {
   const t = useTerms();
-  const text = useText().planner;
+  const { planner: text, today: todayText, common } = useText();
   const planner = usePlannerCalendar(mode, initialDate, tagId);
   const { days, timezone, query, pending } = planner;
   const weekly = mode === 'weekly';
@@ -869,18 +869,24 @@ export default function PlannerCalendar({ mode, onCreateSession, initialDate, ta
                           />
                         )}
                         {draftSpan && draft?.day === index && Math.floor(draftSpan.start / 60) === hour && (
+                          // A card in the making: the same surface, border and edge as a session card, lifted while it grows.
                           <div
                             aria-hidden="true"
                             data-calendar-draft
-                            className="pointer-events-none absolute inset-x-1 z-20 overflow-hidden rounded-sm border border-l-[3px] border-primary-600 bg-(--surface) px-1.5 py-0.5 text-primary-600 shadow-md"
+                            className="pointer-events-none absolute inset-x-1 z-20 flex flex-col overflow-hidden rounded-sm border border-(--text)/20 border-l-[3px] border-l-(--solid) bg-(--surface) px-2 py-1 text-(--text) shadow-lg ring-4 ring-(--text)/5"
                             style={{
                               top: ((draftSpan.start - hour * 60) / 60) * hourHeight,
                               height: ((draftSpan.end - draftSpan.start) / 60) * hourHeight,
                             }}
                           >
-                            <span className="text-[11px] font-medium tabular-nums">
+                            <span data-draft-range className="text-[11px] font-medium leading-tight tabular-nums">
                               {clockText(draftSpan.start)} – {clockText(draftSpan.end)}
                             </span>
+                            {(draftSpan.end - draftSpan.start) / 60 * hourHeight >= 40 && (
+                              <span className="truncate text-[11px] leading-tight text-(--muted)">
+                                {todayText.newSession(t)} · {common.minutesShort(draftSpan.end - draftSpan.start)}
+                              </span>
+                            )}
                           </div>
                         )}
                         {drag && drop?.day === index && drop.hour === hour && (

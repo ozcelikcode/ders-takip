@@ -1,6 +1,7 @@
 import { useEffect, useId } from 'react';
 import { useTags } from '../../hooks/useTags';
 import { useText } from '../../store/languageStore';
+import Select from '../common/Select';
 
 interface TagFilterProps {
   value: number | null;
@@ -21,10 +22,13 @@ export default function TagFilter({ value, onChange }: TagFilterProps) {
   return (
     <div className="flex items-center gap-2">
       <label htmlFor={id} className="sr-only">{text.filter}</label>
-      <select id={id} className="input w-auto" value={value ?? ''} onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}>
-        <option value="">{text.allTags}</option>
-        {known.map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
-      </select>
+      <Select
+        id={id}
+        className="w-auto min-w-40"
+        value={value ?? 0}
+        options={[{ value: 0, label: text.allTags }, ...known.map((tag) => ({ value: tag.id, label: tag.name }))]}
+        onChange={(tagId) => onChange(tagId || null)}
+      />
     </div>
   );
 }

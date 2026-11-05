@@ -12,6 +12,7 @@ import { canManageCourse } from '../../lib/catalogAccess';
 import type { CatalogCourse, CatalogTopic } from '../../types/catalog';
 import EditorDialog from '../common/EditorDialog';
 import { useText } from '../../store/languageStore';
+import Select, { selectField } from '../common/Select';
 
 interface Props {
   isOpen: boolean;
@@ -154,22 +155,13 @@ function TopicEditor({ course, topic, onClose }: Omit<Props, 'isOpen'>) {
         </div>
         <div>
           {label('difficulty', text.difficulty)}
-          <select
-            {...field('difficulty')}
-            className="input"
+          <Select
+            {...selectField(field('difficulty'))}
             value={form.difficulty}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                difficulty: e.target.value as CatalogTopic['difficulty'],
-              })
-            }
-          >
-            {topicDifficulties.map((value) => (
-              // The stored value stays Turkish; only the shown name follows the language.
-              <option key={value} value={value}>{courseText.difficulties[value]}</option>
-            ))}
-          </select>
+            // The stored value stays Turkish; only the shown name follows the language.
+            options={topicDifficulties.map((value) => ({ value, label: courseText.difficulties[value] }))}
+            onChange={(difficulty: CatalogTopic['difficulty']) => setForm({ ...form, difficulty })}
+          />
           {error('difficulty')}
         </div>
       </div>

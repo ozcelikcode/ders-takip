@@ -2,6 +2,7 @@ import { weekStartDays, resolveWeekStart, type PreferencesPatch, type UserPrefer
 import { useMemo } from 'react';
 import { browserTimezone, listTimezones } from '../../lib/locale';
 import { useText } from '../../store/languageStore';
+import Select from '../../components/common/Select';
 
 interface RegionTabProps {
   preferences: UserPreferences;
@@ -23,18 +24,13 @@ const RegionTab = ({ preferences, onSave }: RegionTabProps) => {
         <label htmlFor="settings-timezone" className="block text-sm font-medium">
           {text.timezone}
         </label>
-        <select
+        <Select
           id="settings-timezone"
-          className="input"
+          searchable
           value={preferences.timezone}
-          onChange={(event) => onSave({ timezone: event.target.value })}
-        >
-          {zones.map((zone) => (
-            <option key={zone} value={zone}>
-              {zone}
-            </option>
-          ))}
-        </select>
+          options={zones.map((zone) => ({ value: zone, label: zone }))}
+          onChange={(timezone) => onSave({ timezone })}
+        />
         {detected && detected !== preferences.timezone && (
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <span className="text-(--muted)">{text.browserTimezone(detected)}</span>

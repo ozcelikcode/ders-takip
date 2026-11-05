@@ -276,7 +276,7 @@ describe.each([
     fireEvent.pointerDown(one, { clientY: 200 + height / 2, clientX: 50, button: 0 });
     expect(document.querySelector('[data-calendar-draft]')).toBeNull();
     fireEvent.pointerMove(window, { clientY: 200 + height * 2, clientX: 50 });
-    expect(document.querySelector('[data-calendar-draft]')?.textContent).toBe('13:30 – 15:00');
+    expect(document.querySelector('[data-draft-range]')?.textContent).toBe('13:30 – 15:00');
     fireEvent.pointerUp(window, { clientY: 200 + height * 2, clientX: 50 });
     expect(onCreate).toHaveBeenCalledWith(expect.any(Date), 13 * 60 + 30, 90);
     expect(document.querySelector('[data-calendar-draft]')).toBeNull();
@@ -288,7 +288,7 @@ describe.each([
     bounds(two, 200 + height, height);
     fireEvent.pointerDown(two, { clientY: 200 + height, clientX: 50, button: 0 });
     fireEvent.pointerMove(window, { clientY: 200 - height / 2, clientX: 50 });
-    expect(document.querySelector('[data-calendar-draft]')?.textContent).toBe('12:30 – 14:15');
+    expect(document.querySelector('[data-draft-range]')?.textContent).toBe('12:30 – 14:15');
     fireEvent.keyDown(window, { key: 'Escape' });
     fireEvent.pointerUp(window, { clientY: 200 - height / 2, clientX: 50 });
     expect(onCreate).toHaveBeenCalledTimes(1);

@@ -136,6 +136,8 @@ export const en: Text = {
     },
   },
   common: {
+    showOptions: 'Show options',
+    noMatches: 'No matches',
     confirm: 'Confirm',
     cancel: 'Cancel',
     save: 'Save',

@@ -16,6 +16,7 @@ import {
 } from '@study-tracker/contracts';
 import { useText } from '../../store/languageStore';
 import { issueMessage } from '../../lib/messages';
+import Select from '../common/Select';
 
 interface CustomTerminologyEditorProps {
   idPrefix: string;
@@ -100,13 +101,14 @@ export default function CustomTerminologyEditor({ idPrefix, value, onChange }: C
                       {label}
                     </label>
                     {field === 'article' ? (
-                      <select id={id} className="input" value={fieldValue(key, field)} {...described} onChange={(event) => update(key, field, event.target.value)}>
-                        {englishArticles.map((article) => (
-                          <option key={article} value={article}>
-                            {article}
-                          </option>
-                        ))}
-                      </select>
+                      <Select
+                        id={id}
+                        value={fieldValue(key, field)}
+                        invalid={described['aria-invalid']}
+                        aria-describedby={described['aria-describedby']}
+                        options={englishArticles.map((article) => ({ value: article, label: article }))}
+                        onChange={(article) => update(key, field, article)}
+                      />
                     ) : (
                       <input
                         id={id}

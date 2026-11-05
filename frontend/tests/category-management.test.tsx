@@ -16,6 +16,7 @@ import { categoriesAPI } from '../src/services/api';
 import type { CatalogCategoryRecord } from '../src/types/catalog';
 import { accountQueryKeys } from '../src/lib/queryKeys';
 import CategoryManagementModal from '../src/components/modals/CategoryManagementModal';
+import { choose, closeOptions, openOptions, shown } from './choose';
 
 const auth = vi.hoisted(() => ({ epoch: 1, user: { id: '1', role: 'admin' } }));
 vi.mock('../src/store/authStore', () => ({
@@ -42,6 +43,8 @@ vi.mock('../src/services/api', () => ({
 vi.mock('react-hot-toast', () => ({
   default: { success: vi.fn(), error: vi.fn() },
 }));
+// The inactive second category, as the migration target list names it.
+const CATEGORY_TWO = 'İş · Pasif';
 const categories: CatalogCategoryRecord[] = [
   {
     id: 1,
@@ -202,9 +205,7 @@ it('preserves drafts across refetches, clears descriptions explicitly and sends 
   vi.mocked(categoriesAPI.updateCategory).mockResolvedValue(response());
   const { client } = mount();
   await openEditor();
-  expect((screen.getByLabelText('Simge') as HTMLSelectElement).value).toBe(
-    'LegacyIcon',
-  );
+  expect(shown(screen.getByLabelText('Simge'))).toBe('Mevcut simge (LegacyIcon)');
   fireEvent.change(screen.getByLabelText('Açıklama'), {
     target: { value: '' },
   });
@@ -330,18 +331,17 @@ it('requires an explicit migration choice, preserves it on failure, and waits fo
   expect(
     within(dialog).getByText(/bütün kullanıcıların aktif ve pasif dersleri/),
   ).toBeTruthy();
-  const target = screen.getByLabelText(
-    'Derslerin taşınacağı kategori',
-  ) as HTMLSelectElement;
-  expect(target.value).toBe('');
-  expect(within(target).queryByRole('option', { name: 'Eğitim' })).toBeNull();
+  const target = screen.getByLabelText('Derslerin taşınacağı kategori') as HTMLButtonElement;
+  expect(shown(target)).toBe('Hedef seçin (kategori boşsa gerekmez)');
+  expect(await openOptions(target)).not.toContain('Eğitim');
+  await closeOptions(target);
   fireEvent.click(screen.getByRole('button', { name: 'Kategoriyi sil' }));
   await screen.findByText('Bu kategoride kayıtlar var. Önce bir hedef kategori seçin');
   expect(categoriesAPI.deleteCategory).toHaveBeenCalledWith('1', undefined);
-  fireEvent.change(target, { target: { value: '2' } });
+  await choose(target, CATEGORY_TWO);
   fireEvent.click(screen.getByRole('button', { name: 'Kategoriyi sil' }));
   await screen.findByText('Bu kategoride aynı isimde erişilebilir bir kayıt zaten mevcut');
-  expect(target.value).toBe('2');
+  expect(shown(target)).toBe(CATEGORY_TWO);
   expect(categoriesAPI.deleteCategory).toHaveBeenCalledTimes(2);
   vi.mocked(categoriesAPI.getCategories).mockResolvedValue(
     response([categories[1]!]),
@@ -369,10 +369,8 @@ it('locks migration selection and duplicate confirmation while deletion is pendi
   );
   const { close } = mount();
   await openDelete();
-  const target = screen.getByLabelText(
-    'Derslerin taşınacağı kategori',
-  ) as HTMLSelectElement;
-  fireEvent.change(target, { target: { value: '2' } });
+  const target = screen.getByLabelText('Derslerin taşınacağı kategori') as HTMLButtonElement;
+  await choose(target, CATEGORY_TWO);
   const confirm = screen.getByRole('button', { name: 'Kategoriyi sil' });
   act(() => {
     fireEvent.click(confirm);
@@ -392,9 +390,7 @@ it('locks migration selection and duplicate confirmation while deletion is pendi
 it('rejects a migration target removed by a background refetch instead of submitting a stale selection', async () => {
   const { client } = mount();
   await openDelete();
-  fireEvent.change(screen.getByLabelText('Derslerin taşınacağı kategori'), {
-    target: { value: '2' },
-  });
+  await choose(screen.getByLabelText('Derslerin taşınacağı kategori'), CATEGORY_TWO);
   act(() =>
     client.setQueryData(
       accountQueryKeys('1', '').catalog('categories'),
@@ -468,9 +464,10 @@ it('gives other users their own personal categories and creates new ones as pers
   // A personal category's records may move to a shared category or another of the user's own.
   fireEvent.click(screen.getByRole('button', { name: 'Okuma kategorisini sil' }));
   const dialog = await screen.findByRole('dialog', { name: 'Kategoriyi sil' });
-  const options = within(dialog).getAllByRole('option').map((option) => option.textContent);
+  const options = await openOptions(within(dialog).getByLabelText(/taşınacağı kategori$/));
   expect(options).toEqual(expect.arrayContaining(['Eğitim', 'İş · Pasif']));
   expect(options.some((option) => option?.startsWith('Başkasının'))).toBe(false);
+  await closeOptions(within(dialog).getByLabelText(/taşınacağı kategori$/));
   fireEvent.click(within(dialog).getByRole('button', { name: 'İptal' }));
   fireEvent.click(screen.getByRole('button', { name: 'Kategori ekle' }));
   const editor = await screen.findByRole('dialog', { name: 'Kategori ekle' });

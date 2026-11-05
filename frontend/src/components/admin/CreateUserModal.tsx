@@ -10,6 +10,7 @@ import { useAccountMutation } from '../../hooks/useAccountMutation';
 import EditorDialog from '../common/EditorDialog';
 import AdminPasswordField from './AdminPasswordField';
 import { useText } from '../../store/languageStore';
+import Select, { selectField } from '../common/Select';
 
 interface Props {
   isOpen: boolean;
@@ -171,20 +172,15 @@ function CreateUserForm({ onClose }: Pick<Props, 'onClose'>) {
       </div>
       <div>
         {label('role', text.role)}
-        <select
-          {...field('role')}
-          className="input"
+        <Select
+          {...selectField(field('role'))}
           value={form.role}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              role: e.target.value as CreateManagedUserInput['role'],
-            })
-          }
-        >
-          <option value="student">{roles.student}</option>
-          <option value="admin">{roles.admin}</option>
-        </select>
+          options={[
+            { value: 'student', label: roles.student },
+            { value: 'admin', label: roles.admin },
+          ]}
+          onChange={(role: CreateManagedUserInput['role']) => setForm({ ...form, role })}
+        />
         {form.role === 'admin' && (
           <p className="mt-2 text-sm text-(--muted)">
             {text.adminRoleHint}

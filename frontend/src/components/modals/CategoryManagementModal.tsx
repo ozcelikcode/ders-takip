@@ -13,6 +13,7 @@ import { catalogIcon } from '../catalog/catalogIcons';
 import ConfirmDialog from '../common/ConfirmDialog';
 import CategoryEditorModal from './CategoryEditorModal';
 import { useText } from '../../store/languageStore';
+import Select from '../common/Select';
 
 interface Props {
   isOpen: boolean;
@@ -68,22 +69,17 @@ function CategoryDeleteDialog({
         <label htmlFor={inputId} className="block text-sm font-medium">
           {text.moveTarget(t)}
         </label>
-        <select
+        <Select
           id={inputId}
-          className="input"
           disabled={mutation.isPending}
           value={targetId}
-          onChange={(event) => setTargetId(event.target.value)}
-          aria-invalid={!validTarget}
-        >
-          <option value="">{text.pickTarget}</option>
-          {targets.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-              {!item.isActive ? ` · ${text.inactive}` : ''}
-            </option>
-          ))}
-        </select>
+          invalid={!validTarget}
+          options={[
+            { value: '', label: text.pickTarget },
+            ...targets.map((item) => ({ value: String(item.id), label: `${item.name}${!item.isActive ? ` · ${text.inactive}` : ''}` })),
+          ]}
+          onChange={setTargetId}
+        />
         {!validTarget && (
           <p role="alert" className="text-sm text-red-600">
             {text.targetGone}

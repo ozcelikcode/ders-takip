@@ -9,6 +9,7 @@ import { browserPushState, PushPermissionError, subscribeBrowser, unsubscribeBro
 import { notificationsAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useLanguage, useText } from '../../store/languageStore';
+import Select from '../../components/common/Select';
 
 interface NotificationsTabProps {
   preferences: UserPreferences;
@@ -145,14 +146,12 @@ export default function NotificationsTab({ preferences, onSave }: NotificationsT
         )}
         <div className="max-w-xs">
           <label htmlFor={leadId} className="mb-2 block text-sm font-medium">{text.leadTime}</label>
-          <select
+          <Select
             id={leadId}
-            className="input"
             value={options.reminderLeadMinutes}
-            onChange={(event) => save({ reminderLeadMinutes: Number(event.target.value) as NotificationPreferences['reminderLeadMinutes'] })}
-          >
-            {reminderLeadOptions.map((minutes) => <option key={minutes} value={minutes}>{text.leadOption(minutes)}</option>)}
-          </select>
+            options={reminderLeadOptions.map((minutes) => ({ value: minutes, label: text.leadOption(minutes) }))}
+            onChange={(minutes) => save({ reminderLeadMinutes: minutes })}
+          />
         </div>
       </section>
 

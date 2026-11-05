@@ -140,6 +140,8 @@ export const tr = {
     },
   },
   common: {
+    showOptions: 'Seçenekleri göster',
+    noMatches: 'Eşleşme yok',
     confirm: 'Onayla',
     cancel: 'İptal',
     save: 'Kaydet',

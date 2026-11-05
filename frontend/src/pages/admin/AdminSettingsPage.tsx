@@ -27,6 +27,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useLanguageStore, useText } from '../../store/languageStore';
 import { useUnsavedChangesWarning } from '../../hooks/useUnsavedChangesWarning';
+import Select from '../../components/common/Select';
 
 // Custom words are an object; compare settings by value, not identity.
 const sameSetting = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
@@ -303,20 +304,12 @@ function SettingsForm({
               {field(
                 'language',
                 text.language,
-                <select
+                <Select
                   id={`${prefix}-language`}
-                  className="input"
                   value={draft.language}
-                  onChange={(event) =>
-                    setDraft({ ...draft, language: event.target.value as SiteSettings['language'] })
-                  }
-                >
-                  {languages.map((language) => (
-                    <option key={language} value={language} lang={language}>
-                      {text.languageNames[language]}
-                    </option>
-                  ))}
-                </select>,
+                  options={languages.map((language) => ({ value: language, label: text.languageNames[language] }))}
+                  onChange={(language: SiteSettings['language']) => setDraft({ ...draft, language })}
+                />,
               )}
               <p className="text-xs text-(--muted)">{text.languageHint}</p>
               <p className="text-xs text-(--muted)">
@@ -425,22 +418,12 @@ function SettingsForm({
               {field(
                 'backup_interval',
                 text.backupInterval,
-                <select
+                <Select
                   id={`${prefix}-backup_interval`}
-                  className="input"
                   value={draft.backup_interval}
-                  onChange={(event) =>
-                    setDraft({
-                      ...draft,
-                      backup_interval: event.target
-                        .value as SiteSettings['backup_interval'],
-                    })
-                  }
-                >
-                  <option value="1">{text.intervals['1']}</option>
-                  <option value="5">{text.intervals['5']}</option>
-                  <option value="7">{text.intervals['7']}</option>
-                </select>,
+                  options={(['1', '5', '7'] as const).map((days) => ({ value: days, label: text.intervals[days] }))}
+                  onChange={(backup_interval: SiteSettings['backup_interval']) => setDraft({ ...draft, backup_interval })}
+                />,
               )}
               <p className="text-sm text-(--muted)">
                 {text.backupIntervalHint}

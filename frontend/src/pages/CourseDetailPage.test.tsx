@@ -14,6 +14,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import { coursesAPI, topicsAPI } from '../services/api';
 import CourseDetailPage from './CourseDetailPage';
+import { choose } from '../../tests/choose';
 
 const dnd = vi.hoisted(() => ({
   onDragEnd: (_result: DropResult) => {},
@@ -190,18 +191,20 @@ it('sends the original full snapshot, blocks repeated drags and waits for server
   );
   await waitFor(() => expect(coursesAPI.getCourse).toHaveBeenCalledTimes(2));
 });
+// The topic filter and sort lists, by the names the education words give them.
+const [FILTER, SORT, ALL, BY_NAME, BY_ORDER] = [/filtrele$/, /sırala$/, /^Tüm /, 'İsim', 'Sıra'] as const;
 it('disables reorder for filtered, descending and alternate sort views', async () => {
   await mount();
-  const [filter, sort] = screen.getAllByRole('combobox');
-  fireEvent.change(filter, { target: { value: 'Kolay' } });
+  const [filter, sort] = [FILTER, SORT].map((name) => screen.getByRole('button', { name }));
+  await choose(filter!, 'Kolay');
   expect(dnd.disabled).toBe(true);
   act(() => dnd.onDragEnd(drop));
   expect(topicsAPI.reorderTopics).not.toHaveBeenCalled();
-  fireEvent.change(filter, { target: { value: 'all' } });
+  await choose(filter!, ALL);
   expect(dnd.disabled).toBe(false);
-  fireEvent.change(sort, { target: { value: 'name' } });
+  await choose(sort!, BY_NAME);
   expect(dnd.disabled).toBe(true);
-  fireEvent.change(sort, { target: { value: 'order' } });
+  await choose(sort!, BY_ORDER);
   expect(dnd.disabled).toBe(false);
   const sortButton = screen.getByRole('button', {
     name: 'Sıralama yönünü değiştir',

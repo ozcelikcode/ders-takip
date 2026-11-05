@@ -141,8 +141,9 @@
   @apply fixed left-4 top-4 z-100 -translate-y-24 rounded-md bg-(--solid) px-4 py-2 text-sm text-(--solid-text) focus:translate-y-0;
 }
 
+/* One look for every typed and chosen value: neutral surface and border, the accent only while focused. */
 @utility input {
-  @apply block w-full px-3 py-2 text-sm border border-gray-300 rounded-md placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-800 dark:border-gray-600 dark:placeholder-gray-500 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500;
+  @apply block w-full rounded-md border border-(--line) bg-(--surface) px-3 py-2 text-sm text-(--text) shadow-none transition-colors placeholder:text-(--muted) hover:border-(--muted)/50 focus:border-primary-600 focus:outline-hidden focus:ring-3 focus:ring-primary-200 disabled:cursor-not-allowed disabled:opacity-60 data-open:border-primary-600 data-open:ring-3 data-open:ring-primary-200;
 }
 
 @utility input-error {
@@ -238,6 +239,55 @@
 
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-400 dark:bg-gray-500;
+  }
+}
+
+/*
+ * Checkboxes and radios: the forms plugin's blue becomes the site's neutral solid colour, in both themes.
+ * The plugin draws the mark as a white image on the checked colour; the dark theme needs a dark mark.
+ */
+@layer base {
+  [type='checkbox'],
+  [type='radio'] {
+    width: 1rem;
+    height: 1rem;
+    color: var(--solid);
+    background-color: var(--surface);
+    border-color: color-mix(in srgb, var(--text) 35%, transparent);
+    transition: background-color 120ms, border-color 120ms;
+  }
+  [type='checkbox'] {
+    border-radius: 4px;
+  }
+  [type='checkbox']:hover:not(:disabled),
+  [type='radio']:hover:not(:disabled) {
+    border-color: var(--text);
+  }
+  [type='checkbox']:focus,
+  [type='radio']:focus {
+    --tw-ring-shadow: 0 0 #0000;
+    --tw-ring-offset-shadow: 0 0 #0000;
+    box-shadow: none;
+  }
+  [type='checkbox']:checked,
+  [type='radio']:checked,
+  [type='checkbox']:checked:hover,
+  [type='radio']:checked:hover,
+  [type='checkbox']:checked:focus,
+  [type='radio']:checked:focus {
+    background-color: var(--solid);
+    border-color: var(--solid);
+  }
+  .dark [type='checkbox']:checked {
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='%23111' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+  }
+  .dark [type='radio']:checked {
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='%23111' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='8' cy='8' r='3'/%3e%3c/svg%3e");
+  }
+  [type='checkbox']:disabled,
+  [type='radio']:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
   }
 }
 

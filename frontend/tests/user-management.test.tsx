@@ -15,6 +15,7 @@ import toast from 'react-hot-toast';
 import { usersAPI } from '../src/services/api';
 import { accountQueryKeys } from '../src/lib/queryKeys';
 import AdminUsersPage from '../src/pages/admin/AdminUsersPage';
+import { choose } from './choose';
 
 const auth = vi.hoisted(() => ({ epoch: 1, user: { id: '1', role: 'admin' } }));
 vi.mock('../src/store/authStore', () => ({
@@ -466,7 +467,7 @@ it('asks for the creator\'s password only when the new account is an administrat
   await openCreate();
   fillUser();
   expect(screen.queryByLabelText('Onay için şifren')).toBeNull();
-  fireEvent.change(screen.getByLabelText('Rol'), { target: { value: 'admin' } });
+  await choose(screen.getByLabelText('Rol'), 'Yönetici');
   save();
   expect((await screen.findByText('Onay için şifreni gir.')).getAttribute('role')).toBe('alert');
   expect(usersAPI.createUser).not.toHaveBeenCalled();

@@ -18,6 +18,17 @@ import type { CatalogCourse, CatalogTopic } from '../../types/catalog';
 import CourseEditorModal from '../modals/CourseEditorModal';
 import TopicEditorModal from '../modals/TopicEditorModal';
 import CatalogDeleteDialog from './CatalogDeleteDialog';
+import { choose, closeOptions, openOptions, shown } from '../../../tests/choose';
+
+/** The category list's option names; it is opened and closed again. */
+const categoryOptions = async () => {
+  const control = await screen.findByLabelText('Kategori');
+  const names = await openOptions(control);
+  await closeOptions(control);
+  return names;
+};
+/** Waits until the loaded categories offer this one. */
+const offered = (name: string) => waitFor(async () => expect(await categoryOptions()).toContain(name));
 
 const auth = vi.hoisted(() => ({ epoch: 0, user: { id: 1, role: 'student' } }));
 vi.mock('../../store/authStore', () => ({
@@ -124,10 +135,8 @@ it('validates shared create rules and omits privileged fields for a student', as
   vi.mocked(coursesAPI.createCourse).mockResolvedValue(ok);
   const close = vi.fn();
   mount(<CourseEditorModal isOpen onClose={close} />);
-  await screen.findByRole('option', { name: 'TYT' });
-  fireEvent.change(screen.getByLabelText('Kategori'), {
-    target: { value: '2' },
-  });
+  await offered('TYT');
+  await choose(screen.getByLabelText('Kategori'), 'TYT');
   fireEvent.change(screen.getByLabelText('Ders adı'), {
     target: { value: '   ' },
   });
@@ -163,10 +172,8 @@ it('sends only changed course fields, retains an unknown icon and revalidates al
     <CourseEditorModal isOpen course={course} onClose={close} />,
   );
   const invalidate = vi.spyOn(client, 'invalidateQueries');
-  await screen.findByRole('option', { name: 'TYT' });
-  expect((screen.getByLabelText('Simge') as HTMLSelectElement).value).toBe(
-    'LegacyIcon',
-  );
+  await offered('TYT');
+  expect(shown(screen.getByLabelText('Simge'))).toBe('Mevcut simge (LegacyIcon)');
   fireEvent.change(screen.getByLabelText('Ders adı'), {
     target: { value: 'Geometri' },
   });
@@ -186,7 +193,7 @@ it('keeps course input after a server rejection and retries only explicitly', as
     .mockResolvedValueOnce(ok);
   const close = vi.fn();
   mount(<CourseEditorModal isOpen course={course} onClose={close} />);
-  await screen.findByRole('option', { name: 'TYT' });
+  await offered('TYT');
   fireEvent.change(screen.getByLabelText('Ders adı'), {
     target: { value: 'Çakışan ad' },
   });
@@ -219,7 +226,7 @@ it('keeps categories failures visible, disables writes and offers a read retry',
       .disabled,
   ).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: 'Tekrar dene' }));
-  await screen.findByRole('option', { name: 'TYT' });
+  await offered('TYT');
   expect(
     (screen.getByRole('button', { name: 'Kaydet' }) as HTMLButtonElement)
       .disabled,
@@ -229,7 +236,7 @@ it('reuses the course editor for admin creation with explicit global and active 
   auth.user.role = 'admin';
   vi.mocked(coursesAPI.createCourse).mockResolvedValue(ok);
   mount(<CourseEditorModal isOpen defaultGlobal onClose={vi.fn()} />);
-  await screen.findByRole('option', { name: 'TYT' });
+  await offered('TYT');
   expect(
     (screen.getByLabelText('Tüm kullanıcılara açık') as HTMLInputElement)
       .checked,
@@ -237,9 +244,7 @@ it('reuses the course editor for admin creation with explicit global and active 
   fireEvent.change(screen.getByLabelText('Ders adı'), {
     target: { value: 'Ortak ders' },
   });
-  fireEvent.change(screen.getByLabelText('Kategori'), {
-    target: { value: '2' },
-  });
+  await choose(screen.getByLabelText('Kategori'), 'TYT');
   fireEvent.click(screen.getByRole('button', { name: 'Kaydet' }));
   await waitFor(() =>
     expect(coursesAPI.createCourse).toHaveBeenCalledWith(
@@ -415,7 +420,7 @@ it('preserves an existing category when the active category list no longer conta
       onClose={vi.fn()}
     />,
   );
-  await screen.findByRole('option', { name: 'Previous category' });
+  await offered('Previous category');
   await waitFor(() =>
     expect(
       (screen.getByRole('button', { name: 'Kaydet' }) as HTMLButtonElement)
@@ -444,7 +449,7 @@ it('does not overwrite a draft when the catalog refetches while editing', async 
     </QueryClientProvider>
   );
   const view = render(ui(course));
-  await screen.findByRole('option', { name: 'TYT' });
+  await offered('TYT');
   fireEvent.change(screen.getByLabelText('Açıklama'), {
     target: { value: 'Unsaved draft' },
   });
@@ -472,16 +477,16 @@ it('offers personal categories only for the owner\'s own non-shared records', as
     },
   } as unknown as Awaited<ReturnType<typeof categoriesAPI.getCategories>>);
   mount(<CourseEditorModal isOpen onClose={vi.fn()} />);
-  await screen.findByRole('option', { name: 'Kendi (kişisel)' });
-  expect(screen.queryByRole('option', { name: /Başkası/ })).toBeNull();
+  await offered('Kendi (kişisel)');
+  expect((await categoryOptions()).some((name) => name.includes('Başkası'))).toBe(false);
   cleanup();
   auth.user = { id: 1, role: 'admin' };
   mount(<CourseEditorModal isOpen onClose={vi.fn()} defaultGlobal />);
-  await screen.findByRole('option', { name: 'TYT' });
-  expect(screen.queryByRole('option', { name: /Kendi/ })).toBeNull();
+  await offered('TYT');
+  expect((await categoryOptions()).some((name) => name.includes('Kendi'))).toBe(false);
   fireEvent.click(screen.getByLabelText('Tüm kullanıcılara açık'));
-  fireEvent.change(screen.getByLabelText('Kategori'), { target: { value: '3' } });
+  await choose(screen.getByLabelText('Kategori'), 'Kendi (kişisel)');
   fireEvent.click(screen.getByLabelText('Tüm kullanıcılara açık'));
-  expect(screen.queryByRole('option', { name: /Kendi/ })).toBeNull();
-  expect((screen.getByLabelText('Kategori') as HTMLSelectElement).value).toBe('');
+  expect((await categoryOptions()).some((name) => name.includes('Kendi'))).toBe(false);
+  expect(shown(screen.getByLabelText('Kategori'))).toBe('Kategori seçin');
 });

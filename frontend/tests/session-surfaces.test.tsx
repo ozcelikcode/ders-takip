@@ -16,6 +16,7 @@ import TodaysPlans from '../src/components/planner/TodaysPlans';
 import CreateSessionModal from '../src/components/planner/CreateSessionModal';
 import { studySessionsAPI, coursesAPI, seriesAPI } from '../src/services/api';
 import type { StudySession } from '../src/types/planner';
+import { choose, shown } from './choose';
 const context = vi.hoisted(() => ({
   epoch: 1,
   preferences: { defaultPomodoroDuration: 25 },
@@ -445,7 +446,7 @@ it('keeps current inactive course and stored title on a metadata edit, and suppo
   const onClose = vi.fn();
   mount(<CreateSessionModal isOpen editSession={original} onClose={onClose} />);
   await screen.findByLabelText('Ders seçimi *');
-  await screen.findByRole('option', { name: 'Archived course' });
+  await waitFor(() => expect(shown(screen.getByLabelText('Ders seçimi *'))).toContain('Archived course'));
   fireEvent.change(screen.getByLabelText('Açıklama'), {
     target: { value: '' },
   });
@@ -486,9 +487,7 @@ it('keeps personal Pomodoro defaults for newly opened editors', async () => {
   fireEvent.change(await screen.findByLabelText('Özel Başlık *'), {
     target: { value: 'Custom timer' },
   });
-  fireEvent.change(screen.getByLabelText('Seans türü *'), {
-    target: { value: 'pomodoro' },
-  });
+  await choose(screen.getByLabelText('Seans türü *'), 'Pomodoro');
   expect(defaultPreferences.defaultPomodoroDuration).toBe(25);
   expect(screen.getByDisplayValue('35')).toBeTruthy();
 });

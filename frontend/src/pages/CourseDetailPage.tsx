@@ -37,6 +37,7 @@ import {
   type TopicStatus,
 } from './course/courseTopics';
 import { useText } from '../store/languageStore';
+import Select from '../components/common/Select';
 
 
 const CourseDetailPage = () => {
@@ -253,24 +254,19 @@ const CourseDetailPage = () => {
               </button>
             </>
           )}
-          <select
+          <Select<FilterOption>
             aria-label={text.filter(t)}
             value={filterBy}
-            onChange={(e) => setFilterBy(e.target.value as FilterOption)}
-            className="input w-auto text-sm"
-          >
-            <option value="all">{text.allTopics(t)}</option>
-            {!archived && (
-              <>
-                <option value="not_started">{text.topicStatuses.not_started}</option>
-                <option value="in_progress">{text.topicStatuses.in_progress}</option>
-                <option value="completed">{text.topicStatuses.completed}</option>
-              </>
-            )}
-            <option value="Kolay">{text.difficulties.Kolay}</option>
-            <option value="Orta">{text.difficulties.Orta}</option>
-            <option value="Zor">{text.difficulties.Zor}</option>
-          </select>
+            onChange={setFilterBy}
+            className="w-auto min-w-40"
+            options={[
+              { value: 'all', label: text.allTopics(t) },
+              ...(archived
+                ? []
+                : (['not_started', 'in_progress', 'completed'] as const).map((status) => ({ value: status, label: text.topicStatuses[status] }))),
+              ...(['Kolay', 'Orta', 'Zor'] as const).map((level) => ({ value: level, label: text.difficulties[level] })),
+            ]}
+          />
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -284,17 +280,13 @@ const CourseDetailPage = () => {
               <SortDesc className="h-4 w-4" />
             )}
           </button>
-          <select
+          <Select<SortOption>
             aria-label={text.sort(t)}
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="input w-auto text-sm"
-          >
-            <option value="order">{text.sortOptions.order}</option>
-            <option value="name">{text.sortOptions.name}</option>
-            <option value="difficulty">{text.sortOptions.difficulty}</option>
-            <option value="time">{text.sortOptions.time}</option>
-          </select>
+            onChange={setSortBy}
+            className="w-auto min-w-36"
+            options={(['order', 'name', 'difficulty', 'time'] as const).map((option) => ({ value: option, label: text.sortOptions[option] }))}
+          />
         </div>
       </div>
       {canEdit && (

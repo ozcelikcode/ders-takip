@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import LogStudyDialog from '../src/components/planner/LogStudyDialog';
 import { coursesAPI, studySessionsAPI } from '../src/services/api';
 import { useUserPreferencesStore } from '../src/store/userPreferencesStore';
+import { choose, openOptions } from './choose';
 
 vi.mock('../src/services/api', () => ({
   coursesAPI: { getCourses: vi.fn() },
@@ -40,9 +41,10 @@ afterEach(() => {
 it('logs finished study in the preferred time zone, named after the record when no title is given', async () => {
   vi.mocked(studySessionsAPI.logStudy).mockResolvedValue({} as never);
   const onClose = mount();
-  await screen.findByRole('option', { name: 'Gitar' });
+  const record = screen.getByRole('button', { name: /Kayıt|Ders|Proje/ });
+  await waitFor(async () => expect(await openOptions(record)).toContain('Gitar'));
   expect(screen.queryByRole('option', { name: 'Eski' })).toBeNull();
-  fireEvent.change(screen.getByRole('combobox'), { target: { value: '4' } });
+  await choose(record, 'Gitar');
   type('Başlangıç saati', '10:15');
   type('Süre (dakika)', '45');
   type('Notlar', ' Akorlar ');

@@ -26,6 +26,7 @@ import {
   type OnboardingDraft,
 } from './onboardingModel';
 import { useLanguage, useText } from '../../store/languageStore';
+import Select from '../../components/common/Select';
 
 const lastStep = steps.length - 1;
 
@@ -138,9 +139,13 @@ export default function WelcomePage() {
         <div className="space-y-6">
           <div>
             <label htmlFor={`${prefix}-timezone`} className="mb-2 block text-sm font-medium">{text.timezone}</label>
-            <select id={`${prefix}-timezone`} className="input" value={draft.timezone} onChange={(event) => update({ timezone: event.target.value })}>
-              {zones.map((zone) => <option key={zone} value={zone}>{zone}</option>)}
-            </select>
+            <Select
+              id={`${prefix}-timezone`}
+              searchable
+              value={draft.timezone}
+              options={zones.map((zone) => ({ value: zone, label: zone }))}
+              onChange={(timezone) => update({ timezone })}
+            />
           </div>
           <div>
             <p className="mb-2 text-sm font-medium">{text.weekStart}</p>

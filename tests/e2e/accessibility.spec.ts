@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { writeFile } from 'node:fs/promises';
 import type { Page, TestInfo } from '@playwright/test';
-import { test, expect, login, dailyPlanner, openMove, registerAccount } from './fixtures';
+import { test, expect, login, dailyPlanner, openMove, registerAccount, choose } from './fixtures';
 
 async function scan(page: Page, info: TestInfo, name: string) {
   await expect(page.getByRole('alert')).toHaveCount(0);
@@ -149,7 +149,7 @@ for (const theme of ['light', 'dark'] as const) {
         .getByRole('button', { name: 'Movable session', exact: true })
         .click();
       await expect(page.getByLabel('Seans türü')).toBeVisible();
-      await page.getByLabel('Seans türü').selectOption('pomodoro');
+      await choose(page.getByLabel('Seans türü'), 'Pomodoro');
       await expect(
         page.getByText('Pomodoro Ayarları', { exact: true }),
       ).toBeVisible();

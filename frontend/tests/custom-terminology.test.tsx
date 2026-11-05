@@ -7,6 +7,7 @@ import { useLanguageStore } from '../src/store/languageStore';
 import TerminologySection from '../src/pages/settings/TerminologySection';
 import { useSettingsStore } from '../src/store/settingsStore';
 import { useUserPreferencesStore } from '../src/store/userPreferencesStore';
+import { choose, shown } from './choose';
 
 const preferences = (patch: Partial<UserPreferences> = {}): UserPreferences => ({ ...defaultPreferences, ...patch });
 const mount = (patch: Partial<UserPreferences> = {}) => {
@@ -81,13 +82,13 @@ it('asks English sites for the English word, its plural and article, and keeps c
   const session = screen.getByRole('group', { name: 'Work block' });
   const word = within(session).getByLabelText('Word') as HTMLInputElement;
   const plural = within(session).getByLabelText('Plural') as HTMLInputElement;
-  const article = within(session).getByLabelText('Article (a/an)') as HTMLSelectElement;
-  expect([word.value, plural.value, article.value]).toEqual(['session', 'sessions', 'a']);
+  const article = within(session).getByLabelText('Article (a/an)');
+  expect([word.value, plural.value, shown(article)]).toEqual(['session', 'sessions', 'a']);
   fireEvent.change(word, { target: { value: 'Hour' } });
-  expect([word.value, plural.value, article.value]).toEqual(['hour', 'hours', 'a']);
-  fireEvent.change(article, { target: { value: 'an' } });
+  expect([word.value, plural.value, shown(article)]).toEqual(['hour', 'hours', 'a']);
+  await choose(article, 'an');
   fireEvent.change(word, { target: { value: 'study hour' } });
-  expect([plural.value, article.value]).toEqual(['study hours', 'an']);
+  expect([plural.value, shown(article)]).toEqual(['study hours', 'an']);
   fireEvent.change(word, { target: { value: 'hour' } });
   expect(within(session).getByText('Forms: an hour · hours')).toBeTruthy();
   const topic = screen.getByRole('group', { name: 'Sub-record' });

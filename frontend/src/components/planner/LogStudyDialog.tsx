@@ -9,6 +9,7 @@ import { useTerms } from '../../hooks/useTerms';
 import { studySessionsAPI } from '../../services/api';
 import { useText } from '../../store/languageStore';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
+import Select from '../common/Select';
 
 /** Adds study done without the timer; the server stores it as completed, measured and marked manual. */
 export default function LogStudyDialog({ onClose }: { onClose: () => void }) {
@@ -69,10 +70,12 @@ export default function LogStudyDialog({ onClose }: { onClose: () => void }) {
     >
       <div>
         <label htmlFor={field('course')} className="mb-1 block text-sm font-medium">{text.logRecord(t)}</label>
-        <select id={field('course')} className="input" value={form.courseId} onChange={(event) => set({ courseId: event.target.value })}>
-          <option value="">{text.logNoRecord}</option>
-          {courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}
-        </select>
+        <Select
+          id={field('course')}
+          value={form.courseId}
+          options={[{ value: '', label: text.logNoRecord }, ...courses.map((course) => ({ value: String(course.id), label: course.name }))]}
+          onChange={(courseId) => set({ courseId })}
+        />
       </div>
       <div>
         <label htmlFor={field('title')} className="mb-1 block text-sm font-medium">{text.logName}</label>

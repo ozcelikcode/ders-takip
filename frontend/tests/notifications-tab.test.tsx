@@ -6,6 +6,7 @@ import * as push from '../src/lib/push';
 import NotificationsTab from '../src/pages/settings/NotificationsTab';
 import { notificationsAPI } from '../src/services/api';
 import { useAuthStore } from '../src/store/authStore';
+import { choose } from './choose';
 
 vi.mock('../src/services/api', () => ({ notificationsAPI: { channels: vi.fn(), subscribe: vi.fn(), unsubscribe: vi.fn(), test: vi.fn() } }));
 vi.mock('../src/lib/push', async (original) => ({
@@ -54,7 +55,7 @@ it('offers only email choices when push is not set up and saves each choice as a
   expect((screen.getByLabelText(/Sabah günlük plan/) as HTMLInputElement).checked).toBe(true);
   fireEvent.click(screen.getAllByLabelText('E-posta ile')[0]!);
   expect(onSave).toHaveBeenLastCalledWith({ notifications: { ...defaultNotificationPreferences, dailyPlanEmail: true, sessionReminderEmail: true } });
-  fireEvent.change(screen.getByLabelText('Ne kadar önce'), { target: { value: '30' } });
+  await choose(screen.getByLabelText('Ne kadar önce'), '30 dakika önce');
   expect(onSave).toHaveBeenLastCalledWith({ notifications: { ...defaultNotificationPreferences, dailyPlanEmail: true, reminderLeadMinutes: 30 } });
   fireEvent.click(screen.getByRole('button', { name: 'Deneme e-postası gönder' }));
   await waitFor(() => expect(notificationsAPI.test).toHaveBeenCalledWith({ channel: 'email' }));

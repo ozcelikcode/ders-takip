@@ -6,6 +6,7 @@ import {
   dailyPlanner,
   openMove,
   registerAccount,
+  choose,
 } from './fixtures';
 
 test('restores cookie authentication on reload and isolates the next account', async ({
@@ -236,7 +237,7 @@ test('turns a press and drag on empty hours into a new session span and expands 
   await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2, box.y + 4 + hour, { steps: 4 });
   await page.mouse.move(box.x + box.width / 2, box.y + 4 + hour * 2, { steps: 4 });
-  await expect(page.locator('[data-calendar-draft]')).toHaveText('03:00 – 05:15');
+  await expect(page.locator('[data-draft-range]')).toHaveText('03:00 – 05:15');
   await page.mouse.up();
   const editor = page.getByRole('dialog', { name: 'Yeni Seans' });
   await expect(editor.getByLabel('Saat', { exact: true })).toHaveValue('03:00');
@@ -276,9 +277,9 @@ test('selects a span with a held touch without scrolling, while a quick swipe st
     cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
   await touch('touchStart', box.y + 4);
   await page.waitForTimeout(450);
-  await expect(page.locator('[data-calendar-draft]')).toHaveText('03:00 – 03:15');
+  await expect(page.locator('[data-draft-range]')).toHaveText('03:00 – 03:15');
   for (let step = 1; step <= 8; step++) await touch('touchMove', box.y + 4 + (box.height * 2 * step) / 8);
-  await expect(page.locator('[data-calendar-draft]')).toHaveText('03:00 – 05:15');
+  await expect(page.locator('[data-draft-range]')).toHaveText('03:00 – 05:15');
   expect(await region.evaluate((node) => node.scrollTop)).toBe(scrollBefore);
   await touch('touchEnd', 0);
   await expect(page.getByRole('dialog', { name: 'Yeni Seans' }).getByLabel('Süre (dakika) *', { exact: true })).toHaveValue('135');
@@ -589,7 +590,7 @@ test('lets a user choose browser reminders and keeps the choice after a reload',
   const reminders = page.getByRole('region', { name: 'Seans hatırlatmaları' });
   const goal = page.getByRole('region', { name: 'Günlük hedef hatırlatması' });
   await reminders.getByLabel(/Tarayıcı bildirimi ile/).check();
-  await page.getByLabel('Ne kadar önce').selectOption('15');
+  await choose(page.getByLabel('Ne kadar önce'), '15 dakika önce');
   await expect(page.getByRole('status').filter({ hasText: 'Tercihler hesabınızda saklanır' })).toBeVisible();
   await goal.getByLabel(/Tarayıcı bildirimi ile/).check();
   await expect(goal.getByLabel(/Tarayıcı bildirimi ile/)).toBeChecked();
@@ -597,7 +598,7 @@ test('lets a user choose browser reminders and keeps the choice after a reload',
   await page.getByRole('navigation', { name: 'Ayar bölümleri' }).getByRole('button', { name: 'Bildirimler' }).click();
   await expect(reminders.getByLabel(/Tarayıcı bildirimi ile/)).toBeChecked();
   await expect(goal.getByLabel(/Tarayıcı bildirimi ile/)).toBeChecked();
-  await expect(page.getByLabel('Ne kadar önce')).toHaveValue('15');
+  await expect(page.getByLabel('Ne kadar önce')).toHaveText('15 dakika önce');
 });
 
 test('lets a user name records with their own word and keeps it after a reload', async ({ page }) => {
@@ -709,7 +710,7 @@ test('sets a personal weekly goal on a shared record and follows it on the dashb
   await page.getByRole('button', { name: 'Ortak proje ekle', exact: true }).click();
   const record = page.getByRole('dialog', { name: 'Proje ekle' });
   await record.getByLabel('Proje adı', { exact: true }).fill('Guitar lessons');
-  await record.getByLabel('Kategori', { exact: true }).selectOption({ label: 'Music' });
+  await choose(record.getByLabel('Kategori', { exact: true }), 'Music');
   await record.getByRole('button', { name: 'Kaydet', exact: true }).click();
   await expect(record).toHaveCount(0);
   await logout(page);
@@ -783,15 +784,15 @@ test('tags a session and filters the planner and statistics by that tag', async 
   await editor.getByRole('button', { name: 'Güncelle', exact: true }).click();
   await expect(editor).toHaveCount(0);
 
-  await page.getByLabel('Etikete göre süz').selectOption({ label: 'Sınav' });
+  await choose(page.getByLabel('Etikete göre süz'), 'Sınav');
   await expect(page.getByRole('button', { name: 'Movable session: işlemler' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'First short session: işlemler' })).toHaveCount(0);
-  await page.getByLabel('Etikete göre süz').selectOption({ label: 'Tüm etiketler' });
+  await choose(page.getByLabel('Etikete göre süz'), 'Tüm etiketler');
   await expect(page.getByRole('button', { name: 'First short session: işlemler' })).toBeVisible();
 
   await page.goto('/stats');
   const filtered = page.waitForResponse((response) => /\/api\/study-sessions\/stats\?.*tagId=\d+/.test(response.url()));
-  await page.getByLabel('Etikete göre süz').selectOption({ label: 'Sınav' });
+  await choose(page.getByLabel('Etikete göre süz'), 'Sınav');
   expect((await filtered).status()).toBe(200);
 });
 
@@ -903,7 +904,7 @@ test('measures a Pomodoro session through pause, reload and completion and count
   const editor = page.getByRole('dialog', { name: 'Yeni Seans' });
   await editor.getByRole('button', { name: 'Özel', exact: true }).click();
   await editor.getByLabel('Özel Başlık *', { exact: true }).fill('Focused browser session');
-  await editor.getByLabel('Seans türü *', { exact: true }).selectOption('pomodoro');
+  await choose(editor.getByLabel('Seans türü *', { exact: true }), 'Pomodoro');
   await editor.getByLabel('Tarih', { exact: true }).fill(tomorrow);
   await editor.getByLabel('Saat', { exact: true }).fill('15:00');
   await editor.getByLabel('Süre (dakika) *', { exact: true }).fill('60');
@@ -1035,7 +1036,8 @@ test('offers a shared category the administrator adds to every account', async (
   await page.goto('/courses');
   await page.getByRole('button', { name: 'Proje ekle', exact: true }).first().click();
   const record = page.getByRole('dialog', { name: 'Proje ekle' });
-  await expect(record.getByLabel('Kategori', { exact: true }).locator('option', { hasText: 'Fixture Shared' })).toHaveCount(1);
+  await record.getByLabel('Kategori', { exact: true }).click();
+  await expect(page.getByRole('option', { name: 'Fixture Shared', exact: true })).toHaveCount(1);
 });
 
 test('restores a backup the administrator took, undoing later changes and asking to sign in again', async ({ page }) => {
@@ -1152,14 +1154,14 @@ test('moves shared records to the chosen category when the administrator deletes
   await page.getByRole('button', { name: 'Ortak proje ekle', exact: true }).click();
   const record = page.getByRole('dialog', { name: 'Proje ekle' });
   await record.getByLabel('Proje adı', { exact: true }).fill('Moved Project');
-  await record.getByLabel('Kategori', { exact: true }).selectOption({ label: 'Source Category' });
+  await choose(record.getByLabel('Kategori', { exact: true }), 'Source Category');
   await record.getByRole('button', { name: 'Kaydet', exact: true }).click();
   await expect(record).toHaveCount(0);
 
   categories = await openCategories();
   await categories.getByRole('button', { name: 'Source Category kategorisini sil', exact: true }).click();
   const removal = page.getByRole('dialog', { name: 'Kategoriyi sil' });
-  await removal.getByLabel(/taşınacağı kategori$/).selectOption({ label: 'Target Category' });
+  await choose(removal.getByLabel(/taşınacağı kategori$/), 'Target Category');
   await removal.getByRole('button', { name: 'Kategoriyi sil', exact: true }).click();
   await expect(removal).toHaveCount(0);
   await expect(categories.getByText('Source Category', { exact: true })).toHaveCount(0);
@@ -1168,7 +1170,7 @@ test('moves shared records to the chosen category when the administrator deletes
 
   await page.getByRole('button', { name: 'Projeyi düzenle: Moved Project', exact: true }).click();
   const edit = page.getByRole('dialog', { name: 'Projeyi düzenle' });
-  await expect(edit.getByLabel('Kategori', { exact: true }).locator('option:checked')).toHaveText('Target Category');
+  await expect(edit.getByLabel('Kategori', { exact: true })).toHaveText('Target Category');
 });
 
 test('resets only the site settings and keeps accounts and study data', async ({ page }) => {
@@ -1252,7 +1254,7 @@ test.describe('Site language', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'tr');
     await login(page, 'manager@example.test');
     await page.goto('/admin/settings');
-    await page.getByLabel('Site dili').selectOption('en');
+    await choose(page.getByLabel('Site dili'), 'English');
     await page.getByRole('button', { name: 'Değişiklikleri kaydet' }).click();
     const heading = page.getByRole('heading', { level: 1 });
     await expect(heading).toHaveText('Site settings');
@@ -1307,7 +1309,7 @@ test.describe('Site language', () => {
     const heading = page.getByRole('heading', { level: 1 });
     const setSiteLanguage = async (language: 'tr' | 'en', label: string, save: string) => {
       await page.goto('/admin/settings');
-      await page.getByLabel(label).selectOption(language);
+      await choose(page.getByLabel(label), language === 'en' ? 'English' : 'Türkçe');
       await page.getByRole('button', { name: save }).click();
       await expect(heading).toHaveText(language === 'en' ? 'Site settings' : 'Site ayarları');
     };

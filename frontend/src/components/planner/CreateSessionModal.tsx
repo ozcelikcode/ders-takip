@@ -42,6 +42,7 @@ import {
   type DurationMode,
 } from './sessionRequest';
 import { useText } from '../../store/languageStore';
+import Select from '../common/Select';
 
 interface CreateSessionModalProps {
   isOpen: boolean;
@@ -504,21 +505,19 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                   >
                     {text.recordChoice(t)}
                   </label>
-                  <select
-                    {...register('courseId')}
+                  <Select
                     id="courseId"
-                    className="input"
-                  >
-                    <option value="">{text.chooseRecord(t)}</option>
-                    {coursesData?.map((course) => (
-                      <option key={course.id} value={course.id.toString()}>
-                        {course.name}{' '}
-                        {course.category?.name
-                          ? `(${course.category.name})`
-                          : ''}
-                      </option>
-                    ))}
-                  </select>
+                    value={watch('courseId') ?? ''}
+                    invalid={!!errors.courseId}
+                    options={[
+                      { value: '', label: text.chooseRecord(t) },
+                      ...(coursesData ?? []).map((course) => ({
+                        value: course.id.toString(),
+                        label: course.category?.name ? `${course.name} (${course.category.name})` : course.name,
+                      })),
+                    ]}
+                    onChange={(courseId) => setValue('courseId', courseId, { shouldValidate: true, shouldDirty: true })}
+                  />
                   {errors.courseId && (
                     <p className="mt-1 text-sm text-red-600">
                       {errors.courseId.message}
@@ -689,15 +688,12 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                   >
                     {text.type(t)}
                   </label>
-                  <select
-                    {...register('sessionType')}
+                  <Select
                     id="sessionType"
-                    className="input"
-                  >
-                    <option value="study">{sessionText.types.study}</option>
-                    <option value="pomodoro">{sessionText.types.pomodoro}</option>
-                    <option value="review">{sessionText.types.review}</option>
-                  </select>
+                    value={sessionType}
+                    options={(['study', 'pomodoro', 'review'] as const).map((type) => ({ value: type, label: sessionText.types[type] }))}
+                    onChange={(type) => setValue('sessionType', type, { shouldValidate: true, shouldDirty: true })}
+                  />
                 </div>
               )}
 

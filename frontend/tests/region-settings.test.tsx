@@ -5,6 +5,7 @@ import TimezoneNotice from '../src/components/common/TimezoneNotice';
 import RegionTab from '../src/pages/settings/RegionTab';
 import { useAuthStore } from '../src/store/authStore';
 import { useUserPreferencesStore } from '../src/store/userPreferencesStore';
+import { choose } from './choose';
 
 const browserZone = (timeZone: string) =>
   vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
@@ -43,7 +44,7 @@ it('stays hidden when the saved zone already matches the browser', () => {
   expect(screen.queryByRole('region', { name: 'Saat dilimi önerisi' })).toBeNull();
 });
 
-it('saves the time zone and week start, treating a missing week start as Monday', () => {
+it('saves the time zone and week start, treating a missing week start as Monday', async () => {
   browserZone('Asia/Tokyo');
   const onSave = vi.fn();
   const stored = preferences({ timezone: 'Europe/Istanbul' });
@@ -54,6 +55,6 @@ it('saves the time zone and week start, treating a missing week start as Monday'
   expect(onSave).toHaveBeenCalledWith({ weekStartsOn: 0 });
   fireEvent.click(screen.getByRole('button', { name: 'Bunu kullan' }));
   expect(onSave).toHaveBeenCalledWith({ timezone: 'Asia/Tokyo' });
-  fireEvent.change(screen.getByLabelText('Saat dilimi'), { target: { value: 'UTC' } });
+  await choose(screen.getByLabelText('Saat dilimi'), 'UTC');
   expect(onSave).toHaveBeenCalledWith({ timezone: 'UTC' });
 });
