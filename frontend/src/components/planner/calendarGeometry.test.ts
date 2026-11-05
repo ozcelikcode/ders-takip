@@ -13,6 +13,9 @@ import {
   moveSessionTimes,
   resizedDuration,
   snappedDropMinute,
+  draftRange,
+  clockText,
+  firstFreeStart,
 } from './calendarGeometry';
 const session: StudySession = {
   id: 1,
@@ -222,6 +225,10 @@ describe('calendar day layout helpers', () => {
     expect(resized[0][0].preview.duration).toBe(120);
     expect(resized[0][0].session.duration).toBe(60);
     expect(resized[0][0].segment.hour).toBe(9);
+    // The top edge keeps the end and moves the start an hour earlier.
+    const raised = buildDaySegments(days, [session], { sessionId: 1, minutes: 120, edge: 'start' }, 'Europe/Istanbul', hourHeight);
+    expect(raised[0][0].segment.hour).toBe(8);
+    expect(raised[0][0].preview.endTime).toBe(session.endTime);
   });
 
   it('keeps empty weekly days narrow and widens busy days by lane count', () => {
@@ -253,5 +260,33 @@ describe('calendar day layout helpers', () => {
     expect(slotNavigationTarget(free, 'Home', true, 1, 11)).toBe('0:8');
     expect(slotNavigationTarget(free, 'End', true, 0, 8)).toBe('1:11');
     expect(slotNavigationTarget(free, 'Enter', false, 0, 8)).toBeUndefined();
+  });
+});
+
+describe('draftRange', () => {
+  it('keeps the pressed quarter hour and grows in the direction of the drag', () => {
+    expect(draftRange(9 * 60 + 40, 9 * 60 + 40)).toEqual({ start: 570, end: 585 });
+    expect(draftRange(9 * 60 + 40, 11 * 60 + 5)).toEqual({ start: 570, end: 675 });
+    expect(draftRange(9 * 60 + 40, 8 * 60 + 10)).toEqual({ start: 480, end: 585 });
+    expect(draftRange(23 * 60 + 50, 1600)).toEqual({ start: 1425, end: 1440 });
+    expect(draftRange(10, -200)).toEqual({ start: 0, end: 15 });
+    expect(clockText(1440)).toBe('24:00');
+    expect(clockText(585)).toBe('09:45');
+  });
+});
+
+describe('firstFreeStart', () => {
+  it('places a copy right after the session, past whatever holds that time, ignoring cancelled ones', () => {
+    const at = (hour: number) => `2026-11-05T${String(hour).padStart(2, '0')}:00:00.000Z`;
+    const make = (id: number, from: number, to: number, status: StudySession['status'] = 'planned'): StudySession => ({
+      ...session, id, startTime: at(from), endTime: at(to), status,
+    });
+    const original = make(1, 9, 10);
+    expect(firstFreeStart(original, [original])).toEqual({ startTime: at(10), endTime: at(11) });
+    expect(firstFreeStart(original, [original, make(2, 10, 11), make(3, 11, 12, 'cancelled'), make(4, 12, 13)])).toEqual({
+      startTime: at(11),
+      endTime: at(12),
+    });
+    expect(firstFreeStart(original, [original, make(2, 10, 11), make(3, 11, 12)])).toEqual({ startTime: at(12), endTime: at(13) });
   });
 });

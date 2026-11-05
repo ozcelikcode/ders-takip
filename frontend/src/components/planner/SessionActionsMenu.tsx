@@ -1,6 +1,6 @@
 import { useTerms } from '../../hooks/useTerms';
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
-import { Clock, Edit, MoveRight, Timer, Trash2, X } from 'lucide-react';
+import { Clock, Copy, Edit, MoveRight, Timer, Trash2, X } from 'lucide-react';
 import type { StudySession } from '../../types/planner';
 import { canRepositionSession } from './calendarGeometry';
 import { useText } from '../../store/languageStore';
@@ -17,6 +17,7 @@ interface SessionActionsMenuProps {
   onEdit: (session: StudySession) => void;
   onOpenTimer: (session: StudySession) => void;
   onMove: (session: StudySession) => void;
+  onDuplicate: (session: StudySession) => void;
   onDelete: (session: StudySession) => void;
 }
 
@@ -29,6 +30,7 @@ export default function SessionActionsMenu({
   onEdit,
   onOpenTimer,
   onMove,
+  onDuplicate,
   onDelete,
 }: SessionActionsMenuProps) {
   const t = useTerms();
@@ -74,6 +76,10 @@ export default function SessionActionsMenu({
           >
             <Clock className="h-4 w-4" />
             {text.changeTime}
+          </button>
+          <button className={itemClass} onClick={run(onDuplicate)}>
+            <Copy className="h-4 w-4" />
+            {text.duplicate}
           </button>
           <button
             className={`${itemClass} text-red-600`}

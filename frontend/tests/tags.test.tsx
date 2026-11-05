@@ -82,7 +82,7 @@ it('tags a new session after saving it, and a failed tag write does not undo or 
   vi.mocked(studySessionsAPI.createSession).mockResolvedValue({ data: { success: true, data: { session: { id: 41 } } } } as never);
   vi.mocked(tagsAPI.setSessionTags).mockRejectedValue(new Error('offline'));
   const onClose = vi.fn();
-  mount(<CreateSessionModal isOpen selectedDate={new Date(Date.UTC(2031, 0, 6))} selectedHour={9} onClose={onClose} />);
+  mount(<CreateSessionModal isOpen selectedDate={new Date(Date.UTC(2031, 0, 6))} selectedMinute={9 * 60} onClose={onClose} />);
   fireEvent.click(screen.getByRole('button', { name: 'Özel' }));
   fireEvent.change(await screen.findByLabelText('Özel Başlık *'), { target: { value: 'Reading' } });
   fireEvent.click(await screen.findByRole('button', { name: 'Okuma' }));

@@ -166,6 +166,16 @@ for (const theme of ['light', 'dark'] as const) {
       await page.getByRole('button', { name: 'Rutinler', exact: true }).click();
       await expect(page.getByRole('heading', { name: 'Rutinler', exact: true }).last()).toBeVisible();
       await scan(page, info, 'routines');
+      await page.keyboard.press('Escape');
+      await page.getByRole('button', { name: 'Aylık', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Aylık Planlayıcı' })).toBeVisible();
+      await scan(page, info, 'monthly-planner');
+      // The shortcuts button is left out on phones, which have no keyboard.
+      if (!info.project.name.includes('mobile')) {
+        await page.getByRole('button', { name: 'Klavye kısayolları' }).click();
+        await expect(page.getByRole('heading', { name: 'Klavye kısayolları' })).toBeVisible();
+        await scan(page, info, 'planner-shortcuts');
+      }
     });
     test('welcome wizard steps', async ({ page }, info) => {
       test.setTimeout(120_000);

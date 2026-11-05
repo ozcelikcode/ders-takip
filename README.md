@@ -57,7 +57,8 @@ The screenshots come from demo data on the isolated test site and are regenerate
 ## Features
 
 **Planning**
-- Daily and weekly planner with drag to move (15-minute steps), resize (5-minute steps), keyboard creation and native time fields as an accessible alternative.
+- Daily, weekly and monthly planner. Drag to move (15-minute steps) and pull either edge to resize (5-minute steps); press and drag on empty hours to pick a new session's span. On touch screens a held finger does the same: select time, move a card, pull an edge.
+- Duplicate a session into the next free time, undo and redo calendar changes (Ctrl+Z, Ctrl+Y), fixed keyboard shortcuts (T, arrows, 1/2/3, N, F, ?), a full-screen mode, and hours that open at the current time. Keyboard creation and native time fields remain the accessible alternative.
 - Weekly routines: the same session on chosen weekdays, with an optional end date. Changing a single occurrence makes it your own; editing the routine only rebuilds untouched future sessions.
 
 **Focus and measurement**
@@ -214,8 +215,8 @@ npm run check
 |---|---|---|
 | Shared contracts | Node test runner | 48 |
 | Backend (HTTP + SQLite, temporary databases) | Node test runner, Supertest | 234 |
-| Frontend (components and screen flows) | Vitest, Testing Library, jsdom | 349 |
-| Browser journeys and accessibility | Playwright, axe-core | 46 scenarios × 3 browsers = 138 runs |
+| Frontend (components and screen flows) | Vitest, Testing Library, jsdom | 373 |
+| Browser journeys and accessibility | Playwright, axe-core | 51 scenarios × 3 browsers = 153 runs (two touch scenarios run only in mobile Chromium) |
 
 ```bash
 npx playwright install chromium webkit

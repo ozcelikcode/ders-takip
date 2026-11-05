@@ -10,11 +10,12 @@ import {
 } from '@testing-library/react';
 import { HttpError, type HttpResponse } from '../../services/httpError';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { studySessionsAPI } from '../../services/api';
+import { studySessionsAPI, tagsAPI } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import type { StudySession } from '../../types/planner';
 import PlannerCalendar, { type PlannerCalendarProps } from './PlannerCalendar';
+import { usePlannerHistory } from './plannerHistory';
 
 const DailyCalendar = (props: PlannerCalendarProps) => <PlannerCalendar {...props} mode="daily" />;
 const WeeklyPlanner = (props: PlannerCalendarProps) => <PlannerCalendar {...props} mode="weekly" />;
@@ -26,7 +27,10 @@ vi.mock('../../services/api', () => ({
     pauseSession: vi.fn(),
     completeSession: vi.fn(),
     deleteSession: vi.fn(),
+    getSession: vi.fn(),
+    createSession: vi.fn(),
   },
+  tagsAPI: { list: vi.fn(), setSessionTags: vi.fn() },
 }));
 vi.mock('../../hooks/useAccountQueryKeys', () => ({
   useAccountQueryKeys: () => ({
@@ -75,6 +79,8 @@ beforeEach(() => {
     preferences: { ...state.preferences, timezone: 'Europe/Istanbul' },
   }));
   sessions = [{ ...base }];
+  usePlannerHistory.setState({ epoch: useAuthStore.getState().epoch, past: [], future: [] });
+  vi.mocked(tagsAPI.list).mockResolvedValue({ tags: [], courseTags: [], sessionTags: [] });
   vi.mocked(studySessionsAPI.getSessions).mockImplementation(async () =>
     response({ success: true, data: { sessions } }),
   );
@@ -255,13 +261,191 @@ describe.each([
     fireEvent.mouseMove(window, { buttons: 0 });
     expect(item.className).not.toContain('opacity-30');
   });
+  const slot = (time: string) =>
+    document.querySelector(`[data-calendar-slot="2026-10-16T${time}"]`)!;
+  it('turns a press and drag on empty hours into a new session span, downwards and upwards', async () => {
+    const onCreate = vi.fn();
+    render(
+      <QueryClientProvider client={client}>
+        <Calendar onCreateSession={onCreate} />
+      </QueryClientProvider>,
+    );
+    await card();
+    const one = slot('13:00');
+    bounds(one, 200, height);
+    fireEvent.pointerDown(one, { clientY: 200 + height / 2, clientX: 50, button: 0 });
+    expect(document.querySelector('[data-calendar-draft]')).toBeNull();
+    fireEvent.pointerMove(window, { clientY: 200 + height * 2, clientX: 50 });
+    expect(document.querySelector('[data-calendar-draft]')?.textContent).toBe('13:30 – 15:00');
+    fireEvent.pointerUp(window, { clientY: 200 + height * 2, clientX: 50 });
+    expect(onCreate).toHaveBeenCalledWith(expect.any(Date), 13 * 60 + 30, 90);
+    expect(document.querySelector('[data-calendar-draft]')).toBeNull();
+    // The click that follows the release must not open a second, one-hour editor.
+    fireEvent.click(one.querySelector('button')!);
+    expect(onCreate).toHaveBeenCalledTimes(1);
+
+    const two = slot('14:00');
+    bounds(two, 200 + height, height);
+    fireEvent.pointerDown(two, { clientY: 200 + height, clientX: 50, button: 0 });
+    fireEvent.pointerMove(window, { clientY: 200 - height / 2, clientX: 50 });
+    expect(document.querySelector('[data-calendar-draft]')?.textContent).toBe('12:30 – 14:15');
+    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.pointerUp(window, { clientY: 200 - height / 2, clientX: 50 });
+    expect(onCreate).toHaveBeenCalledTimes(1);
+  });
+  it('leaves a moving touch to scrolling and never starts a span on a session card', async () => {
+    const onCreate = vi.fn();
+    render(
+      <QueryClientProvider client={client}>
+        <Calendar onCreateSession={onCreate} />
+      </QueryClientProvider>,
+    );
+    const item = await card();
+    const one = slot('13:00');
+    bounds(one, 200, height);
+    // The test PointerEvent is a MouseEvent, which drops pointerType from its init.
+    const touch = (target: Element | Window, name: string, clientY: number) => {
+      const event = new MouseEvent(name, { bubbles: true, cancelable: true, clientX: 50, clientY });
+      Object.defineProperty(event, 'pointerType', { value: 'touch' });
+      fireEvent(target, event);
+    };
+    touch(one, 'pointerdown', 210);
+    touch(window, 'pointermove', 260);
+    touch(window, 'pointerup', 260);
+    expect(document.querySelector('[data-calendar-draft]')).toBeNull();
+    fireEvent.pointerDown(item, { clientY: 110, clientX: 50, button: 0 });
+    fireEvent.pointerMove(window, { clientY: 110 + height, clientX: 50 });
+    fireEvent.pointerUp(window, { clientY: 110 + height, clientX: 50 });
+    expect(onCreate).not.toHaveBeenCalled();
+  });
+  it('expands to full screen and returns on Escape', async () => {
+    mount();
+    await card();
+    const toggle = screen.getByRole('button', { name: 'Tam ekran' });
+    fireEvent.click(toggle);
+    expect(document.querySelector('[data-calendar-expanded]')).not.toBeNull();
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(document.querySelector('[data-calendar-expanded]')).toBeNull();
+  });
+  it('pulls the top edge to start earlier and takes it back with Ctrl+Z', async () => {
+    vi.mocked(studySessionsAPI.updateSession).mockResolvedValue(
+      response({ success: true, data: { session: base } }),
+    );
+    mount();
+    const item = await card();
+    fireEvent.pointerDown(item.querySelector('[data-resize-handle="start"]')!, { clientY: 100 });
+    fireEvent.pointerMove(window, { clientY: 100 - height / 2 });
+    expect(await screen.findByTitle(/90 dk/)).toBeTruthy();
+    fireEvent.pointerUp(window, { clientY: 100 - height / 2 });
+    await waitFor(() =>
+      expect(studySessionsAPI.updateSession).toHaveBeenCalledWith(base, {
+        startTime: '2026-10-16T05:30:00.000Z',
+      }),
+    );
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Geri al' })).toHaveProperty('disabled', false));
+    const moved = { ...base, startTime: '2026-10-16T05:30:00.000Z', updatedAt: '2026-10-16T01:00:00Z' };
+    vi.mocked(studySessionsAPI.getSession).mockResolvedValue(response({ success: true, data: { session: moved } }));
+    fireEvent.keyDown(document.body, { key: 'z', ctrlKey: true });
+    await waitFor(() =>
+      expect(studySessionsAPI.updateSession).toHaveBeenLastCalledWith(moved, {
+        startTime: base.startTime,
+        endTime: base.endTime,
+      }),
+    );
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Yinele' })).toHaveProperty('disabled', false));
+  });
+  it('duplicates a session into the first free time after it', async () => {
+    vi.mocked(studySessionsAPI.createSession).mockResolvedValue(
+      response({ success: true, data: { session: { ...base, id: 2 } } }),
+    );
+    mount();
+    await card();
+    fireEvent.click(screen.getByRole('button', { name: `${base.title}: işlemler` }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Kopyala' }));
+    await waitFor(() =>
+      expect(studySessionsAPI.createSession).toHaveBeenCalledWith({
+        title: base.title,
+        startTime: '2026-10-16T07:00:00.000Z',
+        endTime: '2026-10-16T08:00:00.000Z',
+        sessionType: 'study',
+      }),
+    );
+    expect(tagsAPI.setSessionTags).not.toHaveBeenCalled();
+  });
+  it('moves a card with a held touch to the hour under the finger', async () => {
+    vi.mocked(studySessionsAPI.updateSession).mockResolvedValue(
+      response({ success: true, data: { session: base } }),
+    );
+    mount();
+    const item = await card();
+    bounds(item, 100, height);
+    const noon = document.querySelector('[data-calendar-slot="2026-10-16T12:00"]')!;
+    bounds(noon, 400, height);
+    document.elementsFromPoint = () => [noon];
+    const touch = (target: Element | Window, name: string, clientY: number) => {
+      const event = new MouseEvent(name, { bubbles: true, cancelable: true, clientX: 50, clientY });
+      Object.defineProperty(event, 'pointerType', { value: 'touch' });
+      fireEvent(target, event);
+    };
+    touch(item, 'pointerdown', 110);
+    await act(() => new Promise((resolve) => setTimeout(resolve, 350)));
+    expect(item.className).toContain('opacity-30');
+    touch(window, 'pointermove', 410);
+    touch(window, 'pointerup', 410);
+    // 12:00 Istanbul is 09:00 UTC; the card keeps its one hour.
+    await waitFor(() =>
+      expect(studySessionsAPI.updateSession).toHaveBeenCalledWith(base, {
+        startTime: '2026-10-16T09:00:00.000Z',
+        endTime: '2026-10-16T10:00:00.000Z',
+      }),
+    );
+  });
+  it('opens the hours an hour before now on today and follows the fixed shortcuts', async () => {
+    const onViewChange = vi.fn();
+    render(
+      <QueryClientProvider client={client}>
+        <Calendar onCreateSession={vi.fn()} onViewChange={onViewChange} />
+      </QueryClientProvider>,
+    );
+    await card();
+    // 05:00 UTC is 08:00 in Istanbul.
+    expect(screen.getByRole('region', { name: /saatleri görmek/ }).getAttribute('data-opening-minute')).toBe('420');
+    fireEvent.keyDown(document.body, { key: '3' });
+    expect(onViewChange).toHaveBeenCalledWith('monthly');
+    const range = () => document.querySelector('.calendar-toolbar-title p')!.textContent;
+    const shown = range();
+    fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+    await waitFor(() => expect(range()).not.toBe(shown));
+    fireEvent.keyDown(document.body, { key: 't' });
+    await waitFor(() => expect(range()).toBe(shown));
+    fireEvent.keyDown(document.body, { key: '?', shiftKey: true });
+    expect(await screen.findByRole('dialog', { name: 'Klavye kısayolları' })).toBeTruthy();
+  });
+  it('leaves browser full screen even when it is granted after the calendar already closed it', async () => {
+    let grant: () => void = () => undefined;
+    const request = vi.fn(() => new Promise<void>((resolve) => (grant = resolve)));
+    const exit = vi.fn(() => Promise.resolve());
+    Object.assign(document.documentElement, { requestFullscreen: request });
+    Object.assign(document, { exitFullscreen: exit });
+    mount();
+    await card();
+    fireEvent.click(screen.getByRole('button', { name: 'Tam ekran' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tam ekrandan çık' }));
+    expect(exit).not.toHaveBeenCalled();
+    await act(async () => grant());
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(exit).toHaveBeenCalledTimes(1);
+    Reflect.deleteProperty(document.documentElement, 'requestFullscreen');
+    Reflect.deleteProperty(document, 'exitFullscreen');
+  });
   it('previews a resize and commits elapsed minutes with the original version', async () => {
     vi.mocked(studySessionsAPI.updateSession).mockResolvedValue(
       response({ success: true, data: { session: base } }),
     );
     mount();
     const item = await card();
-    const handle = item.querySelector('[data-resize-handle]')!;
+    const handle = item.querySelector('[data-resize-handle="end"]')!;
     fireEvent.pointerDown(handle, { clientY: 100 });
     fireEvent.pointerMove(window, { clientY: 100 + height / 2 });
     expect(studySessionsAPI.updateSession).not.toHaveBeenCalled();
@@ -278,7 +462,7 @@ describe.each([
   it('cancels a resize on Escape without writing and locks completed cards', async () => {
     mount();
     const item = await card();
-    fireEvent.pointerDown(item.querySelector('[data-resize-handle]')!, {
+    fireEvent.pointerDown(item.querySelector('[data-resize-handle="end"]')!, {
       clientY: 100,
     });
     fireEvent.pointerMove(window, { clientY: 100 + height });
@@ -597,5 +781,24 @@ describe.each([
     expect(
       await screen.findByRole('button', { name: base.title }),
     ).toBeTruthy();
+  });
+});
+
+describe('monthly planner', () => {
+  it('lists a day\'s sessions and opens a day in the daily view', async () => {
+    const onViewChange = vi.fn();
+    render(
+      <QueryClientProvider client={client}>
+        <PlannerCalendar mode="monthly" onCreateSession={vi.fn()} onViewChange={onViewChange} />
+      </QueryClientProvider>,
+    );
+    const day = await screen.findByRole('group', { name: /^16 Ekim 2026/ });
+    expect(within(day).getByRole('button', { name: /Geometry fixture/ })).toBeTruthy();
+    expect(document.querySelectorAll('[data-calendar-day]')).toHaveLength(42);
+    expect(studySessionsAPI.getSessions).toHaveBeenCalledWith(
+      expect.objectContaining({ startDate: '2026-09-28', endDate: '2026-11-08' }),
+    );
+    fireEvent.click(within(day).getByRole('button', { name: /gününü günlük görünümde aç/ }));
+    expect(onViewChange).toHaveBeenCalledWith('daily');
   });
 });

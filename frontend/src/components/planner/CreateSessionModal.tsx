@@ -31,6 +31,7 @@ import ConfirmDialog from '../common/ConfirmDialog';
 import PomodoroSettingsFields from './PomodoroSettingsFields';
 import SessionCategoryPicker, { type SessionCategory } from './SessionCategoryPicker';
 import SessionColorPicker from './SessionColorPicker';
+import { clockText } from './calendarGeometry';
 import SessionDurationFields, { EndTimeSummary } from './SessionDurationFields';
 import {
   buildSeriesPayload,
@@ -46,7 +47,10 @@ interface CreateSessionModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedDate?: Date | undefined;
-  selectedHour?: number | undefined;
+  /** Start of a new session in minutes from midnight. */
+  selectedMinute?: number | undefined;
+  /** Length of a new session in minutes, e.g. a span dragged on the calendar. */
+  selectedDuration?: number | undefined;
   editSession?: StudySession | null;
   /** Opens the form for a weekly routine instead of a single session. */
   editSeries?: SeriesRecord | null;
@@ -57,7 +61,7 @@ const weekdayOf = (date: string) => new Date(`${date}T12:00:00Z`).getUTCDay();
 const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
   props,
 ) => {
-  const [{ selectedDate, selectedHour = 9, editSession, editSeries }] = useState(props);
+  const [{ selectedDate, selectedMinute = 9 * 60, selectedDuration = 60, editSession, editSeries }] = useState(props);
   const { onClose } = props;
   const t = useTerms();
   const { sessionEditor: text, session: sessionText, common, tags: tagText } = useText();
@@ -118,9 +122,9 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
             calendarViewDate(new Date(), preferences.timezone),
             'yyyy-MM-dd',
           ),
-      startTime: `${selectedHour.toString().padStart(2, '0')}:00`,
+      startTime: clockText(selectedMinute),
       durationMode: 'minutes',
-      duration: 60,
+      duration: selectedDuration,
       endTime: '',
       sessionType: 'study',
       color: '#60A5FA', // Default soft blue color
@@ -343,9 +347,9 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
               calendarViewDate(new Date(), preferences.timezone),
               'yyyy-MM-dd',
             ),
-        startTime: `${(selectedHour ?? 9).toString().padStart(2, '0')}:00`,
+        startTime: clockText(selectedMinute),
         durationMode: 'minutes',
-        duration: 60,
+        duration: selectedDuration,
         endTime: '',
         sessionType: 'study',
         color: '#3B82F6',
@@ -356,7 +360,8 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
     editSeries,
     editSession,
     selectedDate,
-    selectedHour,
+    selectedMinute,
+    selectedDuration,
     reset,
     defaultPomodoro,
     preferences.timezone,

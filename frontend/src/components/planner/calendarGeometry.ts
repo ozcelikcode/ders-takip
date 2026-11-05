@@ -50,7 +50,7 @@ export function layoutCalendarCards(cards: CardBounds[]) {
   return placements;
 }
 
-export type CalendarMode = 'daily' | 'weekly';
+export type CalendarMode = 'daily' | 'weekly' | 'monthly';
 export const canRepositionSession = (session: StudySession) =>
   session.status !== 'in_progress' && session.status !== 'completed';
 export const sessionMinutes = (session: StudySession) =>
@@ -140,7 +140,7 @@ export function calendarSegment(
 export function buildDaySegments(
   days: readonly Date[],
   sessions: readonly StudySession[],
-  resizePreview: { sessionId: number; minutes: number } | null,
+  resizePreview: { sessionId: number; minutes: number; edge?: 'start' | 'end' } | null,
   timezone: string,
   hourHeight: number,
 ) {
@@ -151,9 +151,10 @@ export function buildDaySegments(
           resizePreview?.sessionId === session.id
             ? {
                 ...session,
-                endTime: new Date(
-                  Date.parse(session.startTime) + resizePreview.minutes * 60000,
-                ).toISOString(),
+                // Pulling the top edge keeps the end; pulling the bottom edge keeps the start.
+                ...(resizePreview.edge === 'start'
+                  ? { startTime: new Date(Date.parse(session.endTime) - resizePreview.minutes * 60000).toISOString() }
+                  : { endTime: new Date(Date.parse(session.startTime) + resizePreview.minutes * 60000).toISOString() }),
                 duration: resizePreview.minutes,
               }
             : session;
@@ -263,4 +264,40 @@ export function slotNavigationTarget(
     if (key === 'End') candidates.reverse();
   } else return undefined;
   return candidates[0] ?? null;
+}
+
+const draftStep = 15;
+/**
+ * The time span a press-and-drag on empty hours selects, in minutes from midnight.
+ * The pressed quarter hour always stays inside; dragging down extends the end, dragging up moves the start.
+ */
+export const draftRange = (pressed: number, pointer: number) => {
+  const anchor = Math.floor(Math.max(0, Math.min(1439, pressed)) / draftStep) * draftStep;
+  const current = Math.max(0, Math.min(1440, pointer));
+  return {
+    start: Math.min(anchor, Math.floor(current / draftStep) * draftStep),
+    end: Math.max(anchor + draftStep, Math.ceil(current / draftStep) * draftStep),
+  };
+};
+export const clockText = (minute: number) =>
+  `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
+
+/**
+ * Where a copy of `session` can start: right after it, or after whatever already holds that time.
+ * Sessions may not overlap (cancelled ones free their time), so the copy takes the first gap of the same length.
+ */
+export function firstFreeStart(session: StudySession, sessions: readonly StudySession[]) {
+  const length = Date.parse(session.endTime) - Date.parse(session.startTime);
+  let start = Date.parse(session.endTime);
+  for (let tries = 0; tries < sessions.length + 1; tries++) {
+    const blocking = sessions.find(
+      (other) =>
+        other.status !== 'cancelled' &&
+        Date.parse(other.startTime) < start + length &&
+        Date.parse(other.endTime) > start,
+    );
+    if (!blocking) break;
+    start = Date.parse(blocking.endTime);
+  }
+  return { startTime: new Date(start).toISOString(), endTime: new Date(start + length).toISOString() };
 }

@@ -694,6 +694,20 @@ The ordering of recent activities, the dashboard topic data and counts, query re
 | A23 | New owner requirement implemented: every visible site name and administrator identity setting changes from a shared source; the repository and domain do not change. |
 | A24 | **Done:** migration 006, the per-user `user_topic_progress`, the GET/PUT endpoints and the `CourseDetailPage` server binding; API and unit tested. No browser-test scenario. |
 
+## Planner gestures (5 November 2026)
+
+- **Press and drag to create:** a press on empty hours (not on a card) becomes a span once the mouse moves 4 px or is held 300 ms; a touch must be held 300 ms without moving 8 px, otherwise it is a scroll. `draftRange` keeps the pressed quarter hour and grows down or up in 15-minute steps within the day; the hours scroll by themselves near the top and bottom edges. Release opens the editor with the start and length (`onCreateSession(date, minute, duration)`; `CreateSessionModal` takes `selectedMinute`/`selectedDuration`). A plain click keeps the old one-hour create; Esc, blur and pointer cancel drop the span. A non-passive `touchmove` listener on the scroll region stops scrolling only while a span is being selected.
+- **Full screen:** a toolbar button turns the calendar into a fixed page layer (`z-45`, under dialogs) and asks the browser to put the whole document in full screen, so dialogs opened from the calendar stay visible. Leaving browser full screen, the button, or Esc with no dialog open returns; leaving the planner exits browser full screen.
+- **Tests:** geometry unit test, component tests (down/up span, the click after release, touch scroll, card press, full screen and Esc), browser tests for mouse drag and full screen in all three profiles and real held touch in mobile Chromium (Chromium DevTools protocol touch events).
+- **Follow-up, same day (owner asked for all of these):**
+  - *Touch:* a card held 300 ms lifts (native `draggable` is off on coarse pointers) and drops on the hour cell under the finger (`elementsFromPoint` on `[data-calendar-cell]`); a quick swipe still scrolls; edges are 12 px under a finger (`pointer-coarse:`).
+  - *Top edge:* both edges resize; the top keeps the end (`buildDaySegments` preview takes `edge`).
+  - *Duplicate:* actions menu › Copy creates a planned copy with the same record, look and tags in the first free time after the original (`firstFreeStart`), because the server refuses overlapping sessions (409 `sessionOverlap`).
+  - *Undo/redo:* `plannerHistory.ts` (zustand, per sign-in epoch, 50 steps) records moves, resizes, copies and deletes of planned sessions. Each step reads the session first and refuses (and drops the step) when its times changed meanwhile; a network failure keeps the step. Deleting a measured session stays final and its confirmation says so.
+  - *Shortcuts (fixed, all languages):* Ctrl/⌘+Z, Ctrl/⌘+Y or Shift+Z, T, ←/→ (outside the hour grid), 1/2/3 views, N new session, F full screen, ? list, Esc. Ignored in text fields and while a dialog is open; the list is a dialog from the toolbar (hidden on phones).
+  - *Month view:* six whole weeks (`usePlannerCalendar` mode `monthly`), three sessions per day plus "+N more", the day number opens the daily view, mouse drag moves to another day keeping the time.
+  - *Page:* one calendar component for all three views (no remount on view change, so date, full screen and history stay); one toolbar row (navigation, range, view switch, undo, redo, shortcuts, full screen); the hours fill the window height (`100dvh - 13rem`, at least 420 px) and open an hour before now on today, else 30 minutes before the first session, else 08:00 (`data-opening-minute`). `PlannerNavigation` was removed.
+
 ## Dependencies
 
 The shared time-zone and calendar calculations use Luxon 3.7.2 with types 3.7.6. All three workspaces use Zod 4.6.7; Joi and the last Zod 3 form path were removed in A19. The root dev, build and check scripts build the contracts; Vite optimises the linked contracts workspace; the Zod major split is gone.

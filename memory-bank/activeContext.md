@@ -1,6 +1,6 @@
 # Study Tracker — Active Context
 
-Last updated: 3 November 2026. Historical packages live in `progress.md` and `implementation/`; this file is the current hand-over.
+Last updated: 5 November 2026. Historical packages live in `progress.md` and `implementation/`; this file is the current hand-over.
 
 ## Current state (25 October 2026)
 
@@ -11,6 +11,8 @@ Last updated: 3 November 2026. Historical packages live in `progress.md` and `im
 - **System page (3 November):** Administration › System shows server, database (rows and size per table, WAL, migrations), activity, backups and safe configuration; read-only, refreshes every 30 s, never shows secrets.
 - **Configurable site gaps (3 November):** site address now mirrors `FRONTEND_URL` (read-only), the administrator contact is the Reply-To, the sender name is the site name, the description shows on sign-in pages, administrators can correct a person's name/username/email, and the browser bar and installed app follow the accent color and site icon.
 - **Bug sweep (3 November):** CI green again (knip build independence), the Pomodoro completion flake fixed at its cause, 20 frontend and backend logic bugs fixed with tests, README screenshots generated from demo data (`npm run docs:screenshots`). Follow-up closed the stuck drag after a week switch, hashing inside the write lock, missing retry buttons, the subscription date time zone and the phone figure wrap.
+- **Planner gestures (5 November):** pressing and dragging on empty hours selects a new session's span in 15-minute steps, down or up (a touch must be held 300 ms first, so a quick swipe still scrolls); the editor opens with that start and length. The calendar has a full-screen mode (a page layer plus browser full screen of the whole document, so dialogs stay visible; Esc or the button leaves). Real touch is tested in mobile Chromium through the DevTools protocol.
+- **Planner follow-up (5 November):** touch move and resize, top-edge resize, duplicate, undo/redo with Ctrl+Z/Ctrl+Y, fixed shortcuts, a month view, and a tidier planner page whose hours fill the window and open at the current time. Details in `progress.md`.
 - **Next:** the S/Q/P/G/D roadmap in `progress.md` (31 October) is done except the Docker trial (owner decision: Docker is not installed) and the off-server activity-log copy. Backlog: device names for signed-in sessions, TOTP 2FA. The goal reminder is done. Since 31 October verified work is committed and pushed without asking; real-database migrations still need the owner's approval each time.
 
 ## Lasting instructions

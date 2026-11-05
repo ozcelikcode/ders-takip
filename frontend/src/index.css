@@ -129,10 +129,6 @@
   @apply bg-(--subtle) text-(--text);
 }
 
-@utility calendar-toolbar {
-  @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between;
-}
-
 @utility calendar-toolbar-title {
   @apply flex flex-wrap items-center gap-3 text-sm font-medium;
 }

@@ -21,7 +21,12 @@ interface Props {
   canResize: boolean;
   onDragStart: (event: DragEvent<HTMLDivElement>) => void;
   onDragEnd: () => void;
-  onResize: (event: PointerEvent<HTMLDivElement>) => void;
+  /** Starts a resize from the top (`start`) or bottom (`end`) edge. */
+  onResize: (event: PointerEvent<HTMLDivElement>, edge: 'start' | 'end') => void;
+  /** Whether the top edge starts on this day, so it can be pulled. */
+  canResizeStart: boolean;
+  /** A touch press on the card, which lifts it for a move after a hold. */
+  onTouchPress: (event: PointerEvent<HTMLDivElement>) => void;
   onEdit: () => void;
   actionRef?: Ref<HTMLButtonElement>;
   onActions: (event: MouseEvent<HTMLElement>) => void;
@@ -40,6 +45,7 @@ export default function CalendarSessionCard(props: Props) {
   const status = sessionText.statuses[session.status];
   return (
     <div
+      data-calendar-card
       className={`absolute group rounded-sm border border-(--line) bg-(--surface) text-(--text) ${props.dragging ? 'opacity-30' : ''} ${session.status === 'completed' || session.status === 'cancelled' ? 'opacity-60' : ''}`}
       style={{
         top,
@@ -53,6 +59,9 @@ export default function CalendarSessionCard(props: Props) {
       onDragStart={props.onDragStart}
       onDragEnd={props.onDragEnd}
       onContextMenu={props.onActions}
+      onPointerDown={(event) => {
+        if (event.pointerType === 'touch' && !(event.target as Element).closest('[data-resize-handle]')) props.onTouchPress(event);
+      }}
       onClick={(event) => {
         event.stopPropagation();
         props.onEdit();
@@ -172,12 +181,22 @@ export default function CalendarSessionCard(props: Props) {
           </span>
         )}
       </div>
+      {/* Edges are thin under a mouse and wider under a finger. */}
+      {!pending && props.canResizeStart && canRepositionSession(session) && (
+        <div
+          data-resize-handle="start"
+          aria-hidden="true"
+          className="absolute inset-x-0 top-0 h-1.5 cursor-ns-resize touch-none hover:bg-(--line) pointer-coarse:h-3"
+          onPointerDown={(event) => props.onResize(event, 'start')}
+          onClick={(event) => event.stopPropagation()}
+        />
+      )}
       {!pending && props.canResize && canRepositionSession(session) && (
         <div
-          data-resize-handle
+          data-resize-handle="end"
           aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize touch-none hover:bg-(--line)"
-          onPointerDown={props.onResize}
+          className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize touch-none hover:bg-(--line) pointer-coarse:h-3"
+          onPointerDown={(event) => props.onResize(event, 'end')}
           onClick={(event) => event.stopPropagation()}
         />
       )}

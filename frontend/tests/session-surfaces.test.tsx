@@ -518,7 +518,7 @@ const routine = {
 it('creates a weekly routine from the session form and says which days another session already holds', async () => {
   vi.mocked(seriesAPI.create).mockResolvedValue({ series: routine, skippedDates: ['2031-01-08'] });
   const onClose = vi.fn();
-  mount(<CreateSessionModal isOpen selectedDate={new Date(Date.UTC(2031, 0, 6))} selectedHour={19} onClose={onClose} />);
+  mount(<CreateSessionModal isOpen selectedDate={new Date(Date.UTC(2031, 0, 6))} selectedMinute={19 * 60} onClose={onClose} />);
   fireEvent.click(screen.getByRole('button', { name: 'Özel' }));
   fireEvent.change(await screen.findByLabelText('Özel Başlık *'), { target: { value: 'Guitar' } });
   expect(screen.queryByRole('group', { name: 'Tekrar günleri' })).toBeNull();

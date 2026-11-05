@@ -225,6 +225,136 @@ test('keeps short card targets separate and supports keyboard creation and day-e
   });
 });
 
+test('turns a press and drag on empty hours into a new session span and expands to full screen', async ({ page }) => {
+  await login(page);
+  await dailyPlanner(page);
+  const slot = page.getByRole('button', { name: /03:00 seans ekle$/ });
+  await slot.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+  const box = (await slot.boundingBox())!;
+  const hour = box.height;
+  await page.mouse.move(box.x + box.width / 2, box.y + 4);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y + 4 + hour, { steps: 4 });
+  await page.mouse.move(box.x + box.width / 2, box.y + 4 + hour * 2, { steps: 4 });
+  await expect(page.locator('[data-calendar-draft]')).toHaveText('03:00 – 05:15');
+  await page.mouse.up();
+  const editor = page.getByRole('dialog', { name: 'Yeni Seans' });
+  await expect(editor.getByLabel('Saat', { exact: true })).toHaveValue('03:00');
+  await expect(editor.getByLabel('Süre (dakika) *', { exact: true })).toHaveValue('135');
+  await page.keyboard.press('Escape');
+  await expect(editor).toBeHidden();
+
+  await page.getByRole('button', { name: 'Tam ekran', exact: true }).click();
+  // The calendar covers the whole window, its hours filling what the toolbar leaves.
+  const expanded = page.locator('[data-calendar-expanded]');
+  await expect(expanded).toBeVisible();
+  const viewport = page.viewportSize()!;
+  // Entering browser full screen resizes the window; the layout settles after it.
+  await expect.poll(async () => (await expanded.boundingBox())?.height ?? 0).toBeCloseTo(viewport.height, 0);
+  await expect
+    .poll(async () => (await page.getByRole('region', { name: /saatleri görmek/ }).boundingBox())?.height ?? 0)
+    .toBeGreaterThan(viewport.height / 2);
+  await page.getByRole('button', { name: 'Tam ekrandan çık', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Tam ekran', exact: true })).toBeVisible();
+  // Leaving full screen is asynchronous in the browser too.
+  await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
+});
+
+test('selects a span with a held touch without scrolling, while a quick swipe still scrolls', async ({ page, browserName }, testInfo) => {
+  // Real touch input comes from the Chromium protocol; the mobile profile is the one with a touch screen.
+  test.skip(browserName !== 'chromium' || !testInfo.project.name.includes('mobile'));
+  await login(page);
+  await dailyPlanner(page);
+  const slot = page.getByRole('button', { name: /03:00 seans ekle$/ });
+  await slot.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+  const box = (await slot.boundingBox())!;
+  const region = page.getByRole('region', { name: /saatleri görmek/ });
+  const scrollBefore = await region.evaluate((node) => node.scrollTop);
+  const cdp = await page.context().newCDPSession(page);
+  const x = box.x + box.width / 2;
+  const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', y: number) =>
+    cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+  await touch('touchStart', box.y + 4);
+  await page.waitForTimeout(450);
+  await expect(page.locator('[data-calendar-draft]')).toHaveText('03:00 – 03:15');
+  for (let step = 1; step <= 8; step++) await touch('touchMove', box.y + 4 + (box.height * 2 * step) / 8);
+  await expect(page.locator('[data-calendar-draft]')).toHaveText('03:00 – 05:15');
+  expect(await region.evaluate((node) => node.scrollTop)).toBe(scrollBefore);
+  await touch('touchEnd', 0);
+  await expect(page.getByRole('dialog', { name: 'Yeni Seans' }).getByLabel('Süre (dakika) *', { exact: true })).toHaveValue('135');
+  await page.keyboard.press('Escape');
+  // A quick swipe still scrolls and never selects.
+  await touch('touchStart', box.y + 4);
+  for (let step = 1; step <= 6; step++) await touch('touchMove', box.y + 4 - step * 30);
+  await touch('touchEnd', 0);
+  await expect(page.locator('[data-calendar-draft]')).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: 'Yeni Seans' })).toHaveCount(0);
+});
+
+test('duplicates, resizes from the top and takes changes back with the keyboard', async ({ page }) => {
+  await login(page);
+  await dailyPlanner(page);
+  const actions = page.getByRole('button', { name: 'Movable session: işlemler' });
+  await actions.click();
+  await page.getByRole('button', { name: 'Kopyala', exact: true }).click();
+  await expect(actions).toHaveCount(2);
+  await page.keyboard.press('Control+z');
+  await expect(actions).toHaveCount(1);
+  await page.keyboard.press('Control+y');
+  await expect(actions).toHaveCount(2);
+  await page.keyboard.press('Control+z');
+  await expect(actions).toHaveCount(1);
+
+  const card = page.locator('[data-calendar-card]', { has: actions });
+  await expect(card).toHaveAttribute('title', /13:00 · 60 dk/);
+  await card.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+  const edge = (await card.locator('[data-resize-handle="start"]').boundingBox())!;
+  const hour = (await page.locator('[data-calendar-hour="12"]').boundingBox())!.height;
+  await page.mouse.move(edge.x + edge.width / 2, edge.y + edge.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(edge.x + edge.width / 2, edge.y + edge.height / 2 - hour, { steps: 5 });
+  await page.mouse.up();
+  await expect(card).toHaveAttribute('title', /12:00 · 120 dk/);
+  await page.keyboard.press('Control+z');
+  await expect(card).toHaveAttribute('title', /13:00 · 60 dk/);
+});
+
+test('shows the month and opens a day of it in the daily view', async ({ page }) => {
+  await login(page);
+  await page.goto('/planner');
+  await page.getByRole('button', { name: 'Aylık', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Aylık Planlayıcı' })).toBeVisible();
+  const today = page.getByRole('group').filter({ has: page.locator('[aria-current="date"]') });
+  // Today has six sessions: three by start time, the rest behind a link to the day.
+  await expect(today.getByRole('button', { name: /First short session/ })).toBeVisible();
+  await today.getByRole('button', { name: '+3 daha', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Günlük Planlayıcı' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Movable session: işlemler' })).toBeVisible();
+  await page.keyboard.press('2');
+  await expect(page.getByRole('heading', { name: 'Haftalık Planlayıcı' })).toBeVisible();
+});
+
+test('moves a card with a held touch', async ({ page, browserName }, testInfo) => {
+  test.skip(browserName !== 'chromium' || !testInfo.project.name.includes('mobile'));
+  await login(page);
+  await dailyPlanner(page);
+  const card = page.locator('[data-calendar-card]', { has: page.getByRole('button', { name: 'Movable session: işlemler' }) });
+  await card.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+  const from = (await card.boundingBox())!;
+  const target = (await page.locator('[data-calendar-hour="15"]').boundingBox())!;
+  const cdp = await page.context().newCDPSession(page);
+  const x = from.x + from.width / 3;
+  const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', y: number) =>
+    cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+  // The middle of the card; its top and bottom edges resize.
+  const grip = from.y + from.height / 2;
+  await touch('touchStart', grip);
+  await page.waitForTimeout(450);
+  for (let step = 1; step <= 6; step++) await touch('touchMove', grip + ((target.y - from.y) * step) / 6);
+  await touch('touchEnd', 0);
+  await expect(card).toHaveAttribute('title', /15:00 · 60 dk/);
+});
+
 test('distinguishes notification failures from empty data and restores focus after reading', async ({
   page,
 }) => {

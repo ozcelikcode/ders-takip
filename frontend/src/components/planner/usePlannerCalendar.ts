@@ -8,16 +8,25 @@ import toast from 'react-hot-toast';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { useAuthStore } from '../../store/authStore';
 import { useUserPreferencesStore } from '../../store/userPreferencesStore';
-import { studySessionsAPI } from '../../services/api';
+import { studySessionsAPI, tagsAPI } from '../../services/api';
 import type { StudySession } from '../../types/planner';
-import { addDays, format, startOfWeek } from '../../utils/calendarDates';
+import { addDays, addMonths, format, startOfMonth, startOfWeek } from '../../utils/calendarDates';
 import { useWeekStart } from '../../hooks/useWeekStart';
 import { canStartSession } from '../../utils/sessionHelpers';
 import {
   canRepositionSession,
+  firstFreeStart,
   moveSessionTimes,
   type CalendarMode,
 } from './calendarGeometry';
+import {
+  ChangedMeanwhile,
+  canRecreate,
+  recordChange,
+  sessionCopy,
+  sessionTagIds,
+  step,
+} from './plannerHistory';
 import { useLanguageStore, useText } from '../../store/languageStore';
 
 type Confirmation = {
@@ -26,6 +35,7 @@ type Confirmation = {
 };
 const errorMessage = (error: unknown) => {
   const text = useLanguageStore.getState().text;
+  if (error instanceof ChangedMeanwhile) return text.planner.changedMeanwhile;
   return isHttpError(error)
     ? (serverMessage(error) ?? text.common.actionFailed)
     : error instanceof Error
@@ -71,9 +81,16 @@ export function usePlannerCalendar(mode: CalendarMode, initialDate?: string, tag
       window.removeEventListener('focus', refresh);
     };
   }, [timezone]);
-  const start = mode === 'weekly' ? startOfWeek(date, weekStart) : date;
-  const days = Array.from({ length: mode === 'weekly' ? 7 : 1 }, (_, index) =>
-    addDays(start, index),
+  // A month shows six whole weeks, so every month fits and the grid never changes height.
+  const start =
+    mode === 'monthly'
+      ? startOfWeek(startOfMonth(date), weekStart)
+      : mode === 'weekly'
+        ? startOfWeek(date, weekStart)
+        : date;
+  const days = Array.from(
+    { length: mode === 'monthly' ? 42 : mode === 'weekly' ? 7 : 1 },
+    (_, index) => addDays(start, index),
   );
   const startDate = format(start, 'yyyy-MM-dd');
   const endDate = format(days[days.length - 1], 'yyyy-MM-dd');
@@ -137,32 +154,43 @@ export function usePlannerCalendar(mode: CalendarMode, initialDate?: string, tag
     duration?: number,
   ) => {
     if (!canRepositionSession(session)) return false;
-    return perform(() => {
-      const times = moveSessionTimes(session, target, timezone, minute);
-      return studySessionsAPI.updateSession(session, {
-        ...times,
-        ...(duration === undefined
-          ? {}
-          : {
-              endTime: new Date(
-                Date.parse(times.startTime) + duration * 60_000,
-              ).toISOString(),
-            }),
-      });
+    return perform(async () => {
+      const moved = moveSessionTimes(session, target, timezone, minute);
+      const after = {
+        startTime: moved.startTime,
+        endTime:
+          duration === undefined
+            ? moved.endTime
+            : new Date(Date.parse(moved.startTime) + duration * 60_000).toISOString(),
+      };
+      await studySessionsAPI.updateSession(session, after);
+      recordChange({ kind: 'times', id: session.id, before: { startTime: session.startTime, endTime: session.endTime }, after });
     }, text.moved(t));
   };
-  const resize = async (session: StudySession, minutes: number) => {
+  /** Sets the length to `minutes`, by moving the end (the default) or the start. */
+  const resize = async (session: StudySession, minutes: number, edge: 'start' | 'end' = 'end') => {
     if (!canRepositionSession(session)) return false;
-    return perform(
-      () =>
-        studySessionsAPI.updateSession(session, {
-          endTime: new Date(
-            Date.parse(session.startTime) + minutes * 60000,
-          ).toISOString(),
-        }),
-      text.resized,
-    );
+    return perform(async () => {
+      const change =
+        edge === 'end'
+          ? { endTime: new Date(Date.parse(session.startTime) + minutes * 60000).toISOString() }
+          : { startTime: new Date(Date.parse(session.endTime) - minutes * 60000).toISOString() };
+      await studySessionsAPI.updateSession(session, change);
+      recordChange({ kind: 'times', id: session.id, before: { startTime: session.startTime, endTime: session.endTime }, after: { startTime: session.startTime, endTime: session.endTime, ...change } });
+    }, text.resized);
   };
+  /** A planned copy in the first free time after the session, with the same record, look and tags. */
+  const duplicate = async (session: StudySession) =>
+    perform(async () => {
+      const copy = sessionCopy(session, firstFreeStart(session, query.data ?? []));
+      const tagIds = await sessionTagIds(session.id);
+      const created = (await studySessionsAPI.createSession(copy)).data.data?.session;
+      if (!created) throw new Error('Missing created session');
+      if (tagIds.length) await tagsAPI.setSessionTags(created.id, tagIds);
+      recordChange({ kind: 'created', id: created.id, copy, tagIds });
+    }, text.duplicated(t));
+  const undo = () => perform(() => step('undo'), text.undone);
+  const redo = () => perform(() => step('redo'), text.redone);
   const reloadMoving = async () => {
     const epoch = useAuthStore.getState().epoch;
     const result = await query.refetch();
@@ -195,12 +223,19 @@ export function usePlannerCalendar(mode: CalendarMode, initialDate?: string, tag
   const confirm = async () => {
     if (!confirmation) return false;
     const { session, action } = confirmation;
+    const remove = async () => {
+      // Only a planned session can come back unchanged; its record and tags are kept for the undo.
+      const undoable = canRecreate(session);
+      const tagIds = undoable ? await sessionTagIds(session.id) : [];
+      await studySessionsAPI.deleteSession(session);
+      if (undoable) recordChange({ kind: 'deleted', id: session.id, copy: sessionCopy(session), tagIds });
+    };
     const operation = () =>
       action === 'pause'
         ? studySessionsAPI.pauseSession(session)
         : action === 'complete'
           ? studySessionsAPI.completeSession(session)
-          : studySessionsAPI.deleteSession(session);
+          : remove();
     const success = await perform(
       operation,
       action === 'pause'
@@ -222,7 +257,9 @@ export function usePlannerCalendar(mode: CalendarMode, initialDate?: string, tag
     setDate,
     today,
     navigate: (direction: number) =>
-      setDate((previous) => addDays(previous, direction * days.length)),
+      setDate((previous) =>
+        mode === 'monthly' ? addMonths(startOfMonth(previous), direction) : addDays(previous, direction * days.length),
+      ),
     editing,
     setEditing,
     moving,
@@ -239,5 +276,8 @@ export function usePlannerCalendar(mode: CalendarMode, initialDate?: string, tag
     startSession,
     move,
     resize,
+    duplicate,
+    undo,
+    redo,
   };
 }

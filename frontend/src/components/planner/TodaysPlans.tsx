@@ -349,7 +349,7 @@ export default function TodaysPlans() {
         <CreateSessionModal
           isOpen
           selectedDate={editor.date}
-          selectedHour={editor.date.getHours()}
+          selectedMinute={editor.date.getHours() * 60}
           editSession={editor.session}
           onClose={() => setEditor(null)}
         />
