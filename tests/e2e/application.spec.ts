@@ -661,6 +661,7 @@ test('plans a weekly routine, edits it as a whole and ends it', async ({ page, a
   await editor.getByLabel('Tarih', { exact: true }).fill(tomorrow);
   await editor.getByLabel('Saat', { exact: true }).fill('18:00');
   await editor.getByLabel('Süre (dakika) *', { exact: true }).fill('90');
+  await editor.getByRole('button', { name: /Daha fazla seçenek/ }).click();
   await editor.getByRole('checkbox', { name: 'Her hafta tekrarla' }).check();
   await expect(editor.getByRole('group', { name: 'Tekrar günleri' }).locator('[aria-pressed="true"]')).toHaveCount(1);
   await editor.getByLabel('Bitiş tarihi (isteğe bağlı)').fill(tomorrow);
@@ -780,6 +781,7 @@ test('tags a session and filters the planner and statistics by that tag', async 
   await dailyPlanner(page);
   await page.getByRole('button', { name: 'Movable session', exact: true }).click();
   const editor = page.getByRole('dialog', { name: 'Seansı düzenle' });
+  await editor.getByRole('button', { name: /Daha fazla seçenek/ }).click();
   await editor.getByRole('group', { name: 'Etiketler' }).getByRole('button', { name: 'Sınav', exact: true }).click();
   await editor.getByRole('button', { name: 'Güncelle', exact: true }).click();
   await expect(editor).toHaveCount(0);
@@ -904,6 +906,7 @@ test('measures a Pomodoro session through pause, reload and completion and count
   const editor = page.getByRole('dialog', { name: 'Yeni Seans' });
   await editor.getByRole('button', { name: 'Özel', exact: true }).click();
   await editor.getByLabel('Özel Başlık *', { exact: true }).fill('Focused browser session');
+  await editor.getByRole('button', { name: /Daha fazla seçenek/ }).click();
   await choose(editor.getByLabel('Seans türü *', { exact: true }), 'Pomodoro');
   await editor.getByLabel('Tarih', { exact: true }).fill(tomorrow);
   await editor.getByLabel('Saat', { exact: true }).fill('15:00');

@@ -148,6 +148,7 @@ for (const theme of ['light', 'dark'] as const) {
       await page
         .getByRole('button', { name: 'Movable session', exact: true })
         .click();
+      await page.getByRole('button', { name: /Daha fazla seçenek/ }).click();
       await expect(page.getByLabel('Seans türü')).toBeVisible();
       await choose(page.getByLabel('Seans türü'), 'Pomodoro');
       await expect(
@@ -159,6 +160,7 @@ for (const theme of ['light', 'dark'] as const) {
       await scan(page, info, 'pomodoro-settings');
       await page.keyboard.press('Escape');
       await page.getByRole('button', { name: 'Yeni seans', exact: true }).click();
+      await page.getByRole('button', { name: /Daha fazla seçenek/ }).click();
       await page.getByRole('checkbox', { name: 'Her hafta tekrarla' }).check();
       await page.getByLabel('Bitiş tarihi (isteğe bağlı)').scrollIntoViewIfNeeded();
       await scan(page, info, 'routine-editor');

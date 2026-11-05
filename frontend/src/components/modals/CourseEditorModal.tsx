@@ -1,6 +1,7 @@
 import { useTerms } from '../../hooks/useTerms';
 import { useId, useState, type FormEvent } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import {
   createCourseSchema,
   type UpdateCourseInput,
@@ -16,6 +17,8 @@ import { catalogIcon } from '../catalog/catalogIcons';
 import { useText } from '../../store/languageStore';
 import Select, { selectField } from '../common/Select';
 import { iconChoices } from '../catalog/iconChoices';
+import QuickAdd from '../common/QuickAdd';
+import { failureMessage } from '../../lib/messages';
 
 interface Props {
   isOpen: boolean;
@@ -36,6 +39,22 @@ function CourseEditor({
   const keys = useAccountQueryKeys();
   const mutation = useCatalogMutation();
   const prefix = useId();
+  const client = useQueryClient();
+  // A missing category is made here and chosen at once, without leaving the form.
+  const addCategory = async (name: string) => {
+    try {
+      const response = await categoriesAPI.createCategory({ name });
+      const created = (response.data.data as { category?: CatalogCategoryRecord } | undefined)?.category;
+      if (!created) return false;
+      await client.invalidateQueries({ queryKey: keys.catalog('categories') });
+      setForm((current) => ({ ...current, categoryId: String(created.id) }));
+      toast.success(text.categoryQuickAdded(created.name));
+      return true;
+    } catch (error) {
+      toast.error(failureMessage(error));
+      return false;
+    }
+  };
   const [initial] = useState(() => ({
     name: course?.name ?? '',
     categoryId: String(course?.categoryId ?? ''),
@@ -165,11 +184,7 @@ function CourseEditor({
       error={mutation.errorMessage}
       onClose={onClose}
       onSubmit={(event) => void submit(event)}
-      disabled={
-        categoriesQuery.isPending ||
-        categoriesQuery.isError ||
-        categories.length === 0
-      }
+      disabled={categoriesQuery.isPending || categoriesQuery.isError}
     >
       <div>
         {label('name', text.recordName(t))}
@@ -219,6 +234,9 @@ function CourseEditor({
           <p role="status" className="mt-2 text-sm text-(--muted)">
             {text.needsCategory}
           </p>
+        )}
+        {categoriesQuery.isSuccess && (
+          <QuickAdd label={text.newCategory} nameLabel={text.categoryName} disabled={mutation.isPending} onAdd={addCategory} />
         )}
       </div>
       <div>

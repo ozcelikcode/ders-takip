@@ -13,15 +13,20 @@ import { useUserPreferencesStore } from '../../store/userPreferencesStore';
 import { useAccountQueryKeys } from '../../hooks/useAccountQueryKeys';
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { contractResolver } from '../../lib/contractResolver';
-import { Coffee, Repeat, Trash2, X } from 'lucide-react';
+import { ChevronDown, Coffee, Repeat, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '../../store/authStore';
+import { failureMessage } from '../../lib/messages';
+import QuickAdd from '../common/QuickAdd';
+import type { CatalogCategoryRecord, CatalogCourse } from '../../types/catalog';
 import { isHttpError } from '../../services/httpError';
 import { useAccountMutation } from '../../hooks/useAccountMutation';
 import { useAllCourses } from '../../hooks/useAllCourses';
 import { sessionFormSchema, type CreateSessionForm } from './sessionForm';
-import { seriesAPI, studySessionsAPI, tagsAPI } from '../../services/api';
+import { categoriesAPI, coursesAPI, seriesAPI, studySessionsAPI, tagsAPI } from '../../services/api';
 import { useTags } from '../../hooks/useTags';
 import TagPicker from '../tags/TagPicker';
 import { useWeekStart } from '../../hooks/useWeekStart';
@@ -32,7 +37,7 @@ import PomodoroSettingsFields from './PomodoroSettingsFields';
 import SessionCategoryPicker, { type SessionCategory } from './SessionCategoryPicker';
 import SessionColorPicker from './SessionColorPicker';
 import { clockText } from './calendarGeometry';
-import SessionDurationFields, { EndTimeSummary } from './SessionDurationFields';
+import SessionDurationFields from './SessionDurationFields';
 import {
   buildSeriesPayload,
   buildSessionPayload,
@@ -99,6 +104,43 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
   const sessionTags = chosenTags ?? storedTags;
 
   const coursesQuery = useAllCourses();
+  const client = useQueryClient();
+  const userId = useAuthStore((state) => state.user?.id);
+  const categoriesQuery = useQuery({
+    queryKey: accountKeys.catalog('categories'),
+    queryFn: () => categoriesAPI.getCategories(),
+  });
+  // A new record goes into a shared category or one of the person's own.
+  const usableCategories = (categoriesQuery.data?.data.data?.categories ?? []).filter(
+    (category: CatalogCategoryRecord) => category.isActive !== false && (category.userId === null || String(category.userId) === String(userId)),
+  );
+  const [newCourseCategory, setNewCourseCategory] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const chosenCategory = newCourseCategory || String(usableCategories[0]?.id ?? '');
+  /** Makes a record from the form (and its first category when there is none yet) and chooses it. */
+  const addCourse = async (name: string) => {
+    try {
+      let categoryId = Number(chosenCategory);
+      if (!usableCategories.length) {
+        if (!newCategoryName.trim()) return false;
+        const made = await categoriesAPI.createCategory({ name: newCategoryName.trim() });
+        const category = (made.data.data as { category?: CatalogCategoryRecord } | undefined)?.category;
+        if (!category) return false;
+        categoryId = category.id;
+      }
+      const response = await coursesAPI.createCourse({ name, categoryId });
+      const created = (response.data.data as { course?: CatalogCourse } | undefined)?.course;
+      if (!created) return false;
+      await client.invalidateQueries({ queryKey: accountKeys.catalog() });
+      setValue('courseId', String(created.id), { shouldValidate: true, shouldDirty: true });
+      setNewCategoryName('');
+      toast.success(text.recordQuickAdded(t, created.name));
+      return true;
+    } catch (error) {
+      toast.error(failureMessage(error));
+      return false;
+    }
+  };
 
   const coursesData = coursesQuery.data?.filter(
     (course) => course.isActive || course.id === editSession?.courseId,
@@ -135,6 +177,12 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
 
   const sessionType = watch('sessionType');
   const showPomodoroSettings = sessionType === 'pomodoro';
+  // Extra options start folded, open for a routine and for a session that already uses them, and open by
+  // themselves when one of their fields is what blocks saving.
+  const [showMore, setShowMore] = useState(
+    () => !!editSeries || (!!editSession && (!!editSession.description || editSession.sessionType === 'pomodoro' || editSession.sessionType === 'review')),
+  );
+  const moreOpen = showMore || !!errors.pomodoroSettings || !!errors.description || (repeat && !weekdays.length);
 
   const reloadSnapshot = async () => {
     if (!editSession || !mutation.isCurrent()) return;
@@ -449,9 +497,6 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
               disabled={mutation.isPending || showDeleteConfirm}
               className="space-y-5 disabled:opacity-60"
             >
-              <p className="text-xs text-(--muted)">
-                {text.timezone(preferences.timezone)}
-              </p>
               {coursesQuery.isError && (
                 <div role="alert">
                   <p>{text.recordsFailed(t)}</p>
@@ -523,6 +568,32 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                       {errors.courseId.message}
                     </p>
                   )}
+                  {coursesQuery.isSuccess && categoriesQuery.isSuccess && (
+                    <QuickAdd label={text.newRecord(t)} nameLabel={text.newRecordName(t)} onAdd={addCourse}>
+                      {usableCategories.length ? (
+                        <div>
+                          <label htmlFor="quickCourseCategory" className="mb-1 block text-xs text-(--muted)">{text.newRecordCategory}</label>
+                          <Select
+                            id="quickCourseCategory"
+                            value={chosenCategory}
+                            options={usableCategories.map((category) => ({ value: String(category.id), label: category.name }))}
+                            onChange={setNewCourseCategory}
+                          />
+                        </div>
+                      ) : (
+                        <div>
+                          <label htmlFor="quickCourseNewCategory" className="mb-1 block text-xs text-(--muted)">{text.newRecordCategoryName}</label>
+                          <input
+                            id="quickCourseNewCategory"
+                            className="input"
+                            value={newCategoryName}
+                            maxLength={100}
+                            onChange={(event) => setNewCategoryName(event.target.value)}
+                          />
+                        </div>
+                      )}
+                    </QuickAdd>
+                  )}
                 </div>
               )}
 
@@ -558,37 +629,11 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 </div>
               )}
 
-              {/* Description */}
+              {/* When: the day, the start and the length, then the time zone they are in. */}
               <div>
-                <label
-                  htmlFor="description"
-                  className="block text-sm font-medium mb-2"
-                >
-                  {text.description}
-                </label>
-                <textarea
-                  {...register('description')}
-                  id="description"
-                  rows={3}
-                  className="input"
-                  placeholder={text.descriptionPlaceholder(t)}
-                />
-              </div>
-
-              {!repeat ? (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">{tagText.picker}</p>
-                  <TagPicker tags={tags.data?.tags ?? []} selected={sessionTags} onChange={setChosenTags} />
-                </div>
-              ) : (
-                (chosenTags?.length ?? 0) > 0 && <p role="note" className="text-sm text-(--muted)">{tagText.routineHint(t)}</p>
-              )}
-
-              {/* Start Date and Time */}
-              <div>
-                <label className="block text-sm font-medium mb-3">
+                <p className="mb-2 text-sm font-medium">
                   {text.startDateTime}
-                </label>
+                </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label
@@ -630,7 +675,11 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 startDate={watchedStartDate}
                 startTime={watchedStartTime}
                 endTime={watchedEndTime}
+                duration={watchedDuration}
               />
+              <p className="-mt-3 text-xs text-(--muted)">
+                {text.timezone(preferences.timezone)}
+              </p>
 
               {isEditMode && editSession?.seriesId && (
                 <p className="flex items-start gap-2 text-xs text-(--muted)">
@@ -638,6 +687,78 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                   {text.partOfRoutine(t)}
                 </p>
               )}
+              {/* Everything a quick plan can leave out, folded away until wanted. */}
+              <div className="border-t border-(--line) pt-4">
+                <button
+                  type="button"
+                  aria-expanded={moreOpen}
+                  aria-controls="session-more-options"
+                  onClick={() => setShowMore(!moreOpen)}
+                  className="flex w-full items-center justify-between gap-3 text-left"
+                >
+                  <span>
+                    <span className="block text-sm font-medium">{text.moreOptions}</span>
+                    <span className="block text-xs text-(--muted)">{text.moreOptionsHint}</span>
+                  </span>
+                  <ChevronDown aria-hidden="true" className={`h-4 w-4 shrink-0 text-(--muted) transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+              <div id="session-more-options" hidden={!moreOpen} className="space-y-5">
+              {/* Description */}
+              <div>
+                <label
+                  htmlFor="description"
+                  className="block text-sm font-medium mb-2"
+                >
+                  {text.description}
+                </label>
+                <textarea
+                  {...register('description')}
+                  id="description"
+                  rows={3}
+                  className="input"
+                  placeholder={text.descriptionPlaceholder(t)}
+                />
+              </div>
+
+              {!repeat ? (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">{tagText.picker}</p>
+                  <TagPicker tags={tags.data?.tags ?? []} selected={sessionTags} onChange={setChosenTags} />
+                </div>
+              ) : (
+                (chosenTags?.length ?? 0) > 0 && <p role="note" className="text-sm text-(--muted)">{tagText.routineHint(t)}</p>
+              )}
+
+              {/* Session Type */}
+              {sessionCategory !== 'break' && (
+                <div>
+                  <label
+                    htmlFor="sessionType"
+                    className="block text-sm font-medium mb-2"
+                  >
+                    {text.type(t)}
+                  </label>
+                  <Select
+                    id="sessionType"
+                    value={sessionType}
+                    options={(['study', 'pomodoro', 'review'] as const).map((type) => ({ value: type, label: sessionText.types[type] }))}
+                    onChange={(type) => setValue('sessionType', type, { shouldValidate: true, shouldDirty: true })}
+                  />
+                </div>
+              )}
+
+              {showPomodoroSettings && (
+                <div className="animate-fade-in">
+                  <PomodoroSettingsFields register={register} setValue={setValue} />
+                </div>
+              )}
+
+              <SessionColorPicker
+                selected={watch('color')}
+                register={register}
+                setValue={setValue}
+              />
               {!isEditMode && (
                 <div className="space-y-3 rounded-lg border border-(--line) p-4">
                   {!editSeries && (
@@ -679,44 +800,7 @@ const SessionEditor: React.FC<Omit<CreateSessionModalProps, 'isOpen'>> = (
                 </div>
               )}
 
-              {/* Session Type */}
-              {sessionCategory !== 'break' && (
-                <div>
-                  <label
-                    htmlFor="sessionType"
-                    className="block text-sm font-medium mb-2"
-                  >
-                    {text.type(t)}
-                  </label>
-                  <Select
-                    id="sessionType"
-                    value={sessionType}
-                    options={(['study', 'pomodoro', 'review'] as const).map((type) => ({ value: type, label: sessionText.types[type] }))}
-                    onChange={(type) => setValue('sessionType', type, { shouldValidate: true, shouldDirty: true })}
-                  />
-                </div>
-              )}
-
-              {durationMode === 'minutes' && (
-                <EndTimeSummary
-                  timezone={preferences.timezone}
-                  startDate={watchedStartDate}
-                  startTime={watchedStartTime}
-                  duration={watchedDuration}
-                />
-              )}
-
-              {showPomodoroSettings && (
-                <div className="animate-fade-in">
-                  <PomodoroSettingsFields register={register} setValue={setValue} />
-                </div>
-              )}
-
-              <SessionColorPicker
-                selected={watch('color')}
-                register={register}
-                setValue={setValue}
-              />
+              </div>
             </fieldset>
             {/* Buttons */}
           </form>

@@ -1,5 +1,4 @@
 import { sessionDurationLimits } from '@study-tracker/contracts';
-import { Calendar, Timer } from 'lucide-react';
 import type { FieldErrors, UseFormRegister } from 'react-hook-form';
 import type { CreateSessionForm } from './sessionForm';
 import { endTimeLabel, rangeDurationLabel, type DurationMode } from './sessionRequest';
@@ -16,13 +15,9 @@ interface SessionDurationFieldsProps {
   endTime: string | undefined;
 }
 
-const modeButtonClass = (active: boolean) =>
-  `p-3 rounded-md border transition-colors duration-150 ${
-    active
-      ? 'border-(--solid) bg-(--subtle) text-(--text)'
-      : 'border-(--line) text-(--muted) hover:bg-(--subtle)'
-  }`;
-
+/**
+ * The session's length: minutes, or an end time. One field and a one-line result, with a small switch between the two.
+ */
 const SessionDurationFields = ({
   mode,
   onModeChange,
@@ -32,35 +27,31 @@ const SessionDurationFields = ({
   startDate,
   startTime,
   endTime,
-}: SessionDurationFieldsProps) => {
+  duration,
+}: SessionDurationFieldsProps & { duration: number | undefined }) => {
   const text = useText().planner;
+  const minutes = duration || 60;
   return (
-  <>
     <div>
-      <label className="block text-sm font-medium mb-3">
-        {text.durationMode}
-      </label>
-      <div className="grid grid-cols-2 gap-3">
-        <button type="button" onClick={() => onModeChange('minutes')} className={modeButtonClass(mode === 'minutes')}>
-          <div className="flex items-center justify-center gap-2">
-            <Timer className={`w-4 h-4 ${mode === 'minutes' ? 'text-(--text)' : 'text-(--muted)'}`} />
-            <span className="font-medium text-sm">{text.minutesMode}</span>
-          </div>
-        </button>
-        <button type="button" onClick={() => onModeChange('timeRange')} className={modeButtonClass(mode === 'timeRange')}>
-          <div className="flex items-center justify-center gap-2">
-            <Calendar className={`w-4 h-4 ${mode === 'timeRange' ? 'text-(--text)' : 'text-(--muted)'}`} />
-            <span className="font-medium text-sm">{text.rangeMode}</span>
-          </div>
-        </button>
-      </div>
-    </div>
-
-    {mode === 'minutes' && (
-      <div>
-        <label htmlFor="duration" className="block text-sm font-medium mb-2">
-          {text.durationMinutes}
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <label htmlFor={mode === 'minutes' ? 'duration' : 'endTime'} className="text-sm font-medium">
+          {mode === 'minutes' ? text.durationMinutes : text.endTimeRequired}
         </label>
+        <div role="group" aria-label={text.durationMode} className="segmented-control">
+          {(['minutes', 'timeRange'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={mode === option}
+              onClick={() => onModeChange(option)}
+              className={`segment ${mode === option ? 'segment-active' : ''}`}
+            >
+              {option === 'minutes' ? text.minutesMode : text.rangeMode}
+            </button>
+          ))}
+        </div>
+      </div>
+      {mode === 'minutes' ? (
         <input
           {...register('duration', { valueAsNumber: true })}
           type="number"
@@ -70,58 +61,22 @@ const SessionDurationFields = ({
           step="any"
           className="input"
         />
-        {errors.duration && (
-          <p className="mt-1 text-sm text-red-600">{errors.duration.message}</p>
+      ) : (
+        <input {...register('endTime')} type="time" id="endTime" className="input" />
+      )}
+      {mode === 'minutes' && errors.duration && <p className="mt-1 text-sm text-red-600">{errors.duration.message}</p>}
+      {/* What the choice adds up to, in one quiet line. */}
+      <p className="mt-1.5 text-xs text-(--muted)" aria-live="polite">
+        {mode === 'minutes' ? (
+          <>
+            {text.endTime} <span className="font-medium tabular-nums text-(--text)">{endTimeLabel(startDate, startTime, minutes, timezone)}</span>
+          </>
+        ) : (
+          <>
+            {text.totalDuration}{' '}
+            <span className="font-medium tabular-nums text-(--text)">{rangeDurationLabel(startDate, startTime, endTime, timezone)}</span>
+          </>
         )}
-      </div>
-    )}
-
-    {mode === 'timeRange' && (
-      <div className="space-y-3">
-        <div>
-          <label htmlFor="endTime" className="block text-sm font-medium mb-2">
-            {text.endTimeRequired}
-          </label>
-          <input {...register('endTime')} type="time" id="endTime" className="input" />
-        </div>
-
-        <div className="bg-(--subtle) rounded-lg p-3 border border-(--line)">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">{text.totalDuration}</span>
-            <span className="text-base font-medium tabular-nums">
-              {rangeDurationLabel(startDate, startTime, endTime, timezone)}
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-(--muted)">
-            {text.totalDurationHint}
-          </p>
-        </div>
-      </div>
-    )}
-  </>
-  );
-};
-
-/** Read-only end-time summary shown below the session type in minutes mode. */
-export const EndTimeSummary = ({
-  timezone,
-  startDate,
-  startTime,
-  duration,
-}: Pick<SessionDurationFieldsProps, 'timezone' | 'startDate' | 'startTime'> & { duration: number | undefined }) => {
-  const minutes = duration || 60;
-  const text = useText().planner;
-  return (
-    <div className="bg-(--subtle) rounded-lg p-3 border border-(--line)">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">{text.endTime}</span>
-        <span className="text-base font-medium tabular-nums">
-          {endTimeLabel(startDate, startTime, minutes, timezone)}
-        </span>
-      </div>
-      <p className="text-xs text-(--muted) mt-1.5 flex items-center gap-1">
-        <Timer className="w-3 h-3" />
-        {text.startPlus(minutes)}
       </p>
     </div>
   );

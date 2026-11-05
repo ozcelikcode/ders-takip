@@ -42,7 +42,7 @@ vi.mock('../../hooks/useAccountQueryKeys', () => ({
   }),
 }));
 vi.mock('../../services/api', () => ({
-  categoriesAPI: { getCategories: vi.fn() },
+  categoriesAPI: { getCategories: vi.fn(), createCategory: vi.fn() },
   coursesAPI: {
     createCourse: vi.fn(),
     updateCourse: vi.fn(),
@@ -489,4 +489,24 @@ it('offers personal categories only for the owner\'s own non-shared records', as
   fireEvent.click(screen.getByLabelText('Tüm kullanıcılara açık'));
   expect((await categoryOptions()).some((name) => name.includes('Kendi'))).toBe(false);
   expect(shown(screen.getByLabelText('Kategori'))).toBe('Kategori seçin');
+});
+
+it('adds a missing category from the record form and chooses it', async () => {
+  const list = (categories: unknown[]) =>
+    ({ data: { success: true, data: { categories } } }) as unknown as Awaited<ReturnType<typeof categoriesAPI.getCategories>>;
+  vi.mocked(categoriesAPI.getCategories).mockResolvedValue(list([]));
+  vi.mocked(categoriesAPI.createCategory).mockImplementation(async () => {
+    vi.mocked(categoriesAPI.getCategories).mockResolvedValue(list([{ id: 8, name: 'Diller', color: '#123456', userId: 1 }]));
+    return { data: { success: true, data: { category: { id: 8, name: 'Diller' } } } } as never;
+  });
+  mount(<CourseEditorModal isOpen onClose={vi.fn()} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Yeni kategori' }));
+  fireEvent.change(screen.getByLabelText('Kategori adı'), { target: { value: 'Diller' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Ekle' }));
+  await waitFor(() => expect(categoriesAPI.createCategory).toHaveBeenCalledWith({ name: 'Diller' }));
+  await waitFor(() => expect(shown(screen.getByLabelText('Kategori'))).toBe('Diller (kişisel)'));
+  expect(toast.success).toHaveBeenCalledWith('“Diller” kategorisi eklendi');
+  // The row closes and the record form stays open.
+  expect(screen.getByRole('button', { name: 'Yeni kategori' })).toBeTruthy();
+  expect(screen.getByLabelText('Ders adı')).toBeTruthy();
 });

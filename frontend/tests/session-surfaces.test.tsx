@@ -14,7 +14,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import toast from 'react-hot-toast';
 import TodaysPlans from '../src/components/planner/TodaysPlans';
 import CreateSessionModal from '../src/components/planner/CreateSessionModal';
-import { studySessionsAPI, coursesAPI, seriesAPI } from '../src/services/api';
+import { studySessionsAPI, coursesAPI, seriesAPI, categoriesAPI } from '../src/services/api';
 import type { StudySession } from '../src/types/planner';
 import { choose, shown } from './choose';
 const context = vi.hoisted(() => ({
@@ -57,7 +57,8 @@ vi.mock('../src/services/api', () => ({
     completeSession: vi.fn(),
     deleteSession: vi.fn(),
   },
-  coursesAPI: { getCourses: vi.fn() },
+  coursesAPI: { getCourses: vi.fn(), createCourse: vi.fn() },
+  categoriesAPI: { getCategories: vi.fn(), createCategory: vi.fn() },
   seriesAPI: { list: vi.fn(), create: vi.fn(), update: vi.fn(), stop: vi.fn() },
   tagsAPI: { list: vi.fn(async () => ({ tags: [], courseTags: [], sessionTags: [] })), setSessionTags: vi.fn() },
 }));
@@ -520,6 +521,8 @@ it('creates a weekly routine from the session form and says which days another s
   mount(<CreateSessionModal isOpen selectedDate={new Date(Date.UTC(2031, 0, 6))} selectedMinute={19 * 60} onClose={onClose} />);
   fireEvent.click(screen.getByRole('button', { name: 'Özel' }));
   fireEvent.change(await screen.findByLabelText('Özel Başlık *'), { target: { value: 'Guitar' } });
+  // Tags and the weekly repeat are among the folded options.
+  fireEvent.click(screen.getByRole('button', { name: /Daha fazla seçenek/ }));
   expect(screen.queryByRole('group', { name: 'Tekrar günleri' })).toBeNull();
   fireEvent.click(screen.getByRole('checkbox', { name: 'Her hafta tekrarla' }));
   const days = screen.getByRole('group', { name: 'Tekrar günleri' });
@@ -565,4 +568,56 @@ it('tells the person that changing a routine session affects only that session',
   await editable(vi.fn(), { ...session, seriesId: 3, seriesDate: '2030-01-01' });
   expect(screen.getByText(/bir rutinin parçası/)).toBeTruthy();
   expect(screen.queryByRole('checkbox', { name: 'Her hafta tekrarla' })).toBeNull();
+});
+
+it('keeps a quick plan short: extra options stay folded until asked for, and open for a session that uses them', async () => {
+  vi.mocked(coursesAPI.getCourses).mockResolvedValue(response({ courses: [] }) as never);
+  vi.mocked(categoriesAPI.getCategories).mockResolvedValue(response({ categories: [] }) as never);
+  const { unmount } = mount(<CreateSessionModal isOpen selectedDate={new Date(Date.UTC(2031, 0, 6))} selectedMinute={9 * 60} onClose={vi.fn()} />);
+  expect(screen.getByLabelText('Tarih')).toBeTruthy();
+  expect(screen.getByLabelText('Süre (dakika) *')).toBeTruthy();
+  // Hidden fields are out of the accessibility tree, so a role query does not find them.
+  expect(screen.queryByRole('textbox', { name: 'Açıklama' })).toBeNull();
+  const more = screen.getByRole('button', { name: /Daha fazla seçenek/ });
+  expect(more.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(more);
+  expect(more.getAttribute('aria-expanded')).toBe('true');
+  expect(screen.getByRole('textbox', { name: 'Açıklama' })).toBeTruthy();
+  unmount();
+  // A session with a description shows its options right away.
+  mount(<CreateSessionModal isOpen editSession={{ ...session, status: 'planned' }} onClose={vi.fn()} />);
+  expect(await screen.findByRole('textbox', { name: 'Açıklama' })).toBeTruthy();
+});
+
+it('adds a missing record from the session form and chooses it, without leaving or submitting the form', async () => {
+  const created = { id: 77, name: 'Gitar', isActive: true, categoryId: 5 };
+  vi.mocked(coursesAPI.getCourses).mockResolvedValue(response({ courses: [] }) as never);
+  vi.mocked(categoriesAPI.getCategories).mockResolvedValue(response({ categories: [{ id: 5, name: 'Hobiler', userId: null, isActive: true }] }) as never);
+  vi.mocked(coursesAPI.createCourse).mockImplementation(async () => {
+    vi.mocked(coursesAPI.getCourses).mockResolvedValue(response({ courses: [created] }) as never);
+    return response({ course: created }) as never;
+  });
+  mount(<CreateSessionModal isOpen selectedDate={new Date(Date.UTC(2031, 0, 6))} selectedMinute={9 * 60} onClose={vi.fn()} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Yeni ders' }));
+  const name = screen.getByLabelText('Ders adı');
+  fireEvent.change(name, { target: { value: 'Gitar' } });
+  // Enter adds here; it never submits the session form around it.
+  fireEvent.keyDown(name, { key: 'Enter' });
+  await waitFor(() => expect(coursesAPI.createCourse).toHaveBeenCalledWith({ name: 'Gitar', categoryId: 5 }));
+  expect(studySessionsAPI.createSession).not.toHaveBeenCalled();
+  await waitFor(() => expect(shown(screen.getByLabelText('Ders seçimi *'))).toBe('Gitar'));
+});
+
+it('makes the first category too when the person has none yet', async () => {
+  vi.mocked(coursesAPI.getCourses).mockResolvedValue(response({ courses: [] }) as never);
+  vi.mocked(categoriesAPI.getCategories).mockResolvedValue(response({ categories: [] }) as never);
+  vi.mocked(categoriesAPI.createCategory).mockResolvedValue(response({ category: { id: 9, name: 'Diller' } }) as never);
+  vi.mocked(coursesAPI.createCourse).mockResolvedValue(response({ course: { id: 78, name: 'İspanyolca' } }) as never);
+  mount(<CreateSessionModal isOpen selectedDate={new Date(Date.UTC(2031, 0, 6))} selectedMinute={9 * 60} onClose={vi.fn()} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Yeni ders' }));
+  fireEvent.change(screen.getByLabelText('Ders adı'), { target: { value: 'İspanyolca' } });
+  fireEvent.change(screen.getByLabelText('Yeni kategori adı'), { target: { value: 'Diller' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Ekle' }));
+  await waitFor(() => expect(coursesAPI.createCourse).toHaveBeenCalledWith({ name: 'İspanyolca', categoryId: 9 }));
+  expect(categoriesAPI.createCategory).toHaveBeenCalledWith({ name: 'Diller' });
 });

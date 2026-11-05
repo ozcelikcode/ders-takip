@@ -17,3 +17,6 @@ export const serverMessage = (error: unknown): string | undefined => {
   if ((body.code === 'validation' || body.code === 'invalidSettings') && field) return issueMessage(field.code);
   return text().apiErrors[body.code];
 };
+
+/** What to tell the person when a request failed: the server's reason, or the general failure. */
+export const failureMessage = (error: unknown): string => serverMessage(error) ?? text().common.actionFailed;

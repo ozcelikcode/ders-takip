@@ -133,3 +133,8 @@ The owner found pages, Statistics most of all, mixed up. Rules applied:
 - Percentages use `Intl.NumberFormat` (`33%` / `%33`); measured durations leave out a zero remainder (`5 min`, `2 h`).
 - Settings: the save status sits at the end of the tab row; panel headings are `text-sm font-medium` and read-only values `text-sm` everywhere.
 - Shared utilities (`btn-secondary`, `badge-gray`, `spinner`, scrollbars) use the theme tokens; the unused `card*` utilities were removed.
+
+## Quick add and the session form (5 November 2026)
+
+- `components/common/QuickAdd.tsx`: a "+ New …" link under a choice that opens a one-line form in place (Enter adds without submitting the outer form, Escape closes only the row, focus returns to the link). The session form adds a record with a category picker (or a first category name when the person has none); the record form adds a category. The new item is chosen at once.
+- The session form shows the basics first: kind, record or title, date, time and length (minutes or an end time through a small segmented switch, with one line for the result and the time zone). Description, tags, session type and Pomodoro settings, colour and the weekly repeat sit under "More options", a disclosure (`aria-expanded`) that starts folded. It opens by itself for a routine, for a session that already uses a description or another type, and when one of its fields blocks saving.

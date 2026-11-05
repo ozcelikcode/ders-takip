@@ -85,6 +85,8 @@ it('tags a new session after saving it, and a failed tag write does not undo or 
   mount(<CreateSessionModal isOpen selectedDate={new Date(Date.UTC(2031, 0, 6))} selectedMinute={9 * 60} onClose={onClose} />);
   fireEvent.click(screen.getByRole('button', { name: 'Özel' }));
   fireEvent.change(await screen.findByLabelText('Özel Başlık *'), { target: { value: 'Reading' } });
+  // Tags and the weekly repeat are among the folded options.
+  fireEvent.click(screen.getByRole('button', { name: /Daha fazla seçenek/ }));
   fireEvent.click(await screen.findByRole('button', { name: 'Okuma' }));
   fireEvent.submit(document.getElementById('create-session-form')!);
   await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
