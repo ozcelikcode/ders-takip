@@ -116,11 +116,23 @@ export const test = base.extend<{
 
 export { expect };
 
-/** Picks an option of the site's Select: a long list (an input) is filtered by typing, a short one is opened. */
+/**
+ * Picks an option of the site's Select: a long list (an input) is filtered by typing, a short one is opened.
+ * Headless UI ignores a click that lands while the list is still opening, so the pick is confirmed by the list
+ * closing and repeated if it did not take.
+ */
 export async function choose(control: Locator, option: string) {
-  if ((await control.evaluate((node) => node.tagName)) === 'INPUT') await control.fill(option);
-  else await control.click();
-  await control.page().getByRole('option', { name: option, exact: true }).click();
+  const page = control.page();
+  const typed = (await control.evaluate((node) => node.tagName)) === 'INPUT';
+  const list = page.getByRole('listbox');
+  await expect(async () => {
+    if (!(await list.isVisible())) {
+      if (typed) await control.fill(option);
+      else await control.click();
+    }
+    await page.getByRole('option', { name: option, exact: true }).click({ timeout: 2_000 });
+    await expect(list).toBeHidden({ timeout: 1_000 });
+  }).toPass({ timeout: 10_000 });
 }
 
 export async function login(page: Page, email = 'owner@example.test') {
