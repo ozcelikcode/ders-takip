@@ -152,10 +152,12 @@ export async function logout(page: Page) {
 
 export async function dailyPlanner(page: Page) {
   await page.goto('/planner');
-  await page.getByRole('button', { name: 'Günlük', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Günlük Planlayıcı' }),
-  ).toBeVisible();
+  // A notice that appears after load (the time-zone suggestion) can shift the toolbar under a click;
+  // the switch is confirmed by the heading and made again when the click missed.
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Günlük', exact: true }).click({ timeout: 2_000 });
+    await expect(page.getByRole('heading', { name: 'Günlük Planlayıcı' })).toBeVisible({ timeout: 1_500 });
+  }).toPass({ timeout: 15_000 });
   await expect(
     page.getByRole('button', { name: 'Movable session: işlemler' }),
   ).toBeVisible();
